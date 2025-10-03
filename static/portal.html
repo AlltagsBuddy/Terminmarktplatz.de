@@ -1,0 +1,76 @@
+<!doctype html>
+<div style="flex:1 1 200px">
+<label>Ende (ISO)</label><input id="end" placeholder="2025-09-16T09:15:00+02:00" />
+</div>
+</div>
+<div class="row">
+<div style="flex:1 1 220px"><label>Ort</label><input id="location" placeholder="Bamberg" /></div>
+<div style="flex:1 1 120px"><label>Kapazität</label><input id="capacity" type="number" value="1" /></div>
+<div style="flex:1 1 220px"><label>Kontaktweg</label>
+<select id="contact_method">
+<option>mail</option><option>phone</option><option>whatsapp</option><option>link</option>
+</select>
+</div>
+<div style="flex:2 1 260px"><label>Buchungslink (optional)</label><input id="booking_link" placeholder="https://…" /></div>
+</div>
+<div class="row">
+<div style="flex:1 1 200px"><label>Preis (Cent, optional)</label><input id="price" type="number" /></div>
+<div style="flex:3 1 420px"><label>Notizen</label><input id="notes" placeholder="Unterlagen mitbringen …" /></div>
+</div>
+<button onclick="createSlot()">Slot einreichen</button>
+<p id="new_msg"></p>
+</div>
+
+
+<div class="card">
+<h2 style="margin-top:0">Ihre Slots</h2>
+<table>
+<thead><tr><th>Start</th><th>Titel</th><th>Status</th><th>Aktionen</th></tr></thead>
+<tbody id="slots"></tbody>
+</table>
+</div>
+
+
+<button onclick="logout()">Logout</button>
+</div>
+<script>
+const API = location.origin; // oder https://api.terminmarktplatz.de
+async function me(){
+const r = await fetch(API+'/me', {credentials:'include'});
+if(!r.ok){ location.href = '/'; return }
+const p = await r.json();
+document.getElementById('profile').innerHTML = `<b>${p.company_name||'Unbenannt'}</b><br>${p.email}<br>Status: ${p.status}`;
+}
+async function loadSlots(){
+const r = await fetch(API+'/slots', {credentials:'include'});
+const list = await r.json();
+const tbody = document.getElementById('slots');
+tbody.innerHTML = list.map(s => `<tr>
+<td>${s.start_at}</td>
+<td>${s.title}</td>
+<td>${s.status}</td>
+<td><button onclick=\"del('${s.id}')\">Löschen</button></td>
+</tr>`).join('');
+}
+async function createSlot(){
+const payload = {
+title: v('title'), category: v('category'), start_at: v('start'), end_at: v('end'),
+location: v('location'), capacity: parseInt(v('capacity')||'1'), contact_method: v('contact_method'),
+booking_link: v('booking_link')||null, price_cents: v('price')?parseInt(v('price')):null, notes: v('notes')||null
+};
+const r = await fetch(API+'/slots', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+const j = await r.json();
+document.getElementById('new_msg').textContent = r.ok ? 'Gespeichert. Wartet auf Freigabe.' : (j.error||'Fehler');
+if(r.ok) loadSlots();
+}
+function v(id){return document.getElementById(id).value}
+async function del(id){
+if(!confirm('Diesen Slot löschen?')) return;
+const r = await fetch(API+'/slots/'+id, {method:'DELETE', credentials:'include'});
+if(r.ok) loadSlots();
+}
+async function logout(){ await fetch(API+'/auth/logout', {method:'POST', credentials:'include'}); location.href='/' }
+me(); loadSlots();
+</script>
+</body>
+</html>

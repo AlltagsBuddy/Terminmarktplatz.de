@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terminmarktplatz – Anbieter Login</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b0c10;color:#e9eef3}
+.wrap{max-width:520px;margin:0 auto;padding:24px}
+h1{font-size:24px}
+.card{background:#12141a;border:1px solid #232734;border-radius:14px;padding:18px}
+label{display:block;font-size:14px;color:#aab7c5;margin:8px 0 4px}
+input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #232734;background:#0f1116;color:#e9eef3}
+button{margin-top:12px;padding:10px 14px;border-radius:10px;border:1px solid #2d3b52;background:#4da3ff;color:#001018;font-weight:700;cursor:pointer}
+.muted{color:#aab7c5;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Terminmarktplatz – Anbieter</h1>
+<div class="card">
+<h2 style="margin-top:0">Login</h2>
+<label>E-Mail</label>
+<input id="login_email" type="email" placeholder="praxis@example.de" />
+<label>Passwort</label>
+<input id="login_password" type="password" />
+<button onclick="login()">Einloggen</button>
+<p id="login_msg" class="muted"></p>
+</div>
+
+
+<p class="muted">Noch kein Zugang? Jetzt registrieren:</p>
+<div class="card">
+<h2 style="margin-top:0">Registrierung</h2>
+<label>E-Mail</label>
+<input id="reg_email" type="email" placeholder="praxis@example.de" />
+<label>Passwort (min. 8 Zeichen)</label>
+<input id="reg_password" type="password" />
+<button onclick="registerAcc()">Zugang anlegen</button>
+<p id="reg_msg" class="muted"></p>
+</div>
+</div>
+<script>
+const API = location.origin; // gleicher Host, sonst https://api.terminmarktplatz.de
+async function login(){
+const r = await fetch(API + '/auth/login', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:document.getElementById('login_email').value, password:document.getElementById('login_password').value})});
+const j = await r.json();
+if(r.ok){ location.href = '/portal'; } else { document.getElementById('login_msg').textContent = j.error || 'Fehler'; }
+}
+async function registerAcc(){
+const r = await fetch(API + '/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:document.getElementById('reg_email').value, password:document.getElementById('reg_password').value})});
+const j = await r.json();
+document.getElementById('reg_msg').textContent = r.ok ? 'Bitte E-Mail prüfen und bestätigen.' : (j.error || 'Fehler');
