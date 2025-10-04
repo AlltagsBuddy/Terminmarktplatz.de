@@ -6,3 +6,4 @@ Flask-Cors==4.0.1
 PyJWT==2.9.0
 argon2-cffi==23.1.0
 email-validator
+python-dotenv 
