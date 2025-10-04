@@ -2,7 +2,7 @@
 import os
 from datetime import datetime, timedelta, timezone
 from email_validator import validate_email, EmailNotValidError
-from flask import Flask, request, jsonify, make_response, send_from_directory
+from flask import Flask, request, redirect, jsonify, make_response, send_from_directory
 from sqlalchemy import create_engine, select, and_, func
 from sqlalchemy.orm import Session
 from models import Base, Provider, Slot, Booking
@@ -27,6 +27,14 @@ engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
 
 app = Flask(__name__, static_folder='static')
+
+@app.before_request
+def redirect_www():
+    host = request.host.lower()
+    if host.startswith('www.terminmarktplatz.de'):
+        # permanenter Redirect zur Startseite
+        return redirect('https://terminmarktplatz.de/index.html', code=301)
+
 
 from flask_cors import CORS
 CORS(app, supports_credentials=True,
