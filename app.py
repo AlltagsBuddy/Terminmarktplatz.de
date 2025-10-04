@@ -5,7 +5,7 @@ from email_validator import validate_email, EmailNotValidError
 from flask import Flask, request, jsonify, make_response, send_from_directory
 from sqlalchemy import create_engine, select, and_, func
 from sqlalchemy.orm import Session
-from models import Base, Provider, Slot
+from models import Base, Provider, Slot, Booking
 from argon2 import PasswordHasher
 import jwt
 from dotenv import load_dotenv

@@ -5,52 +5,78 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 
 class Base(DeclarativeBase):
+    """Basis aller SQLAlchemy-Modelle."""
     pass
 
 class Provider(Base):
-    __tablename__ = 'provider'
+    """Dienstleister (Arzt, Amt, Handwerker …)."""
+    __tablename__ = "provider"
+
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True,
                                     default=lambda: str(uuid4()))
     email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
-    # ... weitere Spalten wie company_name, branch usw.
-    status: Mapped[str] = mapped_column(Text, default='pending')
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    pw_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    company_name: Mapped[str | None] = mapped_column(Text)
+    branch: Mapped[str | None] = mapped_column(Text)
+    street: Mapped[str | None] = mapped_column(Text)
+    zip: Mapped[str | None] = mapped_column(Text)
+    city: Mapped[str | None] = mapped_column(Text)
+    phone: Mapped[str | None] = mapped_column(Text)
+    whatsapp: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, default="pending")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
                                                  default=lambda: datetime.now(timezone.utc))
 
-    slots: Mapped[list['Slot']] = relationship(
-        'Slot', back_populates='provider', cascade='all, delete-orphan'
+    slots: Mapped[list["Slot"]] = relationship(
+        "Slot",
+        back_populates="provider",
+        cascade="all, delete-orphan",
     )
 
 class Slot(Base):
-    __tablename__ = 'slot'
+    """Freies Zeitfenster eines Providers."""
+    __tablename__ = "slot"
+
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True,
                                     default=lambda: str(uuid4()))
-    provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('provider.id', ondelete='CASCADE')
-    )
+    provider_id: Mapped[str] = mapped_column(UUID(as_uuid=False),
+                                             ForeignKey("provider.id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(Text)
-    # ... weitere Spalten wie category, start_at, end_at usw.
-    status: Mapped[str] = mapped_column(Text, default='pending_review')
+    category: Mapped[str] = mapped_column(Text)
+    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    location: Mapped[str | None] = mapped_column(Text)
+    capacity: Mapped[int] = mapped_column(Integer, default=1)
+    contact_method: Mapped[str] = mapped_column(Text, default="mail")
+    booking_link: Mapped[str | None] = mapped_column(Text)
+    price_cents: Mapped[int | None] = mapped_column(Integer)
+    notes: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, default="pending_review")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
                                                  default=lambda: datetime.now(timezone.utc))
 
-    provider: Mapped[Provider] = relationship(
-        'Provider', back_populates='slots'
+    provider: Mapped[Provider] = relationship("Provider", back_populates="slots")
+    bookings: Mapped[list["Booking"]] = relationship(
+        "Booking",
+        back_populates="slot",
+        cascade="all, delete-orphan",
     )
 
 class Booking(Base):
-    __tablename__ = 'booking'
-    id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), primary_key=True,
-        default=lambda: str(uuid4())
-    )
-    slot_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('slot.id', ondelete='CASCADE')
-    )
+    """Buchung eines Slots durch einen Kunden."""
+    __tablename__ = "booking"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True,
+                                    default=lambda: str(uuid4()))
+    slot_id: Mapped[str] = mapped_column(UUID(as_uuid=False),
+                                         ForeignKey("slot.id", ondelete="CASCADE"))
     customer_name: Mapped[str] = mapped_column(Text)
     customer_email: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(Text, default='hold')
+    status: Mapped[str] = mapped_column(Text, default="hold")  # hold|confirmed|canceled
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),
                                                  default=lambda: datetime.now(timezone.utc))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    slot: Mapped[Slot] = relationship("Slot", back_populates="bookings")
