@@ -1,54 +1,204 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Terminmarktplatz – Anbieter Login</title>
-<style>
-body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b0c10;color:#e9eef3}
-.wrap{max-width:520px;margin:0 auto;padding:24px}
-h1{font-size:24px}
-.card{background:#12141a;border:1px solid #232734;border-radius:14px;padding:18px}
-label{display:block;font-size:14px;color:#aab7c5;margin:8px 0 4px}
-input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #232734;background:#0f1116;color:#e9eef3}
-button{margin-top:12px;padding:10px 14px;border-radius:10px;border:1px solid #2d3b52;background:#4da3ff;color:#001018;font-weight:700;cursor:pointer}
-.muted{color:#aab7c5;font-size:14px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terminmarktplatz – Anbieter Login & Registrierung</title>
+  <!-- Stil orientiert sich am Hauptindex (index.html) -->
+  <meta name="description" content="Anbieter Login und Registrierung für den Terminmarktplatz." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <meta property="og:title" content="Terminmarktplatz – Anbieter Login & Registrierung" />
+  <meta property="og:description" content="Anbieter Login und Registrierung für den Terminmarktplatz." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="og-image.jpg" />
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    /* Farbvariablen und Grunddesign wie in index.html */
+    :root{
+      --bg:#0b0c10;
+      --card:#111318;
+      --text:#e9eef3;
+      --muted:#aab7c5;
+      --brand:#4da3ff;
+      --brand-2:#5ef0a3;
+      --danger:#ff5d5d;
+    }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans","Helvetica Neue",Arial;
+      color:var(--text);
+      background:radial-gradient(1200px 600px at 80% -10%, rgba(77,163,255,.15), transparent 60%),
+                 radial-gradient(900px 500px at -10% 20%, rgba(94,240,163,.12), transparent 60%), var(--bg);
+      line-height:1.6;
+    }
+    a{ color:var(--brand); text-decoration:none }
+    a:hover{ text-decoration:underline }
+    .wrap{ max-width:980px; margin:0 auto; padding:24px; }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:8px 0 24px;
+    }
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .logo img{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      background:#fff;
+      object-fit:cover;
+    }
+    .badge{
+      font-size:12px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid #223;
+      color:var(--muted);
+    }
+    .hero{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:28px;
+      align-items:flex-start;
+    }
+    @media (min-width:900px){
+      .hero{ grid-template-columns:1fr 1fr; }
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;
+      padding:24px;
+    }
+    .shadow{ box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    h1{ font-size:clamp(28px,4vw,44px); line-height:1.15; margin:0 0 12px; }
+    .sub{ font-size:clamp(16px,1.6vw,18px); color:var(--muted); margin:0 0 18px; }
+    label{ display:block; font-size:14px; color:var(--muted); margin:8px 0 4px; }
+    input{ width:100%; padding:12px 14px; border-radius:12px; background:#0f1116; border:1px solid #1b1f27; color:var(--text); }
+    button{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:12px 18px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background:var(--brand);
+      color:#001018;
+      font-weight:700;
+      cursor:pointer;
+    }
+    button:hover{ filter:brightness(1.05); }
+    .muted{ color:var(--muted); font-size:14px; }
+    /* Form layout */
+    .stack{ display:flex; flex-direction:column; gap:12px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+  </style>
 </head>
 <body>
-<div class="wrap">
-<h1>Terminmarktplatz – Anbieter</h1>
-<div class="card">
-<h2 style="margin-top:0">Login</h2>
-<label>E-Mail</label>
-<input id="login_email" type="email" placeholder="praxis@example.de" />
-<label>Passwort</label>
-<input id="login_password" type="password" />
-<button onclick="login()">Einloggen</button>
-<p id="login_msg" class="muted"></p>
-</div>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-label="Logo">
+        <img src="logo.png" alt="Logo" loading="lazy" />
+        <span>Terminmarktplatz</span>
+      </div>
+      <span class="badge">Beta · Slots werden vermittelt</span>
+    </header>
+    <main class="hero">
+      <!-- Login Card -->
+      <section class="card shadow">
+        <h1>Anbieter Login</h1>
+        <p class="sub">Bitte melde dich mit deiner registrierten E‑Mail und deinem Passwort an.</p>
+        <form id="loginForm" class="stack" autocomplete="on">
+          <label for="login_email">E‑Mail</label>
+          <input id="login_email" name="login_email" type="email" placeholder="praxis@example.de" required />
+          <label for="login_password">Passwort</label>
+          <input id="login_password" name="login_password" type="password" required />
+          <button type="submit" aria-label="Einloggen">Einloggen</button>
+          <p id="login_msg" class="muted"></p>
+        </form>
+      </section>
+      <!-- Registration Card -->
+      <section class="card shadow">
+        <h1>Registrierung</h1>
+        <p class="sub">Noch kein Zugang? Erstelle jetzt deinen Anbieter‑Account.</p>
+        <form id="regForm" class="stack" autocomplete="on">
+          <label for="reg_email">E‑Mail</label>
+          <input id="reg_email" name="reg_email" type="email" placeholder="praxis@example.de" required />
+          <label for="reg_password">Passwort (min. 8 Zeichen)</label>
+          <input id="reg_password" name="reg_password" type="password" required />
+          <button type="submit" aria-label="Registrieren">Zugang anlegen</button>
+          <p id="reg_msg" class="muted"></p>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script>
+    // Dynamische API-URL (gleicher Host oder API-Subdomain)
+    const API = location.origin;
 
+    // Login: Bei Erfolg zur Indexseite weiterleiten
+    document.getElementById('loginForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      const email = document.getElementById('login_email').value.trim();
+      const password = document.getElementById('login_password').value;
+      const msg = document.getElementById('login_msg');
+      msg.textContent = '';
+      try {
+        const r = await fetch(API + '/auth/login', {
+          method:'POST',
+          credentials:'include',
+          headers:{ 'Content-Type':'application/json' },
+          body:JSON.stringify({ email, password })
+        });
+        const j = await r.json();
+        if(r.ok){
+          // nach erfolgreichem Login zur Startseite
+          window.location.href = '/index.html';
+        } else {
+          msg.textContent = j.error || 'Login fehlgeschlagen';
+        }
+      } catch(err){
+        msg.textContent = 'Netzwerkfehler';
+      }
+    });
 
-<p class="muted">Noch kein Zugang? Jetzt registrieren:</p>
-<div class="card">
-<h2 style="margin-top:0">Registrierung</h2>
-<label>E-Mail</label>
-<input id="reg_email" type="email" placeholder="praxis@example.de" />
-<label>Passwort (min. 8 Zeichen)</label>
-<input id="reg_password" type="password" />
-<button onclick="registerAcc()">Zugang anlegen</button>
-<p id="reg_msg" class="muted"></p>
-</div>
-</div>
-<script>
-const API = location.origin; // gleicher Host, sonst https://api.terminmarktplatz.de
-async function login(){
-const r = await fetch(API + '/auth/login', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:document.getElementById('login_email').value, password:document.getElementById('login_password').value})});
-const j = await r.json();
-if(r.ok){ location.href = '/portal'; } else { document.getElementById('login_msg').textContent = j.error || 'Fehler'; }
-}
-async function registerAcc(){
-const r = await fetch(API + '/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:document.getElementById('reg_email').value, password:document.getElementById('reg_password').value})});
-const j = await r.json();
-document.getElementById('reg_msg').textContent = r.ok ? 'Bitte E-Mail prüfen und bestätigen.' : (j.error || 'Fehler');
+    // Registrierung: Benutzer registrieren und Hinweis anzeigen
+    document.getElementById('regForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      const email = document.getElementById('reg_email').value.trim();
+      const password = document.getElementById('reg_password').value;
+      const msg = document.getElementById('reg_msg');
+      msg.textContent = '';
+      if(password.length < 8){
+        msg.textContent = 'Passwort muss mindestens 8 Zeichen haben.';
+        return;
+      }
+      try {
+        const r = await fetch(API + '/auth/register', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body:JSON.stringify({ email, password })
+        });
+        const j = await r.json();
+        if(r.ok){
+          msg.textContent = 'Bitte E‑Mail prüfen und den Link zur Bestätigung anklicken.';
+        } else {
+          msg.textContent = j.error || 'Registrierung fehlgeschlagen.';
+        }
+      } catch(err){
+        msg.textContent = 'Netzwerkfehler';
+      }
+    });
+  </script>
+</body>
+</html>

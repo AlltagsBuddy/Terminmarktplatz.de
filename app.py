@@ -87,11 +87,17 @@ def send_mail(to: str, subject: str, text: str):
 # ---------- Static (for Strato: serve login/portal as static) ----------
 @app.get('/')
 def index():
-    return send_from_directory('static', 'login.html')
+    # Startseite anzeigen
+    return send_from_directory('static', 'index.html')
 
 @app.get('/portal')
 def portal_page():
     return send_from_directory('static', 'portal.html')
+
+@app.get('/search')
+def search_page():
+    return send_from_directory('static', 'search.html')
+
 
 # ---------- Auth ----------
 @app.post('/auth/register')
