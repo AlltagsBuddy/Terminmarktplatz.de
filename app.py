@@ -106,6 +106,14 @@ def portal_page():
 def search_page():
     return send_from_directory('static', 'search.html')
 
+@app.get('/impressum.html')
+def impressum_page():
+    return send_from_directory('static', 'impressum.html')
+
+@app.get('/datenschutz.html')
+def datenschutz_page():
+    return send_from_directory('static', 'datenschutz.html')
+
 
 # ---------- Auth ----------
 @app.post('/auth/register')
