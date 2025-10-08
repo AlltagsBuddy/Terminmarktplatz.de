@@ -1,0 +1,316 @@
+/* =========================================================
+   Terminmarktplatz – Neon Candy Playground (bunt & frisch)
+   Look: bold colors, gradients, bubbly shapes, young & fun
+   Hinweis: HTML unverändert nutzbar
+========================================================= */
+
+/* ---------- Tokens ---------- */
+:root{
+  /* Brand Rainbow */
+  --c-pink:#ff6bcb;
+  --c-purple:#7c3aed;
+  --c-violet:#8b5cf6;
+  --c-blue:#3b82f6;
+  --c-cyan:#06b6d4;
+  --c-mint:#10b981;
+  --c-lime:#84cc16;
+  --c-yellow:#facc15;
+  --c-orange:#fb923c;
+  --c-red:#ef4444;
+
+  --bg:#0b0f1a;          /* tiefe Nachtbasis für starke Farben */
+  --bg-soft:#0f1524;
+  --surface:#0f172a;
+  --ink:#f8fafc;
+  --ink-dim:#cbd5e1;
+  --border:rgba(255,255,255,.12);
+
+  --r-3xl:28px;
+  --r-2xl:22px;
+  --r-xl:18px;
+  --r-lg:14px;
+
+  --shadow-1: 0 8px 26px rgba(0,0,0,.25);
+  --shadow-2: 0 16px 48px rgba(0,0,0,.35);
+
+  --grad-brand: linear-gradient(135deg, var(--c-pink), var(--c-blue), var(--c-lime));
+  --grad-soft: linear-gradient(135deg, rgba(124,58,237,.25), rgba(6,182,212,.25));
+  --focus: 0 0 0 3px rgba(59,130,246,.45);
+}
+
+/* ---------- Base ---------- */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(900px 520px at 15% -10%, rgba(255,107,203,.25), transparent 60%),
+    radial-gradient(900px 520px at 90% -20%, rgba(6,182,212,.25), transparent 55%),
+    radial-gradient(1200px 600px at 50% 120%, rgba(132,204,22,.18), transparent 55%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+a{color:inherit; text-decoration:none}
+img{max-width:100%; height:auto; display:block}
+.container{width:min(1160px, 92%); margin-inline:auto}
+
+/* Fun Blobs (Deko) */
+body::before,
+body::after{
+  content:""; position:fixed; inset:auto auto 8% -10%;
+  width:42vw; height:42vw; z-index:-1; filter: blur(60px);
+  background: radial-gradient(circle at 30% 30%, rgba(124,58,237,.45), transparent 60%),
+              radial-gradient(circle at 70% 70%, rgba(6,182,212,.40), transparent 60%);
+  opacity:.7; transform: rotate(12deg);
+}
+body::after{
+  inset:-8% -10% auto auto; width:36vw; height:36vw;
+  background: radial-gradient(circle at 30% 30%, rgba(250,204,21,.40), transparent 60%),
+              radial-gradient(circle at 70% 70%, rgba(16,185,129,.40), transparent 60%);
+  transform: rotate(-8deg);
+}
+
+/* ---------- Header ---------- */
+header{
+  position:sticky; top:0; z-index:50;
+  background: rgba(15,23,42,.7); backdrop-filter:saturate(160%) blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav{display:flex; align-items:center; justify-content:space-between; padding:14px 0}
+.brand{display:flex; align-items:center; gap:12px}
+.brand-logo{
+  width:44px; height:44px; border-radius:16px;
+  background: var(--grad-brand);
+  display:grid; place-items:center; box-shadow:var(--shadow-1); overflow:hidden
+}
+.brand-title{font-weight:900; letter-spacing:.2px}
+
+.nav-links{display:flex; align-items:center; gap:16px}
+.nav-links a{padding:10px 12px; color:var(--ink-dim); font-weight:700; opacity:.9}
+.nav-links a:hover, .nav-links a.active{color:#fff; opacity:1}
+
+.cta-group{display:flex; align-items:center; gap:10px}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 18px; border-radius:18px; border:1px solid var(--border);
+  background:rgba(255,255,255,.04); color:#fff; cursor:pointer; transition:.18s;
+  box-shadow: var(--shadow-1);
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:focus-visible{outline:none; box-shadow:var(--focus)}
+.btn.primary{
+  background:linear-gradient(135deg, var(--c-purple), var(--c-cyan));
+  border:none; font-weight:800;
+}
+.btn.secondary{background:rgba(255,255,255,.06)}
+
+/* ---------- Hero ---------- */
+.hero{padding:86px 0 34px}
+.hero-grid{display:grid; grid-template-columns:1fr; gap:20px; text-align:center}
+.badge{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:12px; font-weight:900; padding:8px 12px; border-radius:999px;
+  color:#0b0f1a; background:#fff;
+  box-shadow:0 2px 0 0 rgba(0,0,0,.1), 0 10px 24px rgba(0,0,0,.15);
+}
+.hero h1{
+  font-size:clamp(34px, 5vw, 64px);
+  line-height:1.02; margin:14px 0 10px; letter-spacing:-0.8px;
+  background:linear-gradient(90deg, #fff, #dbeafe, #fff);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.hero p.lead{
+  color:var(--ink-dim); font-size:clamp(16px, 2.2vw, 20px);
+  max-width:900px; margin-inline:auto
+}
+
+/* Suche – neon clay */
+.search-card{
+  margin:24px auto 0; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border:1px solid var(--border); border-radius:var(--r-3xl);
+  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255,255,255,.08);
+  padding:18px 18px 20px; max-width:980px;
+}
+.searchbar{
+  display:grid; grid-template-columns:1.2fr 1fr .9fr .9fr auto; gap:12px;
+}
+.input{
+  display:flex; gap:10px; align-items:center;
+  background:rgba(255,255,255,.06); border:1px solid var(--border);
+  border-radius:16px; padding:12px 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+.input:focus-within{outline: none; box-shadow: var(--focus)}
+.input input, .input select{all:unset; color:#fff; width:100%}
+.input input::placeholder{color:rgba(255,255,255,.6)}
+
+.btn.primary[type="submit"]{
+  background:linear-gradient(135deg, var(--c-pink), var(--c-blue));
+  border:none; color:#0b0f1a; font-weight:900;
+}
+.btn.primary[type="submit"]:hover{
+  filter: brightness(1.1);
+}
+
+.trust{
+  display:flex; gap:14px; align-items:center; margin-top:14px;
+  color:rgba(255,255,255,.8); font-size:14px; justify-content:center;
+}
+.trust::before{
+  content:""; width:8px; height:8px; border-radius:50%;
+  background: var(--c-mint); display:inline-block; margin-right:4px;
+}
+
+/* ---------- Sections ---------- */
+section{padding:56px 0}
+h2{
+  font-size:clamp(24px, 3.2vw, 36px); margin:0 0 12px; letter-spacing:-.3px;
+  display:inline-flex; align-items:center; gap:10px;
+}
+h2::after{
+  content:""; width:64px; height:6px; border-radius:6px;
+  background:linear-gradient(90deg, var(--c-yellow), var(--c-pink), var(--c-blue));
+  display:inline-block;
+}
+.sub{color:var(--ink-dim); margin:14px 0 20px}
+
+/* ---------- Feature-Cards (bunt) ---------- */
+.features{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:22px;
+}
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border:1px solid var(--border);
+  border-radius:var(--r-2xl); padding:22px; box-shadow:var(--shadow-1);
+  position:relative; overflow:hidden; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.card::before{
+  content:""; position:absolute; inset:-30% -30% auto auto; width:60%; height:60%;
+  background: var(--grad-soft); filter: blur(22px); opacity:.6; transform: rotate(8deg);
+}
+.card:hover{transform:translateY(-4px); box-shadow:var(--shadow-2); border-color:rgba(255,255,255,.18)}
+.card h3{margin:6px 0 8px; font-size:18px; color:#fff}
+.card p{color:var(--ink-dim); font-size:15px}
+
+/* ---------- Kategorien: nur Beispiele (farbig, nicht klickbar) ---------- */
+.categories{
+  display:flex; flex-wrap:wrap; gap:12px 16px; align-items:center
+}
+.chip{
+  display:inline-flex; align-items:center; padding:8px 12px; border-radius:999px;
+  font-weight:800; letter-spacing:.2px; cursor:default;
+  color:#0b0f1a; background:#fff; box-shadow:0 8px 20px rgba(0,0,0,.15);
+  border:0;
+  transform: translateZ(0); transition: transform .12s ease;
+}
+.chip:hover{ transform: translateY(-2px) }
+.chip:nth-child(6n+1){ background:linear-gradient(135deg,#fff,#ffe1f2); }
+.chip:nth-child(6n+2){ background:linear-gradient(135deg,#fff,#e1f5ff); }
+.chip:nth-child(6n+3){ background:linear-gradient(135deg,#fff,#e5ffef); }
+.chip:nth-child(6n+4){ background:linear-gradient(135deg,#fff,#fff4db); }
+.chip:nth-child(6n+5){ background:linear-gradient(135deg,#fff,#f1e7ff); }
+.chip:nth-child(6n+6){ background:linear-gradient(135deg,#fff,#ffe9e1); }
+
+/* ---------- How ---------- */
+.how{display:grid; grid-template-columns:repeat(3, 1fr); gap:20px}
+.step{
+  padding:20px; border:1px solid var(--border); border-radius:var(--r-xl);
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  box-shadow:var(--shadow-1)
+}
+.step b{
+  display:inline-flex; width:32px; height:32px; border-radius:50%;
+  align-items:center; justify-content:center; margin-right:8px;
+  background:linear-gradient(135deg, var(--c-blue), var(--c-pink)); color:#0b0f1a; font-weight:900
+}
+
+/* ---------- CTA Provider ---------- */
+.cta-provider{display:grid; grid-template-columns: 1.1fr .9fr; gap:22px; align-items:center}
+.cta-provider .panel{
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border:1px solid var(--border); border-radius:var(--r-3xl);
+  padding:24px; box-shadow:var(--shadow-2)
+}
+
+/* ---------- Testimonials ---------- */
+.testimonials{display:grid; grid-template-columns:repeat(3, 1fr); gap:20px}
+
+/* ---------- FAQ ---------- */
+.faq{display:grid; grid-template-columns:1fr; gap:12px}
+details{
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border:1px solid var(--border); border-radius:16px;
+  padding:14px; box-shadow:var(--shadow-1); transition:background .2s, border-color .2s
+}
+details[open]{background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05)); border-color:rgba(255,255,255,.2)}
+summary{cursor:pointer; font-weight:900; color:#fff}
+
+/* ---------- Footer ---------- */
+footer{
+  margin-top:40px; padding:36px 0 50px; border-top:1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,.00), rgba(255,255,255,.06));
+}
+.foot-grid{display:grid; grid-template-columns:1.1fr .9fr .9fr .9fr; gap:22px}
+.foot-col h4{margin:8px 0 10px}
+.foot-link{display:block; padding:6px 0; color:var(--ink-dim)}
+.copyright{margin-top:18px; color:var(--ink-dim); font-size:13px}
+
+/* ---------- Cookie ---------- */
+.cookie{position:fixed; inset:auto 16px 16px 16px; z-index:100; display:none}
+.cookie .wrap{
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border:1px solid var(--border); border-radius:18px; padding:14px; box-shadow:var(--shadow-2)
+}
+.cookie p{margin:0 0 10px; color:var(--ink-dim)}
+.cookie .btns{display:flex; gap:10px}
+
+/* ---------- Utilities ---------- */
+.muted{color:var(--ink-dim)}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1080px){
+  .features{grid-template-columns:1fr 1fr}
+  .testimonials{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 960px){
+  .cta-provider, .foot-grid{grid-template-columns:1fr}
+  .how{grid-template-columns:1fr}
+  .searchbar{grid-template-columns:1fr 1fr 1fr auto}
+}
+@media (max-width: 760px){
+  .features{grid-template-columns:1fr}
+  .testimonials{grid-template-columns:1fr}
+  .categories{gap:10px 12px}
+  .searchbar{grid-template-columns:1fr 1fr auto}
+}
+
+/* ---------- Accessibility / Motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important}
+}
+/* === Josefin Sans aktivieren & feinjustieren === */
+body{
+  font-family: "Josefin Sans", Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.1px; /* Josefin mag ein Hauch Tracking */
+}
+
+h1, h2, h3{
+  font-weight: 800;
+  letter-spacing: 0.2px; /* wirkt klarer bei Display-Größen */
+}
+
+.hero h1{
+  line-height: 1.04; /* minimal dichter für Josefin */
+}
+
+.nav-links a, .btn{ 
+  font-weight: 700; /* knackigere Navigation/Buttons */
+}
+
+.chip{ 
+  font-weight: 800; /* Beispiele wirken so frischer */
+}

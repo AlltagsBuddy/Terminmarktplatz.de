@@ -1,0 +1,290 @@
+<!-- FILE: templates/wie-es-funktioniert.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wie es funktioniert | Terminmarktplatz</title>
+  <meta name="description" content="So funktioniert Terminmarktplatz: Für Nutzer:innen freie Termine finden und buchen. Für Anbieter:innen freie Slots veröffentlichen und No-Shows reduzieren." />
+  <meta name="theme-color" content="#6f53ff" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Wie es funktioniert" />
+  <meta property="og:description" content="In wenigen Schritten zu freien Terminen – für Nutzer:innen und Anbieter:innen." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    .tabs{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0}
+    .tab-btn{padding:10px 14px; border-radius:999px; border:1px solid var(--ab-border); background:#fff; cursor:pointer; box-shadow:var(--shadow-1); font-weight:600}
+    .tab-btn.active{background:linear-gradient(135deg, var(--ab-primary), var(--ab-accent)); color:#fff; border:none}
+    .panel{background:#fff; border:1px solid var(--ab-border); border-radius:var(--radius-xl); padding:18px; box-shadow:var(--shadow-2)}
+    .steps{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+    .step{padding:16px; border:1px dashed #cbd5e1; border-radius:16px; background:#fff}
+    .step .num{display:inline-flex; width:28px; height:28px; border-radius:50%; align-items:center; justify-content:center; margin-right:8px; background:linear-gradient(135deg, var(--ab-primary), var(--ab-accent)); color:#fff; font-weight:800}
+    .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+    .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; border:1px solid var(--ab-border); background:#fff; font-weight:600}
+    .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
+    .demo-card{background:#fff; border:1px solid var(--ab-border); border-radius:16px; padding:14px; box-shadow:var(--shadow-2)}
+    .demo-row{display:grid; grid-template-columns: 1.2fr 1fr .9fr .9fr auto; gap:8px}
+    .demo-input{display:flex; gap:10px; align-items:center; background:#fff; border:1px solid var(--ab-border); border-radius:12px; padding:12px}
+    .demo-input input,.demo-input select{all:unset; width:100%}
+    .list-check{list-style:none; padding:0; margin:0; display:grid; gap:8px}
+    .list-check li{display:flex; gap:8px; align-items:flex-start}
+    .list-check svg{min-width:20px}
+    @media (max-width: 1024px){
+      .steps{grid-template-columns:1fr 1fr}
+      .grid-3{grid-template-columns:1fr 1fr}
+      .demo-row{grid-template-columns:1fr 1fr 1fr auto}
+    }
+    @media (max-width: 640px){
+      .steps,.grid-3,.grid-2{grid-template-columns:1fr}
+      .demo-row{grid-template-columns:1fr 1fr auto}
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="/" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" />
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
+      <nav class="nav-links" id="nav-links">
+        <a class="active" href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a href="/kategorien">Kategorien</a>
+        <a href="/anbieter">Für Anbieter</a>
+        <a href="/preise">Preise</a>
+        <a href="/blog">Blog</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="/login?tab=login">Anmelden</a>
+        <a class="btn primary" href="/login?tab=register">Kostenlos starten</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" style="padding:40px 0 16px">
+      <div class="container">
+        <span class="badge">So funktioniert’s</span>
+        <h1>Freie Termine finden & freie Slots füllen – ganz einfach</h1>
+        <p class="lead">Terminmarktplatz bringt kurzfristige Verfügbarkeiten zu den Menschen, die sie gerade brauchen – fair, transparent und DSGVO-konform.</p>
+
+        <div class="tabs" role="tablist" aria-label="Zielgruppe wählen">
+          <button class="tab-btn active" data-tab="users" role="tab" aria-selected="true">Für Nutzer:innen</button>
+          <button class="tab-btn" data-tab="providers" role="tab" aria-selected="false">Für Anbieter:innen</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section>
+      <div class="container">
+        <div class="panel" id="tab-users" role="tabpanel">
+          <h2>In 4 Schritten zum Termin</h2>
+          <div class="steps" style="margin-top:10px">
+            <div class="step"><span class="num">1</span><b>Kategorie & Ort wählen</b><br><span class="muted">z. B. Friseur in 10115</span></div>
+            <div class="step"><span class="num">2</span><b>Zeitraum filtern</b><br><span class="muted">Heute, morgen oder Datum wählen</span></div>
+            <div class="step"><span class="num">3</span><b>Slot auswählen</b><br><span class="muted">Details prüfen & buchen</span></div>
+            <div class="step"><span class="num">4</span><b>Bestätigen & erinnern lassen</b><br><span class="muted">Bestätigung per E-Mail</span></div>
+          </div>
+
+          <div class="grid-2" style="margin-top:16px">
+            <div class="demo-card">
+              <div class="muted" style="margin-bottom:8px">Demo-Suche (ohne Funktion)</div>
+              <div class="demo-row">
+                <div class="demo-input"><input placeholder="Kategorie (z. B. Friseur)"></div>
+                <div class="demo-input"><input placeholder="PLZ oder Ort"></div>
+                <div class="demo-input"><select><option>Heute</option><option>Morgen</option><option>Diese Woche</option></select></div>
+                <div class="demo-input"><select><option>09–12</option><option>12–15</option><option>15–18</option></select></div>
+                <button class="btn primary">Suchen</button>
+              </div>
+              <div class="muted" style="margin-top:10px">Tipp: Du kannst später nach Preis, Dauer oder Entfernung filtern.</div>
+            </div>
+            <ul class="list-check">
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div><b>Sofort verfügbar</b><br><span class="muted">Nur echte freie Slots – keine Anfrageformulare.</span></div>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div><b>Transparente Infos</b><br><span class="muted">Preis, Dauer, Ort & Kontaktweg auf einen Blick.</span></div>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div><b>Erinnerungen</b><br><span class="muted">E-Mail mit Bestätigung & Stornolink.</span></div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- PROVIDERS -->
+        <div class="panel" id="tab-providers" role="tabpanel" hidden>
+          <h2>So veröffentlichst du freie Slots</h2>
+          <div class="steps" style="margin-top:10px">
+            <div class="step"><span class="num">1</span><b>Konto anlegen</b><br><span class="muted">E-Mail bestätigen, Profil ausfüllen</span></div>
+            <div class="step"><span class="num">2</span><b>Slots anlegen</b><br><span class="muted">Titel, Kategorie, Start & Dauer</span></div>
+            <div class="step"><span class="num">3</span><b>Freigabe</b><br><span class="muted">Wir prüfen & veröffentlichen</span></div>
+            <div class="step"><span class="num">4</span><b>Buchungen erhalten</b><br><span class="muted">Per Mail oder Link – wie du willst</span></div>
+          </div>
+
+          <div class="grid-3" style="margin-top:16px">
+            <div class="card">
+              <h3>Weniger Leerlauf</h3>
+              <p class="muted">Fülle kurzfristige Lücken effizient – sichtbar für Menschen, die gerade Zeit haben.</p>
+            </div>
+            <div class="card">
+              <h3>Flexible Kontaktwege</h3>
+              <p class="muted">E-Mail, Telefon oder externer Buchungslink – du bestimmst den Prozess.</p>
+            </div>
+            <div class="card">
+              <h3>Transparente Kontrolle</h3>
+              <p class="muted">Verwalte Status (in Prüfung/veröffentlicht/archiviert), dupliziere & exportiere.</p>
+            </div>
+          </div>
+
+          <div class="callout" style="margin-top:14px">
+            <b>Technik</b><br>
+            Slots enthalten <em>Titel, Kategorie, Start, Ende</em> (Dauer), optional <em>Kapazität, Preis, Ort, Kontaktweg, Link</em>.
+          </div>
+
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+            <a class="btn primary" href="/login?tab=register">Jetzt kostenlos starten</a>
+            <a class="btn" href="/portal">Zum Anbieter-Portal</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SICHERHEIT & DATENSCHUTZ -->
+    <section>
+      <div class="container grid-3">
+        <div class="card">
+          <span class="pill">DSGVO</span>
+          <h3 style="margin:10px 0 6px">Datenschutz an erster Stelle</h3>
+          <p class="muted">Eindeutige Opt-ins, transparente E-Mails und einfache Stornolinks. Details in unserer <a href="/datenschutz">Datenschutzerklärung</a>.</p>
+        </div>
+        <div class="card">
+          <span class="pill">Fair Use</span>
+          <h3 style="margin:10px 0 6px">Klare Regeln</h3>
+          <p class="muted">Angebote müssen real & fair sein. Spam und Lockangebote sind untersagt.</p>
+        </div>
+        <div class="card">
+          <span class="pill">Monitoring</span>
+          <h3 style="margin:10px 0 6px">Qualitätssicherung</h3>
+          <p class="muted">Neuanmeldungen werden kurz geprüft, bevor Slots live gehen.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section>
+      <div class="container">
+        <h2>Häufige Fragen</h2>
+        <p class="sub">Kurz & knapp beantwortet.</p>
+        <div class="faq">
+          <details>
+            <summary>Was kostet Terminmarktplatz?</summary>
+            <p class="muted">Die Nutzung ist in der Startphase kostenlos. Später können faire, transparente Tarife folgen – siehe <a href="/preise">Preise</a>.</p>
+          </details>
+          <details>
+            <summary>Wie schnell sind neue Slots sichtbar?</summary>
+            <p class="muted">Nach kurzer Prüfung (Anti-Spam, Qualität) werden Slots veröffentlicht und sind sofort auffindbar.</p>
+          </details>
+          <details>
+            <summary>Wie bestätige ich eine Buchung?</summary>
+            <p class="muted">Kund:innen erhalten eine E-Mail mit Bestätigungslink. Du bekommst eine Benachrichtigung je nach Kontaktweg.</p>
+          </details>
+          <details>
+            <summary>Kann ich meine Slots auch extern verlinken?</summary>
+            <p class="muted">Ja. Nutze den Kontaktweg „Externer Link“ und verweise auf dein Buchungssystem.</p>
+          </details>
+        </div>
+
+        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+          <a class="btn primary" href="/login?tab=register">Als Anbieter:in starten</a>
+          <a class="btn" href="/">Zur Startseite</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein"/>
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a class="foot-link" href="/kategorien">Kategorien</a>
+        <a class="foot-link" href="/preise">Preise</a>
+        <a class="foot-link" href="/anbieter">Für Anbieter</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="/impressum">Impressum</a>
+        <a class="foot-link" href="/datenschutz">Datenschutz</a>
+        <a class="foot-link" href="/agb">AGB</a>
+        <a class="foot-link" href="/widerruf">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="/kontakt">Kontaktformular</a>
+        <a class="foot-link" href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a>
+        <a class="foot-link" href="/blog">Blog</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <script>
+    // Mobile Nav
+    const nav = document.querySelector('.nav');
+    const hb = document.getElementById('hamburger');
+    if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
+
+    // Footer-Jahr
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Tabs
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = {
+      users: document.getElementById('tab-users'),
+      providers: document.getElementById('tab-providers'),
+    };
+    function switchTab(name){
+      tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+      Object.entries(panels).forEach(([k,el])=>{ el.hidden = (k!==name); });
+      window.scrollTo({top:document.querySelector('main').offsetTop, behavior:'smooth'});
+    }
+    tabs.forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)));
+
+    // Direkter Tab via URL ?tab=providers
+    const url = new URL(window.location.href);
+    const want = url.searchParams.get('tab');
+    if (want && ['users','providers'].includes(want)) switchTab(want);
+  </script>
+</body>
+</html>

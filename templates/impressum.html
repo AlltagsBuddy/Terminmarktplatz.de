@@ -1,92 +1,233 @@
-<!DOCTYPE html>
+<!-- FILE: templates/impressum.html -->
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Impressum – Terminmarktplatz</title>
-  <meta name="description" content="Impressum für Terminmarktplatz.de. Pflichtangaben und rechtliche Hinweise." />
-  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <meta property="og:title" content="Impressum – Terminmarktplatz" />
-  <meta property="og:description" content="Impressum für Terminmarktplatz.de" />
+  <title>Impressum | Terminmarktplatz</title>
+  <meta name="description" content="Impressum und gesetzliche Anbieterkennzeichnung für Terminmarktplatz gemäß § 5 TMG / § 18 Abs. 2 MStV." />
+  <meta name="theme-color" content="#6f53ff" />
+
   <meta property="og:type" content="website" />
-  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="Impressum | Terminmarktplatz" />
+  <meta property="og:description" content="Gesetzliche Anbieterkennzeichnung und Pflichtangaben." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
   <style>
-    :root{ --bg:#0b0c10; --card:#111318; --text:#e9eef3; --muted:#aab7c5; --brand:#4da3ff; --brand-2:#5ef0a3; --danger:#ff5d5d; }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
-    body{ margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans","Helvetica Neue",Arial; color:var(--text);
-      background:radial-gradient(1200px 600px at 80% -10%, rgba(77,163,255,.15), transparent 60%),
-                 radial-gradient(900px 500px at -10% 20%, rgba(94,240,163,.12), transparent 60%), var(--bg);
-      line-height:1.6; }
-    a{ color:var(--brand); text-decoration:none }
-    a:hover{ text-decoration:underline }
-    .wrap{ max-width:980px; margin:0 auto; padding:24px; }
-    header{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:8px 0 24px }
-    .logo{ display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.2px }
-    .logo img{ width:40px; height:40px; border-radius:12px; background:#fff; object-fit:cover }
-    .badge{ font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #223; color:var(--muted) }
-    h1{ font-size:clamp(28px,4vw,44px); line-height:1.15; margin:0 0 12px }
-    h2{ margin-top:24px; font-size:clamp(22px,3vw,32px) }
-    p{ margin:12px 0 }
-    ul{ margin:0 0 12px 20px; padding:0 }
-    li{ margin-bottom:8px }
-    .card{ background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0)); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:24px }
-    footer{ margin:48px 0 24px; color:var(--muted); font-size:14px }
-    .legal a{ color:var(--muted) }
+    .fill{background:#fff3; border-bottom:2px dotted #cbd5e1}
+    .small{font-size:13px; color:var(--ab-text-dim)}
+    .impressum h3{margin:16px 0 6px}
+    .impressum p{margin:6px 0}
+    .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="logo" aria-label="Logo">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Terminmarktplatz Logo" loading="lazy">
-        <span>Terminmarktplatz</span>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="/" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" />
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
+      <nav class="nav-links" id="nav-links">
+        <a href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a href="/kategorien">Kategorien</a>
+        <a href="/anbieter">Für Anbieter</a>
+        <a href="/preise">Preise</a>
+        <a href="/blog">Blog</a>
+        <a class="active" href="/impressum">Impressum</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="/anmelden">Anmelden</a>
+        <a class="btn primary" href="/registrieren">Kostenlos starten</a>
       </div>
-      <span class="badge">Beta · Slots werden vermittelt</span>
-    </header>
+    </div>
+  </header>
 
-    <main class="card">
-      <h1>Impressum</h1>
-      <p>Angaben gemäß § 5 TMG</p>
-      <p><strong>Annett Hofmann</strong><br />
-      Steigerwaldstraße 35<br />
-      96191 </Viereth-Trunstadt></p>
-
-      <p><strong>Kontakt</strong></p>
-      <p>Telefon: <a href="tel:+49123456789">+49 123 456789</a><br />
-      E‑Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a></p>
-
-      <p><strong>Umsatzsteuer-ID</strong></p>
-      <p>Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz: DE123456789</p>
-
-      <p><strong>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</strong></p>
-      <p>Annett Hofmann<br />Steigerwaldstraße 35<br />96191 Viereth-Trunstadt</p>
-
-      <h2>Haftungsausschluss</h2>
-      <p><strong>Haftung für Inhalte</strong><br />
-      Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.</p>
-
-      <p><strong>Haftung für Links</strong><br />
-      Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.</p>
-
-      <h2>Urheberrecht</h2>
-      <p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers. Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet. Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet. Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.</p>
-
-      <h2>Streitschlichtung</h2>
-      <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">https://ec.europa.eu/consumers/odr</a>. Unsere E‑Mail-Adresse finden Sie oben im Impressum.</p>
-    </main>
-
-    <footer>
-      <div class="row" style="display:flex;justify-content:space-between;align-items:center">
-        <span>© <span id="year"></span> Terminmarktplatz</span>
-        <span class="legal"><a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a></span>
+  <main>
+    <section class="hero" style="padding:40px 0 16px">
+      <div class="container">
+        <span class="badge">Pflichtangaben</span>
+        <h1>Impressum</h1>
+        <p class="lead">Gesetzliche Anbieterkennzeichnung gemäß § 5 TMG und Informationen nach § 18 Abs. 2 MStV.</p>
       </div>
-    </footer>
-  </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="card impressum" style="padding:22px">
+          <h2>1. Angaben gemäß § 5 TMG</h2>
+          <p>
+            <strong>[Unternehmensname / Inhaber]</strong><br>
+            [Straße und Hausnummer]<br>
+            [PLZ] [Ort], [Land]
+          </p>
+          <p>
+            Telefon: <span class="fill">[Telefonnummer]</span><br>
+            E-Mail: <a href="mailto:[info@deine-domain.de]">[info@deine-domain.de]</a><br>
+            Website: <span class="fill">[https://deine-domain.de]</span>
+          </p>
+
+          <h3>Vertretungsberechtigte Person(en)</h3>
+          <p>
+            <span class="fill">[Name der vertretungsberechtigten Person(en)]</span>
+          </p>
+
+          <h3>Registereintrag</h3>
+          <p>
+            <span class="small">(falls vorhanden)</span><br>
+            Eingetragen im Handelsregister.<br>
+            Registergericht: <span class="fill">[Amtsgericht …]</span><br>
+            Registernummer: <span class="fill">[HRB/HRA …]</span>
+          </p>
+
+          <h3>Umsatzsteuer-ID</h3>
+          <p>
+            <span class="small">(falls vorhanden)</span><br>
+            Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG:<br>
+            <span class="fill">[DE123456789]</span>
+          </p>
+
+          <h3>Verantwortlich i. S. d. § 18 Abs. 2 MStV</h3>
+          <p>
+            <span class="fill">[Name], [Anschrift wie oben oder abweichend]</span>
+          </p>
+
+          <h3>Berufsrechtliche Angaben</h3>
+          <p class="small">Nur relevant für reglementierte Berufe (z. B. Heilberufe, Handwerk, Rechts-/Steuerberatung). Andernfalls diesen Abschnitt entfernen.</p>
+          <p>
+            Berufsbezeichnung: <span class="fill">[z. B. Handwerksmeister/in …]</span><br>
+            Zuständige Kammer/Aufsicht: <span class="fill">[z. B. Handwerkskammer …]</span><br>
+            Es gelten folgende berufsrechtliche Regelungen: <span class="fill">[Link/Bezeichnung]</span>
+          </p>
+
+          <hr style="border:none; border-top:1px solid var(--ab-border); margin:18px 0">
+
+          <h2>2. EU-Streitschlichtung</h2>
+          <p>
+            Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
+            <a href="https://ec.europa.eu/consumers/odr/" rel="nofollow noopener" target="_blank">https://ec.europa.eu/consumers/odr/</a>.
+          </p>
+
+          <h2>3. Verbraucherstreitbeilegung nach VSBG</h2>
+          <p class="callout">
+            <strong>Wähle eine Option und passe den Text an:</strong><br>
+            <span class="small">a)</span> Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.<br>
+            <span class="small">b)</span> Wir sind bereit, an Streitbeilegungsverfahren vor folgender Verbraucherschlichtungsstelle teilzunehmen:
+            <span class="fill">[Name/Anschrift/URL der Schlichtungsstelle]</span>.
+          </p>
+
+          <h2>4. Haftung für Inhalte</h2>
+          <p>
+            Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen
+            Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet,
+            übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen,
+            die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung
+            von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist
+            jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von
+            entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.
+          </p>
+
+          <h2>5. Haftung für Links</h2>
+          <p>
+            Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben.
+            Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten
+            Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die verlinkten Seiten
+            wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte waren
+            zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente inhaltliche Kontrolle der verlinkten
+            Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden
+            von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
+          </p>
+
+          <h2>6. Urheberrecht</h2>
+          <p>
+            Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen
+            Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der
+            Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
+            Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet,
+            soweit nicht ausdrücklich anders gekennzeichnet. Soweit die Inhalte auf dieser Seite nicht vom Betreiber
+            erstellt wurden, werden die Urheberrechte Dritter beachtet und entsprechende Inhalte gekennzeichnet.
+            Solltest du trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen Hinweis.
+            Bei Bekanntwerden von Rechtsverletzungen entfernen wir derartige Inhalte umgehend.
+          </p>
+
+          <h2>7. Bild-, Icon- & Schrift-Nachweise</h2>
+          <p>
+            <span class="fill">[Quelle/n für Bilder/Illustrationen/Icons/Fonts – z. B. eigenes Material, Lizenz, Stock-Plattform, Autoren]</span>
+          </p>
+
+          <h2>8. Social-Media-Profile</h2>
+          <p>
+            <span class="fill">[Links zu offiziellen Profilen – z. B. Instagram, Facebook, LinkedIn, X, YouTube]</span><br>
+            Es gelten die Nutzungs- und Datenschutzbestimmungen der jeweiligen Plattformbetreiber.
+          </p>
+
+          <p class="small" style="margin-top:16px">
+            Stand: <span id="asof"></span> • Diese Musterangaben ersetzen keine Rechtsberatung. Bitte alle <em>[Platzhalter]</em> ausfüllen bzw. nicht zutreffende Abschnitte entfernen.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein"/>
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a class="foot-link" href="/kategorien">Kategorien</a>
+        <a class="foot-link" href="/preise">Preise</a>
+        <a class="foot-link" href="/anbieter">Für Anbieter</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="/impressum">Impressum</a>
+        <a class="foot-link" href="/datenschutz">Datenschutz</a>
+        <a class="foot-link" href="/agb">AGB</a>
+        <a class="foot-link" href="/widerruf">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="/kontakt">Kontaktformular</a>
+        <a class="foot-link" href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a>
+        <a class="foot-link" href="/blog">Blog</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
 
   <script>
-    // Aktuelles Jahr im Footer
-    document.getElementById('year').textContent = new Date().getFullYear();
+    // Mobile Nav
+    const nav = document.querySelector('.nav');
+    const hb = document.getElementById('hamburger');
+    if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
+
+    // Jahreszahl & Datum
+    document.getElementById('y').textContent = new Date().getFullYear();
+    const d = new Date();
+    const pad = (n)=> String(n).padStart(2,'0');
+    document.getElementById('asof').textContent = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
   </script>
 </body>
 </html>

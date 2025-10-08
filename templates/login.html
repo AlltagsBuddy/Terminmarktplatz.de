@@ -1,204 +1,388 @@
-<!DOCTYPE html>
+<!-- FILE: templates/login.html -->
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Terminmarktplatz – Anbieter Login & Registrierung</title>
-  <!-- Stil orientiert sich am Hauptindex (index.html) -->
-  <meta name="description" content="Anbieter Login und Registrierung für den Terminmarktplatz." />
-  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <meta property="og:title" content="Terminmarktplatz – Anbieter Login & Registrierung" />
-  <meta property="og:description" content="Anbieter Login und Registrierung für den Terminmarktplatz." />
+  <title>Anbieter – Anmelden & Registrieren | Terminmarktplatz</title>
+  <meta name="description" content="Anbieter-Login und Registrierung für Terminmarktplatz. Erstelle dein Konto, melde dich an und vervollständige dein Profil (Branche, Kontaktdaten, Ort)." />
+  <meta name="theme-color" content="#6f53ff" />
+
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="og-image.jpg" />
-  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="Anbieter – Anmelden & Registrieren" />
+  <meta property="og:description" content="Jetzt Anbieter werden, freie Slots veröffentlichen und No-Shows reduzieren." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
   <style>
-    /* Farbvariablen und Grunddesign wie in index.html */
-    :root{
-      --bg:#0b0c10;
-      --card:#111318;
-      --text:#e9eef3;
-      --muted:#aab7c5;
-      --brand:#4da3ff;
-      --brand-2:#5ef0a3;
-      --danger:#ff5d5d;
-    }
-    *{ box-sizing:border-box }
-    html,body{ height:100% }
-    body{
-      margin:0;
-      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans","Helvetica Neue",Arial;
-      color:var(--text);
-      background:radial-gradient(1200px 600px at 80% -10%, rgba(77,163,255,.15), transparent 60%),
-                 radial-gradient(900px 500px at -10% 20%, rgba(94,240,163,.12), transparent 60%), var(--bg);
-      line-height:1.6;
-    }
-    a{ color:var(--brand); text-decoration:none }
-    a:hover{ text-decoration:underline }
-    .wrap{ max-width:980px; margin:0 auto; padding:24px; }
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      padding:8px 0 24px;
-    }
-    .logo{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      font-weight:700;
-      letter-spacing:.2px;
-    }
-    .logo img{
-      width:40px;
-      height:40px;
-      border-radius:12px;
-      background:#fff;
-      object-fit:cover;
-    }
-    .badge{
-      font-size:12px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid #223;
-      color:var(--muted);
-    }
-    .hero{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:28px;
-      align-items:flex-start;
-    }
-    @media (min-width:900px){
-      .hero{ grid-template-columns:1fr 1fr; }
-    }
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:18px;
-      padding:24px;
-    }
-    .shadow{ box-shadow:0 20px 60px rgba(0,0,0,.35); }
-    h1{ font-size:clamp(28px,4vw,44px); line-height:1.15; margin:0 0 12px; }
-    .sub{ font-size:clamp(16px,1.6vw,18px); color:var(--muted); margin:0 0 18px; }
-    label{ display:block; font-size:14px; color:var(--muted); margin:8px 0 4px; }
-    input{ width:100%; padding:12px 14px; border-radius:12px; background:#0f1116; border:1px solid #1b1f27; color:var(--text); }
-    button{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      padding:12px 18px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.08);
-      background:var(--brand);
-      color:#001018;
-      font-weight:700;
-      cursor:pointer;
-    }
-    button:hover{ filter:brightness(1.05); }
-    .muted{ color:var(--muted); font-size:14px; }
-    /* Form layout */
-    .stack{ display:flex; flex-direction:column; gap:12px; }
-    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .tabs{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0}
+    .tab-btn{padding:10px 14px; border-radius:999px; border:1px solid var(--ab-border); background:#fff; cursor:pointer; box-shadow:var(--shadow-1); font-weight:600}
+    .tab-btn.active{background:linear-gradient(135deg, var(--ab-primary), var(--ab-accent)); color:#fff; border:none}
+    .panel{background:#fff; border:1px solid var(--ab-border); border-radius:var(--radius-xl); padding:18px; box-shadow:var(--shadow-2)}
+    .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .form-grid .col-1{grid-column:span 1} .form-grid .col-2{grid-column:span 2}
+    .field{display:flex; flex-direction:column; gap:6px}
+    .field label{font-weight:600}
+    .field input,.field select{border:1px solid var(--ab-border); border-radius:12px; padding:12px; background:#fff}
+    .form-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .form-note{color:var(--ab-text-dim); font-size:13px}
+    .form-alert{display:none; border:1px solid var(--ab-danger); color:#7f1d1d; background:#fee2e2; padding:10px; border-radius:12px}
+    .form-success{display:none; border:1px solid #16a34a; color:#065f46; background:#dcfce7; padding:10px; border-radius:12px}
+    .hint{font-size:13px; color:#64748b}
+    .divider{height:1px; background:var(--ab-border); margin:14px 0}
+    @media (max-width: 880px){ .form-grid{grid-template-columns:1fr} .form-grid .col-2{grid-column:span 1} }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="logo" aria-label="Logo">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Terminmarktplatz Logo" loading="lazy">
-        <span>Terminmarktplatz</span>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="/" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" />
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
+      <nav class="nav-links" id="nav-links">
+        <a href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a href="/kategorien">Kategorien</a>
+        <a href="/anbieter">Für Anbieter</a>
+        <a href="/preise">Preise</a>
+        <a href="/blog">Blog</a>
+        <a class="active" href="/login">Anbieter-Login</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="/anmelden">Anmelden</a>
+        <a class="btn primary" href="/registrieren">Kostenlos starten</a>
       </div>
-      <span class="badge">Beta · Slots werden vermittelt</span>
-    </header>
-    <main class="hero">
-      <!-- Login Card -->
-      <section class="card shadow">
-        <h1>Anbieter Login</h1>
-        <p class="sub">Bitte melde dich mit deiner registrierten E‑Mail und deinem Passwort an.</p>
-        <form id="loginForm" class="stack" autocomplete="on">
-          <label for="login_email">E‑Mail</label>
-          <input id="login_email" name="login_email" type="email" placeholder="praxis@example.de" required />
-          <label for="login_password">Passwort</label>
-          <input id="login_password" name="login_password" type="password" required />
-          <button type="submit" aria-label="Einloggen">Einloggen</button>
-          <p id="login_msg" class="muted"></p>
-        </form>
-      </section>
-      <!-- Registration Card -->
-      <section class="card shadow">
-        <h1>Registrierung</h1>
-        <p class="sub">Noch kein Zugang? Erstelle jetzt deinen Anbieter‑Account.</p>
-        <form id="regForm" class="stack" autocomplete="on">
-          <label for="reg_email">E‑Mail</label>
-          <input id="reg_email" name="reg_email" type="email" placeholder="praxis@example.de" required />
-          <label for="reg_password">Passwort (min. 8 Zeichen)</label>
-          <input id="reg_password" name="reg_password" type="password" required />
-          <button type="submit" aria-label="Registrieren">Zugang anlegen</button>
-          <p id="reg_msg" class="muted"></p>
-        </form>
-      </section>
-    </main>
-  </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding:40px 0 16px">
+      <div class="container">
+        <span class="badge">Für Anbieter</span>
+        <h1>Anmelden & registrieren</h1>
+        <p class="lead">Erstelle dein Konto, melde dich an und vervollständige dein Profil (Branche, Kontaktdaten, Ort). Slots/Zeitfenster legst du bequem nach dem Login im Portal an.</p>
+
+        <div class="tabs" role="tablist" aria-label="Anbieter-Aktionen">
+          <button class="tab-btn active" data-tab="login" role="tab" aria-selected="true">Anmelden</button>
+          <button class="tab-btn" data-tab="register" role="tab" aria-selected="false">Registrieren</button>
+          <button class="tab-btn" data-tab="profile" role="tab" aria-selected="false">Profil vervollständigen</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container" id="tab-content">
+        <!-- LOGIN -->
+        <div class="panel" id="tab-login" role="tabpanel" aria-labelledby="tab-login-btn">
+          <h2>Anmelden</h2>
+          <p class="hint">Mit deiner E-Mail und deinem Passwort einloggen. Bei Erfolg geht es ins <strong>Portal</strong>.</p>
+          <div class="form-alert" id="login-alert"></div>
+          <form id="login-form" class="form-grid" novalidate>
+            <div class="field col-2">
+              <label for="login-email">E-Mail</label>
+              <input id="login-email" name="email" type="email" placeholder="dein@beispiel.de" required autocomplete="email">
+            </div>
+            <div class="field col-2">
+              <label for="login-password">Passwort</label>
+              <input id="login-password" name="password" type="password" placeholder="••••••••" required minlength="8" autocomplete="current-password">
+            </div>
+            <div class="form-actions col-2">
+              <button class="btn primary" type="submit">Anmelden</button>
+              <span class="form-note">Noch kein Konto? → <a href="#" data-switch="register">Jetzt registrieren</a></span>
+            </div>
+          </form>
+        </div>
+
+        <!-- REGISTER -->
+        <div class="panel" id="tab-register" role="tabpanel" hidden>
+          <h2>Registrieren (Anbieter)</h2>
+          <p class="hint">Konto anlegen. Du erhältst anschließend eine E-Mail mit Bestätigungslink (Double-Opt-In).</p>
+          <div class="form-alert" id="register-alert"></div>
+          <div class="form-success" id="register-success">Danke! Bitte prüfe dein Postfach und bestätige deine E-Mail. Danach kannst du dich anmelden.</div>
+          <form id="register-form" class="form-grid" novalidate>
+            <div class="field col-2">
+              <label for="reg-email">E-Mail</label>
+              <input id="reg-email" name="email" type="email" placeholder="studio@beispiel.de" required autocomplete="email">
+            </div>
+            <div class="field">
+              <label for="reg-password">Passwort</label>
+              <input id="reg-password" name="password" type="password" placeholder="Mind. 8 Zeichen" required minlength="8" autocomplete="new-password">
+              <span class="hint">Tipp: Mind. 8 Zeichen, besser mit Zahl & Sonderzeichen.</span>
+            </div>
+            <div class="field">
+              <label for="reg-password2">Passwort wiederholen</label>
+              <input id="reg-password2" type="password" placeholder="Passwort bestätigen" required minlength="8" autocomplete="new-password">
+            </div>
+            <div class="field col-2">
+              <label><input type="checkbox" id="reg-terms" required> Ich akzeptiere das <a href="/impressum" target="_blank" rel="noopener">Impressum</a> und die <a href="/datenschutz" target="_blank" rel="noopener">Datenschutzerklärung</a>.</label>
+            </div>
+            <div class="form-actions col-2">
+              <button class="btn primary" type="submit">Kostenlos registrieren</button>
+              <span class="form-note">Schon Konto? → <a href="#" data-switch="login">Anmelden</a></span>
+            </div>
+          </form>
+          <div class="divider"></div>
+          <p class="hint">Nach der Anmeldung vervollständigst du dein Profil (Branche, Kontaktdaten, Ort). Zeitfenster/Slots legst du danach im Portal an.</p>
+        </div>
+
+        <!-- PROFILE (after login) -->
+        <div class="panel" id="tab-profile" role="tabpanel" hidden>
+          <h2>Profil vervollständigen</h2>
+          <p class="hint">Diese Angaben erscheinen in deinen Angeboten und beschleunigen die Freischaltung.</p>
+          <div class="form-alert" id="profile-alert"></div>
+          <div class="form-success" id="profile-success">Profil gespeichert!</div>
+          <form id="profile-form" class="form-grid" novalidate>
+            <div class="field col-2">
+              <label for="pf-company">Firmenname / Praxis / Studio</label>
+              <input id="pf-company" name="company_name" type="text" placeholder="z. B. Salon Mira" required>
+            </div>
+            <div class="field col-2">
+              <label for="pf-branch">Branche / Kategorie</label>
+              <input id="pf-branch" name="branch" list="branch-list" type="text" placeholder="z. B. Friseur" required>
+              <datalist id="branch-list">
+                <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
+                <option>Nagelstudio</option><option>Zahnarzt</option><option>Handwerk</option>
+                <option>KFZ-Service</option><option>Fitness</option><option>Coaching</option>
+                <option>Tierarzt</option><option>Behörde</option><option>Sonstiges</option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label for="pf-street">Straße & Nr.</label>
+              <input id="pf-street" name="street" type="text" placeholder="Musterstraße 1">
+            </div>
+            <div class="field">
+              <label for="pf-zip">PLZ</label>
+              <input id="pf-zip" name="zip" type="text" placeholder="12345" pattern="\\d{5}" inputmode="numeric">
+            </div>
+            <div class="field col-2">
+              <label for="pf-city">Ort</label>
+              <input id="pf-city" name="city" type="text" placeholder="Musterstadt">
+            </div>
+            <div class="field">
+              <label for="pf-phone">Telefon</label>
+              <input id="pf-phone" name="phone" type="tel" placeholder="+49 …" pattern="^\\+?[0-9\\s\\-\\/]{6,}$">
+            </div>
+            <div class="field">
+              <label for="pf-whatsapp">WhatsApp (optional)</label>
+              <input id="pf-whatsapp" name="whatsapp" type="tel" placeholder="+49 …" pattern="^\\+?[0-9\\s\\-\\/]{6,}$">
+            </div>
+            <div class="form-actions col-2">
+              <button class="btn primary" type="submit">Profil speichern</button>
+              <a class="btn" href="/portal">Weiter ins Portal</a>
+              <span class="form-note">Slots/Zeitfenster legst du im Portal an.</span>
+            </div>
+          </form>
+          <div class="divider"></div>
+          <p class="hint">Tipp: Für die Freischaltung solltest du <strong>Firma, Branche, PLZ & Ort</strong> angeben.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein"/>
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a class="foot-link" href="/kategorien">Kategorien</a>
+        <a class="foot-link" href="/preise">Preise</a>
+        <a class="foot-link" href="/anbieter">Für Anbieter</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="/impressum">Impressum</a>
+        <a class="foot-link" href="/datenschutz">Datenschutz</a>
+        <a class="foot-link" href="/agb">AGB</a>
+        <a class="foot-link" href="/widerruf">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="/kontakt">Kontaktformular</a>
+        <a class="foot-link" href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a>
+        <a class="foot-link" href="/blog">Blog</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
   <script>
-    // Dynamische API-URL (gleicher Host oder API-Subdomain)
-    const API = location.origin;
+    // Mobile Nav
+    const nav = document.querySelector('.nav');
+    const hb = document.getElementById('hamburger');
+    if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
 
-    // Login: Bei Erfolg zur Indexseite weiterleiten
-    document.getElementById('loginForm').addEventListener('submit', async function(e){
+    // Footer-Jahr
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Tabs
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = {
+      login: document.getElementById('tab-login'),
+      register: document.getElementById('tab-register'),
+      profile: document.getElementById('tab-profile'),
+    };
+    function switchTab(name){
+      tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+      Object.entries(panels).forEach(([k,el])=>{ el.hidden = (k!==name); });
+      window.scrollTo({top:0, behavior:'smooth'});
+      if (name === 'profile') loadProfileIfAuthed();
+    }
+    tabs.forEach(btn=>{
+      btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
+    });
+    document.querySelectorAll('[data-switch]').forEach(a=>{
+      a.addEventListener('click', (e)=>{ e.preventDefault(); switchTab(a.dataset.switch); });
+    });
+
+    // Helpers
+    function showAlert(id, msg){ const el = document.getElementById(id); el.textContent = msg; el.style.display='block'; }
+    function hideAlert(id){ const el = document.getElementById(id); el.style.display='none'; el.textContent=''; }
+    function showSuccess(id, msg){ const el = document.getElementById(id); if(msg) el.textContent = msg; el.style.display='block'; }
+    function hideSuccess(id){ const el = document.getElementById(id); el.style.display='none'; }
+
+    // LOGIN
+    document.getElementById('login-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const email = document.getElementById('login_email').value.trim();
-      const password = document.getElementById('login_password').value;
-      const msg = document.getElementById('login_msg');
-      msg.textContent = '';
-      try {
-        const r = await fetch(API + '/auth/login', {
+      hideAlert('login-alert');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if(!email || !password){ return showAlert('login-alert','Bitte E-Mail und Passwort eingeben.'); }
+      try{
+        const res = await fetch('/auth/login', {
           method:'POST',
+          headers:{'Content-Type':'application/json'},
           credentials:'include',
-          headers:{ 'Content-Type':'application/json' },
-          body:JSON.stringify({ email, password })
+          body: JSON.stringify({email, password})
         });
-        const j = await r.json();
-        if(r.ok){
-          // nach erfolgreichem Login zur Startseite
-          window.location.href = '/index.html';
-        } else {
-          msg.textContent = j.error || 'Login fehlgeschlagen';
+        if(!res.ok){
+          const data = await res.json().catch(()=>({error:'Fehler'}));
+          const msg = data.error === 'email_not_verified'
+            ? 'Bitte bestätige zuerst deine E-Mail über den Link in unserer Nachricht.'
+            : 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.';
+          return showAlert('login-alert', msg);
         }
-      } catch(err){
-        msg.textContent = 'Netzwerkfehler';
+        // Erfolg → Portal
+        window.location.href = '/portal';
+      }catch(err){
+        showAlert('login-alert','Netzwerkfehler – bitte später erneut versuchen.');
       }
     });
 
-    // Registrierung: Benutzer registrieren und Hinweis anzeigen
-    document.getElementById('regForm').addEventListener('submit', async function(e){
+    // REGISTER
+    document.getElementById('register-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const email = document.getElementById('reg_email').value.trim();
-      const password = document.getElementById('reg_password').value;
-      const msg = document.getElementById('reg_msg');
-      msg.textContent = '';
-      if(password.length < 8){
-        msg.textContent = 'Passwort muss mindestens 8 Zeichen haben.';
-        return;
-      }
-      try {
-        const r = await fetch(API + '/auth/register', {
+      hideAlert('register-alert'); hideSuccess('register-success');
+
+      const email = document.getElementById('reg-email').value.trim();
+      const pw1 = document.getElementById('reg-password').value;
+      const pw2 = document.getElementById('reg-password2').value;
+      const terms = document.getElementById('reg-terms').checked;
+
+      if(!email || !pw1 || !pw2){ return showAlert('register-alert','Bitte alle Pflichtfelder ausfüllen.'); }
+      if(pw1.length < 8){ return showAlert('register-alert','Passwort muss mindestens 8 Zeichen lang sein.'); }
+      if(pw1 !== pw2){ return showAlert('register-alert','Passwörter stimmen nicht überein.'); }
+      if(!terms){ return showAlert('register-alert','Bitte stimme Impressum & Datenschutz zu.'); }
+
+      try{
+        const res = await fetch('/auth/register', {
           method:'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body:JSON.stringify({ email, password })
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({email, password: pw1})
         });
-        const j = await r.json();
-        if(r.ok){
-          msg.textContent = 'Bitte E‑Mail prüfen und den Link zur Bestätigung anklicken.';
-        } else {
-          msg.textContent = j.error || 'Registrierung fehlgeschlagen.';
+        const data = await res.json().catch(()=>({}));
+        if(!res.ok){
+          const map = {
+            email_exists: 'Diese E-Mail ist bereits registriert.',
+            invalid_email: 'Bitte eine gültige E-Mail eingeben.',
+            password_too_short: 'Passwort ist zu kurz.',
+          };
+          return showAlert('register-alert', map[data.error] || 'Registrierung fehlgeschlagen.');
         }
-      } catch(err){
-        msg.textContent = 'Netzwerkfehler';
+        showSuccess('register-success', 'Danke! Bitte bestätige deine E-Mail. Danach kannst du dich anmelden.');
+        // optional: direkt zum Login umschalten
+        setTimeout(()=>switchTab('login'), 2000);
+      }catch(err){
+        showAlert('register-alert','Netzwerkfehler – bitte später erneut versuchen.');
       }
     });
+
+    // PROFILE (requires auth)
+    async function loadProfileIfAuthed(){
+      hideAlert('profile-alert'); hideSuccess('profile-success');
+      try{
+        const res = await fetch('/me', {credentials:'include'});
+        if(!res.ok){ showAlert('profile-alert','Bitte zuerst anmelden, dann kannst du dein Profil bearbeiten.'); return; }
+        const me = await res.json();
+        // Felder befüllen (nur, wenn leer)
+        const set = (id,val)=>{ const el = document.getElementById(id); if(el && (el.value==='' || el.value==null) && val) el.value = val; };
+        set('pf-company', me.company_name);
+        set('pf-branch', me.branch);
+        set('pf-street', me.street);
+        set('pf-zip', me.zip);
+        set('pf-city', me.city);
+        set('pf-phone', me.phone);
+        set('pf-whatsapp', me.whatsapp);
+      }catch(e){
+        showAlert('profile-alert','Konnte Profil nicht laden.');
+      }
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      hideAlert('profile-alert'); hideSuccess('profile-success');
+
+      const payload = {
+        company_name: document.getElementById('pf-company').value.trim(),
+        branch: document.getElementById('pf-branch').value.trim(),
+        street: document.getElementById('pf-street').value.trim(),
+        zip: document.getElementById('pf-zip').value.trim(),
+        city: document.getElementById('pf-city').value.trim(),
+        phone: document.getElementById('pf-phone').value.trim(),
+        whatsapp: document.getElementById('pf-whatsapp').value.trim(),
+      };
+      if(!payload.company_name || !payload.branch){
+        return showAlert('profile-alert','Bitte mindestens Firmenname und Branche angeben.');
+      }
+      try{
+        const res = await fetch('/me', {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        if(!res.ok){ return showAlert('profile-alert','Konnte Profil nicht speichern.'); }
+        showSuccess('profile-success','Profil gespeichert!');
+      }catch(e){
+        showAlert('profile-alert','Netzwerkfehler – bitte später erneut versuchen.');
+      }
+    });
+
+    // Wenn URL /login?tab=register, aktiviere Register
+    const url = new URL(window.location.href);
+    const want = url.searchParams.get('tab');
+    if (want && ['login','register','profile'].includes(want)) switchTab(want);
   </script>
 </body>
 </html>

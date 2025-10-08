@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kategorien | Terminmarktplatz</title>
+  <meta name="description" content="Beliebte Kategorien auf Terminmarktplatz. Mit Deep Links direkt zur Suche: Friseur, Kosmetik, Physiotherapie u. v. m." />
+  <meta name="theme-color" content="#6f53ff" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Kategorien" />
+  <meta property="og:description" content="Direkt zu freien Terminen in deiner Kategorie: heute, morgen oder diese Woche." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    .cat-hero{padding:40px 0 10px}
+    .cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+    .cat-card{background:#fff; border:1px solid var(--ab-border); border-radius:16px; padding:16px; box-shadow:var(--shadow-1); display:flex; flex-direction:column; gap:10px}
+    .cat-head{display:flex; align-items:center; gap:10px}
+    .cat-ico{width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(135deg,var(--ab-primary),var(--ab-accent)); color:#fff; font-weight:800}
+    .cat-links{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
+    .pill-link{display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; border:1px solid var(--ab-border); background:#fff; font-weight:600; font-size:14px}
+    .pill-link.primary{background:linear-gradient(135deg,var(--ab-primary),var(--ab-accent)); color:#fff; border:none}
+    .alpha{display:flex; flex-wrap:wrap; gap:8px}
+    .alpha a{padding:8px 10px; border-radius:10px; border:1px solid var(--ab-border); background:#fff; box-shadow:var(--shadow-1)}
+    @media (max-width: 1100px){ .cat-grid{grid-template-columns:repeat(3,1fr)} }
+    @media (max-width: 820px){ .cat-grid{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width: 560px){ .cat-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="/" aria-label="Startseite">
+        <div class="brand-logo"><img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" /></div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
+      <nav class="nav-links" id="nav-links">
+        <a href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a class="active" href="/kategorien">Kategorien</a>
+        <a href="/anbieter">Für Anbieter</a>
+        <a href="/preise">Preise</a>
+        <a href="/blog">Blog</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="/login?tab=login">Anmelden</a>
+        <a class="btn primary" href="/login?tab=register">Kostenlos starten</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="cat-hero">
+      <div class="container">
+        <span class="badge">Direkt starten</span>
+        <h1>Kategorien mit Deep Links</h1>
+        <p class="lead">Ein Klick zur Suche – vorgefiltert nach Kategorie und Zeitraum (heute, morgen, diese Woche).</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container" style="display:grid; gap:16px">
+        <div class="alpha">
+          <a href="/?category=Friseur">Friseur</a>
+          <a href="/?category=Kosmetik">Kosmetik</a>
+          <a href="/?category=Physiotherapie">Physiotherapie</a>
+          <a href="/?category=Nagelstudio">Nagelstudio</a>
+          <a href="/?category=Zahnarzt">Zahnarzt</a>
+          <a href="/?category=Handwerk">Handwerk</a>
+          <a href="/?category=KFZ-Service">KFZ-Service</a>
+          <a href="/?category=Fitness">Fitness</a>
+          <a href="/?category=Coaching">Coaching</a>
+          <a href="/?category=Tierarzt">Tierarzt</a>
+          <a href="/?category=Behörde">Behörde</a>
+          <a href="/?category=Sonstiges">Sonstiges</a>
+        </div>
+
+        <div class="cat-grid">
+          <!-- Friseur -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">✂</div>
+              <div>
+                <h3 style="margin:0">Friseur</h3>
+                <div class="muted">Haarschnitte, Farbe, Styling</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Friseur&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Friseur&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Friseur&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Kosmetik -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">💆</div>
+              <div>
+                <h3 style="margin:0">Kosmetik</h3>
+                <div class="muted">Facials, Brow/Lash, Wellness</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Kosmetik&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Kosmetik&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Kosmetik&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Physiotherapie -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🦴</div>
+              <div>
+                <h3 style="margin:0">Physiotherapie</h3>
+                <div class="muted">Behandlung, Reha, Massage</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Physiotherapie&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Physiotherapie&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Physiotherapie&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Nagelstudio -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">💅</div>
+              <div>
+                <h3 style="margin:0">Nagelstudio</h3>
+                <div class="muted">Maniküre, Pediküre, Gel/Acryl</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Nagelstudio&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Nagelstudio&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Nagelstudio&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Zahnarzt -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🦷</div>
+              <div>
+                <h3 style="margin:0">Zahnarzt</h3>
+                <div class="muted">Kontrolle, Prophylaxe, Akut</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Zahnarzt&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Zahnarzt&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Zahnarzt&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Handwerk -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🔧</div>
+              <div>
+                <h3 style="margin:0">Handwerk</h3>
+                <div class="muted">Elektrik, Sanitär, Maler</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Handwerk&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Handwerk&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Handwerk&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- KFZ-Service -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🚗</div>
+              <div>
+                <h3 style="margin:0">KFZ-Service</h3>
+                <div class="muted">Inspektion, Reifen, Glas</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=KFZ-Service&when=today">Heute</a>
+              <a class="pill-link" href="/?category=KFZ-Service&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=KFZ-Service&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Fitness -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🏋️</div>
+              <div>
+                <h3 style="margin:0">Fitness</h3>
+                <div class="muted">PT, Kurse, Checks</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Fitness&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Fitness&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Fitness&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Coaching -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🧭</div>
+              <div>
+                <h3 style="margin:0">Coaching</h3>
+                <div class="muted">Business, Life, Karriere</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Coaching&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Coaching&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Coaching&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Tierarzt -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🐾</div>
+              <div>
+                <h3 style="margin:0">Tierarzt</h3>
+                <div class="muted">Check, Impfung, Akut</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Tierarzt&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Tierarzt&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Tierarzt&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Behörde -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">🏛️</div>
+              <div>
+                <h3 style="margin:0">Behörde</h3>
+                <div class="muted">Bürgeramt, KFZ, Pass</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Behörde&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Behörde&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Behörde&when=week">Diese Woche</a>
+            </div>
+          </div>
+
+          <!-- Sonstiges -->
+          <div class="cat-card">
+            <div class="cat-head">
+              <div class="cat-ico">✨</div>
+              <div>
+                <h3 style="margin:0">Sonstiges</h3>
+                <div class="muted">Alles, was sonst passt</div>
+              </div>
+            </div>
+            <div class="cat-links">
+              <a class="pill-link primary" href="/?category=Sonstiges&when=today">Heute</a>
+              <a class="pill-link" href="/?category=Sonstiges&when=tomorrow">Morgen</a>
+              <a class="pill-link" href="/?category=Sonstiges&when=week">Diese Woche</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+            <div>
+              <h2 style="margin:0 0 6px">Fehlt eine Kategorie?</h2>
+              <p class="muted" style="margin:0">Sag uns Bescheid – oder werde Anbieter:in und schlage neue Kategorien vor.</p>
+            </div>
+            <div>
+              <a class="btn" href="/kontakt">Kategorie vorschlagen</a>
+              <a class="btn primary" href="/login?tab=register">Anbieter:in werden</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo"><img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein"/></div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="/wie-es-funktioniert">Wie es funktioniert</a>
+        <a class="foot-link" href="/kategorien">Kategorien</a>
+        <a class="foot-link" href="/preise">Preise</a>
+        <a class="foot-link" href="/anbieter">Für Anbieter</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="/impressum">Impressum</a>
+        <a class="foot-link" href="/datenschutz">Datenschutz</a>
+        <a class="foot-link" href="/agb">AGB</a>
+        <a class="foot-link" href="/widerruf">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="/kontakt">Kontaktformular</a>
+        <a class="foot-link" href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a>
+        <a class="foot-link" href="/blog">Blog</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+    const nav = document.querySelector('.nav');
+    document.getElementById('hamburger')?.addEventListener('click', ()=>nav.classList.toggle('open'));
+  </script>
+</body>
+</html>
