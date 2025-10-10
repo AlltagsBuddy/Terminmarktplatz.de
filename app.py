@@ -1,12 +1,10 @@
-# app.py – konsolidiert & statics-fix
+# app.py — API-only for Render (separate frontend on STRATO)
 import os
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
-from flask import (
-    Flask, request, redirect, jsonify, make_response, render_template
-)
+from flask import Flask, request, redirect, jsonify, make_response
 from flask_cors import CORS
 from sqlalchemy import create_engine, select, and_, func
 from sqlalchemy.orm import Session
@@ -21,32 +19,16 @@ from models import Base, Provider, Slot, Booking
 load_dotenv()
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(APP_ROOT, "static")
-TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
+STATIC_DIR = os.path.join(APP_ROOT, "static")  # nur für favicon/robots etc.
 
 app = Flask(
     __name__,
-    static_folder=STATIC_DIR,        # -> <project>/static
-    static_url_path="/static",       # -> /static/...
-    template_folder=TEMPLATE_DIR,    # -> <project>/templates
+    static_folder=STATIC_DIR,
+    static_url_path="/static",
 )
 
 # Sichtbares Startup-Logging
 print("STATIC FOLDER:", app.static_folder)
-print("TEMPLATES FOLDER:", app.template_folder)
-logo_path = os.path.join(app.static_folder, "terminmarktplatz-logo.png")
-print("LOGO EXISTS:", os.path.isfile(logo_path))
-
-# CORS (für spätere API-Calls)
-CORS(
-    app,
-    supports_credentials=True,
-    origins=[
-        "http://localhost:5000",
-        "https://terminmarktplatz.de",
-        "https://www.terminmarktplatz.de",
-    ],
-)
 
 # --------------------------------------------------------
 # Config
@@ -60,10 +42,48 @@ REFRESH_EXP_DAYS = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
 MAIL_FROM = os.environ.get("MAIL_FROM", "no-reply@example.com")
 MAIL_PROVIDER = os.environ.get("MAIL_PROVIDER", "console")
 POSTMARK_TOKEN = os.environ.get("POSTMARK_TOKEN", "")
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:5000")
+
+# API-Basis (für Links in Mails)
+BASE_URL = os.environ.get("BASE_URL", "https://api.terminmarktplatz.de")
+
+# Erlaubte Frontend-Origins (STRATO)
+ALLOWED_ORIGINS = [
+    "https://terminmarktplatz.de",
+    "https://www.terminmarktplatz.de",
+    # lokal zum Entwickeln (optional aktiv lassen)
+    "http://localhost:5173",
+    "http://localhost:5500",
+    "http://localhost:3000",
+]
 
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
+
+# --------------------------------------------------------
+# CORS & Security Headers
+# --------------------------------------------------------
+CORS(
+    app,
+    resources={
+        r"/auth/*": {"origins": ALLOWED_ORIGINS},
+        r"/me": {"origins": ALLOWED_ORIGINS},
+        r"/slots*": {"origins": ALLOWED_ORIGINS},
+        r"/admin/*": {"origins": ALLOWED_ORIGINS},
+        r"/public/*": {"origins": ALLOWED_ORIGINS},
+    },
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+)
+
+@app.after_request
+def add_headers(resp):
+    # Sinnvolle Defaults für APIs
+    resp.headers.setdefault("Cache-Control", "no-store")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return resp
 
 # --------------------------------------------------------
 # Utilities
@@ -105,7 +125,13 @@ def issue_tokens(provider_id: str, is_admin: bool):
 def auth_required(admin: bool = False):
     def wrapper(fn):
         def inner(*args, **kwargs):
+            # 1) Cookie
             token = request.cookies.get("access_token")
+            # 2) Oder Authorization: Bearer <token>
+            if not token:
+                auth = request.headers.get("Authorization", "")
+                if auth.lower().startswith("bearer "):
+                    token = auth.split(" ", 1)[1].strip()
             if not token:
                 return _json_error("unauthorized", 401)
             try:
@@ -133,6 +159,7 @@ def send_mail(to: str, subject: str, text: str):
             "https://api.postmarkapp.com/email",
             headers={"X-Postmark-Server-Token": POSTMARK_TOKEN},
             json={"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text},
+            timeout=10,
         )
         return r.status_code == 200
     return False
@@ -156,20 +183,8 @@ def slot_to_json(x: Slot):
     }
 
 # --------------------------------------------------------
-# Kleine Helfer / Debug
+# Misc (favicon/robots + health)
 # --------------------------------------------------------
-@app.get("/__debug__/static-list")
-def dbg_list():
-    try:
-        return "<br>".join(sorted(os.listdir(app.static_folder)))
-    except Exception as e:
-        return f"ERR: {e}", 500
-
-@app.get("/logo-test")
-def logo_test():
-    # -> sollte auf /static/terminmarktplatz-logo.png landen
-    return redirect("/static/terminmarktplatz-logo.png", code=302)
-
 @app.get("/favicon.ico")
 def favicon():
     return redirect("/static/favicon.ico", code=302)
@@ -178,56 +193,27 @@ def favicon():
 def robots():
     return redirect("/static/robots.txt", code=302)
 
+@app.get("/healthz")
+@app.get("/api/health")
+def health():
+    try:
+        with Session(engine) as s:
+            s.execute(select(func.now()))
+        return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 # --------------------------------------------------------
-# Canonical Redirect (www → non-www)
+# Canonical Redirect (API-Subdomain only)
+#  - keine HTML-Seiten mehr ausliefern
+#  - keine Redirects auf terminmarktplatz.de (Frontend macht das)
 # --------------------------------------------------------
 @app.before_request
-def redirect_www():
-    host = request.host.lower()
-    if host.startswith("www.terminmarktplatz.de"):
-        path = request.full_path
-        if path.endswith("?"):
-            path = path[:-1]
-        return redirect(f"https://terminmarktplatz.de{path}", code=301)
-
-# --------------------------------------------------------
-# Seiten aus templates
-# --------------------------------------------------------
-@app.get("/")
-def page_home():
-    return render_template("index.html")
-
-@app.get("/index.html")
-def page_home_canonical():
-    return redirect("/", code=301)
-
-@app.get("/login")
-def page_login():
-    return render_template("login.html")
-
-@app.get("/impressum")
-def page_impressum():
-    return render_template("impressum.html")
-
-@app.get("/datenschutz")
-def page_datenschutz():
-    return render_template("datenschutz.html")
-
-@app.get("/portal")
-def page_portal():
-    return render_template("portal.html")
-
-@app.get("/wie-es-funktioniert")
-def page_howitworks():
-    return render_template("wie-es-funktioniert.html")
-
-@app.get("/kategorien")
-def page_kategorien():
-    return render_template("kategorien.html")
-
-@app.get("/preise")
-def page_preise():
-    return render_template("preise.html")
+def api_only_paths():
+    # Erlaube nur API-Pfade
+    if request.path in ("/", "/index.html"):
+        # API liefert keine Startseite
+        return _json_error("api_only", 404)
 
 # --------------------------------------------------------
 # Auth
@@ -297,9 +283,10 @@ def auth_login():
             return _json_error("email_not_verified", 403)
         access, refresh = issue_tokens(p.id, p.is_admin)
 
-    resp = make_response(jsonify({"ok": True}))
-    resp.set_cookie("access_token", access, max_age=JWT_EXP_MIN * 60, httponly=True, secure=True, samesite="Lax")
-    resp.set_cookie("refresh_token", refresh, max_age=REFRESH_EXP_DAYS * 86400, httponly=True, secure=True, samesite="Lax")
+    # Cookies cross-site → SameSite=None + Secure
+    resp = make_response(jsonify({"ok": True, "access": access}))
+    resp.set_cookie("access_token", access, max_age=JWT_EXP_MIN * 60, httponly=True, secure=True, samesite="None")
+    resp.set_cookie("refresh_token", refresh, max_age=REFRESH_EXP_DAYS * 86400, httponly=True, secure=True, samesite="None")
     return resp
 
 @app.post("/auth/logout")
@@ -314,6 +301,11 @@ def auth_logout():
 def auth_refresh():
     token = request.cookies.get("refresh_token")
     if not token:
+        # Optional: Bearer-Refresh zulassen
+        auth = request.headers.get("Authorization", "")
+        if auth.lower().startswith("bearer "):
+            token = auth.split(" ", 1)[1].strip()
+    if not token:
         return _json_error("unauthorized", 401)
     try:
         data = jwt.decode(token, SECRET, algorithms=["HS256"], audience=JWT_AUD, issuer=JWT_ISS)
@@ -323,8 +315,8 @@ def auth_refresh():
         return _json_error("unauthorized", 401)
 
     access, _ = issue_tokens(data["sub"], bool(data.get("adm")))
-    resp = make_response(jsonify({"ok": True}))
-    resp.set_cookie("access_token", access, max_age=JWT_EXP_MIN * 60, httponly=True, secure=True, samesite="Lax")
+    resp = make_response(jsonify({"ok": True, "access": access}))
+    resp.set_cookie("access_token", access, max_age=JWT_EXP_MIN * 60, httponly=True, secure=True, samesite="None")
     return resp
 
 # --------------------------------------------------------
@@ -599,9 +591,8 @@ def public_book():
         s.commit()
 
         token = _booking_token(b.id)
-        base = os.environ.get("BASE_URL", "https://api.terminmarktplatz.de")
-        confirm_link = f"{base}/public/confirm?token={token}"
-        cancel_link = f"{base}/public/cancel?token={token}"
+        confirm_link = f"{BASE_URL}/public/confirm?token={token}"
+        cancel_link = f"{BASE_URL}/public/cancel?token={token}"
         send_mail(
             email,
             "Bitte Terminbuchung bestätigen",
@@ -661,5 +652,5 @@ def public_cancel():
 # Start
 # --------------------------------------------------------
 if __name__ == "__main__":
-    # Hinweis: Hard Reload im Browser (Ctrl/Cmd + Shift + R), wenn Assets gecacht sind
+    # Render setzt PORT automatisch
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
