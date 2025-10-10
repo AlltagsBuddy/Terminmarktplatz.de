@@ -51,16 +51,24 @@ MAIL_FROM       = os.environ.get("MAIL_FROM", "no-reply@example.com")
 MAIL_PROVIDER   = os.environ.get("MAIL_PROVIDER", "console")
 POSTMARK_TOKEN  = os.environ.get("POSTMARK_TOKEN", "")
 
-# Basis-URL der API (für Links in Mails)
-BASE_URL = os.environ.get("BASE_URL", "https://api.terminmarktplatz.de") if IS_RENDER else os.environ.get("BASE_URL", "http://127.0.0.1:5000")
+# --- Laufzeit-Umgebung erkennen (Render setzt env RENDER=1) ---
+IS_RENDER = bool(os.getenv("RENDER"))
 
-# Erlaubte Frontend-Origins (STRATO + lokal)
+# --- API-Basis-URL (für Links in Mails, z.B. /auth/verify, /public/confirm) ---
+# Priorität: BASE_URL env → sonst sinnvoller Default je Umgebung
+BASE_URL = os.getenv(
+    "BASE_URL",
+    "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000"
+)
+
+# --- CORS: erlaubte Frontend-Quellen (STRATO + lokal) ---
 ALLOWED_ORIGINS = [
     "https://terminmarktplatz.de",
     "https://www.terminmarktplatz.de",
     "http://localhost:3000", "http://localhost:5173", "http://localhost:5500",
     "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5500",
 ]
+
 
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)

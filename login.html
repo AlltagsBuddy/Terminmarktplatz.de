@@ -1,4 +1,4 @@
-<!-- FILE: templates/login.html -->
+<!-- FILE: login.html -->
 <!doctype html>
 <html lang="de">
 <head>
@@ -8,79 +8,91 @@
   <meta name="description" content="Anbieter-Login und Registrierung für Terminmarktplatz. Erstelle dein Konto, melde dich an und vervollständige dein Profil (Branche, Kontaktdaten, Ort)." />
   <meta name="theme-color" content="#6f53ff" />
 
+  <!-- Open Graph / Twitter -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Anbieter – Anmelden & Registrieren" />
   <meta property="og:description" content="Jetzt Anbieter werden, freie Slots veröffentlichen und No-Shows reduzieren." />
   <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta property="og:image" content="/static/og-cover.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <!-- Wichtig: relative Pfade zur Domainwurzel -->
+  <base href="/">
+
+  <!-- Assets -->
+  <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010">
 
+  <!-- Seite-spezifische, kleine Styles (bauen auf style.css auf) -->
   <style>
-    .tabs{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0}
-    .tab-btn{padding:10px 14px; border-radius:999px; border:1px solid var(--ab-border); background:#fff; cursor:pointer; box-shadow:var(--shadow-1); font-weight:600}
-    .tab-btn.active{background:linear-gradient(135deg, var(--ab-primary), var(--ab-accent)); color:#fff; border:none}
-    .panel{background:#fff; border:1px solid var(--ab-border); border-radius:var(--radius-xl); padding:18px; box-shadow:var(--shadow-2)}
+    .tabs{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0; justify-content:center}
+    .tab-btn{
+      padding:10px 14px; border-radius:999px; cursor:pointer; font-weight:700;
+      border:1px solid var(--border); color:#fff; background:rgba(255,255,255,.06);
+      box-shadow:var(--shadow-1); transition:.15s
+    }
+    .tab-btn:hover{transform:translateY(-2px)}
+    .tab-btn.active{background:linear-gradient(135deg, var(--c-purple), var(--c-cyan)); border:none}
+    /* Panels: dank style.css werden die Panels im ersten Abschnitt nach dem Hero automatisch hell gesetzt */
     .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
     .form-grid .col-1{grid-column:span 1} .form-grid .col-2{grid-column:span 2}
     .field{display:flex; flex-direction:column; gap:6px}
-    .field label{font-weight:600}
-    .field input,.field select{border:1px solid var(--ab-border); border-radius:12px; padding:12px; background:#fff}
+    .field label{font-weight:700}
+    .field input,.field select{
+      border:1px solid var(--border); border-radius:12px; padding:12px;
+      background:#fff; color:#0f172a
+    }
     .form-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .form-note{color:var(--ab-text-dim); font-size:13px}
-    .form-alert{display:none; border:1px solid var(--ab-danger); color:#7f1d1d; background:#fee2e2; padding:10px; border-radius:12px}
+    .form-note{color:var(--text-2); font-size:13px}
+    .form-alert{display:none; border:1px solid #ef4444; color:#7f1d1d; background:#fee2e2; padding:10px; border-radius:12px}
     .form-success{display:none; border:1px solid #16a34a; color:#065f46; background:#dcfce7; padding:10px; border-radius:12px}
     .hint{font-size:13px; color:#64748b}
-    .divider{height:1px; background:var(--ab-border); margin:14px 0}
+    .divider{height:1px; background:var(--border); margin:14px 0}
     @media (max-width: 880px){ .form-grid{grid-template-columns:1fr} .form-grid .col-2{grid-column:span 1} }
   </style>
 </head>
 <body>
   <!-- Header -->
-  <header>
+   <header>
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="/" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" />
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
+      <!--<button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>-->  
       <nav class="nav-links" id="nav-links">
-        <a href="/wie-es-funktioniert">Wie es funktioniert</a>
-        <a href="/kategorien">Kategorien</a>
-        <a href="/anbieter">Für Anbieter</a>
-        <a href="/preise">Preise</a>
-        <a href="/blog">Blog</a>
-        <a class="active" href="/login">Anbieter-Login</a>
+        <a href="/anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
+        <a href="/suchende.html" aria-label="Für Suchende">Für Suchende</a>
+        <a href="/preise.html" aria-label="Preise">Preise</a>
       </nav>
       <div class="cta-group">
-        <a class="btn" href="/anmelden">Anmelden</a>
-        <a class="btn primary" href="/registrieren">Kostenlos starten</a>
+        <a class="btn" href="/anmelden" aria-label="Anmelden">Anmelden</a>
+        <a class="btn primary" href="/registrieren" aria-label="Konto erstellen">Registrieren</a>
       </div>
     </div>
   </header>
 
   <main>
+    <!-- HERO -->
     <section class="hero" style="padding:40px 0 16px">
       <div class="container">
         <span class="badge">Für Anbieter</span>
         <h1>Anmelden & registrieren</h1>
         <p class="lead">Erstelle dein Konto, melde dich an und vervollständige dein Profil (Branche, Kontaktdaten, Ort). Slots/Zeitfenster legst du bequem nach dem Login im Portal an.</p>
-
+          <br>
         <div class="tabs" role="tablist" aria-label="Anbieter-Aktionen">
           <button class="tab-btn active" data-tab="login" role="tab" aria-selected="true">Anmelden</button>
           <button class="tab-btn" data-tab="register" role="tab" aria-selected="false">Registrieren</button>
-          <button class="tab-btn" data-tab="profile" role="tab" aria-selected="false">Profil vervollständigen</button>
         </div>
       </div>
     </section>
 
+    <!-- FORMS -->
     <section>
       <div class="container" id="tab-content">
         <!-- LOGIN -->
@@ -196,7 +208,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein"/>
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein"/>
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
@@ -227,6 +239,14 @@
   </footer>
 
   <script>
+    // ---------- Config: API-Basis (Render) ----------
+    const API = (()=>{
+      // Lokales Fallback für Dev: wenn localhost, nutze lokale API
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:5000';
+      return 'https://api.terminmarktplatz.de';
+    })();
+
     // Mobile Nav
     const nav = document.querySelector('.nav');
     const hb = document.getElementById('hamburger');
@@ -248,9 +268,7 @@
       window.scrollTo({top:0, behavior:'smooth'});
       if (name === 'profile') loadProfileIfAuthed();
     }
-    tabs.forEach(btn=>{
-      btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
-    });
+    tabs.forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)));
     document.querySelectorAll('[data-switch]').forEach(a=>{
       a.addEventListener('click', (e)=>{ e.preventDefault(); switchTab(a.dataset.switch); });
     });
@@ -269,10 +287,10 @@
       const password = document.getElementById('login-password').value;
       if(!email || !password){ return showAlert('login-alert','Bitte E-Mail und Passwort eingeben.'); }
       try{
-        const res = await fetch('/auth/login', {
+        const res = await fetch(`${API}/auth/login`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          credentials:'include',
+          credentials:'include',                 // setzt Cookies auf api.terminmarktplatz.de
           body: JSON.stringify({email, password})
         });
         if(!res.ok){
@@ -282,7 +300,7 @@
             : 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.';
           return showAlert('login-alert', msg);
         }
-        // Erfolg → Portal
+        // Erfolg → Portal (Frontend)
         window.location.href = '/portal';
       }catch(err){
         showAlert('login-alert','Netzwerkfehler – bitte später erneut versuchen.');
@@ -305,7 +323,7 @@
       if(!terms){ return showAlert('register-alert','Bitte stimme Impressum & Datenschutz zu.'); }
 
       try{
-        const res = await fetch('/auth/register', {
+        const res = await fetch(`${API}/auth/register`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           credentials:'include',
@@ -321,8 +339,7 @@
           return showAlert('register-alert', map[data.error] || 'Registrierung fehlgeschlagen.');
         }
         showSuccess('register-success', 'Danke! Bitte bestätige deine E-Mail. Danach kannst du dich anmelden.');
-        // optional: direkt zum Login umschalten
-        setTimeout(()=>switchTab('login'), 2000);
+        setTimeout(()=>switchTab('login'), 1800);
       }catch(err){
         showAlert('register-alert','Netzwerkfehler – bitte später erneut versuchen.');
       }
@@ -332,7 +349,7 @@
     async function loadProfileIfAuthed(){
       hideAlert('profile-alert'); hideSuccess('profile-success');
       try{
-        const res = await fetch('/me', {credentials:'include'});
+        const res = await fetch(`${API}/me`, {credentials:'include'});
         if(!res.ok){ showAlert('profile-alert','Bitte zuerst anmelden, dann kannst du dein Profil bearbeiten.'); return; }
         const me = await res.json();
         // Felder befüllen (nur, wenn leer)
@@ -366,7 +383,7 @@
         return showAlert('profile-alert','Bitte mindestens Firmenname und Branche angeben.');
       }
       try{
-        const res = await fetch('/me', {
+        const res = await fetch(`${API}/me`, {
           method:'PUT',
           headers:{'Content-Type':'application/json'},
           credentials:'include',
@@ -379,7 +396,7 @@
       }
     });
 
-    // Wenn URL /login?tab=register, aktiviere Register
+    // URL-Tab voreinstellen: /login?tab=register
     const url = new URL(window.location.href);
     const want = url.searchParams.get('tab');
     if (want && ['login','register','profile'].includes(want)) switchTab(want);
