@@ -65,6 +65,8 @@ BASE_URL = os.getenv(
 ALLOWED_ORIGINS = [
     "https://terminmarktplatz.de",
     "https://www.terminmarktplatz.de",
+    "http://terminmarktplatz.de",
+    "http://www.terminmarktplatz.de",
     "http://localhost:3000", "http://localhost:5173", "http://localhost:5500",
     "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5500",
 ]
