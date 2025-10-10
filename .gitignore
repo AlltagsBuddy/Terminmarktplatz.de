@@ -1,0 +1,19 @@
+# .env & lokale Secrets niemals committen
+.env
+.env.*
+!.env.example         # Nur eine leere Vorlage committen
+
+# Python-Standardzeug
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.venv/
+venv/
+.envrc
+
+# OS/Editor
+.DS_Store
+.vscode/
+.idea/

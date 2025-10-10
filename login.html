@@ -8,26 +8,27 @@
   <meta name="description" content="Anbieter-Login und Registrierung für Terminmarktplatz. Erstelle dein Konto, melde dich an und vervollständige dein Profil (Branche, Kontaktdaten, Ort)." />
   <meta name="theme-color" content="#6f53ff" />
 
-  <!-- Open Graph / Twitter -->
+  <!-- OG -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Anbieter – Anmelden & Registrieren" />
   <meta property="og:description" content="Jetzt Anbieter werden, freie Slots veröffentlichen und No-Shows reduzieren." />
   <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="/static/og-cover.png" />
+  <meta property="og:image" content="static/og-cover.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <!-- Wichtig: relative Pfade zur Domainwurzel -->
+  <!-- Root-relative Pfade -->
   <base href="/">
 
   <!-- Assets -->
-  <link rel="icon" href="/static/favicon.png" />
+  <link rel="icon" href="static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=20251010">
+  <link rel="stylesheet" href="static/style.css?v=20251010" />
 
-  <!-- Seite-spezifische, kleine Styles (bauen auf style.css auf) -->
+  <!-- Seitenstil: Panels dunkel, Eingabefelder hell -->
   <style>
+    /* Tabs */
     .tabs{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0; justify-content:center}
     .tab-btn{
       padding:10px 14px; border-radius:999px; cursor:pointer; font-weight:700;
@@ -36,43 +37,64 @@
     }
     .tab-btn:hover{transform:translateY(-2px)}
     .tab-btn.active{background:linear-gradient(135deg, var(--c-purple), var(--c-cyan)); border:none}
-    /* Panels: dank style.css werden die Panels im ersten Abschnitt nach dem Hero automatisch hell gesetzt */
+
+    /* Panels auf dieser Seite wieder dunkel (überschreibt helle Default-Panels) */
+    .page-login .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--ink) !important;
+      border-radius: var(--r-3xl);
+      box-shadow: var(--shadow-2);
+      padding: 18px;
+    }
+    .page-login .panel h1,
+    .page-login .panel h2,
+    .page-login .panel h3,
+    .page-login .panel p,
+    .page-login .panel li{ color: var(--ink) }
+    .page-login .panel .muted{ color: var(--ink-dim) }
+
+    /* Form-Gitter & Felder */
     .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
     .form-grid .col-1{grid-column:span 1} .form-grid .col-2{grid-column:span 2}
     .field{display:flex; flex-direction:column; gap:6px}
     .field label{font-weight:700}
-    .field input,.field select{
+    .field input,.field select, .field textarea{
       border:1px solid var(--border); border-radius:12px; padding:12px;
       background:#fff; color:#0f172a
     }
     .form-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .form-note{color:var(--text-2); font-size:13px}
+    .form-note{color:var(--ink-dim); font-size:13px}
     .form-alert{display:none; border:1px solid #ef4444; color:#7f1d1d; background:#fee2e2; padding:10px; border-radius:12px}
     .form-success{display:none; border:1px solid #16a34a; color:#065f46; background:#dcfce7; padding:10px; border-radius:12px}
     .hint{font-size:13px; color:#64748b}
     .divider{height:1px; background:var(--border); margin:14px 0}
-    @media (max-width: 880px){ .form-grid{grid-template-columns:1fr} .form-grid .col-2{grid-column:span 1} }
+
+    @media (max-width: 880px){
+      .form-grid{grid-template-columns:1fr}
+      .form-grid .col-2{grid-column:span 1}
+    }
   </style>
 </head>
-<body>
+
+<body class="page-login">
   <!-- Header -->
-   <header>
+  <header>
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="/" aria-label="Startseite">
+      <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+          <img src="static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-      <!--<button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>-->  
       <nav class="nav-links" id="nav-links">
-        <a href="/anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
-        <a href="/suchende.html" aria-label="Für Suchende">Für Suchende</a>
-        <a href="/preise.html" aria-label="Preise">Preise</a>
+        <a href="anbieter.html"  aria-label="Für Anbieter">Für Anbieter</a>
+        <a href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
+        <a href="preise.html"    aria-label="Preise">Preise</a>
       </nav>
       <div class="cta-group">
-        <a class="btn" href="/anmelden" aria-label="Anmelden">Anmelden</a>
-        <a class="btn primary" href="/registrieren" aria-label="Konto erstellen">Registrieren</a>
+        <a class="btn"         href="login.html?tab=login"    aria-label="Anmelden">Anmelden</a>
+        <a class="btn primary" href="login.html?tab=register" aria-label="Konto erstellen">Registrieren</a>
       </div>
     </div>
   </header>
@@ -84,7 +106,7 @@
         <span class="badge">Für Anbieter</span>
         <h1>Anmelden & registrieren</h1>
         <p class="lead">Erstelle dein Konto, melde dich an und vervollständige dein Profil (Branche, Kontaktdaten, Ort). Slots/Zeitfenster legst du bequem nach dem Login im Portal an.</p>
-          <br>
+        <br>
         <div class="tabs" role="tablist" aria-label="Anbieter-Aktionen">
           <button class="tab-btn active" data-tab="login" role="tab" aria-selected="true">Anmelden</button>
           <button class="tab-btn" data-tab="register" role="tab" aria-selected="false">Registrieren</button>
@@ -137,7 +159,7 @@
               <input id="reg-password2" type="password" placeholder="Passwort bestätigen" required minlength="8" autocomplete="new-password">
             </div>
             <div class="field col-2">
-              <label><input type="checkbox" id="reg-terms" required> Ich akzeptiere das <a href="/impressum" target="_blank" rel="noopener">Impressum</a> und die <a href="/datenschutz" target="_blank" rel="noopener">Datenschutzerklärung</a>.</label>
+              <label><input type="checkbox" id="reg-terms" required> Ich akzeptiere das <a href="impressum.html" target="_blank" rel="noopener">Impressum</a> und die <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutzerklärung</a>.</label>
             </div>
             <div class="form-actions col-2">
               <button class="btn primary" type="submit">Kostenlos registrieren</button>
@@ -148,7 +170,7 @@
           <p class="hint">Nach der Anmeldung vervollständigst du dein Profil (Branche, Kontaktdaten, Ort). Zeitfenster/Slots legst du danach im Portal an.</p>
         </div>
 
-        <!-- PROFILE (after login) -->
+        <!-- PROFILE (optional, nach Login) -->
         <div class="panel" id="tab-profile" role="tabpanel" hidden>
           <h2>Profil vervollständigen</h2>
           <p class="hint">Diese Angaben erscheinen in deinen Angeboten und beschleunigen die Freischaltung.</p>
@@ -175,7 +197,7 @@
             </div>
             <div class="field">
               <label for="pf-zip">PLZ</label>
-              <input id="pf-zip" name="zip" type="text" placeholder="12345" pattern="\\d{5}" inputmode="numeric">
+              <input id="pf-zip" name="zip" type="text" placeholder="12345" pattern="\d{5}" inputmode="numeric">
             </div>
             <div class="field col-2">
               <label for="pf-city">Ort</label>
@@ -183,15 +205,15 @@
             </div>
             <div class="field">
               <label for="pf-phone">Telefon</label>
-              <input id="pf-phone" name="phone" type="tel" placeholder="+49 …" pattern="^\\+?[0-9\\s\\-\\/]{6,}$">
+              <input id="pf-phone" name="phone" type="tel" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$">
             </div>
             <div class="field">
               <label for="pf-whatsapp">WhatsApp (optional)</label>
-              <input id="pf-whatsapp" name="whatsapp" type="tel" placeholder="+49 …" pattern="^\\+?[0-9\\s\\-\\/]{6,}$">
+              <input id="pf-whatsapp" name="whatsapp" type="tel" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$">
             </div>
             <div class="form-actions col-2">
               <button class="btn primary" type="submit">Profil speichern</button>
-              <a class="btn" href="/portal">Weiter ins Portal</a>
+              <a class="btn" href="portal.html">Weiter ins Portal</a>
               <span class="form-note">Slots/Zeitfenster legst du im Portal an.</span>
             </div>
           </form>
@@ -208,7 +230,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein"/>
+            <img src="static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein"/>
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
@@ -216,43 +238,37 @@
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-        <a class="foot-link" href="/wie-es-funktioniert">Wie es funktioniert</a>
-        <a class="foot-link" href="/kategorien">Kategorien</a>
-        <a class="foot-link" href="/preise">Preise</a>
-        <a class="foot-link" href="/anbieter">Für Anbieter</a>
+        <a class="foot-link" href="wie-es-funktioniert.html">Wie es funktioniert</a>
+        <a class="foot-link" href="kategorien.html">Kategorien</a>
+        <a class="foot-link" href="preise.html">Preise</a>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
-        <a class="foot-link" href="/impressum">Impressum</a>
-        <a class="foot-link" href="/datenschutz">Datenschutz</a>
-        <a class="foot-link" href="/agb">AGB</a>
-        <a class="foot-link" href="/widerruf">Widerruf</a>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
-        <a class="foot-link" href="/kontakt">Kontaktformular</a>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a>
-        <a class="foot-link" href="/blog">Blog</a>
+        <a class="foot-link" href="blog.html">Blog</a>
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
   <script>
-    // ---------- Config: API-Basis (Render) ----------
-    const API = (()=>{
-      // Lokales Fallback für Dev: wenn localhost, nutze lokale API
-      const host = window.location.hostname;
-      if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:5000';
+    // API-Basis: lokal vs. Produktion
+    const API = (()=> {
+      const h = location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
       return 'https://api.terminmarktplatz.de';
     })();
 
-    // Mobile Nav
-    const nav = document.querySelector('.nav');
-    const hb = document.getElementById('hamburger');
-    if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
-
-    // Footer-Jahr
+    // Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
 
     // Tabs
@@ -290,7 +306,7 @@
         const res = await fetch(`${API}/auth/login`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          credentials:'include',                 // setzt Cookies auf api.terminmarktplatz.de
+          credentials:'include',
           body: JSON.stringify({email, password})
         });
         if(!res.ok){
@@ -300,8 +316,8 @@
             : 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.';
           return showAlert('login-alert', msg);
         }
-        // Erfolg → Portal (Frontend)
-        window.location.href = '/portal';
+        // Erfolg → Portal
+        window.location.href = 'portal.html';
       }catch(err){
         showAlert('login-alert','Netzwerkfehler – bitte später erneut versuchen.');
       }
@@ -352,7 +368,6 @@
         const res = await fetch(`${API}/me`, {credentials:'include'});
         if(!res.ok){ showAlert('profile-alert','Bitte zuerst anmelden, dann kannst du dein Profil bearbeiten.'); return; }
         const me = await res.json();
-        // Felder befüllen (nur, wenn leer)
         const set = (id,val)=>{ const el = document.getElementById(id); if(el && (el.value==='' || el.value==null) && val) el.value = val; };
         set('pf-company', me.company_name);
         set('pf-branch', me.branch);
@@ -366,37 +381,7 @@
       }
     }
 
-    document.getElementById('profile-form').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      hideAlert('profile-alert'); hideSuccess('profile-success');
-
-      const payload = {
-        company_name: document.getElementById('pf-company').value.trim(),
-        branch: document.getElementById('pf-branch').value.trim(),
-        street: document.getElementById('pf-street').value.trim(),
-        zip: document.getElementById('pf-zip').value.trim(),
-        city: document.getElementById('pf-city').value.trim(),
-        phone: document.getElementById('pf-phone').value.trim(),
-        whatsapp: document.getElementById('pf-whatsapp').value.trim(),
-      };
-      if(!payload.company_name || !payload.branch){
-        return showAlert('profile-alert','Bitte mindestens Firmenname und Branche angeben.');
-      }
-      try{
-        const res = await fetch(`${API}/me`, {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify(payload)
-        });
-        if(!res.ok){ return showAlert('profile-alert','Konnte Profil nicht speichern.'); }
-        showSuccess('profile-success','Profil gespeichert!');
-      }catch(e){
-        showAlert('profile-alert','Netzwerkfehler – bitte später erneut versuchen.');
-      }
-    });
-
-    // URL-Tab voreinstellen: /login?tab=register
+    // URL-Tab voreinstellen: /login.html?tab=register
     const url = new URL(window.location.href);
     const want = url.searchParams.get('tab');
     if (want && ['login','register','profile'].includes(want)) switchTab(want);
