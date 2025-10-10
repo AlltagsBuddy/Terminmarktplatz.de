@@ -4,29 +4,31 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Terminmarktplatz – Freie Termine in deiner Nähe | AlltagsBuddy-Stil (hell)</title>
-  <meta name="description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe – Friseur, Kosmetik, Therapie, Handwerk & mehr. Anbieter können freie Slots sofort veröffentlichen und füllen." />
-  <meta name="theme-color" content="#6f53ff" />
-  
-  <!-- Open Graph / Twitter -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe" />
-  <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe." />
-  <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <title>Terminmarktplatz – Freie Termine in deiner Nähe</title>
+  <meta name="description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe – Friseur, Kosmetik, Therapie, Handwerk & mehr. Anbieter können freie Slots sofort veröffentlichen und füllen.">
+  <meta name="theme-color" content="#6f53ff">
 
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
+  <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
+  <meta property="og:site_name" content="Terminmarktplatz">
+  <meta property="og:image" content="/static/og-cover.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon -->
+  <link rel="icon" href="/static/favicon.png">
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- External Stylesheet -->
+  <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css">
-
+  <!-- Wenn deine CSS in /static/css/style.css liegt, ändere zu: /static/css/style.css -->
+  
   <!-- Structured Data -->
   <script type="application/ld+json">
   {
@@ -40,7 +42,6 @@
       "query-input":"required name=query"
     }
   }
-  
   </script>
 </head>
 <body>
@@ -49,8 +50,7 @@
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="/" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <!-- Logo unter static/terminmarktplatz-logo.png ablegen -->
-          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" width="50" height="50">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
@@ -67,84 +67,82 @@
     </div>
   </header>
 
-      <main>
-      <!-- HERO -->
-      <section class="hero">
-        <div class="container hero-grid">
-          <div>
-            <span class="badge">Neu: Termin-Sofortbörse · Termin Lücken reduzieren</span>
-            <h1>Freie Termine in Minuten bereitstellen, füllen – oder finden.</h1>
-            <p class="lead">
-              Dein Marktplatz für kurzfristig freigewordene Slots bei Friseur:innen, Kosmetik, Therapie, Handwerk, Fitness, Behörden & mehr. 
-            </p>
-            <div class="search-card" role="search" aria-label="Terminsuche">
-              <form class="searchbar" id="search-form" action="/suche" method="get">
-                <label class="input" aria-label="Leistung">
-                  🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt" required>
-                </label>
-                <label class="input" aria-label="Ort">
-                  📍 <input type="text" name="ort" placeholder="PLZ / Stadt" required>
-                </label>
-                <label class="input" aria-label="Datum">
-                  📅 <input type="date" name="datum">
-                </label>
-                <label class="input" aria-label="Zeitfenster">
-                  ⏰
-                  <select name="zeit">
-                    <option value="">Beliebig</option>
-                    <option>Vormittag</option>
-                    <option>Nachmittag</option>
-                    <option>Abend</option>
-                  </select>
-                </label>
-                <button class="btn primary" type="submit">Freie Slots finden</button>
-              </form>
-              <div class="trust">
-                <span></span>
-                <span class="hide-sm">•</span>
-                <span>DSGVO-konform · Keine Abo-Pflicht</span>
-                <span class="hide-sm">•</span>
-              </div>
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <span class="badge">Neu: Termin-Sofortbörse · Terminlücken reduzieren</span>
+          <h1>Freie Termine in Minuten bereitstellen, füllen – oder finden.</h1>
+          <p class="lead">
+            Dein Marktplatz für kurzfristig freigewordene Slots bei Friseur:innen, Kosmetik, Therapie, Handwerk, Fitness, Behörden & mehr. 
+          </p>
+          <div class="search-card" role="search" aria-label="Terminsuche">
+            <form class="searchbar" id="search-form" action="/suche" method="get">
+              <label class="input" aria-label="Leistung">
+                🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt" required>
+              </label>
+              <label class="input" aria-label="Ort">
+                📍 <input type="text" name="ort" placeholder="PLZ / Stadt" required>
+              </label>
+              <label class="input" aria-label="Datum">
+                📅 <input type="date" name="datum">
+              </label>
+              <label class="input" aria-label="Zeitfenster">
+                ⏰
+                <select name="zeit">
+                  <option value="">Beliebig</option>
+                  <option>Vormittag</option>
+                  <option>Nachmittag</option>
+                  <option>Abend</option>
+                </select>
+              </label>
+              <button class="btn primary" type="submit">Freie Slots finden</button>
+            </form>
+            <div class="trust">
+              <span></span>
+              <span class="hide-sm">•</span>
+              <span>DSGVO-konform · Keine Abo-Pflicht</span>
+              <span class="hide-sm">•</span>
             </div>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
-
-   <!-- CATEGORIES -->
-<section>
-  <div class="container">
-    <h2>Beliebte Kategorien</h2>
-    <p class="sub">Was brauchst du heute? Beispiele für häufige Suchanfragen:</p>
-    <div class="categories">
-      <span class="chip">Friseur</span>
-      <span class="chip">Kosmetik</span>
-      <span class="chip">Physiotherapie</span>
-      <span class="chip">Nagelstudio</span>
-      <span class="chip">Zahnarzt</span>
-      <span class="chip">Handwerk</span>
-      <span class="chip">KFZ-Service</span>
-      <span class="chip">Fitness</span>
-      <span class="chip">Coaching</span>
-      <span class="chip">Behörden</span>
-      <span class="chip">Tierarzt</span>
-    </div>
-  </div>
-</section>
+    <!-- CATEGORIES -->
+    <section>
+      <div class="container">
+        <h2>Beliebte Kategorien</h2>
+        <p class="sub">Was brauchst du heute? Beispiele für häufige Suchanfragen:</p>
+        <div class="categories">
+          <span class="chip">Friseur</span>
+          <span class="chip">Kosmetik</span>
+          <span class="chip">Physiotherapie</span>
+          <span class="chip">Nagelstudio</span>
+          <span class="chip">Zahnarzt</span>
+          <span class="chip">Handwerk</span>
+          <span class="chip">KFZ-Service</span>
+          <span class="chip">Fitness</span>
+          <span class="chip">Coaching</span>
+          <span class="chip">Behörden</span>
+          <span class="chip">Tierarzt</span>
+        </div>
+      </div>
+    </section>
 
     <!-- FEATURES -->
     <section>
       <div class="container">
         <h2>Warum Terminmarktplatz?</h2>
-        <p class="sub">Mehr Umsatz für Anbieter. Mehr Spontanität für Kund:innen. Weniger Termin Lücken für alle.</p>
+        <p class="sub">Mehr Umsatz für Anbieter. Mehr Spontanität für Kund:innen. Weniger Terminlücken für alle.</p>
         <div class="features">
           <div class="card">
             <h3>Freie Slots sofort füllen</h3>
             <p>Storniert ein Kunde, wird der Slot publik – optional mit Smart-Rabatten. Kund:innen buchen mit 1-Klick.</p>
           </div>
           <div class="card">
-            <h3>Termin Lücken minimieren</h3>
+            <h3>Terminlücken minimieren</h3>
             <p>Bestätigung per E-Mail und Erinnerungen senken Ausfälle deutlich.</p>
           </div>
           <div class="card">
@@ -158,17 +156,15 @@
     <!-- HOW IT WORKS -->
     <section>
       <div class="container">
-        <h2>So funktioniert&apos;s</h2>
+        <h2>So funktioniert’s</h2>
         <div class="how">
           <div class="step"><div><b>1</b> Anbieter veröffentlicht Verfügbarkeiten oder Last-Minute-Slots.</div></div>
           <div class="step"><div><b>2</b> Kund:in sucht nach Leistung, Ort & Zeit – inkl. Dauerfilter, damit der Slot passt.</div></div>
-          <div class="step"><div><b>3</b> Buchung mit Bestätigung · Erinnerungen · optionaler Anzahlung.</div></div>
+          <div class="step"><div><b>3</b> Buchung mit Bestätigung · Erinnerungen · optionale Anzahlung.</div></div>
         </div>
       </div>
     </section>
-
-   
-
+  </main>
 
   <!-- Footer -->
   <footer>
@@ -176,7 +172,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein"/>
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
@@ -218,9 +214,7 @@
   <script>
     // Mobile nav toggle
     const nav = document.querySelector('.nav');
-    document.getElementById('hamburger').addEventListener('click', ()=>{
-      nav.classList.toggle('open');
-    });
+    document.getElementById('hamburger').addEventListener('click', ()=>{ nav.classList.toggle('open'); });
 
     // Copyright-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
@@ -228,23 +222,15 @@
     // Cookie consent (basic / no 3rd party)
     const cookieKey = 'tm_cookie_consent_v1';
     const $cookie = document.getElementById('cookie');
-    const has = localStorage.getItem(cookieKey);
-    if(!has){ $cookie.style.display = 'block'; }
-    document.getElementById('cookie-accept').onclick = ()=>{
-      localStorage.setItem(cookieKey,'accepted'); $cookie.remove();
-    };
-    document.getElementById('cookie-decline').onclick = ()=>{
-      localStorage.setItem(cookieKey,'declined'); $cookie.remove();
-    };
+    if(!localStorage.getItem(cookieKey)) { $cookie.style.display = 'block'; }
+    document.getElementById('cookie-accept').onclick = ()=>{ localStorage.setItem(cookieKey,'accepted'); $cookie.remove(); };
+    document.getElementById('cookie-decline').onclick = ()=>{ localStorage.setItem(cookieKey,'declined'); $cookie.remove(); };
 
     // Simple validation
     const form = document.getElementById('search-form');
     form.addEventListener('submit', (e)=>{
       const ort = form.querySelector('input[name="ort"]').value.trim();
-      if(!ort){
-        e.preventDefault();
-        alert('Bitte gib eine PLZ oder Stadt ein.');
-      }
+      if(!ort){ e.preventDefault(); alert('Bitte gib eine PLZ oder Stadt ein.'); }
     });
   </script>
 </body>
