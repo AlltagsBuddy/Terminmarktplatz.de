@@ -676,6 +676,9 @@ def public_cancel():
             return _json_error("not_found_or_state", 404)
         b.status = "canceled"; s.commit()
         return jsonify({"ok": True})
+@app.get("/")
+def api_root():
+    return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
 
 # --------------------------------------------------------
 # Start

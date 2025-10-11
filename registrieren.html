@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registrieren – Terminmarktplatz</title>
+  <link rel="icon" href="/static/favicon.png">
+  <link rel="stylesheet" href="/static/style.css?v=9">
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="/">
+        <div class="brand-logo"><img src="/static/terminmarktplatz-logo.png" alt="" width="40" height="40"></div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <nav class="nav-links">
+        <a href="/anbieter.html">Für Anbieter</a>
+        <a href="/preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="container" style="max-width:680px">
+      <h1>Kostenloses Anbieter-Konto erstellen</h1>
+      <p class="muted">Du erhältst eine E-Mail zur Bestätigung deiner Adresse.</p>
+
+      <div id="alert" class="alert" style="display:none"></div>
+
+      <form id="reg-form" class="card" style="padding:24px">
+        <label class="input">
+          📧 <input type="email" name="email" placeholder="E-Mail-Adresse" required />
+        </label>
+        <label class="input">
+          🔒 <input type="password" name="password" placeholder="Passwort (min. 8 Zeichen)" minlength="8" required />
+        </label>
+        <button class="btn primary" type="submit" id="reg-btn">Registrieren</button>
+      </form>
+
+      <p style="margin-top:12px">Schon ein Konto?
+        <a href="/anmelden.html">Hier anmelden</a>.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    // 👉 API-URL deiner Render-Instanz (https ist ok, auch wenn Seite per http kommt)
+    const API = "https://YOUR-RENDER-SERVICE.onrender.com"; // <-- anpassen
+
+    const $form  = document.getElementById('reg-form');
+    const $btn   = document.getElementById('reg-btn');
+    const $alert = document.getElementById('alert');
+
+    function showAlert(msg, ok=false){
+      $alert.textContent = msg;
+      $alert.style.display = 'block';
+      $alert.className = 'alert ' + (ok ? 'ok' : 'error');
+    }
+
+    $form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      $alert.style.display = 'none';
+
+      const email = ($form.email.value || '').trim().toLowerCase();
+      const password = $form.password.value || '';
+
+      if(!email || !password || password.length < 8){
+        showAlert('Bitte E-Mail und ein Passwort mit mindestens 8 Zeichen angeben.');
+        return;
+      }
+
+      $btn.disabled = true; $btn.textContent = 'Sende ...';
+      try{
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include'
+        });
+        const data = await res.json().catch(()=>({}));
+
+        if(res.ok && data.ok){
+          showAlert('Fast geschafft! Bitte prüfe deine E-Mails und klicke auf den Bestätigungslink.', true);
+          $form.reset();
+        }else{
+          const msg = (data && data.error) || 'Registrierung fehlgeschlagen.';
+          const map = {
+            invalid_email: 'Ungültige E-Mail-Adresse.',
+            password_too_short: 'Passwort ist zu kurz (min. 8 Zeichen).',
+            email_exists: 'Es existiert bereits ein Konto mit dieser E-Mail.'
+          };
+          showAlert(map[msg] || msg);
+        }
+      }catch(err){
+        showAlert('Netzwerkfehler. Bitte später erneut versuchen.');
+      }finally{
+        $btn.disabled = false; $btn.textContent = 'Registrieren';
+      }
+    });
+  </script>
+</body>
+</html>
