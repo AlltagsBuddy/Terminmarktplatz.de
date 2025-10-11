@@ -313,6 +313,7 @@ def register():
         email = (data.get("email") or "").strip().lower()
         password = data.get("password") or ""
 
+        # Eingaben prüfen
         try:
             validate_email(email)
         except EmailNotValidError:
@@ -320,42 +321,53 @@ def register():
         if len(password) < 8:
             return _json_error("password_too_short")
 
+        # ---------- DB ----------
         with Session(engine) as s:
-            # zur Kontrolle ins Log
             print("[register] inserting", email, flush=True)
 
-            exists = s.scalar(select(func.count()).select_from(Provider).where(Provider.email == email))
+            exists = s.scalar(
+                select(func.count()).select_from(Provider).where(Provider.email == email)
+            )
             if exists:
                 return _json_error("email_exists")
 
             p = Provider(email=email, pw_hash=ph.hash(password), status="pending")
             s.add(p)
+
             try:
-                s.commit()
+                s.commit()              # p.id ist gesetzt – aber gleich nicht mehr auf p.* zugreifen
             except SQLAlchemyError as db_err:
                 s.rollback()
                 print("[register] DB ERROR:", repr(db_err), flush=True)
                 traceback.print_exc()
                 return jsonify({"error": "db_error", "detail": str(db_err)}), 500
 
-        # Verify-Token + Mail
-        payload = {"sub": p.id, "aud": "verify", "iss": JWT_ISS,
-                   "exp": int((_now() + timedelta(days=2)).timestamp())}
+            # WICHTIG: benötigte Werte sichern, solange die Session noch offen ist
+            provider_id = p.id
+            reg_email = p.email
+
+        # ---------- Verify-Token + Mail ----------
+        payload = {
+            "sub": provider_id,
+            "aud": "verify",
+            "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=2)).timestamp()),
+        }
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
 
         sent = send_mail(
-            p.email,
+            reg_email,
             "Bitte E-Mail bestätigen",
             f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n"
         )
+
         return jsonify({"ok": True, "mail_sent": bool(sent)})
 
     except Exception as e:
         print("[register] UNCAUGHT:", repr(e), flush=True)
         traceback.print_exc()
         return jsonify({"error": "server_error", "detail": str(e)}), 500
-
 
 
 @app.get("/auth/verify")
