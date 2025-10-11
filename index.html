@@ -1,4 +1,3 @@
-<!-- FILE: index.html (statisch, STRATO-kompatibel) -->
 <!doctype html>
 <html lang="de">
 <head>
@@ -8,36 +7,38 @@
   <meta name="description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe – Friseur, Kosmetik, Therapie, Handwerk & mehr. Anbieter können freie Slots sofort veröffentlichen und füllen.">
   <meta name="theme-color" content="#6f53ff">
 
-  <!-- Open Graph / Twitter -->
+  <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
   <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
   <meta property="og:site_name" content="Terminmarktplatz">
-  <meta property="og:image" content="/static/og-cover.png">
+  <meta property="og:url" content="http://terminmarktplatz.de/">
+  <meta property="og:image" content="http://terminmarktplatz.de/static/og-cover.png">
+
   <meta name="twitter:card" content="summary_large_image">
 
   <!-- Favicon -->
   <link rel="icon" href="/static/favicon.png">
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Fonts (schemenlos, funktioniert unter http & https) -->
+  <link rel="preconnect" href="//fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="//fonts.googleapis.com">
+  <link href="//fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="//fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="/static/style.css?v=3">
+  <!-- Styles (root-relative) -->
+  <link rel="stylesheet" href="/static/style.css?v=8">
 
-  <!-- Structured Data -->
+  <!-- Structured Data (mit http-URLs) -->
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
     "@type":"WebSite",
     "name":"Terminmarktplatz",
-    "url":"https://terminmarktplatz.de/",
+    "url":"http://terminmarktplatz.de/",
     "potentialAction":{
       "@type":"SearchAction",
-      "target":"https://terminmarktplatz.de/suche.html?q={query}",
+      "target":"http://terminmarktplatz.de/suche.html?q={query}",
       "query-input":"required name=query"
     }
   }
@@ -53,8 +54,6 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-
-      <!-- <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button> -->
 
       <nav class="nav-links" id="nav-links">
         <a href="/anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
@@ -187,7 +186,7 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <!-- Cookie Banner (nur notwendige Cookies) -->
+  <!-- Cookie Banner -->
   <div class="cookie" id="cookie">
     <div class="wrap">
       <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="/datenschutz.html">Mehr erfahren</a></p>
@@ -207,19 +206,12 @@
     // Copyright-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
 
-    // Cookie consent (basic / no 3rd party)
-    const cookieKey = 'tm_cookie_consent_v3';
+    // Cookie consent
+    const cookieKey = 'tm_cookie_consent_v8';
     const $cookie = document.getElementById('cookie');
     if(!localStorage.getItem(cookieKey)) { $cookie.style.display = 'block'; }
     document.getElementById('cookie-accept').onclick = ()=>{ localStorage.setItem(cookieKey,'accepted'); $cookie.remove(); };
     document.getElementById('cookie-decline').onclick = ()=>{ localStorage.setItem(cookieKey,'declined'); $cookie.remove(); };
-
-    // Simple validation
-    const form = document.getElementById('search-form');
-    form.addEventListener('submit', (e)=>{
-      const ort = form.querySelector('input[name="ort"]').value.trim();
-      if(!ort){ e.preventDefault(); alert('Bitte gib eine PLZ oder Stadt ein.'); }
-    });
   </script>
 </body>
 </html>
