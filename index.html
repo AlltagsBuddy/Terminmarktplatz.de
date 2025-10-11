@@ -13,11 +13,11 @@
   <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
   <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
   <meta property="og:site_name" content="Terminmarktplatz">
-  <meta property="og:image" content="/static/og-cover.png">
+  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}">
   <meta name="twitter:card" content="summary_large_image">
 
   <!-- Favicon -->
-  <link rel="icon" href="/static/favicon.png">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,20 +26,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/static/style.css?v=1">
-  <link rel="icon" href="/static/favicon.png">
-  <!-- Wenn deine CSS in /static/css/style.css liegt, ändere zu: /static/css/style.css -->
-  
-  <!-- Structured Data -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=1) }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+
+  <!-- Structured Data (funktioniert auch ohne _external) -->
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
     "@type":"WebSite",
     "name":"Terminmarktplatz",
-    "url":"https://terminmarktplatz.de/",
+    "url":"{{ url_for('index', _external=True) }}",
     "potentialAction":{
       "@type":"SearchAction",
-      "target":"https://terminmarktplatz.de/suche?q={query}",
+      "target":"{{ url_for('suche', _external=True) }}?q={query}",
       "query-input":"required name=query"
     }
   }
@@ -49,21 +48,21 @@
   <!-- Header / Navigation -->
   <header>
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="/" aria-label="Startseite">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-      <!--<button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>-->  
+      <!-- <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button> -->
       <nav class="nav-links" id="nav-links">
-        <a href="anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
-        <a href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
-        <a href="preise.html" aria-label="Preise">Preise</a>
+        <a href="{{ url_for('anbieter') }}" aria-label="Für Anbieter">Für Anbieter</a>
+        <a href="{{ url_for('suchende') }}" aria-label="Für Suchende">Für Suchende</a>
+        <a href="{{ url_for('preise') }}" aria-label="Preise">Preise</a>
       </nav>
       <div class="cta-group">
-        <a class="btn" href="anmelden.html" aria-label="Anmelden">Anmelden</a>
-        <a class="btn primary" href="registrieren.html" aria-label="Konto erstellen">Registrieren</a>
+        <a class="btn" href="{{ url_for('anmelden') }}" aria-label="Anmelden">Anmelden</a>
+        <a class="btn primary" href="{{ url_for('registrieren') }}" aria-label="Konto erstellen">Registrieren</a>
       </div>
     </div>
   </header>
@@ -79,7 +78,7 @@
             Dein Marktplatz für kurzfristig freigewordene Slots bei Friseur:innen, Kosmetik, Therapie, Handwerk, Fitness, Behörden & mehr. 
           </p>
           <div class="search-card" role="search" aria-label="Terminsuche">
-            <form class="searchbar" id="search-form" action="suche.html" method="get">
+            <form class="searchbar" id="search-form" action="{{ url_for('suche') }}" method="get">
               <label class="input" aria-label="Leistung">
                 🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt" required>
               </label>
@@ -171,7 +170,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein">
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
@@ -179,19 +178,19 @@
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-          <a class="foot-link" href="anbieter.html">Für Anbieter</a>
-          <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="{{ url_for('anbieter') }}">Für Anbieter</a>
+        <a class="foot-link" href="{{ url_for('suchende') }}">Für Suchende</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
-        <a class="foot-link" href="impressum.html">Impressum</a>
-        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
-        <a class="foot-link" href="agb.html">AGB</a>
-        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="{{ url_for('impressum') }}">Impressum</a>
+        <a class="foot-link" href="{{ url_for('datenschutz') }}">Datenschutz</a>
+        <a class="foot-link" href="{{ url_for('agb') }}">AGB</a>
+        <a class="foot-link" href="{{ url_for('widerruf') }}">Widerruf</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
-        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="{{ url_for('kontakt') }}">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
@@ -201,7 +200,7 @@
   <!-- Cookie Banner (nur notwendige Cookies) -->
   <div class="cookie" id="cookie">
     <div class="wrap">
-      <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="datenschutz.html">Mehr erfahren</a>.</p>
+      <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="{{ url_for('datenschutz') }}">Mehr erfahren</a>.</p>
       <div class="btns">
         <button class="btn" id="cookie-decline">Ablehnen</button>
         <button class="btn primary" id="cookie-accept">Akzeptieren</button>
@@ -210,9 +209,10 @@
   </div>
 
   <script>
-    // Mobile nav toggle
+    // Mobile nav toggle (nur wenn Button existiert)
     const nav = document.querySelector('.nav');
-    document.getElementById('hamburger').addEventListener('click', ()=>{ nav.classList.toggle('open'); });
+    const burger = document.getElementById('hamburger');
+    if (burger) burger.addEventListener('click', ()=>{ nav.classList.toggle('open'); });
 
     // Copyright-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
