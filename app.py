@@ -21,10 +21,12 @@ load_dotenv()
 APP_ROOT   = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")     # /static -> für favicon, robots etc.
 JS_DIR     = os.path.join(APP_ROOT, "js")         # /js    -> falls du lokales JS nutzt
-HTML_DIR   = APP_ROOT                              # deine .html liegen bei dir im Root
+HTML_DIR   = APP_ROOT                             # deine .html liegen bei dir im Root
 
-# Laufmodus:
-IS_RENDER   = bool(os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
+# Laufmodus sauber bestimmen (einheitlich)
+IS_RENDER   = bool(os.environ.get("RENDER") or
+                   os.environ.get("RENDER_SERVICE_ID") or
+                   os.environ.get("RENDER_EXTERNAL_URL"))
 IS_LOCALDEV = os.environ.get("LOCAL_DEV") == "1" or not IS_RENDER
 
 app = Flask(
@@ -41,36 +43,46 @@ print("JS DIR      :", JS_DIR)
 # --------------------------------------------------------
 # Config
 # --------------------------------------------------------
-SECRET          = os.environ.get("SECRET_KEY", "dev")
-DB_URL          = os.environ.get("DATABASE_URL")
-JWT_ISS         = os.environ.get("JWT_ISS", "terminmarktplatz")
-JWT_AUD         = os.environ.get("JWT_AUD", "terminmarktplatz_client")
-JWT_EXP_MIN     = int(os.environ.get("JWT_EXP_MINUTES", "60"))
-REFRESH_EXP_DAYS= int(os.environ.get("REFRESH_EXP_DAYS", "14"))
-MAIL_FROM       = os.environ.get("MAIL_FROM", "no-reply@example.com")
-MAIL_PROVIDER   = os.environ.get("MAIL_PROVIDER", "console")
-POSTMARK_TOKEN  = os.environ.get("POSTMARK_TOKEN", "")
-
-# --- Laufzeit-Umgebung erkennen (Render setzt env RENDER=1) ---
-IS_RENDER = bool(os.getenv("RENDER"))
+SECRET            = os.environ.get("SECRET_KEY", "dev")
+DB_URL            = os.environ.get("DATABASE_URL")
+JWT_ISS           = os.environ.get("JWT_ISS", "terminmarktplatz")
+JWT_AUD           = os.environ.get("JWT_AUD", "terminmarktplatz_client")
+JWT_EXP_MIN       = int(os.environ.get("JWT_EXP_MINUTES", "60"))
+REFRESH_EXP_DAYS  = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
+MAIL_FROM         = os.environ.get("MAIL_FROM", "no-reply@example.com")
+REPLY_TO          = os.environ.get("REPLY_TO", MAIL_FROM)
+MAIL_PROVIDER     = os.environ.get("MAIL_PROVIDER", "console")
+POSTMARK_TOKEN    = os.environ.get("POSTMARK_TOKEN", "")
 
 # --- API-Basis-URL (für Links in Mails, z.B. /auth/verify, /public/confirm) ---
-# Priorität: BASE_URL env → sonst sinnvoller Default je Umgebung
 BASE_URL = os.getenv(
     "BASE_URL",
     "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000"
 )
 
-# --- CORS: erlaubte Frontend-Quellen (STRATO + lokal) ---
-ALLOWED_ORIGINS = [
-    "https://terminmarktplatz.de",
-    "https://www.terminmarktplatz.de",
-    "http://terminmarktplatz.de",
-    "http://www.terminmarktplatz.de",
-    "http://localhost:3000", "http://localhost:5173", "http://localhost:5500",
-    "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5500",
-]
+# --- Frontend-URL (für Redirects nach Verify) ---
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500"
+)
 
+# --- CORS: erlaubte Frontend-Quellen (Frontend + www + lokal) ---
+def _origins():
+    roots = {FRONTEND_URL.rstrip("/")}
+    # www-Variante dazunehmen, falls Domain ohne/mit www gewechselt wird
+    if "terminmarktplatz.de" in FRONTEND_URL:
+        roots.add("https://terminmarktplatz.de")
+        roots.add("https://www.terminmarktplatz.de")
+        roots.add("http://terminmarktplatz.de")
+        roots.add("http://www.terminmarktplatz.de")
+    # lokale Dev-Hosts
+    roots.update({
+        "http://localhost:3000", "http://localhost:5173", "http://localhost:5500",
+        "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5500",
+    })
+    return list(roots)
+
+ALLOWED_ORIGINS = _origins()
 
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
@@ -80,12 +92,14 @@ ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
 # --------------------------------------------------------
 CORS(
     app,
-    resources={r"/auth/*": {"origins": ALLOWED_ORIGINS},
-               r"/me": {"origins": ALLOWED_ORIGINS},
-               r"/slots*": {"origins": ALLOWED_ORIGINS},
-               r"/admin/*": {"origins": ALLOWED_ORIGINS},
-               r"/public/*": {"origins": ALLOWED_ORIGINS},
-               r"/api/*": {"origins": ALLOWED_ORIGINS}},
+    resources={
+        r"/auth/*":   {"origins": ALLOWED_ORIGINS},
+        r"/me":       {"origins": ALLOWED_ORIGINS},
+        r"/slots*":   {"origins": ALLOWED_ORIGINS},
+        r"/admin/*":  {"origins": ALLOWED_ORIGINS},
+        r"/public/*": {"origins": ALLOWED_ORIGINS},
+        r"/api/*":    {"origins": ALLOWED_ORIGINS},
+    },
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -148,18 +162,39 @@ def auth_required(admin: bool = False):
     return wrapper
 
 def send_mail(to: str, subject: str, text: str):
+    """
+    MAIL_PROVIDER=console -> loggt Mail
+    MAIL_PROVIDER=postmark -> sendet über Postmark Server Token
+    """
     if MAIL_PROVIDER == "console":
         print(f"\n--- MAIL (console) ---\nTo: {to}\nFrom: {MAIL_FROM}\nSubject: {subject}\n\n{text}\n--- END ---\n")
         return True
-    elif MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
+
+    if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
         import requests
-        r = requests.post(
-            "https://api.postmarkapp.com/email",
-            headers={"X-Postmark-Server-Token": POSTMARK_TOKEN},
-            json={"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text},
-            timeout=10,
-        )
-        return r.status_code == 200
+        try:
+            r = requests.post(
+                "https://api.postmarkapp.com/email",
+                headers={
+                    "X-Postmark-Server-Token": POSTMARK_TOKEN,
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "From": MAIL_FROM,
+                    "To": to,
+                    "Subject": subject,
+                    "TextBody": text,
+                    "ReplyTo": REPLY_TO,
+                    # "MessageStream": "outbound"  # optional: expliziter Streamname
+                },
+                timeout=12,
+            )
+            return 200 <= r.status_code < 300
+        except Exception as e:
+            print("Postmark error:", e)
+            return False
+
     return False
 
 def slot_to_json(x: Slot):
@@ -200,7 +235,7 @@ def api_only_paths():
     if IS_RENDER and not IS_LOCALDEV:
         # nur API-Pfade erlauben
         if not (
-            request.path.startswith("/auth/")
+            request.path.startswith("/auth/")            # inkl. /auth/verify
             or request.path.startswith("/admin/")
             or request.path.startswith("/public/")
             or request.path.startswith("/slots")
@@ -251,31 +286,40 @@ def register():
             return _json_error("email_exists")
         p = Provider(email=email, pw_hash=ph.hash(password), status="pending")
         s.add(p); s.commit()
+
         payload = {"sub": p.id, "aud": "verify", "iss": JWT_ISS,
                    "exp": int((_now() + timedelta(days=2)).timestamp())}
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
-        send_mail(p.email, "Bitte E-Mail bestätigen",
-                  f"Willkommen beim Terminmarktplatz. Bitte bestätigen: {link}")
+        send_mail(
+            p.email,
+            "Bitte E-Mail bestätigen",
+            f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n\n"
+        )
         return jsonify({"ok": True})
 
 @app.get("/auth/verify")
 def verify():
     token = request.args.get("token")
     if not token:
-        return _json_error("missing_token")
+        # zurück auf Login mit Status
+        return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=missing")
+
     try:
         data = jwt.decode(token, SECRET, algorithms=["HS256"], audience="verify", issuer=JWT_ISS)
+    except jwt.ExpiredSignatureError:
+        return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=expired")
     except Exception:
-        return _json_error("invalid_token", 400)
+        return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=invalid")
 
     with Session(engine) as s:
         p = s.get(Provider, data["sub"])
         if not p:
-            return _json_error("not_found", 404)
+            return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=notfound")
         p.email_verified_at = _now()
         s.commit()
-    return jsonify({"ok": True})
+
+    return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=1")
 
 def _cookie_flags():
     """

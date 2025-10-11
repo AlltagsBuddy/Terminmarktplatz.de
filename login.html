@@ -261,14 +261,22 @@
   </footer>
 
   <script>
-    // API-Basis: lokal vs. Produktion
+    // ---------- API-Basis: lokal vs. Produktion ----------
     const API = (()=> {
       const h = location.hostname;
       if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
       return 'https://api.terminmarktplatz.de';
     })();
 
-    // Jahr
+    // ---------- Klartext-Meldungen für API-Fehler ----------
+    const REG_MESSAGES = {
+      email_exists: 'Diese E-Mail ist bereits registriert.',
+      invalid_email: 'Bitte gib eine gültige E-Mail an.',
+      password_too_short: 'Passwort muss mindestens 8 Zeichen haben.',
+      verification_sent: 'Bitte prüfe dein Postfach und bestätige deine E-Mail.'
+    };
+
+    // Footer-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
 
     // Tabs
@@ -295,7 +303,7 @@
     function showSuccess(id, msg){ const el = document.getElementById(id); if(msg) el.textContent = msg; el.style.display='block'; }
     function hideSuccess(id){ const el = document.getElementById(id); el.style.display='none'; }
 
-    // LOGIN
+    // ---------- LOGIN ----------
     document.getElementById('login-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       hideAlert('login-alert');
@@ -306,7 +314,7 @@
         const res = await fetch(`${API}/auth/login`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          credentials:'include',
+          credentials:'include',  // für Cookies (Render: SameSite=None; Secure)
           body: JSON.stringify({email, password})
         });
         if(!res.ok){
@@ -323,7 +331,7 @@
       }
     });
 
-    // REGISTER
+    // ---------- REGISTER ----------
     document.getElementById('register-form').addEventListener('submit', async (e)=>{
       e.preventDefault();
       hideAlert('register-alert'); hideSuccess('register-success');
@@ -334,7 +342,7 @@
       const terms = document.getElementById('reg-terms').checked;
 
       if(!email || !pw1 || !pw2){ return showAlert('register-alert','Bitte alle Pflichtfelder ausfüllen.'); }
-      if(pw1.length < 8){ return showAlert('register-alert','Passwort muss mindestens 8 Zeichen lang sein.'); }
+      if(pw1.length < 8){ return showAlert('register-alert', REG_MESSAGES.password_too_short); }
       if(pw1 !== pw2){ return showAlert('register-alert','Passwörter stimmen nicht überein.'); }
       if(!terms){ return showAlert('register-alert','Bitte stimme Impressum & Datenschutz zu.'); }
 
@@ -347,14 +355,10 @@
         });
         const data = await res.json().catch(()=>({}));
         if(!res.ok){
-          const map = {
-            email_exists: 'Diese E-Mail ist bereits registriert.',
-            invalid_email: 'Bitte eine gültige E-Mail eingeben.',
-            password_too_short: 'Passwort ist zu kurz.',
-          };
-          return showAlert('register-alert', map[data.error] || 'Registrierung fehlgeschlagen.');
+          return showAlert('register-alert', REG_MESSAGES[data.error] || 'Registrierung fehlgeschlagen.');
         }
-        showSuccess('register-success', 'Danke! Bitte bestätige deine E-Mail. Danach kannst du dich anmelden.');
+        // Erfolg
+        showSuccess('register-success', REG_MESSAGES.verification_sent);
         setTimeout(()=>switchTab('login'), 1800);
       }catch(err){
         showAlert('register-alert','Netzwerkfehler – bitte später erneut versuchen.');
