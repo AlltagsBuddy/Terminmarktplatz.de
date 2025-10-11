@@ -1,10 +1,13 @@
-# app.py — API-only on Render, +local HTML serving for dev
+# app.py — API + HTML (Render & Local); optional API-only per API_ONLY=1
 import os
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
-from flask import Flask, request, redirect, jsonify, make_response, send_from_directory, abort
+from flask import (
+    Flask, request, redirect, jsonify, make_response,
+    render_template, url_for, abort
+)
 from flask_cors import CORS
 from sqlalchemy import create_engine, select, and_, func
 from sqlalchemy.orm import Session
@@ -18,27 +21,23 @@ from models import Base, Provider, Slot, Booking
 # --------------------------------------------------------
 load_dotenv()
 
-APP_ROOT   = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(APP_ROOT, "static")     # /static -> für favicon, robots etc.
-JS_DIR     = os.path.join(APP_ROOT, "js")         # /js    -> falls du lokales JS nutzt
-HTML_DIR   = APP_ROOT                             # deine .html liegen bei dir im Root
+APP_ROOT    = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR  = os.path.join(APP_ROOT, "static")
+TEMPLATE_DIR= os.path.join(APP_ROOT, "templates")
 
-# Laufmodus sauber bestimmen (einheitlich)
-IS_RENDER   = bool(os.environ.get("RENDER") or
-                   os.environ.get("RENDER_SERVICE_ID") or
-                   os.environ.get("RENDER_EXTERNAL_URL"))
-IS_LOCALDEV = os.environ.get("LOCAL_DEV") == "1" or not IS_RENDER
+IS_RENDER   = bool(os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
+API_ONLY    = os.environ.get("API_ONLY") == "1"  # ← setze auf 1, wenn du bewusst API-only willst
 
 app = Flask(
     __name__,
     static_folder=STATIC_DIR,
     static_url_path="/static",
+    template_folder=TEMPLATE_DIR,
 )
 
-print("MODE        :", "Render(API-only)" if IS_RENDER and not IS_LOCALDEV else "Local Dev (API + HTML)")
-print("HTML DIR    :", HTML_DIR)
-print("STATIC DIR  :", STATIC_DIR)
-print("JS DIR      :", JS_DIR)
+print("MODE       :", "API-only" if API_ONLY else "Full (API + HTML)")
+print("TEMPLATES  :", TEMPLATE_DIR)
+print("STATIC     :", STATIC_DIR)
 
 # --------------------------------------------------------
 # Config
@@ -54,42 +53,27 @@ REPLY_TO          = os.environ.get("REPLY_TO", MAIL_FROM)
 MAIL_PROVIDER     = os.environ.get("MAIL_PROVIDER", "console")
 POSTMARK_TOKEN    = os.environ.get("POSTMARK_TOKEN", "")
 
-# --- API-Basis-URL (für Links in Mails, z.B. /auth/verify, /public/confirm) ---
-BASE_URL = os.getenv(
-    "BASE_URL",
-    "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000"
-)
+# Für Links in Mails (Confirm/Cancel). Fällt auf aktuelle Host-URL zurück.
+def _external_base() -> str:
+    try:
+        return request.url_root.rstrip("/")
+    except RuntimeError:
+        # außerhalb einer Anfrage (z. B. Start): Render-URL falls gesetzt
+        return os.getenv("BASE_URL", "http://127.0.0.1:5000")
 
-# --- Frontend-URL (für Redirects nach Verify) ---
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "https://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500"
-)
-
-# --- CORS: erlaubte Frontend-Quellen (Frontend + www + lokal) ---
-def _origins():
-    roots = {FRONTEND_URL.rstrip("/")}
-    # www-Variante dazunehmen, falls Domain ohne/mit www gewechselt wird
-    if "terminmarktplatz.de" in FRONTEND_URL:
-        roots.add("https://terminmarktplatz.de")
-        roots.add("https://www.terminmarktplatz.de")
-        roots.add("http://terminmarktplatz.de")
-        roots.add("http://www.terminmarktplatz.de")
-    # lokale Dev-Hosts
-    roots.update({
-        "http://localhost:3000", "http://localhost:5173", "http://localhost:5500",
-        "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5500",
-    })
-    return list(roots)
-
-ALLOWED_ORIGINS = _origins()
-
+# --------------------------------------------------------
+# DB & Crypto
+# --------------------------------------------------------
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
 
 # --------------------------------------------------------
 # CORS & Security Headers
 # --------------------------------------------------------
+ALLOWED_ORIGINS = [
+    "*"
+]  # Bei Cookie-Login lieber restriktiv setzen (deine Domains)
+
 CORS(
     app,
     resources={
@@ -162,14 +146,9 @@ def auth_required(admin: bool = False):
     return wrapper
 
 def send_mail(to: str, subject: str, text: str):
-    """
-    MAIL_PROVIDER=console -> loggt Mail
-    MAIL_PROVIDER=postmark -> sendet über Postmark Server Token
-    """
     if MAIL_PROVIDER == "console":
         print(f"\n--- MAIL (console) ---\nTo: {to}\nFrom: {MAIL_FROM}\nSubject: {subject}\n\n{text}\n--- END ---\n")
         return True
-
     if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
         import requests
         try:
@@ -180,21 +159,13 @@ def send_mail(to: str, subject: str, text: str):
                     "Accept": "application/json",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "From": MAIL_FROM,
-                    "To": to,
-                    "Subject": subject,
-                    "TextBody": text,
-                    "ReplyTo": REPLY_TO,
-                    # "MessageStream": "outbound"  # optional: expliziter Streamname
-                },
+                json={"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text, "ReplyTo": REPLY_TO},
                 timeout=12,
             )
             return 200 <= r.status_code < 300
         except Exception as e:
             print("Postmark error:", e)
             return False
-
     return False
 
 def slot_to_json(x: Slot):
@@ -211,11 +182,11 @@ def slot_to_json(x: Slot):
 # --------------------------------------------------------
 @app.get("/favicon.ico")
 def favicon():
-    return redirect("/static/favicon.ico", code=302)
+    return redirect(url_for("static", filename="favicon.ico"), code=302)
 
 @app.get("/robots.txt")
 def robots():
-    return redirect("/static/robots.txt", code=302)
+    return redirect(url_for("static", filename="robots.txt"), code=302)
 
 @app.get("/healthz")
 @app.get("/api/health")
@@ -228,42 +199,88 @@ def health():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 # --------------------------------------------------------
-# API-only Gate (nur auf Render)
+# API-only Gate (optional)
 # --------------------------------------------------------
 @app.before_request
-def api_only_paths():
-    if IS_RENDER and not IS_LOCALDEV:
-        # nur API-Pfade erlauben
-        if not (
-            request.path.startswith("/auth/")            # inkl. /auth/verify
-            or request.path.startswith("/admin/")
-            or request.path.startswith("/public/")
-            or request.path.startswith("/slots")
-            or request.path in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt")
-            or request.path.startswith("/static/")
-        ):
-            return _json_error("api_only", 404)
+def maybe_api_only():
+    if not API_ONLY:
+        return  # Full mode
+    # API-only: nur API-Pfade erlauben
+    if not (
+        request.path.startswith("/auth/") or
+        request.path.startswith("/admin/") or
+        request.path.startswith("/public/") or
+        request.path.startswith("/slots") or
+        request.path in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt") or
+        request.path.startswith("/static/")
+    ):
+        return _json_error("api_only", 404)
 
 # --------------------------------------------------------
-# Lokales HTML-Serving (nur im Dev-Modus)
+# HTML ROUTES (Full mode)
 # --------------------------------------------------------
-if IS_LOCALDEV:
+def _html_enabled() -> bool:
+    return not API_ONLY
+
+if _html_enabled():
     @app.get("/")
-    def _home():
-        return send_from_directory(HTML_DIR, "index.html")
+    def index():
+        return render_template("index.html")
 
-    @app.get("/js/<path:filename>")
-    def _js(filename):
-        return send_from_directory(JS_DIR, filename)
+    @app.get("/anbieter")
+    def anbieter():
+        return render_template("anbieter.html")
 
-    @app.get("/<path:path>")
-    def _any_page(path: str):
-        # /login -> login.html, /impressum.html -> impressum.html
-        filename = path if path.endswith(".html") else f"{path}.html"
-        file_path = os.path.join(HTML_DIR, filename)
-        if os.path.isfile(file_path):
-            return send_from_directory(HTML_DIR, filename)
-        abort(404)
+    @app.get("/suchende")
+    def suchende():
+        return render_template("suchende.html")
+
+    @app.get("/preise")
+    def preise():
+        return render_template("preise.html")
+
+    @app.get("/anmelden")
+    def anmelden():
+        # optional: tab=login/register via ?tab=
+        return render_template("login.html")
+
+    @app.get("/registrieren")
+    def registrieren():
+        return render_template("login.html")  # eigenes Template? dann anpassen
+
+    @app.get("/suche")
+    def suche():
+        return render_template("suche.html")
+
+    @app.get("/impressum")
+    def impressum():
+        return render_template("impressum.html")
+
+    @app.get("/datenschutz")
+    def datenschutz():
+        return render_template("datenschutz.html")
+
+    @app.get("/agb")
+    def agb():
+        return render_template("agb.html")
+
+    @app.get("/widerruf")
+    def widerruf():
+        return render_template("widerruf.html")
+
+    @app.get("/kontakt")
+    def kontakt():
+        return render_template("kontakt.html")
+
+    # Fallback: /foo -> versucht foo.html zu rendern
+    @app.get("/<path:slug>")
+    def any_page(slug: str):
+        if not slug.endswith(".html"):
+            slug = f"{slug}.html"
+        try:
+            return render_template(slug)
+        except Exception:
+            abort(404)
 
 # --------------------------------------------------------
 # Auth
@@ -290,7 +307,8 @@ def register():
         payload = {"sub": p.id, "aud": "verify", "iss": JWT_ISS,
                    "exp": int((_now() + timedelta(days=2)).timestamp())}
         token = jwt.encode(payload, SECRET, algorithm="HS256")
-        link = f"{BASE_URL}/auth/verify?token={token}"
+        base = _external_base()
+        link = f"{base}{url_for('verify')}?token={token}"
         send_mail(
             p.email,
             "Bitte E-Mail bestätigen",
@@ -302,31 +320,26 @@ def register():
 def verify():
     token = request.args.get("token")
     if not token:
-        # zurück auf Login mit Status
-        return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=missing")
-
+        return redirect(url_for("anmelden", tab="login", verified="missing"))
     try:
         data = jwt.decode(token, SECRET, algorithms=["HS256"], audience="verify", issuer=JWT_ISS)
     except jwt.ExpiredSignatureError:
-        return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=expired")
+        return redirect(url_for("anmelden", tab="login", verified="expired"))
     except Exception:
-        return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=invalid")
+        return redirect(url_for("anmelden", tab="login", verified="invalid"))
 
     with Session(engine) as s:
         p = s.get(Provider, data["sub"])
         if not p:
-            return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=notfound")
+            return redirect(url_for("anmelden", tab="login", verified="notfound"))
         p.email_verified_at = _now()
         s.commit()
 
-    return redirect(f"{FRONTEND_URL}/login.html?tab=login&verified=1")
+    return redirect(url_for("anmelden", tab="login", verified="1"))
 
 def _cookie_flags():
-    """
-    Für Render (HTTPS, Cross-Site) → SameSite=None; Secure=True.
-    Lokal (http://127.0.0.1)      → SameSite=Lax;   Secure=False.
-    """
-    if IS_RENDER and not IS_LOCALDEV:
+    # Auf Render (HTTPS) willst du Secure + None; lokal reicht Lax + insecure
+    if IS_RENDER:
         return {"httponly": True, "secure": True, "samesite": "None"}
     return {"httponly": True, "secure": False, "samesite": "Lax"}
 
@@ -578,7 +591,7 @@ def public_slots():
     start_from = datetime.fromisoformat(since) if since else _now()
     with Session(engine) as s:
         q = select(Slot).join(Provider).where(and_(Slot.status == "published", Slot.start_at >= start_from))
-        if category:  q = q.where(Slot.category == category)
+        if category:   q = q.where(Slot.category == category)
         if zip_filter: q = q.where(Provider.zip == zip_filter)
         items = s.scalars(q.order_by(Slot.start_at.asc()).limit(200)).all()
         def to_json(x: Slot):
@@ -614,8 +627,9 @@ def public_book():
         s.add(b); s.commit()
 
         token = _booking_token(b.id)
-        confirm_link = f"{BASE_URL}/public/confirm?token={token}"
-        cancel_link  = f"{BASE_URL}/public/cancel?token={token}"
+        base = _external_base()
+        confirm_link = f"{base}{url_for('public_confirm')}?token={token}"
+        cancel_link  = f"{base}{url_for('public_cancel')}?token={token}"
         send_mail(email, "Bitte Terminbuchung bestätigen",
                   f"Hallo {name},\n\nbitte bestätige deine Buchung:\n{confirm_link}\n\nStornieren:\n{cancel_link}\n")
         return jsonify({"ok": True})
