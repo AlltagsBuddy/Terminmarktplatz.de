@@ -151,13 +151,20 @@ def auth_required(admin: bool = False):
         return inner
     return wrapper
 
-def send_mail(to: str, subject: str, text: str):
+def send_mail(to: str, subject: str, text: str) -> bool:
+    # Immer loggen, dass wir hier sind:
+    print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
+
     if MAIL_PROVIDER == "console":
-        print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubj: {subject}\n{text}\n--- END ---\n")
+        print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\n\n{text}\n--- END ---\n", flush=True)
         return True
 
     if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
         import requests
+        payload = {
+            "From": MAIL_FROM, "To": to, "Subject": subject,
+            "TextBody": text, "ReplyTo": REPLY_TO,
+        }
         try:
             r = requests.post(
                 "https://api.postmarkapp.com/email",
@@ -166,22 +173,17 @@ def send_mail(to: str, subject: str, text: str):
                     "Accept": "application/json",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "From": MAIL_FROM,
-                    "To": to,
-                    "Subject": subject,
-                    "TextBody": text,
-                    "ReplyTo": REPLY_TO,
-                    # "MessageStream": "outbound",  # nur setzen, wenn du Streams nutzt
-                },
-                timeout=12,
+                json=payload, timeout=12,
             )
-            print("Postmark response:", r.status_code, r.text)  # <— siehst du im Render-Log
+            print("Postmark response:", r.status_code, r.text, flush=True)
             return 200 <= r.status_code < 300
         except Exception as e:
-            print("Postmark error:", e)
+            print("Postmark error:", repr(e), flush=True)
             return False
+
+    print("[mail] provider not configured or POSTMARK_TOKEN missing", flush=True)
     return False
+
 
 
 def slot_to_json(x: Slot):
@@ -330,7 +332,9 @@ def register():
             "Bitte E-Mail bestätigen",
             f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n\n"
         )
-        return jsonify({"ok": True})
+        return jsonify({"ok": True, "mail_sent": bool(sent), "provider": MAIL_PROVIDER})
+
+
 
 @app.get("/auth/verify")
 def verify():
