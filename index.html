@@ -17,7 +17,7 @@
   <meta name="twitter:card" content="summary_large_image">
 
   <!-- Favicon -->
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="icon" href="/static/favicon.png">>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,8 +26,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=1) }}">
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="/static/style.css?v=2">
+  <meta property="og:image" content="/static/og-cover.png">
 
   <!-- Structured Data (funktioniert auch ohne _external) -->
   <script type="application/ld+json">
@@ -50,20 +50,19 @@
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="{{ url_for('index') }}" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" width="50" height="50">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
-      </a>
-      <!-- <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button> -->
-      <nav class="nav-links" id="nav-links">
-        <a href="{{ url_for('anbieter') }}" aria-label="Für Anbieter">Für Anbieter</a>
-        <a href="{{ url_for('suchende') }}" aria-label="Für Suchende">Für Suchende</a>
-        <a href="{{ url_for('preise') }}" aria-label="Preise">Preise</a>
-      </nav>
-      <div class="cta-group">
-        <a class="btn" href="{{ url_for('anmelden') }}" aria-label="Anmelden">Anmelden</a>
-        <a class="btn primary" href="{{ url_for('registrieren') }}" aria-label="Konto erstellen">Registrieren</a>
-      </div>
+            <a class="brand" href="/">Start</a>
+        <nav class="nav-links">
+          <a href="/anbieter.html">Für Anbieter</a>
+          <a href="/suchende.html">Für Suchende</a>
+          <a href="/preise.html">Preise</a>
+        </nav>
+        <div class="cta-group">
+          <a class="btn" href="/anmelden.html">Anmelden</a>
+          <a class="btn primary" href="/registrieren.html">Registrieren</a>
+        </div>
     </div>
   </header>
 
@@ -170,7 +169,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo klein">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
@@ -178,19 +177,19 @@
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-        <a class="foot-link" href="{{ url_for('anbieter') }}">Für Anbieter</a>
-        <a class="foot-link" href="{{ url_for('suchende') }}">Für Suchende</a>
+        <a class="foot-link" href="/anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="/suchende.html">Für Suchende</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
-        <a class="foot-link" href="{{ url_for('impressum') }}">Impressum</a>
-        <a class="foot-link" href="{{ url_for('datenschutz') }}">Datenschutz</a>
-        <a class="foot-link" href="{{ url_for('agb') }}">AGB</a>
-        <a class="foot-link" href="{{ url_for('widerruf') }}">Widerruf</a>
+        <a class="foot-link" href="/impressum.html">Impressum</a>
+        <a class="foot-link" href="/datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="/agb.html">AGB</a>
+        <a class="foot-link" href="/widerruf.html">Widerruf</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
-        <a class="foot-link" href="{{ url_for('kontakt') }}">Kontaktformular</a>
+        <a class="foot-link" href="/kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
@@ -200,7 +199,7 @@
   <!-- Cookie Banner (nur notwendige Cookies) -->
   <div class="cookie" id="cookie">
     <div class="wrap">
-      <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="{{ url_for('datenschutz') }}">Mehr erfahren</a>.</p>
+      <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="/datenschutz.html">Mehr erfahren</a>
       <div class="btns">
         <button class="btn" id="cookie-decline">Ablehnen</button>
         <button class="btn primary" id="cookie-accept">Akzeptieren</button>
