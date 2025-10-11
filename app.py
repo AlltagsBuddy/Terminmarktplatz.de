@@ -147,8 +147,9 @@ def auth_required(admin: bool = False):
 
 def send_mail(to: str, subject: str, text: str):
     if MAIL_PROVIDER == "console":
-        print(f"\n--- MAIL (console) ---\nTo: {to}\nFrom: {MAIL_FROM}\nSubject: {subject}\n\n{text}\n--- END ---\n")
+        print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubj: {subject}\n{text}\n--- END ---\n")
         return True
+
     if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
         import requests
         try:
@@ -159,14 +160,23 @@ def send_mail(to: str, subject: str, text: str):
                     "Accept": "application/json",
                     "Content-Type": "application/json",
                 },
-                json={"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text, "ReplyTo": REPLY_TO},
+                json={
+                    "From": MAIL_FROM,
+                    "To": to,
+                    "Subject": subject,
+                    "TextBody": text,
+                    "ReplyTo": REPLY_TO,
+                    # "MessageStream": "outbound",  # nur setzen, wenn du Streams nutzt
+                },
                 timeout=12,
             )
+            print("Postmark response:", r.status_code, r.text)  # <— siehst du im Render-Log
             return 200 <= r.status_code < 300
         except Exception as e:
             print("Postmark error:", e)
             return False
     return False
+
 
 def slot_to_json(x: Slot):
     return {
