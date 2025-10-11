@@ -16,6 +16,9 @@ import jwt
 
 from models import Base, Provider, Slot, Booking
 
+from sqlalchemy.exc import SQLAlchemyError
+import traceback
+
 # --------------------------------------------------------
 # Init / Paths / Mode
 # --------------------------------------------------------
@@ -305,34 +308,53 @@ if _html_enabled():
 # --------------------------------------------------------
 @app.post("/auth/register")
 def register():
-    data = request.get_json(force=True)
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
     try:
-        validate_email(email)
-    except EmailNotValidError:
-        return _json_error("invalid_email")
-    if len(password) < 8:
-        return _json_error("password_too_short")
+        data = request.get_json(force=True)
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
 
-    with Session(engine) as s:
-        exists = s.scalar(select(func.count()).select_from(Provider).where(Provider.email == email))
-        if exists:
-            return _json_error("email_exists")
-        p = Provider(email=email, pw_hash=ph.hash(password), status="pending")
-        s.add(p); s.commit()
+        try:
+            validate_email(email)
+        except EmailNotValidError:
+            return _json_error("invalid_email")
+        if len(password) < 8:
+            return _json_error("password_too_short")
 
+        with Session(engine) as s:
+            # zur Kontrolle ins Log
+            print("[register] inserting", email, flush=True)
+
+            exists = s.scalar(select(func.count()).select_from(Provider).where(Provider.email == email))
+            if exists:
+                return _json_error("email_exists")
+
+            p = Provider(email=email, pw_hash=ph.hash(password), status="pending")
+            s.add(p)
+            try:
+                s.commit()
+            except SQLAlchemyError as db_err:
+                s.rollback()
+                print("[register] DB ERROR:", repr(db_err), flush=True)
+                traceback.print_exc()
+                return jsonify({"error": "db_error", "detail": str(db_err)}), 500
+
+        # Verify-Token + Mail
         payload = {"sub": p.id, "aud": "verify", "iss": JWT_ISS,
                    "exp": int((_now() + timedelta(days=2)).timestamp())}
         token = jwt.encode(payload, SECRET, algorithm="HS256")
-        base = _external_base()
-        link = f"{base}{url_for('verify')}?token={token}"
-        send_mail(
+        link = f"{BASE_URL}/auth/verify?token={token}"
+
+        sent = send_mail(
             p.email,
             "Bitte E-Mail bestätigen",
-            f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n\n"
+            f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n"
         )
-        return jsonify({"ok": True, "mail_sent": bool(sent), "provider": MAIL_PROVIDER})
+        return jsonify({"ok": True, "mail_sent": bool(sent)})
+
+    except Exception as e:
+        print("[register] UNCAUGHT:", repr(e), flush=True)
+        traceback.print_exc()
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
 
 
 
