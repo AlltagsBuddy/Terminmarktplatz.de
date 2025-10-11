@@ -1,7 +1,6 @@
 Flask==3.0.3
 gunicorn==21.2.0
 SQLAlchemy==2.0.32
-psycopg[binary]==3.2.2
 Flask-Cors==4.0.1
 PyJWT==2.9.0
 argon2-cffi==23.1.0
@@ -11,7 +10,8 @@ requests==2.31.0
 python-dotenv>=1.0
 flask-cors
 python-dateutil==2.9.0.post0
-psycopg2-binary   # nur bei Postgres
-postmark==1.0.7
+psycopg[binary]>=3.1,<4
+
+
 
 
