@@ -43,7 +43,7 @@ print("STATIC     :", STATIC_DIR)
 # Config
 # --------------------------------------------------------
 SECRET            = os.environ.get("SECRET_KEY", "dev")
-DB_URL            = os.environ.get("DATABASE_URL")
+DB_URL            = os.environ.get("DATABASE_URL", "")
 JWT_ISS           = os.environ.get("JWT_ISS", "terminmarktplatz")
 JWT_AUD           = os.environ.get("JWT_AUD", "terminmarktplatz_client")
 JWT_EXP_MIN       = int(os.environ.get("JWT_EXP_MINUTES", "60"))
@@ -60,6 +60,12 @@ def _external_base() -> str:
     except RuntimeError:
         # außerhalb einer Anfrage (z. B. Start): Render-URL falls gesetzt
         return os.getenv("BASE_URL", "http://127.0.0.1:5000")
+    
+# SQLAlchemy soll psycopg v3 benutzen (nicht psycopg2)
+if DB_URL.startswith("postgres://"):
+    DB_URL = DB_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DB_URL.startswith("postgresql://"):
+    DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # --------------------------------------------------------
 # DB & Crypto

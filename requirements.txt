@@ -11,7 +11,7 @@ requests==2.31.0
 python-dotenv>=1.0
 flask-cors
 python-dateutil==2.9.0.post0
-# postmark==1.0.7
-# psycopg2-binary   # nur bei Postgres
+psycopg2-binary   # nur bei Postgres
+postmark==1.0.7
 
 
