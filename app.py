@@ -451,7 +451,7 @@ def auth_login_form():
         return render_template("login.html", error="Login fehlgeschlagen." if err != "email_not_verified" else "E-Mail noch nicht verifiziert."), 401
 
     access, refresh = issue_tokens(p.id, p.is_admin)
-    resp = make_response(redirect("/anbieter-portal"))
+    resp = make_response(redirect("anbieter-portal"))
     return _set_auth_cookies(resp, access, refresh)
 
 # --------------------------------------------------------
