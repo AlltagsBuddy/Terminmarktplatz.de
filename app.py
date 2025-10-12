@@ -56,15 +56,25 @@ REPLY_TO          = os.environ.get("REPLY_TO", MAIL_FROM)
 MAIL_PROVIDER     = os.environ.get("MAIL_PROVIDER", "console")
 POSTMARK_TOKEN    = os.environ.get("POSTMARK_TOKEN", "")
 
-# Für Links in Mails (Confirm/Cancel). Fällt auf aktuelle Host-URL zurück.
+# Helper für Settings mit Fallback
+def _cfg(name: str, default: str | None = None) -> str:
+    val = os.environ.get(name, default)
+    if not val:
+        raise RuntimeError(f"Missing required setting: {name}")
+    return val
+
+# --- API-/Frontend-Basis-URLs (VOR den Routen) ---
+BASE_URL = _cfg("BASE_URL", "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
+FRONTEND_URL = _cfg("FRONTEND_URL", "http://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500")
+
+# Für Links in Mails (Confirm/Cancel) im Public-Flow, wenn kein BASE_URL passt
 def _external_base() -> str:
     try:
         return request.url_root.rstrip("/")
     except RuntimeError:
-        # außerhalb einer Anfrage (z. B. Start): Render-URL falls gesetzt
-        return os.getenv("BASE_URL", "http://127.0.0.1:5000")
-    
-# SQLAlchemy soll psycopg v3 benutzen (nicht psycopg2)
+        return BASE_URL
+
+# SQLAlchemy auf psycopg v3 biegen
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql+psycopg://", 1)
 elif DB_URL.startswith("postgresql://"):
@@ -79,9 +89,7 @@ ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
 # --------------------------------------------------------
 # CORS & Security Headers
 # --------------------------------------------------------
-ALLOWED_ORIGINS = [
-    "*"
-]  # Bei Cookie-Login lieber restriktiv setzen (deine Domains)
+ALLOWED_ORIGINS = ["*"]  # Bei Cookie-Login restriktiver machen
 
 CORS(
     app,
@@ -105,20 +113,6 @@ def add_headers(resp):
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     return resp
-
-# --- API-Basis-URL (für Links in Mails) ---
-# Muss VOR den Routen definiert sein!
-BASE_URL = os.environ.get("BASE_URL")
-if not BASE_URL:
-    # Fallback: Render produktiv, sonst lokal
-    BASE_URL = "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000"
-
-# --- Frontend-URL (für Redirects nach Verify usw.) ---
-FRONTEND_URL = os.environ.get("FRONTEND_URL")
-if not FRONTEND_URL:
-    # Du wolltest http erlauben, solange Zertifikat fehlt:
-    FRONTEND_URL = "http://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500"
-
 
 # --------------------------------------------------------
 # Utilities
@@ -187,7 +181,7 @@ def send_mail(to: str, subject: str, text: str):
                 "Subject": subject,
                 "TextBody": text,
                 "ReplyTo": REPLY_TO,
-                # "MessageStream": "outbound",  # falls du in Postmark einen anderen Stream nutzt -> setzen
+                # "MessageStream": "outbound",  # ggf. anpassen
             }
             r = requests.post(
                 "https://api.postmarkapp.com/email",
@@ -215,9 +209,6 @@ def send_mail(to: str, subject: str, text: str):
 
     return False, "unknown"
 
-
-
-
 def slot_to_json(x: Slot):
     return {
         "id": x.id, "provider_id": x.provider_id, "title": x.title, "category": x.category,
@@ -226,16 +217,6 @@ def slot_to_json(x: Slot):
         "booking_link": x.booking_link, "price_cents": x.price_cents, "notes": x.notes,
         "status": x.status, "created_at": x.created_at.isoformat(),
     }
-
-def _cfg(name: str, default: str | None = None) -> str:
-    val = os.environ.get(name, default)
-    if not val:
-        raise RuntimeError(f"Missing required setting: {name}")
-    return val
-
-BASE_URL = _cfg("BASE_URL", "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
-FRONTEND_URL = _cfg("FRONTEND_URL", "http://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500")
-
 
 # --------------------------------------------------------
 # Misc (favicon/robots + health)
@@ -301,12 +282,11 @@ if _html_enabled():
 
     @app.get("/anmelden")
     def anmelden():
-        # optional: tab=login/register via ?tab=
         return render_template("login.html")
 
     @app.get("/registrieren")
     def registrieren():
-        return render_template("login.html")  # eigenes Template? dann anpassen
+        return render_template("login.html")
 
     @app.get("/suche")
     def suche():
@@ -332,7 +312,6 @@ if _html_enabled():
     def kontakt():
         return render_template("kontakt.html")
 
-    # Fallback: /foo -> versucht foo.html zu rendern
     @app.get("/<path:slug>")
     def any_page(slug: str):
         if not slug.endswith(".html"):
@@ -341,6 +320,11 @@ if _html_enabled():
             return render_template(slug)
         except Exception:
             abort(404)
+else:
+    # API-only: Root liefert JSON (überschreibt HTML-/)
+    @app.get("/")
+    def api_root():
+        return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
 
 # --------------------------------------------------------
 # Auth
@@ -352,7 +336,6 @@ def register():
         email = (data.get("email") or "").strip().lower()
         password = data.get("password") or ""
 
-        # Eingaben prüfen
         try:
             validate_email(email)
         except EmailNotValidError:
@@ -372,16 +355,15 @@ def register():
 
             p = Provider(email=email, pw_hash=ph.hash(password), status="pending")
             s.add(p)
-
             try:
-                s.commit()              # p.id ist gesetzt – aber gleich nicht mehr auf p.* zugreifen
+                s.commit()
             except SQLAlchemyError as db_err:
                 s.rollback()
                 print("[register] DB ERROR:", repr(db_err), flush=True)
                 traceback.print_exc()
                 return jsonify({"error": "db_error", "detail": str(db_err)}), 500
 
-            # WICHTIG: benötigte Werte sichern, solange die Session noch offen ist
+            # Werte sichern, solange Session offen
             provider_id = p.id
             reg_email = p.email
 
@@ -395,13 +377,12 @@ def register():
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
 
-        sent = send_mail(
+        ok_mail, reason = send_mail(
             reg_email,
             "Bitte E-Mail bestätigen",
             f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n"
         )
-
-        return jsonify({"ok": True, "mail_sent": bool(ok_mail), "mail_reason": reason})
+        return jsonify({"ok": True, "mail_sent": ok_mail, "mail_reason": reason})
 
     except Exception as e:
         print("[register] UNCAUGHT:", repr(e), flush=True)
@@ -431,7 +412,6 @@ def verify():
     return redirect(url_for("anmelden", tab="login", verified="1"))
 
 def _cookie_flags():
-    # Auf Render (HTTPS) willst du Secure + None; lokal reicht Lax + insecure
     if IS_RENDER:
         return {"httponly": True, "secure": True, "samesite": "None"}
     return {"httponly": True, "secure": False, "samesite": "Lax"}
@@ -769,9 +749,6 @@ def public_cancel():
             return _json_error("not_found_or_state", 404)
         b.status = "canceled"; s.commit()
         return jsonify({"ok": True})
-@app.get("/")
-def api_root():
-    return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
 
 # --------------------------------------------------------
 # Start
