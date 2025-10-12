@@ -391,25 +391,51 @@ def register():
 
 
 @app.get("/auth/verify")
-def verify():
-    token = request.args.get("token")
+def auth_verify():
+    token = request.args.get("token", "")
+    debug = request.args.get("debug") == "1"
+
+    def _ret(kind: str):
+        # Redirect oder JSON – je nach debug
+        url = f"{FRONTEND_URL}/login.html?tab=login&verified={kind}"
+        if debug:
+            return jsonify({"ok": kind == "1", "redirect": url})
+        return redirect(url)
+
     if not token:
-        return redirect(url_for("anmelden", tab="login", verified="missing"))
+        print("[verify] missing token", flush=True)
+        return _ret("missing")
+
     try:
-        data = jwt.decode(token, SECRET, algorithms=["HS256"], audience="verify", issuer=JWT_ISS)
+        data = jwt.decode(
+            token, SECRET, algorithms=["HS256"],
+            audience="verify", issuer=JWT_ISS
+        )
     except jwt.ExpiredSignatureError:
-        return redirect(url_for("anmelden", tab="login", verified="expired"))
-    except Exception:
-        return redirect(url_for("anmelden", tab="login", verified="invalid"))
+        print("[verify] token expired", flush=True)
+        return _ret("expired")
+    except Exception as e:
+        print("[verify] token invalid:", repr(e), flush=True)
+        return _ret("invalid")
 
-    with Session(engine) as s:
-        p = s.get(Provider, data["sub"])
-        if not p:
-            return redirect(url_for("anmelden", tab="login", verified="notfound"))
-        p.email_verified_at = _now()
-        s.commit()
+    try:
+        pid = data.get("sub")
+        with Session(engine) as s:
+            p = s.get(Provider, pid)
+            if not p:
+                print("[verify] provider not found:", pid, flush=True)
+                return _ret("notfound")
+            if not p.email_verified_at:
+                p.email_verified_at = _now()
+                s.commit()
+                print("[verify] verified OK for", p.email, flush=True)
+            else:
+                print("[verify] already verified", p.email, flush=True)
+        return _ret("1")
+    except Exception as e:
+        print("[verify] server error:", repr(e), flush=True)
+        return _ret("server")
 
-    return redirect(url_for("anmelden", tab="login", verified="1"))
 
 def _cookie_flags():
     if IS_RENDER:
