@@ -168,21 +168,27 @@ def auth_required(admin: bool = False):
         return inner
     return wrapper
 
-def send_mail(to: str, subject: str, text: str) -> bool:
-    # Immer loggen, dass wir hier sind:
-    print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
+def send_mail(to: str, subject: str, text: str):
+    """
+    Returns: (ok: bool, reason: str)
+    """
+    try:
+        print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
 
-    if MAIL_PROVIDER == "console":
-        print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\n\n{text}\n--- END ---\n", flush=True)
-        return True
+        if MAIL_PROVIDER == "console":
+            print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\n\n{text}\n--- END ---\n", flush=True)
+            return True, "console"
 
-    if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
-        import requests
-        payload = {
-            "From": MAIL_FROM, "To": to, "Subject": subject,
-            "TextBody": text, "ReplyTo": REPLY_TO,
-        }
-        try:
+        if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
+            import requests
+            payload = {
+                "From": MAIL_FROM,
+                "To": to,
+                "Subject": subject,
+                "TextBody": text,
+                "ReplyTo": REPLY_TO,
+                # "MessageStream": "outbound",  # falls du in Postmark einen anderen Stream nutzt -> setzen
+            }
             r = requests.post(
                 "https://api.postmarkapp.com/email",
                 headers={
@@ -190,16 +196,25 @@ def send_mail(to: str, subject: str, text: str) -> bool:
                     "Accept": "application/json",
                     "Content-Type": "application/json",
                 },
-                json=payload, timeout=12,
+                json=payload,
+                timeout=12,
             )
             print("Postmark response:", r.status_code, r.text, flush=True)
-            return 200 <= r.status_code < 300
-        except Exception as e:
-            print("Postmark error:", repr(e), flush=True)
-            return False
+            ok = 200 <= r.status_code < 300
+            reason = f"{r.status_code} {r.text}"
+            return ok, reason
 
-    print("[mail] provider not configured or POSTMARK_TOKEN missing", flush=True)
-    return False
+        if MAIL_PROVIDER != "postmark":
+            return False, f"provider={MAIL_PROVIDER} not supported"
+        if not POSTMARK_TOKEN:
+            return False, "missing POSTMARK_TOKEN"
+
+    except Exception as e:
+        print("send_mail exception:", repr(e), flush=True)
+        return False, repr(e)
+
+    return False, "unknown"
+
 
 
 
@@ -386,7 +401,7 @@ def register():
             f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n"
         )
 
-        return jsonify({"ok": True, "mail_sent": bool(sent)})
+        return jsonify({"ok": True, "mail_sent": bool(ok_mail), "mail_reason": reason})
 
     except Exception as e:
         print("[register] UNCAUGHT:", repr(e), flush=True)
