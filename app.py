@@ -106,6 +106,20 @@ def add_headers(resp):
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     return resp
 
+# --- API-Basis-URL (für Links in Mails) ---
+# Muss VOR den Routen definiert sein!
+BASE_URL = os.environ.get("BASE_URL")
+if not BASE_URL:
+    # Fallback: Render produktiv, sonst lokal
+    BASE_URL = "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000"
+
+# --- Frontend-URL (für Redirects nach Verify usw.) ---
+FRONTEND_URL = os.environ.get("FRONTEND_URL")
+if not FRONTEND_URL:
+    # Du wolltest http erlauben, solange Zertifikat fehlt:
+    FRONTEND_URL = "http://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500"
+
+
 # --------------------------------------------------------
 # Utilities
 # --------------------------------------------------------
@@ -197,6 +211,16 @@ def slot_to_json(x: Slot):
         "booking_link": x.booking_link, "price_cents": x.price_cents, "notes": x.notes,
         "status": x.status, "created_at": x.created_at.isoformat(),
     }
+
+def _cfg(name: str, default: str | None = None) -> str:
+    val = os.environ.get(name, default)
+    if not val:
+        raise RuntimeError(f"Missing required setting: {name}")
+    return val
+
+BASE_URL = _cfg("BASE_URL", "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
+FRONTEND_URL = _cfg("FRONTEND_URL", "http://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5500")
+
 
 # --------------------------------------------------------
 # Misc (favicon/robots + health)
