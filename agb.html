@@ -49,7 +49,6 @@
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
-        <a class="active" href="agb.html">AGB</a>
       </nav>
       <div class="cta-group">
         <a class="btn" href="login.html?tab=login">Anmelden</a>
@@ -61,7 +60,7 @@
   <main>
     <!-- HERO -->
     <section class="hero" style="padding:40px 0 18px">
-      <div class="container hero-grid">
+      <div class="container">
         <span class="badge">Rechtliches</span>
         <h1>Allgemeine Geschäftsbedingungen (AGB)</h1>
         <p class="lead">
@@ -79,9 +78,8 @@
 
           <h2>1. Anbieter der Plattform & Geltungsbereich</h2>
           <p>
-            Betreiberin der Plattform „Terminmarktplatz“ (nachfolgend „Plattform“) ist
-            <strong>[Firma/Betreiberin eintragen]</strong>, <strong>[Anschrift]</strong>, <strong>[E-Mail]</strong>, <strong>[Handelsregister/UST-ID]</strong>
-            (nachfolgend „wir“/„uns“).
+            Betreiberin der Plattform „Terminmarktplatz“ ist
+            <strong>[AlltagsBuddy / Annett Hofmann]</strong>, <strong>[info@terminmarktplatz.de]</strong>.
           </p>
           <p>
             Diese AGB gelten für alle Nutzungen der Plattform durch Anbieter und Suchende. Abweichende Bedingungen finden keine
@@ -126,7 +124,7 @@
           </ul>
 
           <h2>6. Preise, Pläne & Vermittlungsgebühr</h2>
-          <p>Die jeweils gültigen Modelle sind auf <a href="preise.html">preise.html</a> beschrieben. Zusammenfassung:</p>
+          <p>Die jeweils gültigen Modelle sind auf <a href="preise.html">Preise</a> beschrieben. Zusammenfassung:</p>
           <div class="table-like" style="margin:10px 0">
             <div class="head">Modell</div><div class="head">Kurzbeschreibung</div>
             <div>Bis zur ersten Buchung</div><div>Kostenlos Slots einstellen</div>
@@ -186,7 +184,7 @@
           <h2>13. Sperrung & Kündigung</h2>
           <ul>
             <li>Wir können Konten sperren oder Inhalte entfernen, wenn konkrete Anhaltspunkte für Rechtsverstöße/AGB-Verstöße bestehen.</li>
-            <li>Anbieter können kostenpflichtige Pakete mit der in <a href="preise.html">preise.html</a> genannten Frist kündigen; 
+            <li>Anbieter können kostenpflichtige Pakete mit der in <a href="preise.html">Preise</a> genannten Frist kündigen; 
               gesetzliche Kündigungsrechte bleiben unberührt.</li>
           </ul>
 
@@ -208,23 +206,21 @@
 
           <h2>Kontakt & Anbieterkennzeichnung</h2>
           <p>
-            <strong>[Firma/Betreiberin eintragen]</strong><br>
-            <strong>[Rechtsform, Register, Registernummer]</strong><br>
-            <strong>[Anschrift]</strong><br>
-            E-Mail: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a><br>
-            USt-ID: <strong>[falls vorhanden]</strong>
-          </p>
-
-          <p class="note">
-            Dieser Text wurde mit Sorgfalt erstellt, ersetzt aber keine Rechtsberatung.
-            Bitte passe die Platzhalter an und prüfe abweichende, branchenspezifische Anforderungen.
-          </p>
+            <strong>[AlltagsBuddy / Annett Hofmann]</strong><br>
+            <strong>[Einzelunternehmen]</strong><br>
+            <strong>[]</strong><br>
+            E-Mail: <a href="mailto:nfo@terminmarktplatz.de">info@terminmarktplatz.de</a><br>
+                     </p>
         </div>
       </div>
     </section>
   </main>
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+    document.getElementById('stand').textContent = new Date().toLocaleDateString('de-DE');
+  </script>
 
-  <!-- Footer -->
+   <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -259,11 +255,6 @@
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
-
-  <script>
-    document.getElementById('y').textContent = new Date().getFullYear();
-    document.getElementById('stand').textContent = new Date().toLocaleDateString('de-DE');
-  </script>
 </body>
 </html>
 

@@ -56,6 +56,7 @@
       <div class="container">
         <span class="badge">Für Suchende</span>
         <h1>Freie Termine finden – ohne Anmeldung.</h1>
+        <br>
         <p class="lead">
           Suche spontan oder geplant nach freien Terminen in deiner Nähe. 
           Wähle Kategorie, Ort, Datum und gewünschte Dauer – und buche direkt. 
@@ -73,6 +74,18 @@
               <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a9 9 0 0 0-9 9c0 7 9 11 9 11s9-4 9-11a9 9 0 0 0-9-9m0 12a3 3 0 1 1 0-6a3 3 0 0 1 0 6"/></svg>
               <input type="text" name="ort" placeholder="PLZ oder Ort" />
             </div>
+             <label class="input" aria-label="Umkreis">
+              <select name="radius" id="f-radius" title="Umkreis um PLZ">
+                  <option value="">Umkreis (optional)</option>
+                  <option value="5">5 km</option>
+                  <option value="10">10 km</option>
+                  <option value="25">25 km</option>
+                  <option value="50">50 km</option>
+                  <option value="75">75 km</option>
+                  <option value="100">100 km</option>
+              </select>
+              </label>
+
             <div class="input">
               <input type="date" name="datum" />
             </div>
