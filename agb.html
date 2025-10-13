@@ -1,0 +1,276 @@
+     <!-- FILE: agb.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AGB | Terminmarktplatz</title>
+  <meta name="description" content="Allgemeine Geschäftsbedingungen von Terminmarktplatz – Nutzung der Plattform, Vermittlung von Terminen, Rechte und Pflichten, Haftung und Datenschutz." />
+  <meta name="theme-color" content="#6f53ff" />
+
+  <!-- OG -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AGB | Terminmarktplatz">
+  <meta property="og:description" content="Allgemeine Geschäftsbedingungen für Anbieter und Suchende.">
+  <meta property="og:image" content="/static/og-cover.png">
+
+  <base href="/">
+  <link rel="icon" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+  <style>
+    .legal h2{margin-top:8px}
+    .legal h3{margin:14px 0 8px}
+    .legal p{margin:8px 0}
+    .legal ul{margin:6px 0 12px 18px}
+    .legal li{margin:4px 0}
+    .legal .note{font-size:14px; color:var(--ink-dim)}
+    .legal .panel a{ text-decoration: underline; }
+    .table-like{display:grid; grid-template-columns:2fr 1fr; gap:8px; align-items:start}
+    .table-like div{padding:8px 10px; border:1px solid var(--border); border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03))}
+    .table-like .head{font-weight:800}
+    @media (max-width:760px){ .table-like{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+        <a class="active" href="agb.html">AGB</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="login.html?tab=login">Anmelden</a>
+        <a class="btn primary" href="login.html?tab=register">Registrieren</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" style="padding:40px 0 18px">
+      <div class="container hero-grid">
+        <span class="badge">Rechtliches</span>
+        <h1>Allgemeine Geschäftsbedingungen (AGB)</h1>
+        <p class="lead">
+          Diese AGB regeln die Nutzung von Terminmarktplatz durch Anbieter:innen („Anbieter“) und Nutzer:innen, die Termine suchen
+          und buchen („Suchende“). Terminmarktplatz ist eine Vermittlungsplattform.
+        </p>
+        <p class="note">Stand: <span id="stand"></span></p>
+      </div>
+    </section>
+
+    <!-- AGB -->
+    <section>
+      <div class="container legal">
+        <div class="panel">
+
+          <h2>1. Anbieter der Plattform & Geltungsbereich</h2>
+          <p>
+            Betreiberin der Plattform „Terminmarktplatz“ (nachfolgend „Plattform“) ist
+            <strong>[Firma/Betreiberin eintragen]</strong>, <strong>[Anschrift]</strong>, <strong>[E-Mail]</strong>, <strong>[Handelsregister/UST-ID]</strong>
+            (nachfolgend „wir“/„uns“).
+          </p>
+          <p>
+            Diese AGB gelten für alle Nutzungen der Plattform durch Anbieter und Suchende. Abweichende Bedingungen finden keine
+            Anwendung, es sei denn, wir stimmen ihrer Geltung ausdrücklich schriftlich zu.
+          </p>
+
+          <h2>2. Rolle von Terminmarktplatz (Vermittlung)</h2>
+          <p>
+            Wir stellen eine technische Infrastruktur bereit, über die Anbieter freie Zeitfenster („Slots“) veröffentlichen und
+            Suchende diese finden und – je nach gewähltem Kontaktweg – direkt buchen können. 
+            <strong>Verträge über Leistungen kommen grundsätzlich zwischen Suchenden und dem jeweiligen Anbieter zustande.</strong>
+            Wir werden nicht Vertragspartnerin dieser Leistungsbeziehungen.
+          </p>
+
+          <h2>3. Nutzerkonten & Registrierung</h2>
+          <h3>3.1 Anbieter</h3>
+          <ul>
+            <li>Kostenlose Registrierung; E-Mail-Bestätigung erforderlich (Double-Opt-In).</li>
+            <li>Pflicht zur Angabe wahrheitsgemäßer, aktueller Stammdaten; Prüfung vorbehalten.</li>
+            <li>Wir können Anbieter nach sachlichem Ermessen vorläufig sperren/ablehnen, z. B. bei Verstößen gegen Gesetze/AGB.</li>
+          </ul>
+          <h3>3.2 Suchende</h3>
+          <ul>
+            <li>Suche ist ohne Konto möglich. Für Direktbuchungen ist eine gültige E-Mail zur Bestätigung erforderlich.</li>
+            <li>Die Stornierung erfolgt über den in der Bestätigung enthaltenen Storno-Link (soweit vorhanden) oder direkt beim Anbieter.</li>
+          </ul>
+
+          <h2>4. Veröffentlichung von Slots (Anbieterpflichten)</h2>
+          <ul>
+            <li>Anbieter sind verantwortlich für Richtigkeit/Vollständigkeit der Angaben (Titel, Dauer, Kategorie, Ort, Preis, Kontaktweg).</li>
+            <li>Nur tatsächlich freie und buchbare Slots veröffentlichen; Doppelbuchungen vermeiden.</li>
+            <li>Gesetze, Berufs- und Standesregeln, Informationspflichten (z. B. Preisangabenverordnung) einhalten.</li>
+            <li>Bei externem Buchungslink trägt der Anbieter die volle Verantwortung für Abwicklung, Datenschutz und Widerruf/Storno.</li>
+          </ul>
+
+          <h2>5. Buchungsprozess & Vertragsschluss</h2>
+          <ul>
+            <li><strong>Direktbuchung:</strong> Suchende geben Name und E-Mail an und bestätigen die Buchung per E-Mail-Link (Double-Opt-In).
+              Ein Vertrag kommt mit dem Anbieter zustande, sobald der Slot bestätigt wurde.</li>
+            <li><strong>Externer Link:</strong> Vertragsschluss erfolgt außerhalb der Plattform nach den Bedingungen des Anbieters.</li>
+            <li>Wir versenden systemische E-Mails (z. B. Bestätigung/Erinnerung) im Auftrag/Interesse der Vertragsparteien.</li>
+          </ul>
+
+          <h2>6. Preise, Pläne & Vermittlungsgebühr</h2>
+          <p>Die jeweils gültigen Modelle sind auf <a href="preise.html">preise.html</a> beschrieben. Zusammenfassung:</p>
+          <div class="table-like" style="margin:10px 0">
+            <div class="head">Modell</div><div class="head">Kurzbeschreibung</div>
+            <div>Bis zur ersten Buchung</div><div>Kostenlos Slots einstellen</div>
+            <div>Basisversion</div><div>Kostenlos; begrenzte Slots/Monat, geringe Sichtbarkeit</div>
+            <div>Premium-Pakete</div><div>Monatspauschale je nach Paket (siehe Preise)</div>
+            <div>Erfolgsprovision</div><div>Vermittlungsgebühr je erfolgreich vermitteltem Termin</div>
+          </div>
+          <p>
+            Gebühren verstehen sich – sofern nicht anders ausgewiesen – inklusive gesetzlicher Umsatzsteuer. Änderungen bleiben vorbehalten.
+            Entgelte werden nach Leistungszeitraum abgerechnet; Zahlungen erfolgen bargeldlos. Bei Zahlungsverzug sind wir zur Sperrung berechtigt.
+          </p>
+
+          <h2>7. Widerruf, Stornierung & No-Show</h2>
+          <ul>
+            <li>Informationen zum gesetzlichen Widerrufsrecht für Verbraucher:innen findest du unter <a href="widerruf.html">widerruf.html</a>.</li>
+            <li>Stornobedingungen können vom Anbieter vorgegeben werden und sind – soweit angegeben – Bestandteil des Angebots.</li>
+            <li>No-Shows: Anbieter dürfen angemessene Maßnahmen zur Reduzierung von Ausfällen treffen (z. B. Erinnerungsmails).</li>
+          </ul>
+
+          <h2>8. Bewertungen & Inhalte</h2>
+          <ul>
+            <li>Nutzer dürfen nur sachliche, wahrheitsgemäße Inhalte veröffentlichen und keine Rechte Dritter verletzen.</li>
+            <li>Wir können Inhalte moderieren, verschieben oder entfernen, wenn sie rechtswidrig sind oder gegen diese AGB verstoßen.</li>
+            <li>Anbieter sichern zu, Rechte an Logos/Bildern/Texten zu besitzen und uns einfache Nutzungsrechte zur Darstellung auf der Plattform einzuräumen.</li>
+          </ul>
+
+          <h2>9. Nutzungsrechte & Schutzrechte</h2>
+          <p>
+            Die Plattform, Software, Designs und Datenbanken sind rechtlich geschützt. Jede nicht ausdrücklich erlaubte Nutzung,
+            insbesondere Kopieren, Veröffentlichen oder Bearbeiten wesentlicher Datenbankteile, ist untersagt.
+          </p>
+
+          <h2>10. Datenschutz</h2>
+          <p>
+            Wir verarbeiten personenbezogene Daten gemäß DSGVO. Details zu Art, Umfang und Zwecken der Verarbeitung, zu Rechtsgrundlagen,
+            Empfängern sowie deinen Rechten findest du in unserer <a href="datenschutz.html">Datenschutzerklärung</a>.
+            Anbieter sind eigene Verantwortliche für Datenverarbeitungen im Rahmen ihrer Vertragsbeziehungen mit Suchenden.
+          </p>
+
+          <h2>11. Verfügbarkeit & Wartung</h2>
+          <p>
+            Wir bieten die Plattform mit branchenüblicher Sorgfalt an. Es kann zu vorübergehenden Einschränkungen durch Wartung,
+            Weiterentwicklung oder Störungen (insb. außerhalb unseres Einflussbereichs) kommen. Ein Anspruch auf jederzeitige
+            Verfügbarkeit besteht nicht.
+          </p>
+
+          <h2>12. Gewährleistung & Haftung</h2>
+          <ul>
+            <li>Wir haften unbeschränkt für Vorsatz und grobe Fahrlässigkeit, für Schäden aus Verletzung von Leben, Körper oder Gesundheit,
+              sowie nach dem Produkthaftungsgesetz.</li>
+            <li>Bei leicht fahrlässiger Verletzung wesentlicher Vertragspflichten (Kardinalpflichten) ist die Haftung auf den
+              vertragstypisch vorhersehbaren Schaden begrenzt.</li>
+            <li>Im Übrigen ist die Haftung ausgeschlossen. Für Leistungsstörungen in Verträgen zwischen Anbieter und Suchenden
+              haften ausschließlich diese Parteien.</li>
+          </ul>
+
+          <h2>13. Sperrung & Kündigung</h2>
+          <ul>
+            <li>Wir können Konten sperren oder Inhalte entfernen, wenn konkrete Anhaltspunkte für Rechtsverstöße/AGB-Verstöße bestehen.</li>
+            <li>Anbieter können kostenpflichtige Pakete mit der in <a href="preise.html">preise.html</a> genannten Frist kündigen; 
+              gesetzliche Kündigungsrechte bleiben unberührt.</li>
+          </ul>
+
+          <h2>14. Änderungen dieser AGB</h2>
+          <p>
+            Wir können diese AGB mit Wirkung für die Zukunft ändern, sofern hierfür ein berechtigtes Interesse besteht
+            (z. B. Gesetzesänderung, Funktionsanpassung). Über wesentliche Änderungen informieren wir rechtzeitig.
+            Widersprichst du nicht innerhalb einer angemessenen Frist oder nutzt du die Plattform weiter, gelten die Änderungen als akzeptiert.
+          </p>
+
+          <h2>15. Schlussbestimmungen</h2>
+          <ul>
+            <li>Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts; 
+              gegenüber Verbraucher:innen nur insoweit, als dem keine zwingenden Verbraucherschutzvorschriften entgegenstehen.</li>
+            <li>Ist der/die Nutzer:in Kaufmann, ist ausschließlicher Gerichtsstand der Sitz der Betreiberin; 
+              im Übrigen gelten die gesetzlichen Gerichtsstände.</li>
+            <li>Sollten einzelne Bestimmungen unwirksam sein, bleibt die Wirksamkeit der übrigen unberührt.</li>
+          </ul>
+
+          <h2>Kontakt & Anbieterkennzeichnung</h2>
+          <p>
+            <strong>[Firma/Betreiberin eintragen]</strong><br>
+            <strong>[Rechtsform, Register, Registernummer]</strong><br>
+            <strong>[Anschrift]</strong><br>
+            E-Mail: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a><br>
+            USt-ID: <strong>[falls vorhanden]</strong>
+          </p>
+
+          <p class="note">
+            Dieser Text wurde mit Sorgfalt erstellt, ersetzt aber keine Rechtsberatung.
+            Bitte passe die Platzhalter an und prüfe abweichende, branchenspezifische Anforderungen.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+      
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+    
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+    document.getElementById('stand').textContent = new Date().toLocaleDateString('de-DE');
+  </script>
+</body>
+</html>
+
+     
+     
+     
+     
+     
+     
+    

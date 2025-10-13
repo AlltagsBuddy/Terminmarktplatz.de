@@ -1,0 +1,239 @@
+<!-- FILE: kontakt.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kontakt | Terminmarktplatz</title>
+  <meta name="description" content="Schreib uns. Wir melden uns schnellstmöglich mit einer Antwort.">
+  <meta name="theme-color" content="#6f53ff" />
+
+  <!-- OG -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Kontakt | Terminmarktplatz">
+  <meta property="og:description" content="Fragen, Feedback oder Partnerschaft – hier erreichst du uns.">
+  <meta property="og:image" content="/static/og-cover.png">
+
+  <base href="/">
+  <link rel="icon" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
+</head>
+<body>
+  <!-- Vollbild-Overlay (wird per JS ein-/ausgeblendet) -->
+  <div id="loading-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
+    <div class="loading-dialog" role="alert" aria-busy="true">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="loading-text">Nachricht wird gesendet …</p>
+      <p id="loading-subtext" class="subtext" hidden>Das kann wenige Sekunden dauern.</p>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+        <a class="active" href="kontakt.html">Kontakt</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="login.html?tab=login">Anmelden</a>
+        <a class="btn primary" href="login.html?tab=register">Registrieren</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" style="padding:40px 0 18px">
+      <div class="container hero-grid">
+        <span class="badge">Kontakt</span>
+        <h1>Schreib uns eine Nachricht.</h1>
+        <p class="lead">Fragen, Feedback oder Partnerschaft? Wir melden uns schnellstmöglich.</p>
+      </div>
+    </section>
+
+    <!-- FORM -->
+    <section>
+      <div class="container" style="max-width:860px">
+        <div class="panel">
+          <form id="contact-form" class="form" novalidate>
+            <div id="form-info" class="muted" aria-live="polite"></div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label class="label" for="cf-name">Dein Name</label>
+                <div class="control"><input id="cf-name" name="name" type="text" placeholder="Max Mustermann" required></div>
+              </div>
+              <div class="field">
+                <label class="label" for="cf-email">E-Mail</label>
+                <div class="control"><input id="cf-email" name="email" type="email" placeholder="du@mail.de" required autocomplete="email"></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="cf-subject">Betreff</label>
+              <div class="control">
+                <input id="cf-subject" name="subject" type="text" placeholder="Worum geht es?" required>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="cf-message">Nachricht</label>
+              <div class="control">
+                <textarea id="cf-message" name="message" placeholder="Schreibe uns dein Anliegen …" required></textarea>
+              </div>
+              <span class="help">Bitte keine sensiblen Daten. Support braucht ggf. deine Registrierungs-E-Mail.</span>
+            </div>
+
+            <!-- DSGVO & Anti-Spam -->
+            <div class="field">
+              <label class="check">
+                <input id="cf-consent" type="checkbox" required>
+                Ich stimme zu, dass meine Angaben zur Beantwortung der Anfrage verarbeitet werden.
+                <a href="datenschutz.html" target="_blank" rel="noopener">Mehr erfahren</a>.
+              </label>
+            </div>
+            <input type="text" name="website" id="cf-honeypot" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <div class="form-actions">
+              <button class="btn primary" type="submit" id="cf-submit">Nachricht senden</button>
+              <span class="form-note">Oder direkt per Mail: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a></span>
+            </div>
+          </form>
+        </div>
+
+        <!-- Alternative Kontaktwege -->
+        <div class="card" style="margin-top:14px">
+          <h3>Weitere Kontaktwege</h3>
+          <p class="muted">Presse & Partnerschaften: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+   <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+      
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+    
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <script>
+    // Jahr
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // API-Basis
+    const API = (()=> {
+      const h = location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    // Overlay
+    const backdrop    = document.getElementById('loading-backdrop');
+    const loadingText = document.getElementById('loading-text');
+    const loadingSub  = document.getElementById('loading-subtext');
+    function lockForm(form, lock = true){
+      [...form.elements].forEach(el => el.disabled = lock);
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.classList.toggle('loading', lock);
+    }
+    function showLoading(msg='Einen Moment …'){
+      loadingText.textContent = msg; loadingSub.hidden = true; backdrop.hidden = false;
+      showLoading._t && clearTimeout(showLoading._t);
+      showLoading._t = setTimeout(()=>{ loadingSub.hidden = false; }, 5000);
+    }
+    function hideLoading(){ backdrop.hidden = true; showLoading._t && clearTimeout(showLoading._t); }
+
+    // Helpers
+    function setInfo(type, text){
+      const box = document.getElementById('form-info');
+      box.className = type === 'error' ? 'alert error' :
+                      type === 'success' ? 'alert success' : 'muted';
+      box.textContent = text || '';
+    }
+
+    // Submit
+    const form = document.getElementById('contact-form');
+    const btn  = document.getElementById('cf-submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setInfo('', '');
+      const name    = document.getElementById('cf-name').value.trim();
+      const email   = document.getElementById('cf-email').value.trim();
+      const subject = document.getElementById('cf-subject').value.trim();
+      const message = document.getElementById('cf-message').value.trim();
+      const consent = document.getElementById('cf-consent').checked;
+      const honey   = document.getElementById('cf-honeypot').value;
+
+      if (honey) return; // Bot
+      if (!name || !email || !subject || !message || !consent){
+        setInfo('error','Bitte alle Pflichtfelder ausfüllen und der Verarbeitung zustimmen.');
+        return;
+      }
+
+      showLoading('Nachricht wird gesendet …'); lockForm(form, true);
+      try{
+        const r = await fetch(`${API}/public/contact`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ name, email, subject, message })
+        });
+        const data = await r.json().catch(()=> ({}));
+        if (!r.ok || data.error){
+          hideLoading(); lockForm(form, false);
+          setInfo('error', 'Senden fehlgeschlagen. Bitte später erneut versuchen.');
+          return;
+        }
+        loadingText.textContent = 'Danke für deine Nachricht!';
+        loadingSub.textContent  = 'Wir melden uns in Kürze.';
+        loadingSub.hidden = false;
+        setTimeout(()=>{ hideLoading(); form.reset(); lockForm(form, false); setInfo('success','Erfolgreich gesendet.'); }, 1500);
+      } catch (err){
+        hideLoading(); lockForm(form, false);
+        setInfo('error','Netzwerkfehler – bitte später erneut versuchen.');
+      }
+    });
+  </script>
+</body>
+</html>
