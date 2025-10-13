@@ -134,7 +134,7 @@ header{
 button.loading{ position: relative; pointer-events: none; opacity: .85; }
 button.loading::after{
   content: ""; position: absolute; right: 12px; top: 50%; width: 18px; height: 18px;
-  margin-top: -9px; border-radius: 50%; border: 2px solid #fff; border-top-color: transparent;
+  margin-top: -9px; border-radius: 50%; border: 2px solid rgba(0,0,0,.1); border-top-color: transparent;
   animation: spin .8s linear infinite;
 }
 
