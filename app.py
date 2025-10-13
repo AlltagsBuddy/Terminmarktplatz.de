@@ -643,20 +643,41 @@ def _verify_booking_token(token: str) -> str | None:
 
 @app.get("/public/slots")
 def public_slots():
-    category   = request.args.get("category")
-    since      = request.args.get("from")
+    category = request.args.get("category")
+    since = request.args.get("from")
     zip_filter = request.args.get("zip")
     start_from = datetime.fromisoformat(since) if since else _now()
+
     with Session(engine) as s:
-        q = select(Slot).join(Provider).where(and_(Slot.status == "published", Slot.start_at >= start_from))
-        if category:   q = q.where(Slot.category == category)
-        if zip_filter: q = q.where(Provider.zip == zip_filter)
-        items = s.scalars(q.order_by(Slot.start_at.asc()).limit(200)).all()
-        def to_json(x: Slot):
-            return {"id": x.id, "title": x.title, "category": x.category,
-                    "start_at": x.start_at.isoformat(), "end_at": x.end_at.isoformat(),
-                    "location": x.location, "provider_id": x.provider_id}
-        return jsonify([to_json(x) for x in items])
+        q = (
+            select(Slot, Provider.zip, Provider.city)
+            .join(Provider)
+            .where(and_(Slot.status == "published", Slot.start_at >= start_from))
+        )
+        if category:
+            q = q.where(Slot.category == category)
+        if zip_filter:
+            q = q.where(Provider.zip == zip_filter)
+
+        rows = s.execute(q.order_by(Slot.start_at.asc()).limit(200)).all()
+
+        def to_json(row):
+            slot, p_zip, p_city = row
+            return {
+                "id": slot.id,
+                "title": slot.title,
+                "category": slot.category,
+                "start_at": slot.start_at.isoformat(),
+                "end_at": slot.end_at.isoformat(),
+                "location": slot.location,
+                "provider_id": slot.provider_id,
+                # NEU für Umkreis-Filter:
+                "provider_zip": p_zip,
+                "provider_city": p_city,
+            }
+
+        return jsonify([to_json(r) for r in rows])
+
 
 @app.post("/public/book")
 def public_book():

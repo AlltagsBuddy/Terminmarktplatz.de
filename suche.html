@@ -61,6 +61,18 @@
             <label class="input" aria-label="PLZ oder Ort">
               📍 <input type="text" name="ort" id="f-ort" placeholder="PLZ / Stadt">
             </label>
+            <label class="input" aria-label="Umkreis">
+            <select name="radius" id="f-radius" title="Umkreis um PLZ">
+                <option value="">Umkreis (optional)</option>
+                <option value="5">5 km</option>
+                <option value="10">10 km</option>
+                <option value="25">25 km</option>
+                <option value="50">50 km</option>
+                <option value="75">75 km</option>
+                <option value="100">100 km</option>
+            </select>
+            </label>
+
             <label class="input" aria-label="Datum">
               📅 <input type="date" name="datum" id="f-datum">
             </label>
@@ -75,7 +87,7 @@
             </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
           </div>
-          <div class="trust">Es werden nur geplante, <strong>freie</strong> Slots angezeigt.</div>
+          <div class="trust">Es werden nur, <strong>freie</strong> Slots angezeigt.</div>
         </form>
       </div>
     </section>
@@ -99,7 +111,6 @@
           <h3>Keine Treffer</h3>
           <p class="muted">Tipp: Datum lockern, Umkreis/PLZ prüfen oder ohne Stichwort suchen. Neue Slots kommen laufend rein.</p>
           <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
-            <a class="btn" href="suchende.html">Wie funktioniert’s?</a>
             <a class="btn primary" href="index.html">Zurück zur Startseite</a>
           </div>
         </div>
