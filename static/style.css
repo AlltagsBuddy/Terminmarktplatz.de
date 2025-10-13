@@ -262,7 +262,7 @@ h2::after{
 .hero + section .panel .muted{color:var(--text-2); opacity:.95}
 .hero + section .demo-input{
   border-color:var(--border);
-  background:#fff;
+  background:#475569;
 }
 .hero + section .panel, 
 .hero + section .panel *{
