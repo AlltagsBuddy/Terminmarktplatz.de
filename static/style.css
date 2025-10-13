@@ -25,7 +25,7 @@
   --ink-dim:#cbd5e1;
   --border:rgba(255,255,255,.12);
 
-  /* Aliase für ältere Regeln im Code */
+  /* Aliase */
   --ab-border: var(--border);
   --fg:#0f172a;
   --text-2:#475569;
@@ -41,6 +41,14 @@
   --grad-brand: linear-gradient(135deg, var(--c-pink), var(--c-blue), var(--c-lime));
   --grad-soft: linear-gradient(135deg, rgba(124,58,237,.25), rgba(6,182,212,.25));
   --focus: 0 0 0 3px rgba(59,130,246,.45);
+
+  /* Form Farben */
+  --field-bg: rgba(255,255,255,.06);
+  --field-border: rgba(255,255,255,.18);
+  --field-bg-focus: rgba(255,255,255,.10);
+  --error:#ef4444;
+  --success:#10b981;
+  --warn:#f59e0b;
 }
 
 /* ---------- Base ---------- */
@@ -48,7 +56,7 @@
 html,body{height:100%}
 body{
   margin:0;
-  font-family: "Josefin Sans", Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   font-weight: 400;
   letter-spacing: .1px;
   color:var(--ink);
@@ -63,6 +71,7 @@ body{
 a{color:inherit; text-decoration:none}
 img{max-width:100%; height:auto; display:block}
 .container{width:min(1160px, 92%); margin-inline:auto}
+small, .muted{color:var(--ink-dim)}
 
 /* Fun Blobs (Deko) */
 body::before,
@@ -114,6 +123,15 @@ header{
   border:none; font-weight:800;
 }
 .btn.secondary{background:rgba(255,255,255,.06)}
+.btn.block{width:100%}
+
+/* Button Loading-State */
+button.loading{ position: relative; pointer-events: none; opacity: .85; }
+button.loading::after{
+  content: ""; position: absolute; right: 12px; top: 50%; width: 18px; height: 18px;
+  margin-top: -9px; border-radius: 50%; border: 2px solid #fff; border-top-color: transparent;
+  animation: spin .8s linear infinite;
+}
 
 /* ---------- Hero ---------- */
 .hero{padding:86px 0 34px}
@@ -149,11 +167,11 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
 }
 .input{
   display:flex; gap:10px; align-items:center;
-  background:rgba(255,255,255,.06); border:1px solid var(--border);
+  background:var(--field-bg); border:1px solid var(--field-border);
   border-radius:16px; padding:12px 12px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
 }
-.input:focus-within{outline: none; box-shadow: var(--focus)}
+.input:focus-within{outline: none; background:var(--field-bg-focus); box-shadow: var(--focus)}
 .input input, .input select{all:unset; color:#fff; width:100%}
 .input input::placeholder{color:rgba(255,255,255,.6)}
 
@@ -185,7 +203,7 @@ h2::after{
 }
 .sub{color:var(--c-blue); margin:14px 0 20px}
 
-/* ---------- Feature-Cards (bunt) ---------- */
+/* ---------- Feature-Cards ---------- */
 .features{
   display:grid; grid-template-columns:repeat(3, 1fr); gap:22px;
 }
@@ -234,7 +252,6 @@ h2::after{
 
 /* =========================================================
    Lesbarkeit-Fix: „Wie es funktioniert“ – Panels hell
-   (wir zielen NUR auf die erste Section NACH dem Hero)
 ========================================================= */
 .hero + section .panel{
   background:#fff;
@@ -305,8 +322,103 @@ footer{
 .cookie p{margin:0 0 10px; color:var(--ink-dim)}
 .cookie .btns{display:flex; gap:10px}
 
+/* =========================================================
+   FORM & AUTH (Login/Registrieren/Portal)
+========================================================= */
+.form{display:grid; gap:14px}
+.field{display:grid; gap:8px}
+.label{font-weight:800; font-size:14px}
+.control{
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  background:var(--field-bg); border:1px solid var(--field-border); border-radius:14px;
+  transition:.15s; box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+.control:focus-within{background:var(--field-bg-focus); box-shadow:var(--focus)}
+.control input, .control select, .control textarea{
+  all:unset; color:#fff; width:100%; line-height:1.4;
+}
+.control textarea{min-height:96px}
+.help{font-size:12px; color:var(--ink-dim)}
+.error-text{color:var(--error); font-weight:700; font-size:13px}
+.success-text{color:var(--success); font-weight:700; font-size:13px}
+
+/* Inline Info/Fehler über Formular */
+#form-info{margin-top:8px; padding:10px 12px; border-radius:12px; font-weight:700}
+#form-info.error{background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); color:#fecaca}
+#form-info.success{background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.35); color:#bbf7d0}
+#form-info.warn{background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); color:#fde68a}
+
+/* Checkbox/Radio kompakt */
+.check{
+  display:flex; align-items:center; gap:10px; font-size:14px; color:var(--ink-dim);
+}
+.check input{width:18px; height:18px}
+
+/* Tabs/Login-Umschalter (falls vorhanden) */
+.tabs{display:flex; gap:8px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:6px}
+.tab{
+  padding:8px 12px; border-radius:10px; font-weight:800; color:var(--ink-dim); cursor:pointer;
+}
+.tab.active{color:#0b0f1a; background:#fff}
+
+/* ---------- Badges / Pill ---------- */
+.pill{
+  display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
+  background:rgba(255,255,255,.08); border:1px solid var(--border); font-weight:800;
+}
+.pill.success{background:rgba(16,185,129,.14); border-color:rgba(16,185,129,.35); color:#d1fae5}
+.pill.warn{background:rgba(245,158,11,.14); border-color:rgba(245,158,11,.35); color:#fde68a}
+.pill.error{background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.35); color:#fecaca}
+
+/* ---------- Tabellen (Portal) ---------- */
+.table{width:100%; border-collapse:separate; border-spacing:0; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:14px; overflow:hidden}
+.table th, .table td{padding:12px 14px; text-align:left}
+.table thead th{background:rgba(255,255,255,.06); font-weight:800; color:#fff}
+.table tbody tr{border-top:1px solid var(--border)}
+.table tbody tr:hover{background:rgba(255,255,255,.04)}
+
+/* ---------- Toast / Alerts ---------- */
+.toast{
+  position:fixed; right:16px; bottom:16px; z-index:60;
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  border:1px solid var(--border); color:#fff; padding:12px 14px; border-radius:12px; box-shadow:var(--shadow-2);
+}
+.alert{
+  padding:12px 14px; border-radius:12px; border:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+}
+.alert.error{background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.35); color:#fecaca}
+.alert.success{background:rgba(16,185,129,.12); border-color:rgba(16,185,129,.35); color:#bbf7d0}
+.alert.warn{background:rgba(245,158,11,.12); border-color:rgba(245,158,11,.35); color:#fde68a}
+
+/* =========================================================
+   Vollbild-Ladeoverlay (für Registrierung/Login/Buchung)
+========================================================= */
+.loading-backdrop[hidden] { display: none !important; }
+.loading-backdrop {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(20,16,40,.55); backdrop-filter: blur(4px) saturate(130%);
+  display: grid; place-items: center;
+}
+.loading-dialog {
+  background: #fff; color: #111; width: min(520px, 92vw);
+  border-radius: 18px; padding: 28px 24px; text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
+.spinner {
+  width: 56px; height: 56px; margin: 4px auto 14px; border-radius: 50%;
+  border: 6px solid #e9e6ff; border-top-color: #6f53ff; animation: spin 1s linear infinite;
+}
+.subtext { margin-top: 6px; font-size: .92rem; color: #555; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ---------- Utilities ---------- */
-.muted{color:var(--ink-dim)}
+.center{display:grid; place-items:center}
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.panel{
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:var(--shadow-1)
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px){
@@ -323,16 +435,15 @@ footer{
   .testimonials{grid-template-columns:1fr}
   .categories{gap:10px 12px}
   .searchbar{grid-template-columns:1fr 1fr auto}
+  .grid-2{grid-template-columns:1fr}
 }
 @media (max-width: 640px){
   .cta-provider .grid-2{grid-template-columns:1fr}
   .cta-provider .panel .btn{width:100%}
+  .btn{padding:12px 16px}
 }
 
 /* ---------- Accessibility / Motion ---------- */
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; transition:none !important}
 }
-/* /static/style.css – Test */
-body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-.probe { font-size: 28px; font-weight: 800; padding: 12px; border: 2px solid #000; }

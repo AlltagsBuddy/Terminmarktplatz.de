@@ -78,6 +78,15 @@
 </head>
 
 <body class="page-login">
+  <!-- Vollbild-Ladeoverlay (richtige Position: im <body>) -->
+  <div id="loading-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
+    <div class="loading-dialog" role="alert" aria-busy="true">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="loading-text">Einen Moment …</p>
+      <p id="loading-subtext" class="subtext" hidden>Das kann – je nach Provider – bis zu 30 Sek. dauern.</p>
+    </div>
+  </div>
+
   <!-- Header -->
   <header>
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
@@ -166,23 +175,6 @@
               <span class="form-note">Schon Konto? → <a href="#" data-switch="login">Anmelden</a></span>
             </div>
           </form>
-          <form id="register-form" class="stack">
-              <label>
-                E-Mail
-                <input type="email" name="email" required autocomplete="email"
-                      placeholder="z. B. info@terminmarktplatz.de">
-              </label>
-
-              <label>
-                Passwort
-                <input type="password" name="password" required minlength="8"
-                      autocomplete="new-password" placeholder="mind. 8 Zeichen">
-              </label>
-
-              <button class="btn primary" id="register-submit" type="submit">Registrieren</button>
-
-              <div id="register-msg" class="form-msg" aria-live="polite"></div>
-            </form>
 
           <div class="divider"></div>
           <p class="hint">Nach der Anmeldung vervollständigst du dein Profil (Branche, Kontaktdaten, Ort). Zeitfenster/Slots legst du danach im Portal an.</p>
@@ -278,6 +270,7 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
+  <!-- Konsolidierter JS-Block -->
   <script>
     // ---------- API-Basis: lokal vs. Produktion ----------
     const API = (()=> {
@@ -285,14 +278,6 @@
       if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
       return 'https://api.terminmarktplatz.de';
     })();
-
-    // ---------- Klartext-Meldungen für API-Fehler ----------
-    const REG_MESSAGES = {
-      email_exists: 'Diese E-Mail ist bereits registriert.',
-      invalid_email: 'Bitte gib eine gültige E-Mail an.',
-      password_too_short: 'Passwort muss mindestens 8 Zeichen haben.',
-      verification_sent: 'Bitte prüfe dein Postfach und bestätige deine E-Mail.'
-    };
 
     // Footer-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
@@ -315,75 +300,119 @@
       a.addEventListener('click', (e)=>{ e.preventDefault(); switchTab(a.dataset.switch); });
     });
 
-    // Helpers
+    // Overlay + Button-Loading
+    const backdrop    = document.getElementById('loading-backdrop');
+    const loadingText = document.getElementById('loading-text');
+    const loadingSub  = document.getElementById('loading-subtext');
+    function lockForm(form, lock = true){
+      if (!form) return;
+      [...form.elements].forEach(el => el.disabled = lock);
+      form.setAttribute('aria-busy', lock ? 'true' : 'false');
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.classList.toggle('loading', lock);
+    }
+    function showLoading(msg = 'Einen Moment …'){
+      if (loadingText) loadingText.textContent = msg;
+      if (loadingSub)  loadingSub.hidden = true;
+      if (backdrop)    backdrop.hidden  = false;
+      // nach 5s Zusatzhinweis einblenden
+      showLoading._t && clearTimeout(showLoading._t);
+      showLoading._t = setTimeout(()=>{ if(loadingSub) loadingSub.hidden = false; }, 5000);
+    }
+    function hideLoading(){ if (backdrop) backdrop.hidden = true; showLoading._t && clearTimeout(showLoading._t); }
+
+    // Helpers für Meldungen
     function showAlert(id, msg){ const el = document.getElementById(id); el.textContent = msg; el.style.display='block'; }
     function hideAlert(id){ const el = document.getElementById(id); el.style.display='none'; el.textContent=''; }
     function showSuccess(id, msg){ const el = document.getElementById(id); if(msg) el.textContent = msg; el.style.display='block'; }
     function hideSuccess(id){ const el = document.getElementById(id); el.style.display='none'; }
 
     // ---------- LOGIN ----------
-    document.getElementById('login-form').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      hideAlert('login-alert');
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
-      if(!email || !password){ return showAlert('login-alert','Bitte E-Mail und Passwort eingeben.'); }
-      try{
-        const res = await fetch(`${API}/auth/login`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',  // für Cookies (Render: SameSite=None; Secure)
-          body: JSON.stringify({email, password})
-        });
-        if(!res.ok){
-          const data = await res.json().catch(()=>({error:'Fehler'}));
-          const msg = data.error === 'email_not_verified'
-            ? 'Bitte bestätige zuerst deine E-Mail über den Link in unserer Nachricht.'
-            : 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.';
-          return showAlert('login-alert', msg);
+    (function(){
+      const form = document.getElementById('login-form');
+      if(!form) return;
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        hideAlert('login-alert');
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        if(!email || !password){ return showAlert('login-alert','Bitte E-Mail und Passwort eingeben.'); }
+
+        showLoading('Anmeldung …'); lockForm(form, true);
+        try{
+          const res = await fetch(`${API}/auth/login`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify({email, password})
+          });
+          if(!res.ok){
+            const data = await res.json().catch(()=>({error:'Fehler'}));
+            const msg = data.error === 'email_not_verified'
+              ? 'Bitte bestätige zuerst deine E-Mail über den Link in unserer Nachricht.'
+              : 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.';
+            hideLoading(); lockForm(form, false);
+            return showAlert('login-alert', msg);
+          }
+          // Erfolg → Portal
+          window.location.href = 'anbieter-portal.html';
+        }catch(err){
+          hideLoading(); lockForm(form, false);
+          showAlert('login-alert','Netzwerkfehler – bitte später erneut versuchen.');
         }
-        // Erfolg → Portal
-        window.location.href = 'anbieter-portal.html';
-      }catch(err){
-        showAlert('login-alert','Netzwerkfehler – bitte später erneut versuchen.');
-      }
-    });
+      });
+    })();
 
     // ---------- REGISTER ----------
-    document.getElementById('register-form').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      hideAlert('register-alert'); hideSuccess('register-success');
+    (function(){
+      const form = document.getElementById('register-form');
+      if(!form) return;
 
-      const email = document.getElementById('reg-email').value.trim();
-      const pw1 = document.getElementById('reg-password').value;
-      const pw2 = document.getElementById('reg-password2').value;
-      const terms = document.getElementById('reg-terms').checked;
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        hideAlert('register-alert'); hideSuccess('register-success');
 
-      if(!email || !pw1 || !pw2){ return showAlert('register-alert','Bitte alle Pflichtfelder ausfüllen.'); }
-      if(pw1.length < 8){ return showAlert('register-alert', REG_MESSAGES.password_too_short); }
-      if(pw1 !== pw2){ return showAlert('register-alert','Passwörter stimmen nicht überein.'); }
-      if(!terms){ return showAlert('register-alert','Bitte stimme Impressum & Datenschutz zu.'); }
+        const email = document.getElementById('reg-email').value.trim();
+        const pw1 = document.getElementById('reg-password').value;
+        const pw2 = document.getElementById('reg-password2').value;
+        const terms = document.getElementById('reg-terms').checked;
 
-      try{
-        const res = await fetch(`${API}/auth/register`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify({email, password: pw1})
-        });
-        const data = await res.json().catch(()=>({}));
-        if(!res.ok){
-          return showAlert('register-alert', REG_MESSAGES[data.error] || 'Registrierung fehlgeschlagen.');
+        if(!email || !pw1 || !pw2){ return showAlert('register-alert','Bitte alle Pflichtfelder ausfüllen.'); }
+        if(pw1.length < 8){ return showAlert('register-alert','Passwort muss mindestens 8 Zeichen haben.'); }
+        if(pw1 !== pw2){ return showAlert('register-alert','Passwörter stimmen nicht überein.'); }
+        if(!terms){ return showAlert('register-alert','Bitte stimme Impressum & Datenschutz zu.'); }
+
+        showLoading('Registrierung wird erstellt …'); lockForm(form, true);
+        try{
+          const res = await fetch(`${API}/auth/register`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify({email, password: pw1})
+          });
+          const data = await res.json().catch(()=>({}));
+          if(!res.ok || data.error){
+            hideLoading(); lockForm(form, false);
+            const msgs = {
+              email_exists: 'Diese E-Mail ist bereits registriert.',
+              invalid_email: 'Bitte gib eine gültige E-Mail an.',
+              password_too_short: 'Passwort muss mindestens 8 Zeichen haben.'
+            };
+            return showAlert('register-alert', msgs[data.error] || 'Registrierung fehlgeschlagen.');
+          }
+          // Erfolg: deutlicher Hinweis + Wechsel zum Login
+          loadingText.textContent = 'Fast geschafft!';
+          loadingSub.textContent  = 'Wir haben dir eine Bestätigungs-E-Mail gesendet.';
+          loadingSub.hidden = false;
+          setTimeout(()=>{ hideLoading(); lockForm(form, false); switchTab('login'); }, 2000);
+        }catch(err){
+          hideLoading(); lockForm(form, false);
+          showAlert('register-alert','Netzwerkfehler – bitte später erneut versuchen.');
         }
-        // Erfolg
-        showSuccess('register-success', REG_MESSAGES.verification_sent);
-        setTimeout(()=>switchTab('login'), 1800);
-      }catch(err){
-        showAlert('register-alert','Netzwerkfehler – bitte später erneut versuchen.');
-      }
-    });
+      });
+    })();
 
-    // PROFILE (requires auth)
+    // ---------- PROFILE (requires auth) ----------
     async function loadProfileIfAuthed(){
       hideAlert('profile-alert'); hideSuccess('profile-success');
       try{
@@ -408,84 +437,5 @@
     const want = url.searchParams.get('tab');
     if (want && ['login','register','profile'].includes(want)) switchTab(want);
   </script>
-  <script>
-(() => {
-  // Deine API auf Render:
-  const API = 'https://api.terminmarktplatz.de';
-
-  const form = document.getElementById('register-form');
-  if (!form) return;
-
-  const msg = document.getElementById('register-msg');
-  const btn = document.getElementById('register-submit');
-
-  function show(type, text) {
-    // type: ok | err | info  (style in CSS nach Wunsch)
-    msg.className = 'form-msg ' + type;
-    msg.textContent = text;
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    show('info', 'Einen Moment …');
-    btn.disabled = true;
-
-    const email = form.email.value.trim().toLowerCase();
-    const password = form.password.value;
-
-    if (!email || password.length < 8) {
-      show('err', 'Bitte gültige E-Mail und Passwort (mind. 8 Zeichen) eingeben.');
-      btn.disabled = false;
-      return;
-    }
-
-    try {
-      const r = await fetch(`${API}/auth/register`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ email, password })
-      });
-      const data = await r.json().catch(() => ({}));
-
-      if (r.ok && data?.ok) {
-        if (data.mail_sent) {
-          show('ok', 'Fast geschafft! Bitte prüfe deine E-Mails und bestätige die Adresse.');
-        } else {
-          show('info',
-            `Registriert. Mailversand noch nicht erfolgt (${data.mail_reason || 'Info'}). ` +
-            `Solange Postmark im Review ist, bitte @terminmarktplatz.de als Empfänger nutzen.`
-          );
-        }
-        form.reset();
-      } else {
-        switch (data?.error) {
-          case 'invalid_email':
-            show('err', 'Diese E-Mail ist ungültig.'); break;
-          case 'password_too_short':
-            show('err', 'Passwort zu kurz (mind. 8 Zeichen).'); break;
-          case 'email_exists':
-            show('err', 'Diese E-Mail ist bereits registriert.'); break;
-          default:
-            show('err', 'Unerwarteter Fehler. Bitte später erneut versuchen.');
-            console.warn('Register error', data);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      show('err', 'Netzwerkfehler – bitte erneut versuchen.');
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-  // Optional: Erfolgsmeldung nach /auth/verify-Redirect (?verified=1)
-  const sp = new URLSearchParams(location.search);
-  const v = sp.get('verified');
-  if (v === '1')      show('ok', 'E-Mail bestätigt. Du kannst dich jetzt anmelden.');
-  if (v === 'expired') show('err', 'Bestätigungslink abgelaufen.');
-  if (v === 'invalid') show('err', 'Bestätigungslink ungültig.');
-})();
-</script>
-
 </body>
 </html>
