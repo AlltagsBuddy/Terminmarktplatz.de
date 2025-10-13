@@ -1,0 +1,199 @@
+<!-- FILE: preise.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preise für Anbieter:innen | Terminmarktplatz</title>
+  <meta name="description" content="Bis zur ersten Buchung kostenlos einstellen. Danach Basisversion gratis, kleine Erfolgsprovision pro Buchung und optionale Premium-Pakete." />
+  <meta name="theme-color" content="#6f53ff" />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Preise für Anbieter:innen" />
+  <meta property="og:description" content="Kostenlos starten, nur bei Erfolg zahlen. Optional: Premium-Pakete mit mehr Reichweite & Features." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="/static/og-cover.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Wichtig: relative Pfade von Domainwurzel auflösen -->
+  <base href="/">
+
+  <!-- Favicon & Fonts -->
+  <link rel="icon" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+
+  <!-- Main CSS (mit Cache-Buster) -->
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
+        <a href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
+        <a class="active" href="preise.html" aria-label="Preise">Preise</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="login.html?tab=login" aria-label="Anmelden">Anmelden</a>
+        <a class="btn primary" href="login.html?tab=register" aria-label="Konto erstellen">Registrieren</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" style="padding:40px 0 20px">
+      <div class="container hero-grid">
+        <span class="badge">Preise & Pakete</span>
+        <h1>Kostenlos starten. Nur bei Erfolg zahlen.</h1>
+        <p class="lead">
+          Veröffentliche deine freien Zeiten sofort – <strong>bis zur ersten Buchung kostenlos</strong>. 
+          Danach nutzt du die <strong>Basisversion gratis</strong> mit fairer Erfolgsprovision. 
+          Mehr Reichweite & Features? Wähle ein Premium-Paket.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+          <a class="btn primary" href="login.html?tab=register">Jetzt kostenlos starten</a>
+          <a class="btn" href="anbieter.html">Mehr erfahren</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kostenlos bis zur ersten Buchung -->
+    <section>
+      <div class="container">
+        <div class="panel">
+          <h2>Bis zur ersten Buchung: 0 €</h2>
+          <p class="muted">
+            Teste Terminmarktplatz ohne Risiko: <strong>Slots einstellen, Sichtbarkeit prüfen, erste Anfragen sammeln</strong> – 
+            solange, bis die erste Buchung über uns zustande kommt. Erst ab dann greift das reguläre Modell.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Basisversion + Erfolgsprovision -->
+    <section>
+      <div class="container features">
+        <div class="card">
+          <h3>Basisversion – kostenlos</h3>
+          <p class="muted">
+            • Kostenlose Registrierung<br>
+            • Bis zu <strong>10 Slots pro Monat</strong> veröffentlichen<br>
+            • Grundsichtbarkeit in der Suche<br>
+            • Keine Premium-Platzierung, <em>keine</em> erweiterten Statistiken, <em>keine</em> Push-Benachrichtigungen
+          </p>
+          <div class="pill warn" style="margin-top:8px">Niedrige Einstiegshürde</div>
+          <p class="muted" style="margin-top:8px">
+            👉 Viele Anbieter probieren es aus. Du gewinnst Aktivität und Daten auf der Plattform.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Erfolgsprovision</h3>
+          <p class="muted">
+            Du zahlst nur, wenn eine Vermittlung erfolgreich ist: 
+            <br><strong>2&nbsp;€ pro gebuchtem Slot</strong>.
+          </p>
+          <div class="pill success" style="margin-top:8px">Fair: Pay-per-Success</div>
+          <p class="muted" style="margin-top:8px">
+            👉 Motivation: Wer Erfolge sieht, wechselt bei Bedarf auf Premium – <em>Upselling durch Erfolg</em>.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Für Suchende: Benachrichtigungen</h3>
+          <p class="muted">
+            Optionales Paket für Nutzer:innen, die verfügbare Slots aktiv verfolgen wollen:<br>
+            <strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
+          </p>
+          <p class="muted" style="margin-top:8px">
+            (Zusatzprodukt für Suchende – unabhängig von deinem Anbieter-Paket.)
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Premium Pakete -->
+    <section>
+      <div class="container">
+        <h2>Premium-Modelle für Anbieter</h2>
+        <p class="sub">Mehr Reichweite, Komfort & Automatisierung. <strong>Monatlich kündbar</strong>, automatische Verlängerung.</p>
+
+        <div class="features" style="margin-top:6px">
+          <div class="card">
+            <h3>Starter — 9,90 € / Monat</h3>
+            <p class="muted">
+              • <strong>50 Slots/Monat</strong><br>
+              • Einfache Statistiken (Aufrufe, Buchungen, Conversion)<br>
+              • Basis-Listing in der Suche
+            </p>
+            <a class="btn" href="login.html?tab=register" style="margin-top:8px">Starter wählen</a>
+          </div>
+
+          <div class="card">
+            <h3>Profi — 19,90 € / Monat</h3>
+            <p class="muted">
+              • <strong>Unbegrenzt Slots</strong><br>
+              • <strong>Premium-Platzierung</strong> in Listen<br>
+              • <strong>Automatische Termin-Synchronisation</strong> (iCal/Google/Outlook)
+            </p>
+            <a class="btn primary" href="login.html?tab=register" style="margin-top:8px">Profi wählen</a>
+          </div>
+
+          <div class="card">
+            <h3>Business — 39,90 € / Monat</h3>
+            <p class="muted">
+              • Alles aus „Profi“<br>
+              • Marken-Features (Logo, erweiterte Darstellung)<br>
+              • <em>API-Integration</em> <span class="pill warn">in Planung</span><br>
+              • Erweiterte Statistiken & Export
+            </p>
+            <a class="btn" href="login.html?tab=register" style="margin-top:8px">Business vormerken</a>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+          <div class="grid-2">
+            <ul style="list-style:none; padding:0; margin:0; display:grid; gap:6px">
+              <li>✔️ Monatlich kündbar, automatische Verlängerung</li>
+              <li>✔️ Upgrade/Downgrade jederzeit zum Folgemonat</li>
+              <li>✔️ DSGVO & EU-Hosting</li>
+            </ul>
+            <ul style="list-style:none; padding:0; margin:0; display:grid; gap:6px">
+              <li>✔️ Fair-Use bei sehr hoher Auslastung</li>
+              <li>✔️ Support per E-Mail</li>
+              <li>✔️ Webhooks/Schnittstellen (Business, in Planung)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vergleichstabelle -->
+    <section>
+      <div class="container">
+        <h2>Vergleich</h2>
+        <div class="table" role="table" aria-label="Paketvergleich">
+          <table style="width:100%; border-collapse:separate; border-spacing:0">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:12px 14px">Leistung</th>
+                <th style="text-align:left; padding:12px 14px">Basis (kostenlos)</th>
+                <th style="text-align:left; padding:12px 14px">Starter (9,90 €)</th>
+                <th style="text-align:left; padding:12px 14px">Profi (19,90 €)</th>
+                <th style="text-align:left; padding:12px 14px">Business (39,90 €)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:12px 14px">Slots / Monat</td><td style="padding:12px 14px">10</td><td style="padding:12px 14px">50</td><td style="padding:12px 14px">unbegrenzt</td><td style="padding:12px 14px">unbegrenzt</td></tr>
+              <tr><td style="padding:12px 14px">Sichtbarkeit</td><td style="padding:12px 14px">Grundsichtbarkeit</td><td style="padding:12px 14px">Standard</td><td style="padding:12px 14px"><strong>Premium-Platzierung</strong
