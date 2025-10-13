@@ -1,0 +1,357 @@
+<!-- FILE: suche.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Suche – Freie Termine | Terminmarktplatz</title>
+  <meta name="description" content="Finde freie Termine nach Kategorie, Ort und Datum. Ohne Anmeldung direkt buchen – mit E-Mail-Bestätigung." />
+  <meta name="theme-color" content="#6f53ff" />
+
+  <!-- OG -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Suche – Freie Termine" />
+  <meta property="og:description" content="Freie Termine in deiner Nähe finden und direkt buchen." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="/static/og-cover.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <base href="/">
+  <link rel="icon" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+      <div class="cta-group">
+        <a class="btn" href="login.html?tab=login">Anmelden</a>
+        <a class="btn primary" href="login.html?tab=register">Registrieren</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO: Filterbar (übernimmt URL-Parameter) -->
+    <section class="hero" style="padding:34px 0 16px">
+      <div class="container">
+        <span class="badge">Suche</span>
+        <h1>Freie Termine in deiner Nähe</h1>
+        <p class="lead">Filter anpassen und direkt buchen – ohne Anmeldung, mit E-Mail-Bestätigung.</p>
+
+        <form class="search-card" id="filters" method="get" role="search" aria-label="Suche">
+          <div class="searchbar">
+            <label class="input" aria-label="Leistung">
+              🔎 <input type="text" name="q" id="f-q" placeholder="z. B. Friseur Damen, Physio Rücken">
+            </label>
+            <label class="input" aria-label="PLZ oder Ort">
+              📍 <input type="text" name="ort" id="f-ort" placeholder="PLZ / Stadt">
+            </label>
+            <label class="input" aria-label="Datum">
+              📅 <input type="date" name="datum" id="f-datum">
+            </label>
+            <label class="input" aria-label="Zeitfenster">
+              ⏰
+              <select name="zeit" id="f-zeit">
+                <option value="">Beliebig</option>
+                <option value="vormittag">Vormittag (08–12)</option>
+                <option value="nachmittag">Nachmittag (12–17)</option>
+                <option value="abend">Abend (17–21)</option>
+              </select>
+            </label>
+            <button class="btn primary" type="submit">Aktualisieren</button>
+          </div>
+          <div class="trust">Es werden nur geplante, <strong>freie</strong> Slots angezeigt.</div>
+        </form>
+      </div>
+    </section>
+
+    <!-- RESULTATE -->
+    <section>
+      <div class="container">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px">
+          <div class="pill" id="summary">Suche wird geladen …</div>
+          <div class="input" style="max-width:320px">
+            <select id="sort">
+              <option value="soonest">Sortieren: demnächst</option>
+              <option value="latest">Sortieren: zuletzt</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="results" class="features" style="grid-template-columns:1fr 1fr; gap:16px"></div>
+
+        <div id="empty" class="panel" style="display:none; margin-top:10px">
+          <h3>Keine Treffer</h3>
+          <p class="muted">Tipp: Datum lockern, Umkreis/PLZ prüfen oder ohne Stichwort suchen. Neue Slots kommen laufend rein.</p>
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+            <a class="btn" href="suchende.html">Wie funktioniert’s?</a>
+            <a class="btn primary" href="index.html">Zurück zur Startseite</a>
+          </div>
+        </div>
+
+        <div id="pager" style="display:none; margin-top:12px; text-align:center">
+          <button id="more" class="btn">Mehr laden</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="preise.html">Preise</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a>
+        <a class="foot-link" href="blog.html">Blog</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <!-- Quick-Book Modal -->
+  <div id="book-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
+    <div class="loading-dialog" role="dialog" aria-modal="true" aria-labelledby="book-title">
+      <h3 id="book-title" style="margin-top:0">Termin buchen</h3>
+      <p id="book-sub" class="subtext" style="margin-bottom:10px">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+      <form id="book-form" style="display:grid; gap:10px; text-align:left">
+        <input type="hidden" id="book-slot-id" />
+        <label>Dein Name
+          <input id="book-name" type="text" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px">
+        </label>
+        <label>E-Mail
+          <input id="book-email" type="email" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px">
+        </label>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px">
+          <button type="button" class="btn" id="book-cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Jahr im Footer
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // API-Basis
+    const API = (()=> {
+      const h = location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    // Utilities
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => [...document.querySelectorAll(sel)];
+    const fmt = (iso) => {
+      const d = new Date(iso);
+      return d.toLocaleString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    };
+    const inZeitfenster = (iso, zeit) => {
+      if (!zeit) return true;
+      const h = new Date(iso).getHours();
+      if (zeit === 'vormittag') return h >= 8 && h < 12;
+      if (zeit === 'nachmittag') return h >= 12 && h < 17;
+      if (zeit === 'abend') return h >= 17 && h < 21;
+      return true;
+    };
+
+    // URL-Parameter → Filter übernehmen
+    const sp = new URLSearchParams(location.search);
+    const q     = (sp.get('q')||'').trim();
+    const ort   = (sp.get('ort')||'').trim();
+    const datum = (sp.get('datum')||'').trim();
+    const zeit  = (sp.get('zeit')||'').trim().toLowerCase();
+
+    // Felder füllen
+    $('#f-q').value = q;
+    $('#f-ort').value = ort;
+    $('#f-datum').value = datum;
+    $('#f-zeit').value = zeit;
+
+    // Filterformular submit → page reload mit GET (standard)
+    $('#filters').addEventListener('submit', (e)=>{ /* Default reicht */ });
+
+    // Fetch Slots
+    async function load() {
+      const summary = $('#summary');
+      const results = $('#results');
+      const empty   = $('#empty');
+      results.innerHTML = '';
+      empty.style.display = 'none';
+      summary.textContent = 'Suche wird geladen …';
+
+      // API-Params aufbauen
+      const params = new URLSearchParams();
+      // from = Datum 00:00 Uhr, sonst jetzt
+      let fromDate;
+      if (datum) {
+        fromDate = new Date(datum + 'T00:00:00');
+      } else {
+        fromDate = new Date();
+      }
+      params.set('from', fromDate.toISOString());
+
+      // zip = wenn ort 5-stellige PLZ ist
+      if (/^\d{5}$/.test(ort)) params.set('zip', ort);
+
+      // optional category: nur setzen, wenn q knapp ist (1 Wort), sonst clientseitig filtern
+      if (q && !q.includes(' ')) params.set('category', q);
+
+      let url = `${API}/public/slots?` + params.toString();
+      let res;
+      try {
+        res = await fetch(url, { credentials: 'include' });
+      } catch (err) {
+        summary.textContent = 'Netzwerkfehler – bitte später erneut versuchen.';
+        return;
+      }
+      if (!res.ok) {
+        summary.textContent = 'Fehler beim Laden der Slots.';
+        return;
+      }
+      const all = await res.json();
+
+      // Clientseitige Filter: Freitext und Zeitfenster
+      const kw = q.toLowerCase();
+      let items = all.filter(x => {
+        const hitKW = !kw || (x.title?.toLowerCase().includes(kw) || x.category?.toLowerCase().includes(kw));
+        const hitZeit = inZeitfenster(x.start_at, zeit);
+        return hitKW && hitZeit;
+      });
+
+      // Sortierung
+      const sortBy = $('#sort').value;
+      items.sort((a,b) => {
+        const da = new Date(a.start_at).getTime();
+        const db = new Date(b.start_at).getTime();
+        return sortBy === 'latest' ? (db - da) : (da - db);
+      });
+
+      // Render
+      if (items.length === 0) {
+        summary.innerHTML = `0 Treffer`;
+        empty.style.display = 'block';
+        return;
+      }
+      summary.innerHTML = `${items.length} Treffer <span class="muted">ab ${fromDate.toLocaleDateString('de-DE')}</span>`;
+
+      const frag = document.createDocumentFragment();
+      items.forEach((x) => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:start">
+            <div>
+              <h3>${x.title || 'Termin'}</h3>
+              <p class="muted">
+                <b>${fmt(x.start_at)}</b>
+                · Kategorie: ${x.category || '—'}
+                ${x.location ? ` · Ort: ${x.location}` : ''}
+              </p>
+            </div>
+            <div>
+              <button class="btn primary" data-book="${x.id}">Buchen</button>
+            </div>
+          </div>
+        `;
+        frag.appendChild(el);
+      });
+      results.appendChild(frag);
+
+      // Buchen-Buttons
+      $$('#results [data-book]').forEach(btn => {
+        btn.addEventListener('click', () => openBook(btn.dataset.book));
+      });
+    }
+
+    // Quick-Book Modal
+    const bookBackdrop = document.getElementById('book-backdrop');
+    const bookForm     = document.getElementById('book-form');
+    const bookCancel   = document.getElementById('book-cancel');
+    function openBook(slotId){
+      document.getElementById('book-slot-id').value = slotId;
+      document.getElementById('book-name').value = '';
+      document.getElementById('book-email').value = '';
+      bookBackdrop.hidden = false;
+    }
+    function closeBook(){ bookBackdrop.hidden = true; }
+    bookCancel.addEventListener('click', closeBook);
+    bookBackdrop.addEventListener('click', (e)=>{ if (e.target === bookBackdrop) closeBook(); });
+
+    bookForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const slot_id = document.getElementById('book-slot-id').value;
+      const name = document.getElementById('book-name').value.trim();
+      const email = document.getElementById('book-email').value.trim();
+      if (!slot_id || !name || !email) return;
+      // kurz Button sperren
+      const btn = document.getElementById('book-submit');
+      btn.classList.add('loading'); btn.disabled = true;
+
+      try{
+        const r = await fetch(`${API}/public/book`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ slot_id, name, email })
+        });
+        const data = await r.json().catch(()=>({}));
+        if (!r.ok || data.error){
+          alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+        } else {
+          alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
+          closeBook();
+        }
+      } catch (err){
+        alert('Netzwerkfehler – bitte später erneut versuchen.');
+      } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+      }
+    });
+
+    // Sort-Umschalter
+    document.getElementById('sort').addEventListener('change', load);
+
+    // Start
+    load();
+  </script>
+</body>
+</html>

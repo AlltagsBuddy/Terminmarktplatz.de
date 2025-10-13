@@ -31,18 +31,18 @@
 
   <!-- Structured Data (mit http-URLs) -->
   <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"WebSite",
-    "name":"Terminmarktplatz",
-    "url":"http://terminmarktplatz.de/",
-    "potentialAction":{
-      "@type":"SearchAction",
-      "target":"http://terminmarktplatz.de/suche.html?q={query}",
-      "query-input":"required name=query"
-    }
+{
+  "@context":"https://schema.org",
+  "@type":"WebSite",
+  "name":"Terminmarktplatz",
+  "url":"http://terminmarktplatz.de/",
+  "potentialAction":{
+    "@type":"SearchAction",
+    "target":"http://terminmarktplatz.de/suche.html?q={q}",
+    "query-input":"required name=q"
   }
-  </script>
+}
+</script>
 </head>
 <body>
   <!-- Header / Navigation -->
@@ -81,10 +81,10 @@
           <div class="search-card" role="search" aria-label="Terminsuche">
             <form class="searchbar" id="search-form" action="/suche.html" method="get">
               <label class="input" aria-label="Leistung">
-                🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt" required>
+                🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt">
               </label>
               <label class="input" aria-label="Ort">
-                📍 <input type="text" name="ort" placeholder="PLZ / Stadt" required>
+                📍 <input type="text" name="ort" placeholder="PLZ / Stadt">
               </label>
               <label class="input" aria-label="Datum">
                 📅 <input type="date" name="datum">
@@ -93,13 +93,14 @@
                 ⏰
                 <select name="zeit">
                   <option value="">Beliebig</option>
-                  <option>Vormittag</option>
-                  <option>Nachmittag</option>
-                  <option>Abend</option>
+                  <option value="vormittag">Vormittag</option>
+                  <option value="nachmittag">Nachmittag</option>
+                  <option value="abend">Abend</option>
                 </select>
               </label>
               <button class="btn primary" type="submit">Freie Slots finden</button>
             </form>
+
             <div class="trust">
               <span></span>
               <span>DSGVO-konform · Keine Abo-Pflicht</span>
