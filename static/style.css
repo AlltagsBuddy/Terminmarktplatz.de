@@ -229,6 +229,38 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
   content:""; width:8px; height:8px; border-radius:50%;
   background: var(--c-mint); display:inline-block; margin-right:4px;
 }
+/* =========================================================
+   Suche – Select-Felder (Umkreis & Zeitfenster) dunkel + weiße Schrift
+   → ans ENDE der style.css legen
+========================================================= */
+
+/* das sichtbare Select-Feld soll den selben dunklen Hintergrund haben wie .input */
+.searchbar .input select{
+  color:#fff;                 /* weiße Schrift */
+  background-color: transparent; /* Hintergrund vom umgebenden .input übernehmen */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  background-image:none;      /* Standard-Chevron ausblenden (wir nutzen die .input-Optik) */
+}
+
+/* Falls dein Browser dem Select trotzdem Weiß gibt, erzwinge eine Farbe direkt: */
+.searchbar .input{ 
+  background: var(--field-bg);            /* Grundfarbe deiner Felder */
+  border: 1px solid var(--field-border);
+}
+.searchbar .input:nth-child(-n+2){
+  background: var(--field-bg-strong);     /* stärkere Farbe für die ersten 2 Felder */
+  border-color: var(--field-border-strong);
+}
+
+/* Dropdown-Liste (geöffnete Options) – Desktop-Browser unterstützen das,
+   iOS/macOS Safari nur eingeschränkt */
+.searchbar .input select option{
+  background: #0f172a;   /* dunkler Hintergrund für Listeneinträge */
+  color:#fff;
+}
+
 
 /* ---------- Sections ---------- */
 section{padding:56px 0}
@@ -487,3 +519,16 @@ footer{
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; transition:none !important}
 }
+/* Punkt vor der Trust-Zeile ausblenden */
+.trust::before{ content:none !important; display:none !important; 
+}
+
+/* Submit-Button in der Suchleiste: zentriert, eigene Reihe, volle Breite */
+.searchbar .btn[type="submit"]{
+  grid-column: 1 / -1;       /* über alle Spalten */
+  justify-self: center;      /* horizontal zentrieren */
+  padding-inline: 22px;      /* etwas breiter als Pillen */
+  margin-top: 4px;           /* kleiner Abstand nach den Feldern */
+}
+
+
