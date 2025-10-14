@@ -24,9 +24,9 @@
 
   <!-- Kleine Tabellenstyles nur für diese Seite -->
   <style>
-    .privacy-table{width:100%; border-collapse:collapse; font-size:15px}
+    .privacy-table{width:50%; border-collapse:collapse; font-size:15px}
     .privacy-table th,.privacy-table td{border:1px solid var(--ab-border); padding:10px; vertical-align:top}
-    .privacy-table th{background:#f5f7ff; text-align:left}
+    .privacy-table th{background:#475569; text-align:left}
     .toc a{color:#475569}
     .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
     .pill{display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(111,83,255,.12); border:1px solid #d9ddff; font-size:12px; font-weight:600}
@@ -39,27 +39,22 @@
 <body>
   <!-- Header -->
   <header>
-    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="/" aria-label="Startseite">
+     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" />
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
-      <nav class="nav-links" id="nav-links">
-        <a href="/wie-es-funktioniert">Wie es funktioniert</a>
-        <a href="/kategorien">Kategorien</a>
-        <a href="/anbieter">Für Anbieter</a>
-        <a href="/preise">Preise</a>
-        <a href="/blog">Blog</a>
-        <a class="active" href="/datenschutz">Datenschutz</a>
-      </nav>
-      <div class="cta-group">
-        <a class="btn" href="/anmelden">Anmelden</a>
-        <a class="btn primary" href="/registrieren">Kostenlos starten</a>
-      </div>
-    </div>
+      <nav class="nav-links">
+          <a href="anbieter.html">Für Anbieter</a>
+          <a href="suchende.html">Für Suchende</a>
+          <a href="preise.html">Preise</a>
+        </nav>
+        <div class="cta-group">
+          <a class="btn" href="login.html?tab=login">Anmelden</a>
+          <a class="btn primary" href="login.html?tab=register">Registrieren</a>
+        </div>
   </header>
 
   <main>
@@ -67,29 +62,10 @@
     <section class="hero" style="padding:40px 0 16px">
       <div class="container">
         <span class="badge">Transparenz & DSGVO</span>
+        <br>
         <h1>Datenschutzerklärung</h1>
+        <br>
         <p class="lead">Diese Erklärung erläutert, welche personenbezogenen Daten wir verarbeiten, zu welchen Zwecken, auf welcher Rechtsgrundlage, wie lange und welche Rechte du hast.</p>
-
-        <div class="card toc" style="margin-top:14px">
-          <b>Inhalt</b>
-          <ol>
-            <li><a href="#verantwortlicher">Verantwortlicher</a></li>
-            <li><a href="#beauftragter">Datenschutz-Ansprechpartner / -Beauftragter</a></li>
-            <li><a href="#verarbeitungen">Verarbeitungen, Zwecke & Rechtsgrundlagen</a></li>
-            <li><a href="#kategorien">Datenkategorien</a></li>
-            <li><a href="#empfaenger">Empfänger & Auftragsverarbeiter</a></li>
-            <li><a href="#drittland">Drittlandübermittlungen</a></li>
-            <li><a href="#speicherdauer">Speicherdauern</a></li>
-            <li><a href="#cookies">Cookies & lokale Speicher</a></li>
-            <li><a href="#rechte">Deine Rechte</a></li>
-            <li><a href="#pflicht">Pflicht zur Bereitstellung</a></li>
-            <li><a href="#quellen">Datenquellen (Art. 14 DSGVO)</a></li>
-            <li><a href="#automatisierung">Automatisierte Entscheidungen/Profiling</a></li>
-            <li><a href="#sicherheit">Sicherheit</a></li>
-            <li><a href="#aenderungen">Änderungen & Stand</a></li>
-            <li><a href="#kontakt">Kontakt für Anfragen</a></li>
-          </ol>
-        </div>
       </div>
     </section>
 
@@ -99,20 +75,20 @@
 
           <h2 id="verantwortlicher">1. Verantwortlicher</h2>
           <p>
-            <strong>[Bitte eintragen: Unternehmensname/Firma]</strong><br>
-            [Straße & Hausnummer]<br>
-            [PLZ] [Ort], [Land]<br>
-            Vertreten durch: [gesetzlich Vertretungsberechtigte:r]<br>
-            Telefon: [Telefonnummer]<br>
-            E-Mail: <a href="mailto:[datenschutz@deine-domain.de]">[datenschutz@deine-domain.de]</a><br>
-            Weitere Angaben im <a href="/impressum">Impressum</a>.
+            <strong>AlltagsBuddy</strong><br>
+            Steigerwaldstraße 35<br>
+            96191 Viereth-Trunstadt, Deutschland<br>
+            <br>
+            Telefon: folgt<br>
+            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a><br>
+            <br>
+            Weitere Angaben im <a href="/impressum.html">Impressum</a>.
           </p>
 
           <h2 id="beauftragter">2. Datenschutz-Ansprechpartner / -Beauftragter</h2>
           <p>
-            Für Datenschutzanfragen erreichst du uns unter <a href="mailto:[datenschutz@deine-domain.de]">[datenschutz@deine-domain.de]</a>.<br>
-            <span class="small">[Falls ein externer Datenschutzbeauftragter bestellt ist:]</span><br>
-            Datenschutzbeauftragte:r: <strong>[Name des/der DSB]</strong>, <a href="mailto:[dsb@deine-domain.de]">[dsb@deine-domain.de]</a>, [Anschrift].
+            Für Datenschutzanfragen erreichst du uns unter <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a>.<br>
+          
           </p>
 
           <h2 id="verarbeitungen">3. Verarbeitungen, Zwecke & Rechtsgrundlagen</h2>
@@ -183,18 +159,17 @@
           <h2 id="empfaenger">5. Empfänger & Auftragsverarbeiter</h2>
           <p>Wir setzen sorgfältig ausgewählte Dienstleister (Auftragsverarbeiter) ein. Kategorien von Empfängern:</p>
           <ul>
-            <li>Hosting & Infrastruktur: <span class="fill">[z. B. Anbieter/Region]</span></li>
-            <li>E-Mail-Versand (Transaktionsmails): <span class="fill">[z. B. Postmark/Alternative]</span></li>
-            <li>Zahlungsdienstleister <span class="pill">optional</span>: <span class="fill">[z. B. Stripe/PayPal]</span></li>
-            <li>Support/Kommunikation <span class="pill">optional</span>: <span class="fill">[z. B. Helpdesk-Tool]</span></li>
+            <li>Hosting & Infrastruktur: <span class="fill">STRATO</span></li>
+            <li>E-Mail-Versand (Transaktionsmails): <span class="fill">Postmark</span></li>
+            <li>Zahlungsdienstleister <span class="pill">optional</span>: <span class="fill">PayPal</span></li>
+            <li>Support/Kommunikation <span class="pill">optional</span>: <span class="fill">per E-Mail</span></li>
             <li>Beratung/IT-Wartung: vertraglich gebundene Dienstleister</li>
           </ul>
           <p>Mit allen Auftragsverarbeitern schließen wir Verträge gem. Art. 28 DSGVO.</p>
 
           <h2 id="drittland">6. Drittlandübermittlungen</h2>
           <p>Sofern Daten an Empfänger in Staaten außerhalb der EU/des EWR übermittelt werden (z. B. E-Mail-Dienst in den USA), stellen wir ein angemessenes Datenschutzniveau sicher, etwa durch <strong>EU-Standardvertragsklauseln (Art. 46 DSGVO)</strong> und zusätzliche Schutzmaßnahmen.</p>
-          <p><span class="pill">Beispiel</span> E-Mail-Versand via <span class="fill">[Postmark / anderer US-Dienst]</span> mit SCC; Restrisiken können nicht vollständig ausgeschlossen werden.</p>
-
+          
           <h2 id="speicherdauer">7. Speicherdauern</h2>
           <ul>
             <li><strong>Server-Logs:</strong> i. d. R. 14–30 Tage.</li>
@@ -218,20 +193,20 @@
             <li>Datenübertragbarkeit (Art. 20 DSGVO)</li>
             <li>Widerspruch gegen Verarbeitungen auf Basis berechtigter Interessen (Art. 21 DSGVO)</li>
             <li>Widerruf erteilter Einwilligungen (Art. 7 Abs. 3 DSGVO)</li>
-            <li>Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO), z. B.: <span class="fill">[Zuständige Landesdatenschutzbehörde mit Adresse/Link]</span></li>
+            <li>Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO)
           </ul>
 
           <h2 id="pflicht">10. Pflicht zur Bereitstellung</h2>
           <p>Für die Nutzung bestimmter Funktionen (z. B. Registrierung, Buchung) sind die entsprechenden Angaben erforderlich. Ohne diese Daten können wir den Dienst nicht bereitstellen.</p>
 
           <h2 id="quellen">11. Datenquellen (Art. 14 DSGVO)</h2>
-          <p>Wenn wir Daten nicht direkt bei dir erheben (z. B. Anbieter hinterlegt Kontaktdaten für eine Buchung), informieren wir dich gem. Art. 14 DSGVO. Kategorien der Quellen: <span class="fill">[z. B. angebundene Praxissysteme, Kalender-Integrationen]</span>.</p>
+          <p>Wenn wir Daten nicht direkt bei dir erheben (z. B. Anbieter hinterlegt Kontaktdaten für eine Buchung), informieren wir dich gem. Art. 14 DSGVO. Kategorien der Quellen: <span class="fill">z. B. angebundene Praxissysteme, Kalender-Integrationen</span>.</p>
 
           <h2 id="automatisierung">12. Automatisierte Entscheidungen/Profiling</h2>
           <p>Es findet keine automatisierte Entscheidungsfindung einschließlich Profiling i. S. v. Art. 22 DSGVO statt.</p>
 
           <h2 id="sicherheit">13. Sicherheit</h2>
-          <p>Wir setzen angemessene technische und organisatorische Maßnahmen ein (u. a. TLS-Verschlüsselung, Passwörter als Argon2-Hash, rollenbasierte Zugriffe, Protokollierung, regelmäßige Updates, EU-Hosting <span class="fill">[falls zutreffend: Rechenzentrums-Standort]</span>).</p>
+          <p>Wir setzen angemessene technische und organisatorische Maßnahmen ein (u. a. TLS-Verschlüsselung, Passwörter als Argon2-Hash, rollenbasierte Zugriffe, Protokollierung, regelmäßige Updates, EU-Hosting <span class="fill"></span>).</p>
 
           <h2 id="aenderungen">14. Änderungen & Stand</h2>
           <p>Wir passen diese Datenschutzerklärung an, wenn sich unser Dienst oder rechtliche Vorgaben ändern. Die jeweils aktuelle Fassung ist hier abrufbar.</p>
@@ -239,12 +214,10 @@
 
           <h2 id="kontakt">15. Kontakt für Datenschutz-Anfragen</h2>
           <p>
-            E-Mail: <a href="mailto:[datenschutz@deine-domain.de]">[datenschutz@deine-domain.de]</a><br>
-            Postanschrift: <span class="fill">[Anschrift für Datenschutz-Anfragen]</span>
+            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a><br>
+            
           </p>
 
-          <hr style="border:none; border-top:1px solid var(--ab-border); margin:18px 0">
-          <p class="muted small">Diese Vorlage dient der transparenten Information und ersetzt keine Rechtsberatung. Bitte ergänze alle <em>[markierten Felder]</em> und prüfe, ob optionale Dienste (Zahlung, US-Mail, Analytics) tatsächlich genutzt werden.</p>
         </div>
       </div>
     </section>

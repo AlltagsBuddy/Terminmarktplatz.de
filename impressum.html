@@ -34,20 +34,24 @@
 <body>
   <!-- Header -->
   <header>
-    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="/" aria-label="Startseite">
+     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" />
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-    
-      <div class="cta-group">
-        <a class="btn" href="/anmelden">Anmelden</a>
-        <a class="btn primary" href="/registrieren">Kostenlos starten</a>
+      <nav class="nav-links">
+          <a href="anbieter.html">Für Anbieter</a>
+          <a href="suchende.html">Für Suchende</a>
+          <a href="preise.html">Preise</a>
+        </nav>
+        <div class="cta-group">
+          <a class="btn" href="login.html?tab=login">Anmelden</a>
+          <a class="btn primary" href="login.html?tab=register">Registrieren</a>
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
   <main>
     <section class="hero" style="padding:40px 0 16px">
@@ -63,14 +67,14 @@
         <div class="card impressum" style="padding:22px">
           <h2>1. Angaben gemäß § 5 TMG</h2>
           <p>
-            <strong>[AlltagsBuddy / Annett Hofmann]</strong><br>
-            [Steigerwaldstraße 35]<br>
-            [96191] [Vieret-Trunstadt], [Deutschland]
+            <strong>AlltagsBuddy / Annett Hofmann</strong><br>
+            Steigerwaldstraße 35<br>
+            96191 Vieret-Trunstadt, Deutschland
           </p>
           <p>
-            Telefon: <span class="fill">[folgt]</span><br>
-            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">[info@terminmarktplatz.de]</a><br>
-            Website: <span class="fill">[https://terminmarktplatz.de]</span>
+            Telefon: <span class="fill">folgt</span><br>
+            E-Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a><br>
+            Website: <span class="fill">https://terminmarktplatz.de</span>
           </p>
 
     
@@ -89,10 +93,7 @@
 
           <h2>3. Verbraucherstreitbeilegung nach VSBG</h2>
           <p class="callout">
-            <strong>Wähle eine Option und passe den Text an:</strong><br>
-            <span class="small">a)</span> Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.<br>
-            <span class="small">b)</span> Wir sind bereit, an Streitbeilegungsverfahren vor folgender Verbraucherschlichtungsstelle teilzunehmen:
-            <span class="fill">[Name/Anschrift/URL der Schlichtungsstelle]</span>.
+            <span class="small"></span> Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.<br>
           </p>
 
           <h2>4. Haftung für Inhalte</h2>
@@ -131,12 +132,12 @@
 
           <h2>7. Bild-, Icon- & Schrift-Nachweise</h2>
           <p>
-            <span class="fill">[Quelle/n für Bilder/Illustrationen/Icons/Fonts – z. B. eigenes Material, Lizenz, Stock-Plattform, Autoren]</span>
+            <span class="fill">Quelle/n für Bilder/Illustrationen/Icons/Fonts – z. B. eigenes Material, Lizenz, Stock-Plattform, Autoren</span>
           </p>
 
           <h2>8. Social-Media-Profile</h2>
           <p>
-            <span class="fill">[Links zu offiziellen Profilen – z. B. Instagram, Facebook, LinkedIn, X, YouTube]</span><br>
+            <span class="fill">Links zu offiziellen Profilen – z. B. Instagram, Facebook, LinkedIn, X, YouTube</span><br>
             Es gelten die Nutzungs- und Datenschutzbestimmungen der jeweiligen Plattformbetreiber.
           </p>
 
