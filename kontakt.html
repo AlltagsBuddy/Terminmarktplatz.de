@@ -20,8 +20,34 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
+  <style>
+  /* Kontaktseite: Felder hell, Text schwarz, sichtbare Umrandung */
+  .page-contact .control{
+    background:#fff;
+    border:1px solid rgba(15,23,42,.28);   /* sichtbarer Rand */
+    border-radius:14px;
+  }
+  .page-contact .control:focus-within{
+    background:#fff;
+    border-color:#60a5fa;                  /* blaue Kontur bei Fokus */
+    box-shadow:0 0 0 3px rgba(59,130,246,.35);
+  }
+  .page-contact .control input,
+  .page-contact .control select,
+  .page-contact .control textarea{
+    color:#0f172a !important;              /* dunkler Text */
+  }
+  .page-contact .control input::placeholder,
+  .page-contact .control textarea::placeholder{
+    color:#64748b;                         /* graue Platzhalter */
+  }
+</style>
+
 </head>
 <body>
+
+    <body class="page-contact">
+
   <!-- Vollbild-Overlay (wird per JS ein-/ausgeblendet) -->
   <div id="loading-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
     <div class="loading-dialog" role="alert" aria-busy="true">
@@ -56,7 +82,7 @@
   <main>
     <!-- HERO -->
     <section class="hero" style="padding:40px 0 18px">
-      <div class="container hero-grid">
+      <div class="container">
         <span class="badge">Kontakt</span>
         <h1>Schreib uns eine Nachricht.</h1>
         <p class="lead">Fragen, Feedback oder Partnerschaft? Wir melden uns schnellstmöglich.</p>
@@ -93,7 +119,7 @@
               <div class="control">
                 <textarea id="cf-message" name="message" placeholder="Schreibe uns dein Anliegen …" required></textarea>
               </div>
-              <span class="help">Bitte keine sensiblen Daten. Support braucht ggf. deine Registrierungs-E-Mail.</span>
+              <span class="help">Bitte keine sensiblen Daten. Support braucht ggf. nur deine Registrierungs-E-Mail Adresse.</span>
             </div>
 
             <!-- DSGVO & Anti-Spam -->
@@ -108,15 +134,9 @@
 
             <div class="form-actions">
               <button class="btn primary" type="submit" id="cf-submit">Nachricht senden</button>
-              <span class="form-note">Oder direkt per Mail: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a></span>
+              <span class="form-note">Oder direkt per Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a></span>
             </div>
           </form>
-        </div>
-
-        <!-- Alternative Kontaktwege -->
-        <div class="card" style="margin-top:14px">
-          <h3>Weitere Kontaktwege</h3>
-          <p class="muted">Presse & Partnerschaften: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a></p>
         </div>
       </div>
     </section>
