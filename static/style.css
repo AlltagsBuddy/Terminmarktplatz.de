@@ -138,6 +138,28 @@ button.loading::after{
   animation: spin .8s linear infinite;
 }
 
+/* Checkbox-Zelle */
+.table td:first-child, .table th:first-child{ text-align:center }
+
+/* Buttons in Slot-Tabelle auffällig */
+.table .btn{
+  padding:8px 12px;
+  border:none;
+  border-radius:12px;
+  font-weight:800;
+  color:#fff;
+  background: linear-gradient(135deg, var(--c-purple), var(--c-cyan));
+  box-shadow: var(--shadow-1);
+  transition: transform .15s, filter .15s;
+}
+.table .btn:hover{ transform: translateY(-1px); filter: brightness(1.08); }
+.table .btn.action{ background: linear-gradient(135deg, var(--c-blue), var(--c-mint)); }
+.table .btn.danger{ background: linear-gradient(135deg, var(--c-red), #ff7b7b); }
+
+/* Deaktivierte Bulk-Buttons */
+.seg .btn[disabled]{ opacity:.55; pointer-events:none; }
+
+
 /* ---------- Hero ---------- */
 .hero{padding:86px 0 34px}
 .hero-grid{display:grid; grid-template-columns:1fr; gap:20px; text-align:center}

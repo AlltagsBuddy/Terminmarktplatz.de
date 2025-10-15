@@ -57,7 +57,6 @@ MAIL_PROVIDER     = os.environ.get("MAIL_PROVIDER", "console")
 POSTMARK_TOKEN    = os.environ.get("POSTMARK_TOKEN", "")
 CONTACT_TO        = os.environ.get("CONTACT_TO", MAIL_FROM)  # wohin Kontaktmails gehen
 
-
 def _cfg(name: str, default: str | None = None) -> str:
     val = os.environ.get(name, default)
     if val is None:
@@ -213,6 +212,28 @@ def _cookie_flags():
         return {"httponly": True, "secure": True, "samesite": "None"}
     return {"httponly": True, "secure": False, "samesite": "Lax"}
 
+# --- Slot-Status-Validierung -----------------------------------------------
+VALID_STATUSES = {"pending_review", "published", "archived"}
+
+def _status_transition_ok(current: str, new: str) -> bool:
+    """
+    Erlaubte Übergänge:
+      pending_review -> published | archived | pending_review
+      published      -> archived  | published
+      archived       -> published | archived
+    """
+    if new not in VALID_STATUSES:
+        return False
+    if current == new:
+        return True
+    if current == "pending_review":
+        return new in {"published", "archived"}
+    if current == "published":
+        return new in {"archived"}
+    if current == "archived":
+        return new in {"published"}
+    return False
+
 # --------------------------------------------------------
 # Misc (favicon/robots + health)
 # --------------------------------------------------------
@@ -296,9 +317,9 @@ else:
     @app.get("/")
     def api_root():
         return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
-    
-   # --------------------------------------------------------
-# Public: Kontaktformular (immer aktiv, HTML-Mode & API-Only)
+
+# --------------------------------------------------------
+# Public: Kontaktformular (immer aktiv)
 # --------------------------------------------------------
 @app.post("/public/contact")
 def public_contact():
@@ -357,10 +378,8 @@ def public_contact():
         print("[public_contact] error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
 
-
-            
 # --------------------------------------------------------
-# Gemeinsame Auth-Helfer (für JSON & HTML-Form)
+# Gemeinsame Auth-Helfer
 # --------------------------------------------------------
 def _authenticate(email: str, password: str):
     email = (email or "").strip().lower()
@@ -411,7 +430,12 @@ def register():
             provider_id = p.id
             reg_email   = p.email
 
-        payload = {"sub": provider_id, "aud": "verify", "iss": JWT_ISS, "exp": int((_now() + timedelta(days=2)).timestamp())}
+        payload = {
+            "sub": provider_id,
+            "aud": "verify",
+            "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=2)).timestamp())
+        }
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
 
@@ -431,12 +455,11 @@ def auth_verify():
     debug = request.args.get("debug") == "1"
 
     def _ret(kind: str):
-        # HIER anpassen: .html verwenden
+        # Wichtig: .html verwenden
         url = f"{FRONTEND_URL}/login.html"
         if debug:
             return jsonify({"ok": kind == "1", "redirect": url})
         return redirect(url)
-
 
     if not token:
         return _ret("missing")
@@ -574,11 +597,14 @@ def slots_create():
         return _json_error("missing_fields")
     try:
         start = datetime.fromisoformat(data["start_at"])
-        end = datetime.fromisoformat(data["end_at"])
+        end   = datetime.fromisoformat(data["end_at"])
     except Exception:
         return _json_error("bad_datetime")
     if end <= start:
         return _json_error("end_before_start")
+    # keine Vergangenheits-Slots
+    if start <= _now():
+        return _json_error("start_in_past", 409)
 
     with Session(engine) as s:
         count = s.scalar(
@@ -590,7 +616,8 @@ def slots_create():
         if count > 200:
             return _json_error("limit_reached")
         slot = Slot(
-            provider_id=request.provider_id, title=data["title"], category=data["category"],
+            provider_id=request.provider_id,
+            title=data["title"], category=data["category"],
             start_at=start, end_at=end, location=data.get("location"),
             capacity=int(data.get("capacity") or 1),
             contact_method=data.get("contact_method") or "mail",
@@ -606,16 +633,45 @@ def slots_create():
 def slots_update(slot_id):
     data = request.get_json(force=True)
     with Session(engine) as s:
-        slot = s.get(Slot, slot_id)
+        slot = s.get(Slot, slot_id, with_for_update=True)
         if not slot or slot.provider_id != request.provider_id:
             return _json_error("not_found", 404)
+
+        # Zeiten prüfen/setzen
         if "start_at" in data:
-            slot.start_at = datetime.fromisoformat(data["start_at"])
+            try:
+                slot.start_at = datetime.fromisoformat(data["start_at"])
+            except Exception:
+                return _json_error("bad_datetime")
         if "end_at" in data:
-            slot.end_at = datetime.fromisoformat(data["end_at"])
-        for k in ["title","category","location","capacity","contact_method","booking_link","price_cents","notes","status"]:
+            try:
+                slot.end_at = datetime.fromisoformat(data["end_at"])
+            except Exception:
+                return _json_error("bad_datetime")
+        if slot.end_at <= slot.start_at:
+            return _json_error("end_before_start")
+
+        # Editierbare Felder
+        for k in ["title","category","location","capacity","contact_method",
+                  "booking_link","price_cents","notes"]:
             if k in data:
                 setattr(slot, k, data[k])
+
+        # Statuswechsel
+        if "status" in data:
+            new_status = data["status"]
+            cur_status = slot.status
+            if new_status not in VALID_STATUSES:
+                return _json_error("bad_status", 400)
+            if not _status_transition_ok(cur_status, new_status):
+                return _json_error("transition_forbidden", 409)
+            if new_status == "published":
+                if slot.start_at <= _now():
+                    return _json_error("start_in_past", 409)
+                if (slot.capacity or 1) < 1:
+                    return _json_error("bad_capacity", 400)
+            slot.status = new_status
+
         s.commit()
         return jsonify({"ok": True})
 
@@ -672,9 +728,13 @@ def admin_slots():
 @auth_required(admin=True)
 def admin_slot_publish(sid):
     with Session(engine) as s:
-        slot = s.get(Slot, sid)
+        slot = s.get(Slot, sid, with_for_update=True)
         if not slot:
             return _json_error("not_found", 404)
+        if not _status_transition_ok(slot.status, "published"):
+            return _json_error("transition_forbidden", 409)
+        if slot.start_at <= _now():
+            return _json_error("start_in_past", 409)
         slot.status = "published"; s.commit()
         return jsonify({"ok": True})
 
@@ -743,7 +803,6 @@ def public_slots():
             }
 
         return jsonify([to_json(r) for r in rows])
-
 
 @app.post("/public/book")
 def public_book():

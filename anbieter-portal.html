@@ -1,20 +1,11 @@
-<!-- FILE: portal.html -->
+<!-- FILE: anbieter-portal.html -->
 <!doctype html>
 <html lang="de">
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mein Portal – Profil & Slots | Terminmarktplatz</title>
-  <meta name="description" content="Anbieter-Portal: Profil pflegen, freie Zeitfenster/Slots anlegen, verwalten und archivieren." />
+  <meta name="description" content="Anbieter-Portal: Profil pflegen, freie Zeitfenster/Slots anlegen, verwalten und veröffentlichen." />
   <meta name="theme-color" content="#6f53ff" />
   <base href="/">
 
@@ -23,6 +14,15 @@
   <meta property="og:title" content="Anbieter-Portal | Terminmarktplatz"/>
   <meta property="og:image" content="static/og-cover.png"/>
   <meta name="twitter:card" content="summary_large_image"/>
+
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 
   <!-- Assets -->
   <link rel="icon" href="static/favicon.png"/>
@@ -35,25 +35,54 @@
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
-    .field{display:flex; flex-direction:column; gap:6px}
+
+    /* --- Formular-Zeilen gut sichtbar (Rahmen um die ganze Zeile) --- */
+    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
+            border:1px solid var(--border); border-radius:12px; padding:10px; }
     .field input,.field select,.field textarea{
-      border:1px solid var(--border); border-radius:12px; padding:10px; background:#fff; color:#0f172a
+      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
+      border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
     }
+    .field input::placeholder,.field textarea::placeholder{ color:#64748b }
+    .field input:focus,.field select:focus,.field textarea:focus{
+      outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25)
+    }
+
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .table{width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:14px; overflow:hidden}
+
+    /* Tabelle */
+    .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
+           border-radius:14px; overflow:hidden}
     .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
     .table th{background:#f8fafc; color:#0f172a}
+    .table th:first-child,.table td:first-child{ text-align:center; width:34px }
+
     .badge-st{padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border)}
     .st-pending{background:#fff7ed}
     .st-pub{background:#ecfeff}
     .st-arch{background:#f1f5f9}
+
     .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
     .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
+
     .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
     .seg .btn{padding:6px 10px}
     .nowrap{white-space:nowrap}
+
+    /* --- Buttons in der Slot-Tabelle: Hintergrund = var(--border) --- */
+    .table .btn{
+      padding:8px 12px; border:none; border-radius:12px; font-weight:800;
+      background: var(--border); color:#0b0f1a; box-shadow: var(--shadow-1);
+      transition: transform .15s, filter .15s;
+    }
+    .table .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .table .btn.action{ background: var(--border); }
+    .table .btn.danger{ background: var(--border); }
+
+    /* Deaktivierte Bulk-Buttons */
+    .seg .btn[disabled]{ opacity:.55; pointer-events:none; }
   </style>
 </head>
 <body class="page-portal">
@@ -82,8 +111,8 @@
       <div class="container">
         <span class="badge">Anbieter-Portal</span>
         <h1>Willkommen! 👋</h1>
-        <p class="lead">Pflege hier dein <strong>Profil</strong> und lege <strong>freie Slots</strong> in beliebiger Länge an.
-          Neue Slots laufen zunächst auf <em>„Prüfung“</em> und können nach Freigabe veröffentlicht werden.</p>
+        <p class="lead">Pflege hier dein <strong>Profil</strong> und lege <strong>freie Slots</strong> an.
+          Neue Slots starten als <em>„pending_review“</em>. Nach deiner Bestätigung werden sie veröffentlicht.</p>
       </div>
     </section>
 
@@ -164,11 +193,11 @@
               <label for="sl-duration">Dauer (Minuten)</label>
               <input id="sl-duration" type="number" min="5" step="5" value="30"/>
               <div class="seg">
-                <button type="button" class="btn-pimary" data-min="15">15</button>
-                <button type="button" class="btn-pimary" data-min="30">30</button>
-                <button type="button" class="btn-pimary" data-min="45">45</button>
-                <button type="button" class="btn-pimary" data-min="60">60</button>
-                <button type="button" class="btn-pimary" data-min="90">90</button>
+                <button type="button" class="btn" data-min="15">15</button>
+                <button type="button" class="btn" data-min="30">30</button>
+                <button type="button" class="btn" data-min="45">45</button>
+                <button type="button" class="btn" data-min="60">60</button>
+                <button type="button" class="btn" data-min="90">90</button>
               </div>
             </div>
             <div class="field">
@@ -201,23 +230,30 @@
           </form>
         </div>
 
-        <!-- Slot-Liste -->
+        <!-- Meine Slots -->
         <div class="panel" style="grid-column:1/-1">
           <div class="toolbar" style="justify-content:space-between">
             <h2 style="margin:0">Meine Slots</h2>
-            <div>
-              <button class="btn" id="btn-primary">Aktualisieren</button>
+            <div class="seg">
+              <label class="check" style="color:#fff">
+                <input type="checkbox" id="chk-all"> Alle auswählen
+              </label>
+              <button class="btn action" id="btn-publish" disabled>Ausgewählte veröffentlichen</button>
+              <button class="btn" id="btn-archive" disabled>Archivieren</button>
+              <button class="btn danger" id="btn-delete" disabled>Löschen</button>
+              <button class="btn" id="btn-refresh">Aktualisieren</button>
             </div>
           </div>
 
           <div class="muted" style="margin:6px 0 12px">
-            Hinweis: Neu angelegte Slots erscheinen hier und werden nach Freigabe veröffentlicht.
+            Hinweis: Neue Slots werden zunächst als <em>„pending_review“</em> angelegt. Nach deiner Bestätigung werden sie veröffentlicht.
           </div>
 
           <div class="table-wrap">
             <table class="table" id="tbl-slots">
               <thead>
                 <tr>
+                  <th>✓</th>
                   <th>Start</th>
                   <th>Ende</th>
                   <th>Titel</th>
@@ -229,7 +265,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="8" class="muted">Lade …</td></tr>
+                <tr><td colspan="9" class="muted">Lade …</td></tr>
               </tbody>
             </table>
           </div>
@@ -240,36 +276,6 @@
     </section>
   </main>
 
-  <footer>
-    <div class="container foot-grid">
-      <div>
-        <div class="brand" style="margin-bottom:10px">
-          <div class="brand-logo"><img src="static/terminmarktplatz-logo.png" alt="" /></div>
-          <div class="brand-title">Terminmarktplatz</div>
-        </div>
-        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
-      </div>
-      <div class="foot-col">
-        <h4>Produkt</h4>
-        <a class="foot-link" href="wie-es-funktioniert.html">Wie es funktioniert</a>
-        <a class="foot-link" href="preise.html">Preise</a>
-        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
-      </div>
-      <div class="foot-col">
-        <h4>Rechtliches</h4>
-        <a class="foot-link" href="impressum.html">Impressum</a>
-        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
-        <a class="foot-link" href="agb.html">AGB</a>
-      </div>
-      <div class="foot-col">
-        <h4>Kontakt</h4>
-        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
-        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-      </div>
-    </div>
-    <div class="container copyright">© <span id="y"></span> Terminmarktplatz</div>
-  </footer>
-
   <script>
     // ---------- API-Basis ----------
     const API = (()=> {
@@ -278,9 +284,8 @@
       return 'https://api.terminmarktplatz.de';
     })();
 
-    const $ = (q, root=document)=>root.querySelector(q);
+    const $  = (q, root=document)=>root.querySelector(q);
     const $$ = (q, root=document)=>Array.from(root.querySelectorAll(q));
-    const y = new Date().getFullYear(); $('#y').textContent = y;
 
     function showMsg(id, text, ok=false){
       const el = document.getElementById(id);
@@ -291,12 +296,8 @@
     }
 
     function pad(n){ return n.toString().padStart(2,'0'); }
-    function toLocalISO(dateLocal /* Date */){
-      // Server erwartet ISO mit Zeitzone (UTC). datetime-local + new Date -> lokale Zeit.
-      return new Date(dateLocal).toISOString();
-    }
+    function toLocalISO(dateLocal){ return new Date(dateLocal).toISOString(); }
     function joinDateTime(dateStr, timeStr){
-      // "2025-10-12" + "14:30" -> Date in lokaler Zeitzone
       const [y,m,d] = dateStr.split('-').map(Number);
       const [hh,mm] = timeStr.split(':').map(Number);
       return new Date(y, (m-1), d, hh, mm, 0, 0);
@@ -312,14 +313,13 @@
       const r = await fetch(`${API}/me`, {credentials:'include'});
       if(!r.ok){ location.href = 'login.html?tab=login'; return; }
       ME = await r.json();
-      // Profil befüllen:
       $('#pf-company').value = ME.company_name || '';
-      $('#pf-branch').value = ME.branch || '';
-      $('#pf-street').value = ME.street || '';
-      $('#pf-zip').value = ME.zip || '';
-      $('#pf-city').value = ME.city || '';
-      $('#pf-phone').value = ME.phone || '';
-      $('#pf-whatsapp').value = ME.whatsapp || '';
+      $('#pf-branch').value  = ME.branch || '';
+      $('#pf-street').value  = ME.street || '';
+      $('#pf-zip').value     = ME.zip || '';
+      $('#pf-city').value    = ME.city || '';
+      $('#pf-phone').value   = ME.phone || '';
+      $('#pf-whatsapp').value= ME.whatsapp || '';
     }
 
     // ---------- Profil speichern ----------
@@ -342,7 +342,7 @@
           body: JSON.stringify(payload)
         });
         if(r.ok) showMsg('msg-profile','Gespeichert ✓', true);
-        else showMsg('msg-profile','Konnte Profil nicht speichern.');
+        else     showMsg('msg-profile','Konnte Profil nicht speichern.');
       }catch(e){ showMsg('msg-profile','Netzwerkfehler.'); }
     });
 
@@ -361,13 +361,150 @@
       $('#sl-duration').value = b.dataset.min; recalcEnd();
     }));
 
+    // ---------- Slots laden & rendern + Freigabe-Workflow ----------
+    let SELECTED = new Set();
+
+    function updateBulkButtons(items){
+      const byId = Object.fromEntries(items.map(x => [x.id, x]));
+      const ids = [...SELECTED];
+      const any = ids.length > 0;
+      const anyPending = ids.some(id => (byId[id]?.status === 'pending_review' || byId[id]?.status === 'archived'));
+      const anyPub     = ids.some(id => byId[id]?.status === 'published');
+      $('#btn-publish').disabled = !(any && anyPending);
+      $('#btn-archive').disabled = !(any && anyPub);
+      $('#btn-delete').disabled  = !any;
+    }
+
+    async function loadSlots(){
+      const tbody = $('#tbl-slots tbody');
+      tbody.innerHTML = `<tr><td colspan="9" class="muted">Lade …</td></tr>`;
+      SELECTED.clear(); $('#chk-all').checked = false;
+
+      try{
+        const r = await fetch(`${API}/slots`, {credentials:'include'});
+        if(!r.ok){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`; return; }
+        const items = await r.json();
+        if(!items.length){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`; return; }
+
+        tbody.innerHTML = '';
+        for(const s of items){
+          const tr = document.createElement('tr');
+          const isPending   = s.status === 'pending_review';
+          const isPublished = s.status === 'published';
+          const isArchived  = s.status === 'archived';
+          const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+
+          tr.innerHTML = `
+            <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
+            <td>${fmtLocal(s.start_at)}</td>
+            <td>${fmtLocal(s.end_at)}</td>
+            <td>${s.title}</td>
+            <td>${s.category||''}</td>
+            <td>${s.location||''}</td>
+            <td>${s.capacity||1}</td>
+            <td><span class="badge-st ${stClass}">${s.status}</span></td>
+            <td class="nowrap">
+              ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+              ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+              <button class="btn danger" data-del="${s.id}">Löschen</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+
+        // Zeilen-Checkboxen
+        $$('#tbl-slots .row-check').forEach(cb => {
+          cb.addEventListener('change', ()=>{
+            const id = cb.dataset.id;
+            if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+            updateBulkButtons(items);
+          });
+        });
+
+        // Einzelaktionen
+        $$('#tbl-slots [data-del]').forEach(b =>
+          b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
+        );
+        $$('#tbl-slots [data-arch]').forEach(b =>
+          b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
+        );
+
+        // Master-Checkbox
+        $('#chk-all').onchange = (e) => {
+          SELECTED.clear();
+          $$('#tbl-slots .row-check').forEach(cb => {
+            cb.checked = e.target.checked;
+            if(cb.checked) SELECTED.add(cb.dataset.id);
+          });
+          updateBulkButtons(items);
+        };
+
+        updateBulkButtons(items);
+      }catch(e){
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>`;
+      }
+    }
+
+    async function delSlot(id){
+      if(!confirm('Diesen Slot wirklich löschen?')) return;
+      try{
+        const r = await fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'});
+        if(!r.ok) showMsg('msg-slots','Konnte Slot nicht löschen.');
+      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
+    }
+    async function setStatus(id, status){
+      try{
+        const r = await fetch(`${API}/slots/${id}`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({status})
+        });
+        if(!r.ok) showMsg('msg-slots','Konnte Status nicht ändern.');
+      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
+    }
+
+    // Bulk-Aktionen
+    async function bulkSetStatus(ids, status){
+      if(!ids.length) return;
+      await Promise.all(ids.map(id =>
+        fetch(`${API}/slots/${id}`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({status})
+        })
+      ));
+    }
+    async function bulkDelete(ids){
+      if(!ids.length) return;
+      await Promise.all(ids.map(id =>
+        fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'})
+      ));
+    }
+    $('#btn-publish').addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      await bulkSetStatus(ids, 'published'); await loadSlots();
+    });
+    $('#btn-archive').addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      await bulkSetStatus(ids, 'archived'); await loadSlots();
+    });
+    $('#btn-delete').addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      if(!ids.length) return;
+      if(!confirm(`Diese ${ids.length} Slot(s) wirklich löschen?`)) return;
+      await bulkDelete(ids); await loadSlots();
+    });
+    $('#btn-refresh').addEventListener('click', loadSlots);
+
     // ---------- Slot anlegen ----------
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const date = $('#sl-date').value, time = $('#sl-start').value, dur = parseInt($('#sl-duration').value||'0', 10);
       if(!date || !time || !dur){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
       const startLocal = joinDateTime(date,time);
-      const endLocal = new Date(startLocal.getTime() + dur*60000);
+      const endLocal   = new Date(startLocal.getTime() + dur*60000);
 
       const payload = {
         title: $('#sl-title').value.trim() || 'Slot',
@@ -392,9 +529,7 @@
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
           showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
-          e.target.reset();
-          recalcEnd();
-          await loadSlots();
+          e.target.reset(); recalcEnd(); await loadSlots();
         }else{
           const m = {
             missing_fields:'Pflichtfelder fehlen.',
@@ -404,69 +539,8 @@
           };
           showMsg('msg-slot', m[data.error] || 'Konnte Slot nicht anlegen.');
         }
-      }catch(err){
-        showMsg('msg-slot','Netzwerkfehler.');
-      }
+      }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
     });
-
-    // ---------- Slots laden & rendern ----------
-    async function loadSlots(){
-      const tbody = $('#tbl-slots tbody');
-      tbody.innerHTML = `<tr><td colspan="8" class="muted">Lade …</td></tr>`;
-      try{
-        const r = await fetch(`${API}/slots`, {credentials:'include'});
-        if(!r.ok){ tbody.innerHTML = `<tr><td colspan="8" class="muted">Bitte (erneut) anmelden.</td></tr>`; return; }
-        const items = await r.json();
-        if(!items.length){ tbody.innerHTML = `<tr><td colspan="8" class="muted">Noch keine Slots angelegt.</td></tr>`; return; }
-
-        tbody.innerHTML = '';
-        for(const s of items){
-          const tr = document.createElement('tr');
-          const stClass = s.status==='published' ? 'st-pub' : (s.status==='archived' ? 'st-arch':'st-pending');
-          tr.innerHTML = `
-            <td>${fmtLocal(s.start_at)}</td>
-            <td>${fmtLocal(s.end_at)}</td>
-            <td>${s.title}</td>
-            <td>${s.category||''}</td>
-            <td>${s.location||''}</td>
-            <td>${s.capacity||1}</td>
-            <td><span class="badge-st ${stClass}">${s.status}</span></td>
-            <td class="nowrap">
-              <button class="btn" btn-pimary"${s.id}">Archivieren</button>
-              <button class="btn" btn-pimary"${s.id}">Löschen</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        }
-
-        // Aktionen
-        $$('#tbl-slots [data-del]').forEach(b=>b.addEventListener('click', ()=> delSlot(b.dataset.del)));
-        $$('#tbl-slots [data-arch]').forEach(b=>b.addEventListener('click', ()=> setStatus(b.dataset.arch,'archived')));
-      }catch(e){
-        $('#tbl-slots tbody').innerHTML = `<tr><td colspan="8" class="muted">Fehler beim Laden.</td></tr>`;
-      }
-    }
-
-    async function delSlot(id){
-      if(!confirm('Diesen Slot wirklich löschen?')) return;
-      try{
-        const r = await fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'});
-        if(r.ok){ await loadSlots(); }
-        else showMsg('msg-slots','Konnte Slot nicht löschen.');
-      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
-    }
-    async function setStatus(id, status){
-      try{
-        const r = await fetch(`${API}/slots/${id}`, {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify({status})
-        });
-        if(r.ok){ await loadSlots(); }
-        else showMsg('msg-slots','Konnte Status nicht ändern.');
-      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
-    }
 
     // ---------- Logout ----------
     $('#btn-logout').addEventListener('click', async ()=>{
@@ -480,12 +554,9 @@
       recalcEnd();
       await loadSlots();
     })();
-
-    // Manuelles Refresh
-    $('#btn-refresh').addEventListener('click', loadSlots);
   </script>
 
-     <!-- Footer -->
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -501,7 +572,6 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -509,13 +579,11 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
