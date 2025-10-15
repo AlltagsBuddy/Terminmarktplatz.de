@@ -46,8 +46,7 @@
 </head>
 <body>
 
-    <body class="page-contact">
-
+      
   <!-- Vollbild-Overlay (wird per JS ein-/ausgeblendet) -->
   <div id="loading-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
     <div class="loading-dialog" role="alert" aria-busy="true">
@@ -82,7 +81,7 @@
   <main>
     <!-- HERO -->
     <section class="hero" style="padding:40px 0 18px">
-      <div class="container">
+      <div class="container hero-grid">
         <span class="badge">Kontakt</span>
         <h1>Schreib uns eine Nachricht.</h1>
         <p class="lead">Fragen, Feedback oder Partnerschaft? Wir melden uns schnellstmöglich.</p>
@@ -201,7 +200,7 @@
         const r = await fetch(`${API}/public/contact`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ name, email, subject, message })
+          body: JSON.stringify({ name, email, subject, message, consent })
         });
         const data = await r.json().catch(()=> ({}));
         if (!r.ok || data.error){
