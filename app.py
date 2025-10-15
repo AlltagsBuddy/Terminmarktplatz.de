@@ -297,63 +297,65 @@ else:
     def api_root():
         return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
     
-        # --------------------------------------------------------
-    # Public: Kontaktformular
-    # --------------------------------------------------------
-    @app.post("/public/contact")
-    def public_contact():
+   # --------------------------------------------------------
+# Public: Kontaktformular (immer aktiv, HTML-Mode & API-Only)
+# --------------------------------------------------------
+@app.post("/public/contact")
+def public_contact():
+    try:
+        data = request.get_json(force=True) or {}
+        name    = (data.get("name") or "").strip()
+        email   = (data.get("email") or "").strip().lower()
+        subject = (data.get("subject") or "").strip()
+        message = (data.get("message") or "").strip()
+
+        # Pflicht-Checks
+        if not name or not email or not subject or not message:
+            return _json_error("missing_fields", 400)
         try:
-            data = request.get_json(force=True) or {}
-            name    = (data.get("name") or "").strip()
-            email   = (data.get("email") or "").strip().lower()
-            subject = (data.get("subject") or "").strip()
-            message = (data.get("message") or "").strip()
+            validate_email(email)
+        except EmailNotValidError:
+            return _json_error("invalid_email", 400)
 
-            # simple validation
-            if not name or not email or not subject or not message:
-                return _json_error("missing_fields", 400)
-            try:
-                validate_email(email)
-            except EmailNotValidError:
-                return _json_error("invalid_email", 400)
-            
-            consent = bool(data.get("consent"))
-            if not consent: 
-                return _json_error("consent_required", 400)
+        # DSGVO-Zustimmung serverseitig erzwingen
+        consent = bool(data.get("consent"))
+        if not consent:
+            return _json_error("consent_required", 400)
 
+        # Missbrauch bremsen
+        if len(subject) > 180:  subject = subject[:180] + "…"
+        if len(message) > 5000: message = message[:5000] + "\n…(gekürzt)"
 
-            # etwas begrenzen, um Missbrauch zu vermeiden
-            if len(subject) > 180:  subject = subject[:180] + "…"
-            if len(message) > 5000: message = message[:5000] + "\n…(gekürzt)"
+        # Mailtext
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr) or "-"
+        ua = request.headers.get("User-Agent", "-")
+        body = (
+            f"[Kontaktformular]\n"
+            f"Name: {name}\n"
+            f"E-Mail: {email}\n"
+            f"IP: {ip}\nUA: {ua}\n"
+            f"Zeit: {_now().isoformat()}\n\n"
+            f"Betreff: {subject}\n"
+            f"Nachricht:\n{message}\n"
+        )
 
-            # Mailtext
-            ip = request.headers.get("X-Forwarded-For", request.remote_addr) or "-"
-            ua = request.headers.get("User-Agent", "-")
-            body = (
-                f"[Kontaktformular]\n"
-                f"Name: {name}\n"
-                f"E-Mail: {email}\n"
-                f"IP: {ip}\nUA: {ua}\n"
-                f"Zeit: {_now().isoformat()}\n\n"
-                f"Betreff: {subject}\n"
-                f"Nachricht:\n{message}\n"
-            )
+        ok, reason = send_mail(
+            CONTACT_TO,
+            f"[Terminmarktplatz] Kontakt: {subject}",
+            body
+        )
 
-            ok, reason = send_mail(
-                CONTACT_TO,
-                f"[Terminmarktplatz] Kontakt: {subject}",
-                body
-            )
+        # Optionale Empfangsbestätigung an Absender (best effort)
+        try:
+            send_mail(email, "Danke für deine Nachricht",
+                      "Wir haben deine Nachricht erhalten und melden uns bald.\n\n— Terminmarktplatz")
+        except Exception:
+            pass
 
-            # optional Auto-Danke an Absender (leise ignorieren, wenn’s nicht klappt)
-            _ = send_mail(email, "Danke für deine Nachricht",
-                        "Wir haben deine Nachricht erhalten und melden uns bald.\n\n"
-                        "— Terminmarktplatz")
-
-            return jsonify({"ok": bool(ok), "delivered": bool(ok), "reason": reason})
-        except Exception as e:
-            print("[public_contact] error:", repr(e), flush=True)
-            return jsonify({"error": "server_error"}), 500
+        return jsonify({"ok": bool(ok), "delivered": bool(ok), "reason": reason})
+    except Exception as e:
+        print("[public_contact] error:", repr(e), flush=True)
+        return jsonify({"error": "server_error"}), 500
 
 
             

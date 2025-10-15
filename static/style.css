@@ -530,5 +530,30 @@ footer{
   padding-inline: 22px;      /* etwas breiter als Pillen */
   margin-top: 4px;           /* kleiner Abstand nach den Feldern */
 }
+/* =========================================================
+   Kontaktseite: helle Felder, dunkler Text, sichtbare Umrandung
+   (gilt nur, wenn <body class="page-contact">)
+========================================================= */
+.page-contact .control{
+  background:#fff;
+  border:1px solid rgba(15,23,42,.28);
+  border-radius:14px;
+  box-shadow:none;
+}
+.page-contact .control:focus-within{
+  background:#fff;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 3px rgba(59,130,246,.35);
+}
+.page-contact .control input,
+.page-contact .control select,
+.page-contact .control textarea{
+  color:#0f172a !important;   /* schwarzer Text in Inputs */
+}
+.page-contact .control input::placeholder,
+.page-contact .control textarea::placeholder{
+  color:#64748b;
+}
+.page-contact .help{ color:#475569; } /* besser lesbar auf weiß */
 
 

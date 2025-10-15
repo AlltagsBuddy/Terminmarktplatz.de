@@ -20,34 +20,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
-  <style>
-  /* Kontaktseite: Felder hell, Text schwarz, sichtbare Umrandung */
-  .page-contact .control{
-    background:#fff;
-    border:1px solid rgba(15,23,42,.28);   /* sichtbarer Rand */
-    border-radius:14px;
-  }
-  .page-contact .control:focus-within{
-    background:#fff;
-    border-color:#60a5fa;                  /* blaue Kontur bei Fokus */
-    box-shadow:0 0 0 3px rgba(59,130,246,.35);
-  }
-  .page-contact .control input,
-  .page-contact .control select,
-  .page-contact .control textarea{
-    color:#0f172a !important;              /* dunkler Text */
-  }
-  .page-contact .control input::placeholder,
-  .page-contact .control textarea::placeholder{
-    color:#64748b;                         /* graue Platzhalter */
-  }
-</style>
-
 </head>
-<body>
+<body class="page-contact">
 
-      
-  <!-- Vollbild-Overlay (wird per JS ein-/ausgeblendet) -->
+  <!-- Vollbild-Overlay -->
   <div id="loading-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
     <div class="loading-dialog" role="alert" aria-busy="true">
       <div class="spinner" aria-hidden="true"></div>
@@ -81,7 +57,7 @@
   <main>
     <!-- HERO -->
     <section class="hero" style="padding:40px 0 18px">
-      <div class="container hero-grid">
+      <div class="container">
         <span class="badge">Kontakt</span>
         <h1>Schreib uns eine Nachricht.</h1>
         <p class="lead">Fragen, Feedback oder Partnerschaft? Wir melden uns schnellstmöglich.</p>
@@ -137,13 +113,18 @@
             </div>
           </form>
         </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Weitere Kontaktwege</h3>
+          <p class="muted">Presse & Partnerschaften: <a href="mailto:hello@terminmarktplatz.de">hello@terminmarktplatz.de</a></p>
+        </div>
       </div>
     </section>
   </main>
 
   <script>
     // Jahr
-    document.getElementById('y').textContent = new Date().getFullYear();
+    (document.getElementById('y')||{}).textContent = new Date().getFullYear();
 
     // API-Basis
     const API = (()=> {
@@ -178,7 +159,6 @@
 
     // Submit
     const form = document.getElementById('contact-form');
-    const btn  = document.getElementById('cf-submit');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setInfo('', '');
@@ -205,19 +185,26 @@
         const data = await r.json().catch(()=> ({}));
         if (!r.ok || data.error){
           hideLoading(); lockForm(form, false);
-          setInfo('error', 'Senden fehlgeschlagen. Bitte später erneut versuchen.');
+          if (data.error === 'consent_required') {
+            setInfo('error','Bitte der Verarbeitung deiner Angaben zustimmen.');
+          } else if (data.error === 'invalid_email') {
+            setInfo('error','Bitte eine gültige E-Mail-Adresse eingeben.');
+          } else {
+            setInfo('error', 'Senden fehlgeschlagen. Bitte später erneut versuchen.');
+          }
           return;
         }
         loadingText.textContent = 'Danke für deine Nachricht!';
         loadingSub.textContent  = 'Wir melden uns in Kürze.';
         loadingSub.hidden = false;
-        setTimeout(()=>{ hideLoading(); form.reset(); lockForm(form, false); setInfo('success','Erfolgreich gesendet.'); }, 1500);
+        setTimeout(()=>{ hideLoading(); form.reset(); lockForm(form, false); setInfo('success','Erfolgreich gesendet.'); }, 1200);
       } catch (err){
         hideLoading(); lockForm(form, false);
         setInfo('error','Netzwerkfehler – bitte später erneut versuchen.');
       }
     });
   </script>
+
   <!-- Footer -->
   <footer>
     <div class="container foot-grid">
@@ -234,7 +221,6 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -242,13 +228,11 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
