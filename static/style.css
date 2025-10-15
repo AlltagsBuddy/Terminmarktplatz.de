@@ -22,7 +22,7 @@
   --surface:#0f172a;
   --ink:#f8fafc;
   --ink-dim:#cbd5e1;
-  --border:rgba(255,255,255,.12); /* <- wird als Button-Hintergrund genutzt */
+  --border:rgba(255,255,255,.12);
 
   /* Aliase */
   --ab-border: var(--border);
@@ -114,35 +114,27 @@ header{
 .nav-links a:hover, .nav-links a.active{color:#fff; opacity:1}
 
 .cta-group{display:flex; align-items:center; gap:10px}
-
-/* ---------- Buttons ---------- */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  padding:12px 18px; border-radius:18px;
-  border:1px solid var(--border);
-  background: var(--border);          /* ← Button-Hintergrund */
-  color:#ffffff; cursor:pointer; transition:.18s;
+  padding:12px 18px; border-radius:18px; border:1px solid var(--border);
+  background:rgba(255,255,255,.04); color:#ffffff; cursor:pointer; transition:.18s;
   box-shadow: var(--shadow-1);
   font-weight:700;
 }
-.btn:hover{transform:translateY(-2px); background:rgba(255,255,255,.2)}
+.btn:hover{transform:translateY(-2px)}
 .btn:focus-visible{outline:none; box-shadow:var(--focus)}
 .btn.primary{
-  background: var(--border);          /* ← auch Primärbuttons */
-  border:1px solid var(--border);
-  color:#fff; font-weight:800;
+  background:linear-gradient(135deg, var(--c-purple), var(--c-cyan));
+  border:none; font-weight:800;
 }
-.btn.secondary{
-  background: var(--border);          /* ← Sekundärbuttons */
-  border:1px solid var(--border);
-}
+.btn.secondary{background:rgba(255,255,255,.06)}
 .btn.block{width:100%}
 
 /* Button Loading-State */
-button.loading{ position: relative; pointer-events: none; opacity: .9; }
+button.loading{ position: relative; pointer-events: none; opacity: .85; }
 button.loading::after{
   content: ""; position: absolute; right: 12px; top: 50%; width: 18px; height: 18px;
-  margin-top: -9px; border-radius: 50%; border: 2px solid #fff; border-top-color: transparent;
+  margin-top: -9px; border-radius: 50%; border: 2px solid rgba(0,0,0,.1); border-top-color: transparent;
   animation: spin .8s linear infinite;
 }
 
@@ -157,7 +149,7 @@ button.loading::after{
 }
 h1, h2, h3{font-weight:800; letter-spacing:.2px}
 .hero h1{
-  font-size: clamp(28px, 4vw, 52px);
+  font-size: clamp(28px, 4vw, 52px); /* vorher: 34 / 5vw / 64 */
   line-height:1.04;
   margin:14px 0 10px; letter-spacing:-0.8px;
   background:linear-gradient(90deg, #fff, #dbeafe, #fff);
@@ -187,7 +179,10 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
 .input:focus-within{outline: none; background:var(--field-bg-focus); box-shadow: var(--focus)}
 
 /* Inhalt der Felder → weiß */
-.input input, .input select{ all:unset; color:#fff; width:100% }
+.input input,
+.input select{
+  all:unset; color:#fff; width:100%;
+}
 
 /* Platzhalter in der Suche dezent weiß */
 .searchbar .input input::placeholder{ color:rgba(255,255,255,.65); }
@@ -218,13 +213,12 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
   -webkit-text-fill-color:#fff; transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Such-Submit (gleiches Button-Design) */
+/* Such-Submit */
 .btn.primary[type="submit"]{
-  background: var(--border);
-  border:1px solid var(--border);
-  color:#fff; font-weight:900;
+  background:linear-gradient(135deg, var(--c-pink), var(--c-blue));
+  border:none; color:#0b0f1a; font-weight:900;
 }
-.btn.primary[type="submit"]:hover{ background: rgba(255,255,255,.2) }
+.btn.primary[type="submit"]:hover{filter: brightness(1.1)}
 
 /* Trust-Zeile */
 .trust{
@@ -235,17 +229,43 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
   content:""; width:8px; height:8px; border-radius:50%;
   background: var(--c-mint); display:inline-block; margin-right:4px;
 }
+/* =========================================================
+   Suche – Select-Felder (Umkreis & Zeitfenster) dunkel + weiße Schrift
+   → ans ENDE der style.css legen
+========================================================= */
 
-/* Select-Optionen (Dropdown-Liste) */
-.searchbar .input select option{
-  background:#0f172a; color:#fff;
+/* das sichtbare Select-Feld soll den selben dunklen Hintergrund haben wie .input */
+.searchbar .input select{
+  color:#fff;                 /* weiße Schrift */
+  background-color: transparent; /* Hintergrund vom umgebenden .input übernehmen */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  background-image:none;      /* Standard-Chevron ausblenden (wir nutzen die .input-Optik) */
 }
+
+/* Falls dein Browser dem Select trotzdem Weiß gibt, erzwinge eine Farbe direkt: */
+.searchbar .input{ 
+  background: var(--field-bg);            /* Grundfarbe deiner Felder */
+  border: 1px solid var(--field-border);
+}
+.searchbar .input:nth-child(-n+2){
+  background: var(--field-bg-strong);     /* stärkere Farbe für die ersten 2 Felder */
+  border-color: var(--field-border-strong);
+}
+
+/* Dropdown-Liste (geöffnete Options) – Desktop-Browser unterstützen das,
+   iOS/macOS Safari nur eingeschränkt */
+.searchbar .input select option{
+  background: #0f172a;   /* dunkler Hintergrund für Listeneinträge */
+  color:#fff;
+}
+
 
 /* ---------- Sections ---------- */
 section{padding:56px 0}
 h2{
-  font-size: clamp(20px, 2.6vw, 30px);
-  margin:0 0 12px; letter-spacing:-.3px;
+  h2 { font-size: clamp(20px, 2.6vw, 30px); } /* vorher: (24px, 3.2vw, 36px);*/ margin:0 0 12px; letter-spacing:-.3px;
   display:inline-flex; align-items:center; gap:10px;
 }
 h2::after{
@@ -256,7 +276,9 @@ h2::after{
 .sub{color:var(--c-blue); margin:14px 0 20px}
 
 /* ---------- Feature-Cards ---------- */
-.features{ display:grid; grid-template-columns:repeat(3, 1fr); gap:22px }
+.features{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:22px;
+}
 .card{
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
   border:1px solid var(--border);
@@ -310,21 +332,35 @@ h2::after{
   color:var(--fg);
 }
 .hero + section .panel .muted{color:var(--text-2); opacity:.95}
-.hero + section .demo-input{ border-color:var(--border); background:#475569 }
-.hero + section .panel, .hero + section .panel *{ opacity:1; filter:none }
-.hero + section .panel::before, .hero + section .panel::after{content:none}
+.hero + section .demo-input{
+  border-color:var(--border);
+  background:#475569;
+}
+.hero + section .panel, 
+.hero + section .panel *{
+  opacity:1; filter:none;
+}
+.hero + section .panel::before, 
+.hero + section .panel::after{content:none}
 
 /* ---------- CTA Provider ---------- */
-.cta-provider{ display:grid; grid-template-columns: 1.1fr .9fr; gap:22px; align-items:center }
+.cta-provider{
+  display:grid; grid-template-columns: 1.1fr .9fr; gap:22px; align-items:center
+}
 .cta-provider .panel{
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
   border:1px solid var(--border); border-radius:var(--r-3xl);
   padding:24px; box-shadow:var(--shadow-2)
 }
 .cta-provider .sub{color:var(--c-blue); margin-top:4px}
-.cta-provider .grid-2 ul{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.cta-provider .grid-2 ul{
+  list-style:none; margin:0; padding:0; display:grid; gap:8px;
+}
 .cta-provider li{line-height:1.35}
-.cta-provider .card{ background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow-1) }
+.cta-provider .card{
+  background:#fff; border:1px solid var(--border);
+  border-radius:12px; padding:12px 14px; box-shadow:var(--shadow-1)
+}
 
 /* ---------- Testimonials ---------- */
 .testimonials{display:grid; grid-template-columns:repeat(3, 1fr); gap:20px}
@@ -385,12 +421,16 @@ footer{
 #form-info.warn{background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); color:#fde68a}
 
 /* Checkbox/Radio kompakt */
-.check{ display:flex; align-items:center; gap:10px; font-size:14px; color:var(--surface) }
+.check{
+  display:flex; align-items:center; gap:10px; font-size:14px; color:var(--surface);
+}
 .check input{width:18px; height:18px}
 
 /* Tabs/Login-Umschalter (falls vorhanden) */
 .tabs{display:flex; gap:8px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:6px}
-.tab{ padding:8px 12px; border-radius:10px; font-weight:800; color:var(--ink-dim); cursor:pointer }
+.tab{
+  padding:8px 12px; border-radius:10px; font-weight:800; color:var(--ink-dim); cursor:pointer;
+}
 .tab.active{color:#0b0f1a; background:#fff}
 
 /* ---------- Badges / Pill ---------- */
@@ -479,18 +519,17 @@ footer{
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; transition:none !important}
 }
-
 /* Punkt vor der Trust-Zeile ausblenden */
-.trust::before{ content:none !important; display:none !important; }
+.trust::before{ content:none !important; display:none !important; 
+}
 
 /* Submit-Button in der Suchleiste: zentriert, eigene Reihe, volle Breite */
 .searchbar .btn[type="submit"]{
-  grid-column: 1 / -1;
-  justify-self: center;
-  padding-inline: 22px;
-  margin-top: 4px;
+  grid-column: 1 / -1;       /* über alle Spalten */
+  justify-self: center;      /* horizontal zentrieren */
+  padding-inline: 22px;      /* etwas breiter als Pillen */
+  margin-top: 4px;           /* kleiner Abstand nach den Feldern */
 }
-
 /* =========================================================
    Kontaktseite: helle Felder, dunkler Text, sichtbare Umrandung
    (gilt nur, wenn <body class="page-contact">)
@@ -508,7 +547,13 @@ footer{
 }
 .page-contact .control input,
 .page-contact .control select,
-.page-contact .control textarea{ color:#0f172a !important; }
+.page-contact .control textarea{
+  color:#0f172a !important;   /* schwarzer Text in Inputs */
+}
 .page-contact .control input::placeholder,
-.page-contact .control textarea::placeholder{ color:#64748b; }
-.page-contact .help{ color:#475569; }
+.page-contact .control textarea::placeholder{
+  color:#64748b;
+}
+.page-contact .help{ color:#475569; } /* besser lesbar auf weiß */
+
+
