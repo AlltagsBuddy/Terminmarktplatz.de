@@ -164,11 +164,11 @@
               <label for="sl-duration">Dauer (Minuten)</label>
               <input id="sl-duration" type="number" min="5" step="5" value="30"/>
               <div class="seg">
-                <button type="button" class="btn" data-min="15">15</button>
-                <button type="button" class="btn" data-min="30">30</button>
-                <button type="button" class="btn" data-min="45">45</button>
-                <button type="button" class="btn" data-min="60">60</button>
-                <button type="button" class="btn" data-min="90">90</button>
+                <button type="button" class="btn-pimary" data-min="15">15</button>
+                <button type="button" class="btn-pimary" data-min="30">30</button>
+                <button type="button" class="btn-pimary" data-min="45">45</button>
+                <button type="button" class="btn-pimary" data-min="60">60</button>
+                <button type="button" class="btn-pimary" data-min="90">90</button>
               </div>
             </div>
             <div class="field">
@@ -206,7 +206,7 @@
           <div class="toolbar" style="justify-content:space-between">
             <h2 style="margin:0">Meine Slots</h2>
             <div>
-              <button class="btn" id="btn-refresh">Aktualisieren</button>
+              <button class="btn" id="btn-primary">Aktualisieren</button>
             </div>
           </div>
 
@@ -432,8 +432,8 @@
             <td>${s.capacity||1}</td>
             <td><span class="badge-st ${stClass}">${s.status}</span></td>
             <td class="nowrap">
-              <button class="btn" data-arch="${s.id}">Archivieren</button>
-              <button class="btn" data-del="${s.id}">Löschen</button>
+              <button class="btn" btn-pimary"${s.id}">Archivieren</button>
+              <button class="btn" btn-pimary"${s.id}">Löschen</button>
             </td>
           `;
           tbody.appendChild(tr);
