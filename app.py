@@ -431,10 +431,12 @@ def auth_verify():
     debug = request.args.get("debug") == "1"
 
     def _ret(kind: str):
-        url = f"{FRONTEND_URL}/login"
+        # HIER anpassen: .html verwenden
+        url = f"{FRONTEND_URL}/login.html"
         if debug:
             return jsonify({"ok": kind == "1", "redirect": url})
         return redirect(url)
+
 
     if not token:
         return _ret("missing")
