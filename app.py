@@ -12,12 +12,11 @@ from flask import (
 from flask_cors import CORS
 from sqlalchemy import create_engine, select, and_, func
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from argon2 import PasswordHasher
 import jwt
 
 from models import Base, Provider, Slot, Booking
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 # --------------------------------------------------------
 # Init / Paths / Mode
@@ -111,6 +110,26 @@ def add_headers(resp):
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     return resp
+
+# --------------------------------------------------------
+# ISO-Parsing (akzeptiert ...Z)
+# --------------------------------------------------------
+def parse_iso_utc(s: str) -> datetime:
+    """
+    Akzeptiert ISO-Strings mit 'Z' (UTC) oder mit Offset (+00:00).
+    Gibt immer einen AWARE datetime in UTC zurück.
+    """
+    if not isinstance(s, str):
+        raise ValueError("not a string")
+    s = s.strip()
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt
 
 # --------------------------------------------------------
 # Utilities
@@ -566,14 +585,13 @@ def me_update():
     try:
         data = request.get_json(force=True) or {}
         allowed = {"company_name","branch","street","zip","city","phone","whatsapp"}
+
         def clean(v):
             if v is None: return None
             v = str(v).strip()
             return v or None
 
-
         upd = {k: clean(v) for k, v in data.items() if k in allowed}
-
 
         if "zip" in upd and upd["zip"] is not None:
             z = upd["zip"]
@@ -597,7 +615,7 @@ def me_update():
                     "constraint": getattr(detail, "constraint_name", None),
                     "message": str(e.orig)
                 }), 400
-            except SQLAlchemyError as e:
+            except SQLAlchemyError:
                 s.rollback()
                 return _json_error("db_error", 400)
 
@@ -605,7 +623,6 @@ def me_update():
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
-
 
 # --------------------------------------------------------
 # Slots (Provider)
@@ -629,8 +646,8 @@ def slots_create():
     if any(k not in data for k in required):
         return _json_error("missing_fields")
     try:
-        start = datetime.fromisoformat(data["start_at"])
-        end   = datetime.fromisoformat(data["end_at"])
+        start = parse_iso_utc(data["start_at"])
+        end   = parse_iso_utc(data["end_at"])
     except Exception:
         return _json_error("bad_datetime")
     if end <= start:
@@ -670,15 +687,15 @@ def slots_update(slot_id):
         if not slot or slot.provider_id != request.provider_id:
             return _json_error("not_found", 404)
 
-        # Zeiten prüfen/setzen
+        # Zeiten prüfen/setzen (robust gegen 'Z')
         if "start_at" in data:
             try:
-                slot.start_at = datetime.fromisoformat(data["start_at"])
+                slot.start_at = parse_iso_utc(data["start_at"])
             except Exception:
                 return _json_error("bad_datetime")
         if "end_at" in data:
             try:
-                slot.end_at = datetime.fromisoformat(data["end_at"])
+                slot.end_at = parse_iso_utc(data["end_at"])
             except Exception:
                 return _json_error("bad_datetime")
         if slot.end_at <= slot.start_at:
@@ -802,10 +819,13 @@ def _verify_booking_token(token: str) -> str | None:
 
 @app.get("/public/slots")
 def public_slots():
-    category = request.args.get("category")
-    since = request.args.get("from")
+    category   = request.args.get("category")
+    since      = request.args.get("from")
     zip_filter = request.args.get("zip")
-    start_from = datetime.fromisoformat(since) if since else _now()
+    try:
+        start_from = parse_iso_utc(since) if since else _now()
+    except Exception:
+        return _json_error("bad_datetime", 400)
 
     with Session(engine) as s:
         q = (
