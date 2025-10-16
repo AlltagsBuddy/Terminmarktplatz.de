@@ -71,7 +71,7 @@
     .seg .btn{padding:6px 10px}
     .nowrap{white-space:nowrap}
 
-    /* --- Buttons in der Slot-Tabelle: Hintergrund = var(--border) --- */
+    /* --- Buttons in der Slot-Tabelle --- */
     .table .btn{
       padding:8px 12px; border:none; border-radius:12px; font-weight:800;
       background: var(--border); color:#0b0f1a; box-shadow: var(--shadow-1);
@@ -81,7 +81,6 @@
     .table .btn.action{ background: var(--border); }
     .table .btn.danger{ background: var(--border); }
 
-    /* Deaktivierte Bulk-Buttons */
     .seg .btn[disabled]{ opacity:.55; pointer-events:none; }
   </style>
 </head>
@@ -127,11 +126,11 @@
           <form id="form-profile" class="grid">
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio</label>
-              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira"/>
+              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required/>
             </div>
             <div class="field">
               <label for="pf-branch">Branche</label>
-              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur"/>
+              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required/>
               <datalist id="branch-list">
                 <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
                 <option>Nagelstudio</option><option>Zahnarzt</option><option>Handwerk</option>
@@ -145,11 +144,11 @@
             </div>
             <div class="field">
               <label for="pf-zip">PLZ</label>
-              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric"/>
+              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required/>
             </div>
             <div class="field">
               <label for="pf-city">Ort</label>
-              <input id="pf-city" name="city" placeholder="Musterstadt"/>
+              <input id="pf-city" name="city" placeholder="Musterstadt" required/>
             </div>
             <div class="field">
               <label for="pf-phone">Telefon</label>
@@ -173,25 +172,25 @@
           <form id="form-slot" class="grid">
             <div class="field">
               <label for="sl-title">Titel</label>
-              <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt"/>
+              <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
             </div>
             <div class="field">
               <label for="sl-cat">Kategorie</label>
-              <input id="sl-cat" name="category" list="branch-list" placeholder="z. B. Friseur"/>
+              <input id="sl-cat" name="category" list="branch-list" placeholder="z. B. Friseur" required/>
             </div>
 
             <div class="field">
               <label for="sl-date">Datum</label>
-              <input id="sl-date" type="date"/>
+              <input id="sl-date" type="date" required/>
             </div>
             <div class="field">
               <label for="sl-start">Start (Uhrzeit)</label>
-              <input id="sl-start" type="time" step="60"/>
+              <input id="sl-start" type="time" step="60" required/>
             </div>
 
             <div class="field">
               <label for="sl-duration">Dauer (Minuten)</label>
-              <input id="sl-duration" type="number" min="5" step="5" value="30"/>
+              <input id="sl-duration" type="number" min="5" step="5" value="30" required/>
               <div class="seg">
                 <button type="button" class="btn" data-min="15">15</button>
                 <button type="button" class="btn" data-min="30">30</button>
@@ -334,31 +333,28 @@
         phone:        $('#pf-phone').value.trim(),
         whatsapp:     $('#pf-whatsapp').value.trim(),
       };
-      // ... im submit-Handler von #form-profile:
-try{
-  const r = await fetch(`${API}/me`, {
-    method:'PUT',
-    headers:{'Content-Type':'application/json'},
-    credentials:'include',
-    body: JSON.stringify(payload)
-  });
-  const data = await r.json().catch(()=> ({}));
-  if(r.ok){
-    showMsg('msg-profile','Gespeichert ✓', true);
-  }else{
-    // differenzierter
-    const map = {
-      unauthorized: 'Bitte erneut anmelden.',
-      invalid_zip: 'PLZ muss 5-stellig sein.',
-      db_constraint_error: 'Ungültige/fehlende Felder (DB-Vorgaben).',
-    };
-    showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
-    if(r.status === 401) location.href = 'login.html?tab=login';
-  }
-}catch(e){
-  showMsg('msg-profile','Netzwerkfehler.');
-}
-
+      try{
+        const r = await fetch(`${API}/me`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json().catch(()=> ({}));
+        if(r.ok){
+          showMsg('msg-profile','Gespeichert ✓', true);
+        }else{
+          const map = {
+            unauthorized: 'Bitte erneut anmelden.',
+            invalid_zip: 'PLZ muss 5-stellig sein.',
+            db_constraint_error: 'Ungültige/fehlende Felder (DB-Vorgaben).',
+          };
+          showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
+          if(r.status === 401) location.href = 'login.html?tab=login';
+        }
+      }catch(e){
+        showMsg('msg-profile','Netzwerkfehler.');
+      }
     });
 
     // ---------- Slot-Form: Dauer -> Ende berechnen ----------
@@ -521,6 +517,11 @@ try{
       const startLocal = joinDateTime(date,time);
       const endLocal   = new Date(startLocal.getTime() + dur*60000);
 
+      // Clientseitiger Check
+      if(endLocal <= startLocal){
+        return showMsg('msg-slot','Ende liegt vor dem Start.');
+      }
+
       const payload = {
         title: $('#sl-title').value.trim() || 'Slot',
         category: $('#sl-cat').value.trim() || 'Sonstiges',
@@ -550,9 +551,11 @@ try{
             missing_fields:'Pflichtfelder fehlen.',
             bad_datetime:'Datum/Uhrzeit ungültig.',
             end_before_start:'Ende liegt vor dem Start.',
+            start_in_past:'Start liegt in der Vergangenheit (nach UTC). Bitte späteren Start wählen.',
             limit_reached:'Limit erreicht.'
           };
-          showMsg('msg-slot', m[data.error] || 'Konnte Slot nicht anlegen.');
+          const detail = data.detail ? ` (${data.detail})` : '';
+          showMsg('msg-slot', (m[data.error] || 'Konnte Slot nicht anlegen.') + detail);
         }
       }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
     });
@@ -565,6 +568,13 @@ try{
 
     // ---------- Init ----------
     (async function init(){
+      // min=heute für Datumsfeld setzen
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth()+1).padStart(2,'0');
+      const dd = String(today.getDate()).padStart(2,'0');
+      $('#sl-date').setAttribute('min', `${yyyy}-${mm}-${dd}`);
+
       await requireAuth();
       recalcEnd();
       await loadSlots();
