@@ -17,6 +17,7 @@ from argon2 import PasswordHasher
 import jwt
 
 from models import Base, Provider, Slot, Booking
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 # --------------------------------------------------------
 # Init / Paths / Mode
@@ -564,18 +565,16 @@ def me():
 def me_update():
     try:
         data = request.get_json(force=True) or {}
-        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp"}
-
+        allowed = {"company_name","branch","street","zip","city","phone","whatsapp"}
         def clean(v):
-            if v is None:
-                return None
+            if v is None: return None
             v = str(v).strip()
-            return v or None  # leere Strings -> None
+            return v or None
 
-        # einfache Normalisierung
+
         upd = {k: clean(v) for k, v in data.items() if k in allowed}
 
-        # optionale Validierungen
+
         if "zip" in upd and upd["zip"] is not None:
             z = upd["zip"]
             if not z.isdigit() or len(z) != 5:
@@ -583,19 +582,24 @@ def me_update():
 
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
-            if not p:
-                return _json_error("not_found", 404)
+            if not p: return _json_error("not_found", 404)
 
             for k, v in upd.items():
                 setattr(p, k, v)
 
             try:
                 s.commit()
+            except IntegrityError as e:
+                s.rollback()
+                detail = getattr(getattr(e, "orig", None), "diag", None)
+                return jsonify({
+                    "error": "db_constraint_error",
+                    "constraint": getattr(detail, "constraint_name", None),
+                    "message": str(e.orig)
+                }), 400
             except SQLAlchemyError as e:
                 s.rollback()
-                print("[/me] commit error:", repr(e), flush=True)
-                # Häufige Ursache: NOT NULL Verletzung -> sprechende Antwort:
-                return _json_error("db_constraint_error", 400)
+                return _json_error("db_error", 400)
 
         return jsonify({"ok": True})
     except Exception as e:
