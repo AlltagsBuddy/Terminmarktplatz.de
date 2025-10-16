@@ -131,6 +131,31 @@ def parse_iso_utc(s: str) -> datetime:
         dt = dt.astimezone(timezone.utc)
     return dt
 
+    from datetime import timezone, datetime  # hast du bereits oben
+
+def _to_db_utc_naive(dt: datetime) -> datetime:
+    """
+    Konvertiert Datum nach UTC und entfernt tzinfo.
+    Für TIMESTAMP WITHOUT TIME ZONE (Postgres).
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.replace(tzinfo=None)
+
+def _from_db_as_iso_utc(dt: datetime) -> str:
+    """
+    Gibt ISO8601 in UTC zurück, normalisiert auf 'Z'.
+    Falls DB naive UTC speichert, behandeln wir sie als UTC.
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.isoformat().replace("+00:00", "Z")
+
+
 # --------------------------------------------------------
 # Utilities
 # --------------------------------------------------------
@@ -229,6 +254,7 @@ def slot_to_json(x: Slot):
         "price_cents": x.price_cents, "notes": x.notes,
         "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
     }
+
 
 
 def _cookie_flags():
