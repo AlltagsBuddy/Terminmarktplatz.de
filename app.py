@@ -1,7 +1,7 @@
 # app.py — API + HTML (Root-Templates; Render & Local)
 import os
-from datetime import datetime, timedelta, timezone
 import traceback
+from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -25,11 +25,10 @@ load_dotenv()
 
 APP_ROOT     = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR   = os.path.join(APP_ROOT, "static")
-# WICHTIG: HTML-Dateien liegen im Projekt-Root -> template_folder=APP_ROOT
-TEMPLATE_DIR = APP_ROOT
+TEMPLATE_DIR = APP_ROOT  # HTML-Dateien liegen im Projekt-Root
 
 IS_RENDER = bool(os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
-API_ONLY  = os.environ.get("API_ONLY") == "1"  # ← setze auf 1, wenn du bewusst API-only willst
+API_ONLY  = os.environ.get("API_ONLY") == "1"
 
 app = Flask(
     __name__,
@@ -55,7 +54,7 @@ MAIL_FROM         = os.environ.get("MAIL_FROM", "no-reply@example.com")
 REPLY_TO          = os.environ.get("REPLY_TO", MAIL_FROM)
 MAIL_PROVIDER     = os.environ.get("MAIL_PROVIDER", "console")
 POSTMARK_TOKEN    = os.environ.get("POSTMARK_TOKEN", "")
-CONTACT_TO        = os.environ.get("CONTACT_TO", MAIL_FROM)  # wohin Kontaktmails gehen
+CONTACT_TO        = os.environ.get("CONTACT_TO", MAIL_FROM)
 
 def _cfg(name: str, default: str | None = None) -> str:
     val = os.environ.get(name, default)
@@ -87,7 +86,7 @@ ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
 # --------------------------------------------------------
 # CORS & Security Headers
 # --------------------------------------------------------
-ALLOWED_ORIGINS = ["*"]  # Bei Cookie-Login restriktiver machen
+ALLOWED_ORIGINS = ["*"]
 CORS(
     app,
     resources={
@@ -112,7 +111,7 @@ def add_headers(resp):
     return resp
 
 # --------------------------------------------------------
-# ISO-Parsing (akzeptiert ...Z)
+# Time helpers (einheitlich!)
 # --------------------------------------------------------
 def parse_iso_utc(s: str) -> datetime:
     """
@@ -130,8 +129,6 @@ def parse_iso_utc(s: str) -> datetime:
     else:
         dt = dt.astimezone(timezone.utc)
     return dt
-
-    from datetime import timezone, datetime  # hast du bereits oben
 
 def _to_db_utc_naive(dt: datetime) -> datetime:
     """
@@ -154,7 +151,6 @@ def _from_db_as_iso_utc(dt: datetime) -> str:
     else:
         dt = dt.astimezone(timezone.utc)
     return dt.isoformat().replace("+00:00", "Z")
-
 
 # --------------------------------------------------------
 # Utilities
@@ -205,9 +201,6 @@ def auth_required(admin: bool = False):
     return wrapper
 
 def send_mail(to: str, subject: str, text: str):
-    """
-    Returns: (ok: bool, reason: str)
-    """
     try:
         print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
         if MAIL_PROVIDER == "console":
@@ -255,8 +248,6 @@ def slot_to_json(x: Slot):
         "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
     }
 
-
-
 def _cookie_flags():
     if IS_RENDER:
         return {"httponly": True, "secure": True, "samesite": "None"}
@@ -266,12 +257,6 @@ def _cookie_flags():
 VALID_STATUSES = {"pending_review", "published", "archived"}
 
 def _status_transition_ok(current: str, new: str) -> bool:
-    """
-    Erlaubte Übergänge:
-      pending_review -> published | archived | pending_review
-      published      -> archived  | published
-      archived       -> published | archived
-    """
     if new not in VALID_STATUSES:
         return False
     if current == new:
@@ -311,7 +296,7 @@ def health():
 @app.before_request
 def maybe_api_only():
     if not API_ONLY:
-        return  # Full mode
+        return
     if not (
         request.path.startswith("/auth/") or
         request.path.startswith("/admin/") or
@@ -333,12 +318,10 @@ if _html_enabled():
     def index():
         return render_template("index.html")
 
-    # Login-Seite (GET) – Datei liegt im Root
     @app.get("/login")
     def login_page():
         return render_template("login.html")
 
-    # Alternative Deep-Links ohne .html
     @app.get("/anbieter-portal")
     def anbieter_portal_page():
         return render_template("anbieter-portal.html")
@@ -355,7 +338,6 @@ if _html_enabled():
     def agb():
         return render_template("agb.html")
 
-    # Catch-all: /seite → seite.html (nur Whitelist wäre noch sicherer)
     @app.get("/<path:slug>")
     def any_page(slug: str):
         filename = slug if slug.endswith(".html") else f"{slug}.html"
@@ -369,7 +351,7 @@ else:
         return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
 
 # --------------------------------------------------------
-# Public: Kontaktformular (immer aktiv)
+# Public: Kontaktformular
 # --------------------------------------------------------
 @app.post("/public/contact")
 def public_contact():
@@ -380,7 +362,6 @@ def public_contact():
         subject = (data.get("subject") or "").strip()
         message = (data.get("message") or "").strip()
 
-        # Pflicht-Checks
         if not name or not email or not subject or not message:
             return _json_error("missing_fields", 400)
         try:
@@ -388,16 +369,10 @@ def public_contact():
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
-        # DSGVO-Zustimmung serverseitig erzwingen
         consent = bool(data.get("consent"))
         if not consent:
             return _json_error("consent_required", 400)
 
-        # Missbrauch bremsen
-        if len(subject) > 180:  subject = subject[:180] + "…"
-        if len(message) > 5000: message = message[:5000] + "\n…(gekürzt)"
-
-        # Mailtext
         ip = request.headers.get("X-Forwarded-For", request.remote_addr) or "-"
         ua = request.headers.get("User-Agent", "-")
         body = (
@@ -410,13 +385,7 @@ def public_contact():
             f"Nachricht:\n{message}\n"
         )
 
-        ok, reason = send_mail(
-            CONTACT_TO,
-            f"[Terminmarktplatz] Kontakt: {subject}",
-            body
-        )
-
-        # Optionale Empfangsbestätigung an Absender (best effort)
+        ok, reason = send_mail(CONTACT_TO, f"[Terminmarktplatz] Kontakt: {subject}", body)
         try:
             send_mail(email, "Danke für deine Nachricht",
                       "Wir haben deine Nachricht erhalten und melden uns bald.\n\n— Terminmarktplatz")
@@ -429,7 +398,7 @@ def public_contact():
         return jsonify({"error": "server_error"}), 500
 
 # --------------------------------------------------------
-# Gemeinsame Auth-Helfer
+# Auth helpers
 # --------------------------------------------------------
 def _authenticate(email: str, password: str):
     email = (email or "").strip().lower()
@@ -481,18 +450,13 @@ def register():
             reg_email   = p.email
 
         payload = {
-            "sub": provider_id,
-            "aud": "verify",
-            "iss": JWT_ISS,
+            "sub": provider_id, "aud": "verify", "iss": JWT_ISS,
             "exp": int((_now() + timedelta(days=2)).timestamp())
         }
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
-
-        ok_mail, reason = send_mail(
-            reg_email, "Bitte E-Mail bestätigen",
-            f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n"
-        )
+        ok_mail, reason = send_mail(reg_email, "Bitte E-Mail bestätigen",
+                                    f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n")
         return jsonify({"ok": True, "mail_sent": ok_mail, "mail_reason": reason})
 
     except Exception as e:
@@ -505,7 +469,6 @@ def auth_verify():
     debug = request.args.get("debug") == "1"
 
     def _ret(kind: str):
-        # Wichtig: .html verwenden
         url = f"{FRONTEND_URL}/login.html"
         if debug:
             return jsonify({"ok": kind == "1", "redirect": url})
@@ -581,13 +544,14 @@ def auth_refresh():
 # --------------------------------------------------------
 @app.post("/login")
 def auth_login_form():
-    # Erwartet <form method="post" action="/login"> mit name="email" & "password"
     email = request.form.get("email")
     password = request.form.get("password")
     p, err = _authenticate(email, password)
     if err:
-        # Re-rendere die Seite mit Fehlermeldung
-        return render_template("login.html", error="Login fehlgeschlagen." if err != "email_not_verified" else "E-Mail noch nicht verifiziert."), 401
+        return render_template(
+            "login.html",
+            error="Login fehlgeschlagen." if err != "email_not_verified" else "E-Mail noch nicht verifiziert."
+        ), 401
 
     access, refresh = issue_tokens(p.id, p.is_admin)
     resp = make_response(redirect("anbieter-portal"))
@@ -653,31 +617,6 @@ def me_update():
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
-    
-    def _to_db_utc_naive(dt: datetime) -> datetime:
-        """
-        Nimmt aware/naive Datumswerte, wandelt nach UTC und entfernt tzinfo.
-        Eignet sich für TIMESTAMP WITHOUT TIME ZONE in Postgres.
-        """
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    return dt.replace(tzinfo=None)
-
-def _from_db_as_iso_utc(dt: datetime) -> str:
-    """
-    Serielle Ausgabe immer als UTC-ISO mit 'Z'.
-    (Wenn die DB naive UTC speichert, behandeln wir sie als UTC.)
-    """
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    s = dt.isoformat()
-    # Normalisiere auf 'Z' statt '+00:00'
-    return s.replace("+00:00", "Z")
-
 
 # --------------------------------------------------------
 # Slots (Provider)
@@ -702,7 +641,6 @@ def slots_create():
         if any(k not in data or data[k] in (None, "") for k in required):
             return _json_error("missing_fields", 400)
 
-        # ISO → aware UTC
         try:
             start = parse_iso_utc(data["start_at"])
             end   = parse_iso_utc(data["end_at"])
@@ -714,17 +652,14 @@ def slots_create():
         if start <= _now():
             return _json_error("start_in_past", 409)
 
-        # Für DB (TIMESTAMP WITHOUT TIME ZONE) → UTC-naiv
         start_db = _to_db_utc_naive(start)
         end_db   = _to_db_utc_naive(end)
 
         with Session(engine) as s:
             count = s.scalar(
                 select(func.count()).select_from(Slot).where(
-                    and_(
-                        Slot.provider_id == request.provider_id,
-                        Slot.status.in_(["pending_review", "published"])
-                    )
+                    and_(Slot.provider_id == request.provider_id,
+                         Slot.status.in_(["pending_review", "published"]))
                 )
             ) or 0
             if count > 200:
@@ -758,10 +693,8 @@ def slots_create():
             return jsonify(slot_to_json(slot)), 201
 
     except Exception as e:
-        # Damit wir nie wieder ein nacktes 500 sehen
         print("[/slots] server error:", traceback.format_exc(), flush=True)
         return jsonify({"error":"server_error","detail":str(e)}), 500
-
 
 @app.put("/slots/<slot_id>")
 @auth_required()
@@ -773,7 +706,6 @@ def slots_update(slot_id):
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
-            # Zeiten
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -787,13 +719,10 @@ def slots_update(slot_id):
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
-            # Andere Felder
-            for k in ["title","category","location","capacity","contact_method",
-                      "booking_link","price_cents","notes"]:
+            for k in ["title","category","location","capacity","contact_method","booking_link","price_cents","notes"]:
                 if k in data:
                     setattr(slot, k, data[k])
 
-            # Statuswechsel prüfen
             if "status" in data:
                 new_status = str(data["status"])
                 cur_status = slot.status
@@ -802,7 +731,6 @@ def slots_update(slot_id):
                 if not _status_transition_ok(cur_status, new_status):
                     return _json_error("transition_forbidden", 409)
                 if new_status == "published":
-                    # Gegenwart prüfen (DB-Werte sind UTC-naiv)
                     if slot.start_at.replace(tzinfo=timezone.utc) <= _now():
                         return _json_error("start_in_past", 409)
                     if (slot.capacity or 1) < 1:
@@ -824,7 +752,6 @@ def slots_update(slot_id):
     except Exception as e:
         print("[PUT /slots] server error:", traceback.format_exc(), flush=True)
         return jsonify({"error":"server_error","detail":str(e)}), 500
-
 
 @app.delete("/slots/<slot_id>")
 @auth_required()
@@ -951,7 +878,6 @@ def public_slots():
                 "end_at": _from_db_as_iso_utc(slot.end_at),
                 "location": slot.location,
                 "provider_id": slot.provider_id,
-                # NEU für Umkreis-Filter:
                 "provider_zip": p_zip,
                 "provider_city": p_city,
             }
