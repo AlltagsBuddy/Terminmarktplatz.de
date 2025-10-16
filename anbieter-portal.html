@@ -295,7 +295,17 @@
     }
 
     function pad(n){ return n.toString().padStart(2,'0'); }
-    function toLocalISO(dateLocal){ return new Date(dateLocal).toISOString(); }
+    // bisher:
+function toLocalISO(dateLocal){ return new Date(dateLocal).toISOString(); }
+
+// neu (Workaround: 'Z' -> '+00:00'):
+function toLocalISO(dateLocal){
+  const iso = new Date(dateLocal).toISOString();       // 2025-10-17T10:00:00.000Z
+  return iso.slice(0, 23).replace('Z','+00:00');       // 2025-10-17T10:00:00.000+00:00
+  // alternativ ohne Millisekunden:
+  // return iso.slice(0,19) + '+00:00';
+}
+
     function joinDateTime(dateStr, timeStr){
       const [y,m,d] = dateStr.split('-').map(Number);
       const [hh,mm] = timeStr.split(':').map(Number);
