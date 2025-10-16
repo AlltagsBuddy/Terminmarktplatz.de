@@ -562,17 +562,46 @@ def me():
 @app.put("/me")
 @auth_required()
 def me_update():
-    data = request.get_json(force=True)
-    allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp"}
-    with Session(engine) as s:
-        p = s.get(Provider, request.provider_id)
-        if not p:
-            return _json_error("not_found", 404)
-        for k, v in data.items():
-            if k in allowed:
+    try:
+        data = request.get_json(force=True) or {}
+        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp"}
+
+        def clean(v):
+            if v is None:
+                return None
+            v = str(v).strip()
+            return v or None  # leere Strings -> None
+
+        # einfache Normalisierung
+        upd = {k: clean(v) for k, v in data.items() if k in allowed}
+
+        # optionale Validierungen
+        if "zip" in upd and upd["zip"] is not None:
+            z = upd["zip"]
+            if not z.isdigit() or len(z) != 5:
+                return _json_error("invalid_zip", 400)
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+
+            for k, v in upd.items():
                 setattr(p, k, v)
-        s.commit()
+
+            try:
+                s.commit()
+            except SQLAlchemyError as e:
+                s.rollback()
+                print("[/me] commit error:", repr(e), flush=True)
+                # Häufige Ursache: NOT NULL Verletzung -> sprechende Antwort:
+                return _json_error("db_constraint_error", 400)
+
         return jsonify({"ok": True})
+    except Exception as e:
+        print("[/me] server error:", repr(e), flush=True)
+        return jsonify({"error": "server_error"}), 500
+
 
 # --------------------------------------------------------
 # Slots (Provider)

@@ -334,16 +334,31 @@
         phone:        $('#pf-phone').value.trim(),
         whatsapp:     $('#pf-whatsapp').value.trim(),
       };
-      try{
-        const r = await fetch(`${API}/me`, {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify(payload)
-        });
-        if(r.ok) showMsg('msg-profile','Gespeichert ✓', true);
-        else     showMsg('msg-profile','Konnte Profil nicht speichern.');
-      }catch(e){ showMsg('msg-profile','Netzwerkfehler.'); }
+      // ... im submit-Handler von #form-profile:
+try{
+  const r = await fetch(`${API}/me`, {
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify(payload)
+  });
+  const data = await r.json().catch(()=> ({}));
+  if(r.ok){
+    showMsg('msg-profile','Gespeichert ✓', true);
+  }else{
+    // differenzierter
+    const map = {
+      unauthorized: 'Bitte erneut anmelden.',
+      invalid_zip: 'PLZ muss 5-stellig sein.',
+      db_constraint_error: 'Ungültige/fehlende Felder (DB-Vorgaben).',
+    };
+    showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
+    if(r.status === 401) location.href = 'login.html?tab=login';
+  }
+}catch(e){
+  showMsg('msg-profile','Netzwerkfehler.');
+}
+
     });
 
     // ---------- Slot-Form: Dauer -> Ende berechnen ----------
