@@ -220,12 +220,16 @@ def send_mail(to: str, subject: str, text: str):
 
 def slot_to_json(x: Slot):
     return {
-        "id": x.id, "provider_id": x.provider_id, "title": x.title, "category": x.category,
-        "start_at": x.start_at.isoformat(), "end_at": x.end_at.isoformat(),
-        "location": x.location, "capacity": x.capacity, "contact_method": x.contact_method,
-        "booking_link": x.booking_link, "price_cents": x.price_cents, "notes": x.notes,
-        "status": x.status, "created_at": x.created_at.isoformat(),
+        "id": x.id, "provider_id": x.provider_id,
+        "title": x.title, "category": x.category,
+        "start_at": _from_db_as_iso_utc(x.start_at),
+        "end_at": _from_db_as_iso_utc(x.end_at),
+        "location": x.location, "capacity": x.capacity,
+        "contact_method": x.contact_method, "booking_link": x.booking_link,
+        "price_cents": x.price_cents, "notes": x.notes,
+        "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
     }
+
 
 def _cookie_flags():
     if IS_RENDER:
@@ -623,6 +627,31 @@ def me_update():
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
+    
+    def _to_db_utc_naive(dt: datetime) -> datetime:
+        """
+        Nimmt aware/naive Datumswerte, wandelt nach UTC und entfernt tzinfo.
+        Eignet sich für TIMESTAMP WITHOUT TIME ZONE in Postgres.
+        """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.replace(tzinfo=None)
+
+def _from_db_as_iso_utc(dt: datetime) -> str:
+    """
+    Serielle Ausgabe immer als UTC-ISO mit 'Z'.
+    (Wenn die DB naive UTC speichert, behandeln wir sie als UTC.)
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    s = dt.isoformat()
+    # Normalisiere auf 'Z' statt '+00:00'
+    return s.replace("+00:00", "Z")
+
 
 # --------------------------------------------------------
 # Slots (Provider)
@@ -641,89 +670,135 @@ def slots_list():
 @app.post("/slots")
 @auth_required()
 def slots_create():
-    data = request.get_json(force=True)
-    required = ["title", "category", "start_at", "end_at"]
-    if any(k not in data for k in required):
-        return _json_error("missing_fields")
     try:
-        start = parse_iso_utc(data["start_at"])
-        end   = parse_iso_utc(data["end_at"])
-    except Exception:
-        return _json_error("bad_datetime")
-    if end <= start:
-        return _json_error("end_before_start")
-    # keine Vergangenheits-Slots
-    if start <= _now():
-        return _json_error("start_in_past", 409)
+        data = request.get_json(force=True) or {}
+        required = ["title", "category", "start_at", "end_at"]
+        if any(k not in data or data[k] in (None, "") for k in required):
+            return _json_error("missing_fields", 400)
 
-    with Session(engine) as s:
-        count = s.scalar(
-            select(func.count()).select_from(Slot).where(
-                and_(Slot.provider_id == request.provider_id,
-                     Slot.status.in_(["pending_review", "published"]))
+        # ISO → aware UTC
+        try:
+            start = parse_iso_utc(data["start_at"])
+            end   = parse_iso_utc(data["end_at"])
+        except Exception:
+            return _json_error("bad_datetime", 400)
+
+        if end <= start:
+            return _json_error("end_before_start", 400)
+        if start <= _now():
+            return _json_error("start_in_past", 409)
+
+        # Für DB (TIMESTAMP WITHOUT TIME ZONE) → UTC-naiv
+        start_db = _to_db_utc_naive(start)
+        end_db   = _to_db_utc_naive(end)
+
+        with Session(engine) as s:
+            count = s.scalar(
+                select(func.count()).select_from(Slot).where(
+                    and_(
+                        Slot.provider_id == request.provider_id,
+                        Slot.status.in_(["pending_review", "published"])
+                    )
+                )
+            ) or 0
+            if count > 200:
+                return _json_error("limit_reached", 400)
+
+            slot = Slot(
+                provider_id=request.provider_id,
+                title=str(data["title"]).strip() or "Slot",
+                category=str(data["category"]).strip() or "Sonstiges",
+                start_at=start_db, end_at=end_db,
+                location=(data.get("location") or None),
+                capacity=int(data.get("capacity") or 1),
+                contact_method=(data.get("contact_method") or "mail"),
+                booking_link=(data.get("booking_link") or None),
+                price_cents=(data.get("price_cents") or None),
+                notes=(data.get("notes") or None),
+                status="pending_review",
             )
-        ) or 0
-        if count > 200:
-            return _json_error("limit_reached")
-        slot = Slot(
-            provider_id=request.provider_id,
-            title=data["title"], category=data["category"],
-            start_at=start, end_at=end, location=data.get("location"),
-            capacity=int(data.get("capacity") or 1),
-            contact_method=data.get("contact_method") or "mail",
-            booking_link=data.get("booking_link"),
-            price_cents=data.get("price_cents"), notes=data.get("notes"),
-            status="pending_review",
-        )
-        s.add(slot); s.commit()
-        return jsonify(slot_to_json(slot)), 201
+            s.add(slot)
+            try:
+                s.commit()
+            except IntegrityError as e:
+                s.rollback()
+                print("[/slots] IntegrityError:", repr(e), flush=True)
+                return jsonify({"error":"db_constraint_error","detail":str(e.orig)}), 400
+            except SQLAlchemyError as e:
+                s.rollback()
+                print("[/slots] SQLAlchemyError:", repr(e), flush=True)
+                return jsonify({"error":"db_error","detail":str(e)}), 400
+
+            return jsonify(slot_to_json(slot)), 201
+
+    except Exception as e:
+        # Damit wir nie wieder ein nacktes 500 sehen
+        print("[/slots] server error:", traceback.format_exc(), flush=True)
+        return jsonify({"error":"server_error","detail":str(e)}), 500
+
 
 @app.put("/slots/<slot_id>")
 @auth_required()
 def slots_update(slot_id):
-    data = request.get_json(force=True)
-    with Session(engine) as s:
-        slot = s.get(Slot, slot_id, with_for_update=True)
-        if not slot or slot.provider_id != request.provider_id:
-            return _json_error("not_found", 404)
+    try:
+        data = request.get_json(force=True) or {}
+        with Session(engine) as s:
+            slot = s.get(Slot, slot_id, with_for_update=True)
+            if not slot or slot.provider_id != request.provider_id:
+                return _json_error("not_found", 404)
 
-        # Zeiten prüfen/setzen (robust gegen 'Z')
-        if "start_at" in data:
+            # Zeiten
+            if "start_at" in data:
+                try:
+                    slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
+                except Exception:
+                    return _json_error("bad_datetime", 400)
+            if "end_at" in data:
+                try:
+                    slot.end_at = _to_db_utc_naive(parse_iso_utc(data["end_at"]))
+                except Exception:
+                    return _json_error("bad_datetime", 400)
+            if slot.end_at <= slot.start_at:
+                return _json_error("end_before_start", 400)
+
+            # Andere Felder
+            for k in ["title","category","location","capacity","contact_method",
+                      "booking_link","price_cents","notes"]:
+                if k in data:
+                    setattr(slot, k, data[k])
+
+            # Statuswechsel prüfen
+            if "status" in data:
+                new_status = str(data["status"])
+                cur_status = slot.status
+                if new_status not in VALID_STATUSES:
+                    return _json_error("bad_status", 400)
+                if not _status_transition_ok(cur_status, new_status):
+                    return _json_error("transition_forbidden", 409)
+                if new_status == "published":
+                    # Gegenwart prüfen (DB-Werte sind UTC-naiv)
+                    if slot.start_at.replace(tzinfo=timezone.utc) <= _now():
+                        return _json_error("start_in_past", 409)
+                    if (slot.capacity or 1) < 1:
+                        return _json_error("bad_capacity", 400)
+                slot.status = new_status
+
             try:
-                slot.start_at = parse_iso_utc(data["start_at"])
-            except Exception:
-                return _json_error("bad_datetime")
-        if "end_at" in data:
-            try:
-                slot.end_at = parse_iso_utc(data["end_at"])
-            except Exception:
-                return _json_error("bad_datetime")
-        if slot.end_at <= slot.start_at:
-            return _json_error("end_before_start")
+                s.commit()
+            except IntegrityError as e:
+                s.rollback()
+                print("[PUT /slots] IntegrityError:", repr(e), flush=True)
+                return jsonify({"error":"db_constraint_error","detail":str(e.orig)}), 400
+            except SQLAlchemyError as e:
+                s.rollback()
+                print("[PUT /slots] SQLAlchemyError:", repr(e), flush=True)
+                return jsonify({"error":"db_error","detail":str(e)}), 400
 
-        # Editierbare Felder
-        for k in ["title","category","location","capacity","contact_method",
-                  "booking_link","price_cents","notes"]:
-            if k in data:
-                setattr(slot, k, data[k])
+            return jsonify({"ok": True})
+    except Exception as e:
+        print("[PUT /slots] server error:", traceback.format_exc(), flush=True)
+        return jsonify({"error":"server_error","detail":str(e)}), 500
 
-        # Statuswechsel
-        if "status" in data:
-            new_status = data["status"]
-            cur_status = slot.status
-            if new_status not in VALID_STATUSES:
-                return _json_error("bad_status", 400)
-            if not _status_transition_ok(cur_status, new_status):
-                return _json_error("transition_forbidden", 409)
-            if new_status == "published":
-                if slot.start_at <= _now():
-                    return _json_error("start_in_past", 409)
-                if (slot.capacity or 1) < 1:
-                    return _json_error("bad_capacity", 400)
-            slot.status = new_status
-
-        s.commit()
-        return jsonify({"ok": True})
 
 @app.delete("/slots/<slot_id>")
 @auth_required()
@@ -846,8 +921,8 @@ def public_slots():
                 "id": slot.id,
                 "title": slot.title,
                 "category": slot.category,
-                "start_at": slot.start_at.isoformat(),
-                "end_at": slot.end_at.isoformat(),
+                "start_at": _from_db_as_iso_utc(slot.start_at),
+                "end_at": _from_db_as_iso_utc(slot.end_at),
                 "location": slot.location,
                 "provider_id": slot.provider_id,
                 # NEU für Umkreis-Filter:
