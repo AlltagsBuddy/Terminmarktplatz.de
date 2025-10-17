@@ -153,6 +153,24 @@ def _from_db_as_iso_utc(dt: datetime) -> str:
     return dt.isoformat().replace("+00:00", "Z")
 
 # --------------------------------------------------------
+# Kategorien-Whitelist & Normalizer
+# --------------------------------------------------------
+BRANCHES = {
+    "Friseur", "Kosmetik", "Physiotherapie", "Nagelstudio", "Zahnarzt",
+    "Handwerk", "KFZ-Service", "Fitness", "Coaching", "Tierarzt",
+    "Behörde", "Sonstiges"
+}
+
+def normalize_category(raw: str | None) -> str:
+    """Gültige Kategorie für die DB zurückgeben; unbekannt => 'Sonstiges'."""
+    if raw is None:
+        return "Sonstiges"
+    val = str(raw).strip()
+    if not val:
+        return "Sonstiges"
+    return val if val in BRANCHES else "Sonstiges"
+
+# --------------------------------------------------------
 # Utilities
 # --------------------------------------------------------
 def _now() -> datetime:
@@ -641,17 +659,18 @@ def slots_create():
         if any(k not in data or data[k] in (None, "") for k in required):
             return _json_error("missing_fields", 400)
 
+        # Zeiten validieren
         try:
             start = parse_iso_utc(data["start_at"])
             end   = parse_iso_utc(data["end_at"])
         except Exception:
             return _json_error("bad_datetime", 400)
-
         if end <= start:
             return _json_error("end_before_start", 400)
         if start <= _now():
             return _json_error("start_in_past", 409)
 
+        # Für DB (TIMESTAMP WITHOUT TIME ZONE) → UTC-naiv
         start_db = _to_db_utc_naive(start)
         end_db   = _to_db_utc_naive(end)
 
@@ -665,12 +684,18 @@ def slots_create():
             if count > 200:
                 return _json_error("limit_reached", 400)
 
+            title = (str(data["title"]).strip() or "Slot")[:100]
+            category = normalize_category(data.get("category"))
+            location = (data.get("location") or None)
+            if location:
+                location = str(location).strip()[:120]
+
             slot = Slot(
                 provider_id=request.provider_id,
-                title=str(data["title"]).strip() or "Slot",
-                category=str(data["category"]).strip() or "Sonstiges",
+                title=title,
+                category=category,
                 start_at=start_db, end_at=end_db,
-                location=(data.get("location") or None),
+                location=location,
                 capacity=int(data.get("capacity") or 1),
                 contact_method=(data.get("contact_method") or "mail"),
                 booking_link=(data.get("booking_link") or None),
@@ -683,11 +708,12 @@ def slots_create():
                 s.commit()
             except IntegrityError as e:
                 s.rollback()
-                print("[/slots] IntegrityError:", repr(e), flush=True)
-                return jsonify({"error":"db_constraint_error","detail":str(e.orig)}), 400
+                constraint = getattr(getattr(getattr(e, "orig", None), "diag", None), "constraint_name", None)
+                if constraint == "slot_category_check":
+                    return jsonify({"error": "bad_category", "detail": "Kategorie entspricht nicht den DB-Vorgaben."}), 400
+                return jsonify({"error":"db_constraint_error","constraint": constraint, "detail": str(e.orig)}), 400
             except SQLAlchemyError as e:
                 s.rollback()
-                print("[/slots] SQLAlchemyError:", repr(e), flush=True)
                 return jsonify({"error":"db_error","detail":str(e)}), 400
 
             return jsonify(slot_to_json(slot)), 201
@@ -706,6 +732,7 @@ def slots_update(slot_id):
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
+            # Zeiten
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -719,10 +746,19 @@ def slots_update(slot_id):
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
+            # Felder normalisieren
+            if "category" in data:
+                data["category"] = normalize_category(data.get("category"))
+            if "location" in data and data["location"]:
+                data["location"] = str(data["location"]).strip()[:120]
+            if "title" in data and data["title"]:
+                data["title"] = str(data["title"]).strip()[:100]
+
             for k in ["title","category","location","capacity","contact_method","booking_link","price_cents","notes"]:
                 if k in data:
                     setattr(slot, k, data[k])
 
+            # Statuswechsel
             if "status" in data:
                 new_status = str(data["status"])
                 cur_status = slot.status
@@ -741,11 +777,12 @@ def slots_update(slot_id):
                 s.commit()
             except IntegrityError as e:
                 s.rollback()
-                print("[PUT /slots] IntegrityError:", repr(e), flush=True)
-                return jsonify({"error":"db_constraint_error","detail":str(e.orig)}), 400
+                constraint = getattr(getattr(getattr(e, "orig", None), "diag", None), "constraint_name", None)
+                if constraint == "slot_category_check":
+                    return jsonify({"error": "bad_category", "detail": "Kategorie entspricht nicht den DB-Vorgaben."}), 400
+                return jsonify({"error":"db_constraint_error","constraint": constraint, "detail": str(e.orig)}), 400
             except SQLAlchemyError as e:
                 s.rollback()
-                print("[PUT /slots] SQLAlchemyError:", repr(e), flush=True)
                 return jsonify({"error":"db_error","detail":str(e)}), 400
 
             return jsonify({"ok": True})
