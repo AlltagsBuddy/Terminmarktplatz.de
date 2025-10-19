@@ -1,4 +1,3 @@
-<!-- FILE: anbieter-portal.html -->
 <!doctype html>
 <html lang="de">
 <head>
@@ -36,7 +35,7 @@
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
-    /* --- Formular-Zeilen gut sichtbar (Rahmen um die ganze Zeile) --- */
+    /* Formular */
     .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
             border:1px solid var(--border); border-radius:12px; padding:10px; }
     .field input,.field select,.field textarea{
@@ -47,6 +46,7 @@
     .field input:focus,.field select:focus,.field textarea:focus{
       outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25)
     }
+    .req{ color:#ef4444; font-weight:700 }
 
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
@@ -71,7 +71,7 @@
     .seg .btn{padding:6px 10px}
     .nowrap{white-space:nowrap}
 
-    /* --- Buttons in der Slot-Tabelle --- */
+    /* Buttons in der Slot-Tabelle */
     .table .btn{
       padding:8px 12px; border:none; border-radius:12px; font-weight:800;
       background: var(--border); color:#0b0f1a; box-shadow: var(--shadow-1);
@@ -81,6 +81,7 @@
     .table .btn.action{ background: var(--border); }
     .table .btn.danger{ background: var(--border); }
 
+    /* Deaktivierte Bulk-Buttons */
     .seg .btn[disabled]{ opacity:.55; pointer-events:none; }
   </style>
 </head>
@@ -125,11 +126,11 @@
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
           <form id="form-profile" class="grid">
             <div class="field">
-              <label for="pf-company">Firma / Praxis / Studio</label>
+              <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
               <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required/>
             </div>
             <div class="field">
-              <label for="pf-branch">Branche</label>
+              <label for="pf-branch">Branche <span class="req">*</span></label>
               <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required/>
               <datalist id="branch-list">
                 <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
@@ -143,11 +144,11 @@
               <input id="pf-street" name="street" placeholder="Musterstraße 1"/>
             </div>
             <div class="field">
-              <label for="pf-zip">PLZ</label>
+              <label for="pf-zip">PLZ <span class="req">*</span></label>
               <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required/>
             </div>
             <div class="field">
-              <label for="pf-city">Ort</label>
+              <label for="pf-city">Ort <span class="req">*</span></label>
               <input id="pf-city" name="city" placeholder="Musterstadt" required/>
             </div>
             <div class="field">
@@ -171,25 +172,29 @@
           <h2>Neuen Slot anlegen</h2>
           <form id="form-slot" class="grid">
             <div class="field">
-              <label for="sl-title">Titel</label>
+              <label for="sl-title">Titel <span class="req">*</span></label>
               <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
             </div>
+
+            <!-- Kategorie: Dropdown (DB-konform) -->
             <div class="field">
-              <label for="sl-cat">Kategorie</label>
-              <input id="sl-cat" name="category" list="branch-list" placeholder="z. B. Friseur" required/>
+              <label for="sl-cat">Kategorie <span class="req">*</span></label>
+              <select id="sl-cat" name="category" required>
+                <option value="" disabled selected>Bitte wählen …</option>
+              </select>
             </div>
 
             <div class="field">
-              <label for="sl-date">Datum</label>
+              <label for="sl-date">Datum <span class="req">*</span></label>
               <input id="sl-date" type="date" required/>
             </div>
             <div class="field">
-              <label for="sl-start">Start (Uhrzeit)</label>
+              <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
               <input id="sl-start" type="time" step="60" required/>
             </div>
 
             <div class="field">
-              <label for="sl-duration">Dauer (Minuten)</label>
+              <label for="sl-duration">Dauer (Minuten) <span class="req">*</span></label>
               <input id="sl-duration" type="number" min="5" step="5" value="30" required/>
               <div class="seg">
                 <button type="button" class="btn" data-min="15">15</button>
@@ -199,6 +204,7 @@
                 <button type="button" class="btn" data-min="90">90</button>
               </div>
             </div>
+
             <div class="field">
               <label for="sl-end">Ende (berechnet)</label>
               <input id="sl-end" type="time" readonly/>
@@ -291,21 +297,11 @@
       el.className = 'msg ' + (ok ? 'ok' : 'err');
       el.textContent = text;
       el.style.display = 'block';
-      setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 3800);
+      setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 4200);
     }
 
     function pad(n){ return n.toString().padStart(2,'0'); }
-    // bisher:
-function toLocalISO(dateLocal){ return new Date(dateLocal).toISOString(); }
-
-// neu (Workaround: 'Z' -> '+00:00'):
-function toLocalISO(dateLocal){
-  const iso = new Date(dateLocal).toISOString();       // 2025-10-17T10:00:00.000Z
-  return iso.slice(0, 23).replace('Z','+00:00');       // 2025-10-17T10:00:00.000+00:00
-  // alternativ ohne Millisekunden:
-  // return iso.slice(0,19) + '+00:00';
-}
-
+    function toLocalISO(dateLocal){ return new Date(dateLocal).toISOString(); }
     function joinDateTime(dateStr, timeStr){
       const [y,m,d] = dateStr.split('-').map(Number);
       const [hh,mm] = timeStr.split(':').map(Number);
@@ -314,6 +310,19 @@ function toLocalISO(dateLocal){
     function fmtLocal(dtStr){
       const d = new Date(dtStr);
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // ---------- Kategorien (Dropdown) ----------
+    // Muss exakt zu den DB-Vorgaben passen (CHECK-Constraint).
+    const CATEGORIES = [
+      "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
+      "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
+    ];
+    function fillCategoryOptions(){
+      const sel = $('#sl-cat');
+      if(!sel) return;
+      sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
+        + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     // ---------- Auth-Gate / Me ----------
@@ -358,6 +367,7 @@ function toLocalISO(dateLocal){
             unauthorized: 'Bitte erneut anmelden.',
             invalid_zip: 'PLZ muss 5-stellig sein.',
             db_constraint_error: 'Ungültige/fehlende Felder (DB-Vorgaben).',
+            db_error: 'Datenbankfehler.'
           };
           showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
           if(r.status === 401) location.href = 'login.html?tab=login';
@@ -527,11 +537,6 @@ function toLocalISO(dateLocal){
       const startLocal = joinDateTime(date,time);
       const endLocal   = new Date(startLocal.getTime() + dur*60000);
 
-      // Clientseitiger Check
-      if(endLocal <= startLocal){
-        return showMsg('msg-slot','Ende liegt vor dem Start.');
-      }
-
       const payload = {
         title: $('#sl-title').value.trim() || 'Slot',
         category: $('#sl-cat').value.trim() || 'Sonstiges',
@@ -555,17 +560,19 @@ function toLocalISO(dateLocal){
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
           showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
-          e.target.reset(); recalcEnd(); await loadSlots();
+          e.target.reset(); recalcEnd(); fillCategoryOptions(); await loadSlots();
         }else{
           const m = {
             missing_fields:'Pflichtfelder fehlen.',
             bad_datetime:'Datum/Uhrzeit ungültig.',
             end_before_start:'Ende liegt vor dem Start.',
-            start_in_past:'Start liegt in der Vergangenheit (nach UTC). Bitte späteren Start wählen.',
-            limit_reached:'Limit erreicht.'
+            limit_reached:'Limit erreicht.',
+            start_in_past:'Start darf nicht in der Vergangenheit liegen.',
+            bad_capacity:'Kapazität ungültig.',
+            db_constraint_error:'Kategorie entspricht nicht den DB-Vorgaben.',
+            db_error:'Datenbankfehler.'
           };
-          const detail = data.detail ? ` (${data.detail})` : '';
-          showMsg('msg-slot', (m[data.error] || 'Konnte Slot nicht anlegen.') + detail);
+          showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
         }
       }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
     });
@@ -578,14 +585,8 @@ function toLocalISO(dateLocal){
 
     // ---------- Init ----------
     (async function init(){
-      // min=heute für Datumsfeld setzen
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth()+1).padStart(2,'0');
-      const dd = String(today.getDate()).padStart(2,'0');
-      $('#sl-date').setAttribute('min', `${yyyy}-${mm}-${dd}`);
-
       await requireAuth();
+      fillCategoryOptions();
       recalcEnd();
       await loadSlots();
     })();

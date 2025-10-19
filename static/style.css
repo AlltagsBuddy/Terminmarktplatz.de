@@ -40,6 +40,7 @@
   --grad-brand: linear-gradient(135deg, var(--c-pink), var(--c-blue), var(--c-lime));
   --grad-soft: linear-gradient(135deg, rgba(124,58,237,.25), rgba(6,182,212,.25));
   --focus: 0 0 0 3px rgba(59,130,246,.45);
+  
 
   /* Form Farben */
   --field-bg: rgba(255,255,255,.06);
@@ -54,6 +55,10 @@
   --error:#ef4444;
   --success:#10b981;
   --warn:#f59e0b;
+
+  .req{ color:#ef4444; font-weight:700 }
+
+
 }
 
 /* ---------- Base ---------- */
