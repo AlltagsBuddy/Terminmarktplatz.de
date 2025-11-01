@@ -1,7 +1,8 @@
 # app.py — API + HTML (Root-Templates; Render & Local)
 import os
 import traceback
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -10,7 +11,7 @@ from flask import (
     render_template, url_for, abort
 )
 from flask_cors import CORS
-from sqlalchemy import create_engine, select, and_, func
+from sqlalchemy import create_engine, select, and_, func, or_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from argon2 import PasswordHasher
@@ -151,6 +152,22 @@ def _from_db_as_iso_utc(dt: datetime) -> str:
     else:
         dt = dt.astimezone(timezone.utc)
     return dt.isoformat().replace("+00:00", "Z")
+
+def parse_local_date(s: str | None) -> datetime.date:
+    """
+    Flexibler Datumsparser für UI: 'YYYY-MM-DD' oder 'DD.MM.YYYY'.
+    Fällt auf heutiges Datum (Europe/Berlin) zurück.
+    """
+    berlin = ZoneInfo("Europe/Berlin")
+    if not s:
+        return datetime.now(berlin).date()
+    s = str(s).strip()
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            pass
+    return datetime.now(berlin).date()
 
 # --------------------------------------------------------
 # Kategorien-Whitelist & Normalizer
@@ -882,31 +899,77 @@ def _verify_booking_token(token: str) -> str | None:
     except Exception:
         return None
 
+# ---- NEU: robuste Suche mit Stadt (Provider ODER Slot), Datum & Availability
 @app.get("/public/slots")
 def public_slots():
+    """
+    Query-Parameter:
+      - city:       z.B. 'Bamberg' (optional)
+      - day:        'YYYY-MM-DD' ODER 'DD.MM.YYYY' (optional, default: heute in Europe/Berlin)
+      - category:   z.B. 'Physiotherapie' (optional)
+      - zip:        (Kompatibilität: filtert weiterhin Provider.zip)
+    """
+    city       = request.args.get("city")
+    day_raw    = request.args.get("day")
     category   = request.args.get("category")
-    since      = request.args.get("from")
     zip_filter = request.args.get("zip")
-    try:
-        start_from = parse_iso_utc(since) if since else _now()
-    except Exception:
-        return _json_error("bad_datetime", 400)
+
+    # 1) Tagesrange in UTC bauen (lokale Mitternacht → UTC)
+    day = parse_local_date(day_raw)
+    berlin = ZoneInfo("Europe/Berlin")
+    day_start_utc = datetime.combine(day, time.min, berlin).astimezone(timezone.utc)
+    day_end_utc   = datetime.combine(day, time.max, berlin).astimezone(timezone.utc)
 
     with Session(engine) as s:
-        q = (
-            select(Slot, Provider.zip, Provider.city)
-            .join(Provider)
-            .where(and_(Slot.status == "published", Slot.start_at >= start_from))
+        # Subquery: aktive Buchungen je Slot (hold + confirmed)
+        booked_sq = (
+            select(Booking.slot_id, func.count().label("booked"))
+            .where(Booking.status.in_(["hold", "confirmed"]))
+            .group_by(Booking.slot_id)
+            .subquery()
         )
+
+        # Basis: veröffentlichte Slots am gewählten Tag
+        q = (
+            select(
+                Slot,
+                Provider.zip.label("provider_zip"),
+                Provider.city.label("provider_city"),
+                ( (Slot.capacity - func.coalesce(booked_sq.c.booked, 0)) ).label("available")
+            )
+            .join(Provider, Provider.id == Slot.provider_id)
+            .outerjoin(booked_sq, booked_sq.c.slot_id == Slot.id)
+            .where(
+                and_(
+                    Slot.status == "published",
+                    Slot.start_at >= day_start_utc,
+                    Slot.start_at <= day_end_utc,
+                )
+            )
+        )
+
+        # Stadt-Filter: Provider.city ODER Slot.location
+        if city:
+            like = f"%{city}%"
+            q = q.where(or_(Provider.city.ilike(like), Slot.location.ilike(like)))
+
+        # Kategorie (tolerant)
         if category:
-            q = q.where(Slot.category == category)
+            cat = str(category).strip()
+            q = q.where(or_(func.lower(Slot.category) == func.lower(cat),
+                            Slot.title.ilike(f"%{cat}%")))
+
+        # PLZ (Kompatibilität)
         if zip_filter:
             q = q.where(Provider.zip == zip_filter)
+
+        # nur freie Plätze
+        q = q.where( (Slot.capacity - func.coalesce(booked_sq.c.booked, 0)) > 0 )
 
         rows = s.execute(q.order_by(Slot.start_at.asc()).limit(200)).all()
 
         def to_json(row):
-            slot, p_zip, p_city = row
+            slot, p_zip, p_city, available = row
             return {
                 "id": slot.id,
                 "title": slot.title,
@@ -917,6 +980,7 @@ def public_slots():
                 "provider_id": slot.provider_id,
                 "provider_zip": p_zip,
                 "provider_city": p_city,
+                "available": int(available),
             }
 
         return jsonify([to_json(r) for r in rows])
