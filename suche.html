@@ -2,14 +2,12 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date()); gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -71,7 +69,7 @@
               📍 <input type="text" name="ort" id="f-ort" placeholder="PLZ / Stadt">
             </label>
             <label class="input" aria-label="Umkreis">
-            <select name="radius" id="f-radius" title="Umkreis um PLZ">
+              <select name="radius" id="f-radius" title="Umkreis um PLZ">
                 <option value="">Umkreis (optional)</option>
                 <option value="5">5 km</option>
                 <option value="10">10 km</option>
@@ -79,7 +77,7 @@
                 <option value="50">50 km</option>
                 <option value="75">75 km</option>
                 <option value="100">100 km</option>
-            </select>
+              </select>
             </label>
 
             <label class="input" aria-label="Datum">
@@ -131,7 +129,7 @@
     </section>
   </main>
 
-      <!-- Footer -->
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -147,7 +145,6 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -155,13 +152,11 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
@@ -202,9 +197,14 @@
     // Utilities
     const $ = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
-    const fmt = (iso) => {
+    const fmtDateTime = (iso) => {
       const d = new Date(iso);
       return d.toLocaleString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    };
+    const dateOnlyISO = (iso, tz='de-DE') => {
+      const d = new Date(iso);
+      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
     };
     const inZeitfenster = (iso, zeit) => {
       if (!zeit) return true;
@@ -214,6 +214,8 @@
       if (zeit === 'abend') return h >= 17 && h < 21;
       return true;
     };
+    const isZip = (s) => /^\d{5}$/.test(s || '');
+    const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
 
     // URL-Parameter → Filter übernehmen
     const sp = new URLSearchParams(location.search);
@@ -228,75 +230,82 @@
     $('#f-datum').value = datum;
     $('#f-zeit').value = zeit;
 
-    // Filterformular submit → page reload mit GET (standard)
-    $('#filters').addEventListener('submit', (e)=>{ /* Default reicht */ });
+    // Filterformular: GET-Reload ist ok – wir rendern danach.
+    $('#filters').addEventListener('submit', (e)=>{ /* Standard-Submit genügt */ });
 
-    // Fetch Slots
+    // Fetch + Render
     async function load() {
       const summary = $('#summary');
       const results = $('#results');
       const empty   = $('#empty');
+      const sortSel = $('#sort');
+
       results.innerHTML = '';
       empty.style.display = 'none';
       summary.textContent = 'Suche wird geladen …';
 
-      // API-Params aufbauen
+      // API-Params
       const params = new URLSearchParams();
-      // from = Datum 00:00 Uhr, sonst jetzt
-      let fromDate;
-      if (datum) {
-        fromDate = new Date(datum + 'T00:00:00');
-      } else {
-        fromDate = new Date();
-      }
+      // from = start des gewählten Tages (oder jetzt, falls leer)
+      let fromDate = datum ? new Date(datum + 'T00:00:00') : new Date();
       params.set('from', fromDate.toISOString());
 
-      // zip = wenn ort 5-stellige PLZ ist
-      if (/^\d{5}$/.test(ort)) params.set('zip', ort);
+      // Kategorie → nur wenn exakte Kategorie (sonst Freitextfilter)
+      if (q && KATS.has(q)) params.set('category', q);
 
-      // optional category: nur setzen, wenn q knapp ist (1 Wort), sonst clientseitig filtern
-      if (q && !q.includes(' ')) params.set('category', q);
+      // PLZ → zip (wenn Stadtname, dann später clientseitig filtern)
+      if (isZip(ort)) params.set('zip', ort);
 
-      let url = `${API}/public/slots?` + params.toString();
-      let res;
+      // Call
+      let data = [];
       try {
-        res = await fetch(url, { credentials: 'include' });
-      } catch (err) {
-        summary.textContent = 'Netzwerkfehler – bitte später erneut versuchen.';
-        return;
-      }
-      if (!res.ok) {
+        const url = `${API}/public/slots?` + params.toString();
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        data = await res.json();
+      } catch (e) {
         summary.textContent = 'Fehler beim Laden der Slots.';
         return;
       }
-      const all = await res.json();
 
-      // Clientseitige Filter: Freitext und Zeitfenster
-      const kw = q.toLowerCase();
-      let items = all.filter(x => {
-        const hitKW = !kw || (x.title?.toLowerCase().includes(kw) || x.category?.toLowerCase().includes(kw));
-        const hitZeit = inZeitfenster(x.start_at, zeit);
-        return hitKW && hitZeit;
+      // Clientseitige Filter: Datum exakt am Tag, Zeitfenster, Stadtname, Freitext
+      const wantedDay = datum || null;
+      const kw = (q || '').toLowerCase();
+      const wantCity = (!isZip(ort) && ort) ? ort.toLowerCase() : null;
+
+      let items = data.filter(x => {
+        // Datum exakt?
+        const sameDay = wantedDay ? (dateOnlyISO(x.start_at) === wantedDay) : true;
+        // Zeitfenster?
+        const okZeit = inZeitfenster(x.start_at, zeit);
+        // Stadtname?
+        const city = (x.provider_city || x.location || '').toLowerCase();
+        const okCity = wantCity ? city.includes(wantCity) : true;
+        // Freitext (wenn q keine exakte Kategorie war)
+        const okKW = (!q || KATS.has(q))
+          ? true
+          : ((x.title||'').toLowerCase().includes(kw) || (x.category||'').toLowerCase().includes(kw));
+        return sameDay && okZeit && okCity && okKW;
       });
 
       // Sortierung
-      const sortBy = $('#sort').value;
       items.sort((a,b) => {
         const da = new Date(a.start_at).getTime();
         const db = new Date(b.start_at).getTime();
-        return sortBy === 'latest' ? (db - da) : (da - db);
+        return (sortSel.value === 'latest') ? (db - da) : (da - db);
       });
 
       // Render
       if (items.length === 0) {
-        summary.innerHTML = `0 Treffer`;
+        summary.textContent = '0 Treffer';
         empty.style.display = 'block';
         return;
       }
-      summary.innerHTML = `${items.length} Treffer <span class="muted">ab ${fromDate.toLocaleDateString('de-DE')}</span>`;
+      summary.innerHTML = `${items.length} Treffer <span class="muted">für ${ort || 'alle Orte'} am ${ (wantedDay ? new Date(wantedDay) : fromDate).toLocaleDateString('de-DE') }</span>`;
 
       const frag = document.createDocumentFragment();
       items.forEach((x) => {
+        const cityShow = x.provider_city || x.location || '';
         const el = document.createElement('div');
         el.className = 'card';
         el.innerHTML = `
@@ -304,9 +313,9 @@
             <div>
               <h3>${x.title || 'Termin'}</h3>
               <p class="muted">
-                <b>${fmt(x.start_at)}</b>
+                <b>${fmtDateTime(x.start_at)}</b>
                 · Kategorie: ${x.category || '—'}
-                ${x.location ? ` · Ort: ${x.location}` : ''}
+                ${cityShow ? ` · Ort: ${cityShow}` : ''}
               </p>
             </div>
             <div>
@@ -322,6 +331,9 @@
       $$('#results [data-book]').forEach(btn => {
         btn.addEventListener('click', () => openBook(btn.dataset.book));
       });
+
+      // Resort on change
+      sortSel.onchange = () => load();
     }
 
     // Quick-Book Modal
@@ -344,7 +356,7 @@
       const name = document.getElementById('book-name').value.trim();
       const email = document.getElementById('book-email').value.trim();
       if (!slot_id || !name || !email) return;
-      // kurz Button sperren
+
       const btn = document.getElementById('book-submit');
       btn.classList.add('loading'); btn.disabled = true;
 
@@ -367,9 +379,6 @@
         btn.classList.remove('loading'); btn.disabled = false;
       }
     });
-
-    // Sort-Umschalter
-    document.getElementById('sort').addEventListener('change', load);
 
     // Start
     load();
