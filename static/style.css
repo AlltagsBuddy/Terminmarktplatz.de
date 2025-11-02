@@ -583,4 +583,63 @@ footer{
 }
 .page-contact .help{ color:#475569; } /* besser lesbar auf weiß */
 
+/* =========================================================
+   PORTAL-FIX: Buttons IMMER mit dunkler Schrift, ohne Verlauf
+   (muss am ENDE der style.css stehen)
+========================================================= */
+
+button,
+.btn,
+.btn.primary,
+.btn.secondary,
+.btn.action,
+.btn.danger,
+.seg .btn,
+.table .btn,
+.toolbar .btn {
+  color: #0f172a !important;                 /* schwarze Schrift */
+  background: #ffffff !important;            /* weißer Hintergrund */
+  background-image: none !important;         /* Verläufe sicher abschalten */
+  text-shadow: none !important;
+  border: 1px solid #cbd5e1 !important;      /* sichtbare Kante */
+  box-shadow: var(--shadow-1) !important;
+}
+
+/* Hover ohne „Aufhellen“ des (ohnehin weißen) Buttons */
+button:hover,
+.btn:hover,
+.seg .btn:hover,
+.table .btn:hover { 
+  filter: none !important; 
+  transform: translateY(-1px);
+}
+
+/* Schnellwahltasten bei „Dauer“: klarer Look */
+.seg .btn[data-min],
+.seg .btn[data-hour]{
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color:#0f172a !important;
+}
+
+/* Tabellen-Buttons (Veröffentlichen / Archivieren / Löschen) */
+.table .btn,
+.table .btn.action,
+.table .btn.danger {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* Checkbox-Label „Alle auswählen“ nicht in weiß zeichnen */
+.check { color: #0f172a !important; }
+
+/* — Optional: Primär-CTA in Suchleiste darf farbig bleiben —
+   (wenn du NUR den Submit in der Suche bunt willst, nimm das !important raus)
+.searchbar .btn[type="submit"]{
+  background: linear-gradient(135deg, var(--c-pink), var(--c-blue)) !important;
+  color:#0b0f1a !important;
+  border: none !important;
+}
+*/
 
