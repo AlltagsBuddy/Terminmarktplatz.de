@@ -71,10 +71,14 @@
     .seg .btn{padding:6px 10px}
     .nowrap{white-space:nowrap}
 
+    /* Buttons – alle Beschriftungen schwarz */
+    .btn, .btn.primary, .btn.action, .btn.danger, .table .btn,
+    .seg .btn, button.btn, a.btn { color:#0b0f1a !important; }
+
     /* Buttons in der Slot-Tabelle */
     .table .btn{
       padding:8px 12px; border:none; border-radius:12px; font-weight:800;
-      background: var(--border); color:#0b0f1a; box-shadow: var(--shadow-1);
+      background: var(--border); box-shadow: var(--shadow-1);
       transition: transform .15s, filter .15s;
     }
     .table .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
@@ -194,14 +198,22 @@
             </div>
 
             <div class="field">
-              <label for="sl-duration">Dauer (Minuten) <span class="req">*</span></label>
-              <input id="sl-duration" type="number" min="5" step="5" value="30" required/>
-              <div class="seg">
-                <button type="button" class="btn" data-min="15">15</button>
-                <button type="button" class="btn" data-min="30">30</button>
-                <button type="button" class="btn" data-min="45">45</button>
-                <button type="button" class="btn" data-min="60">60</button>
-                <button type="button" class="btn" data-min="90">90</button>
+              <label for="sl-duration">Dauer <span class="req">*</span></label>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                <input id="sl-duration" type="number" min="1" step="1" value="30" required style="max-width:120px"/>
+                <select id="sl-dur-unit" aria-label="Einheit">
+                  <option value="min" selected>Minuten</option>
+                  <option value="h">Stunden</option>
+                </select>
+                <div class="seg">
+                  <button type="button" class="btn" data-unit="min" data-val="15">15 min</button>
+                  <button type="button" class="btn" data-unit="min" data-val="30">30 min</button>
+                  <button type="button" class="btn" data-unit="min" data-val="45">45 min</button>
+                  <button type="button" class="btn" data-unit="min" data-val="60">60 min</button>
+                  <button type="button" class="btn" data-unit="min" data-val="90">90 min</button>
+                  <button type="button" class="btn" data-unit="h" data-val="2">2 h</button>
+                  <button type="button" class="btn" data-unit="h" data-val="3">3 h</button>
+                </div>
               </div>
             </div>
 
@@ -211,8 +223,8 @@
             </div>
 
             <div class="field">
-              <label for="sl-location">Ort / Raum</label>
-              <input id="sl-location" name="location" placeholder="z. B. Filiale Zentrum"/>
+              <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
+              <input id="sl-location" name="location" placeholder="z. B. 96047 Bamberg oder 96047" required/>
             </div>
             <div class="field">
               <label for="sl-cap">Kapazität</label>
@@ -237,10 +249,13 @@
 
         <!-- Meine Slots -->
         <div class="panel" style="grid-column:1/-1">
-          <div class="toolbar" style="justify-content:space-between">
+          <div class="toolbar" style="justify-content:space-between; gap:12px; flex-wrap:wrap">
             <h2 style="margin:0">Meine Slots</h2>
-            <div class="seg">
-              <label class="check" style="color:#fff">
+
+            <!-- Suche nach Titel oder Kategorie -->
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+              <input id="slot-search" placeholder="Titel oder Kategorie suchen…" style="min-width:220px"/>
+              <label class="check">
                 <input type="checkbox" id="chk-all"> Alle auswählen
               </label>
               <button class="btn action" id="btn-publish" disabled>Ausgewählte veröffentlichen</button>
@@ -263,7 +278,7 @@
                   <th>Ende</th>
                   <th>Titel</th>
                   <th>Kategorie</th>
-                  <th class="nowrap">Ort</th>
+                  <th class="nowrap">Ort / PLZ</th>
                   <th>Kap.</th>
                   <th>Status</th>
                   <th class="nowrap">Aktionen</th>
@@ -313,7 +328,6 @@
     }
 
     // ---------- Kategorien (Dropdown) ----------
-    // Muss exakt zu den DB-Vorgaben passen (CHECK-Constraint).
     const CATEGORIES = [
       "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
       "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
@@ -378,8 +392,15 @@
     });
 
     // ---------- Slot-Form: Dauer -> Ende berechnen ----------
+    function getDurationMinutes(){
+      const val = parseFloat($('#sl-duration').value || '0');
+      const unit = $('#sl-dur-unit').value; // "min" | "h"
+      if(!val || val <= 0) return 0;
+      return unit === 'h' ? Math.round(val * 60) : Math.round(val);
+    }
     function recalcEnd(){
-      const d = $('#sl-date').value, t = $('#sl-start').value, min = parseInt($('#sl-duration').value||'0',10);
+      const d = $('#sl-date').value, t = $('#sl-start').value;
+      const min = getDurationMinutes();
       if(!d || !t || !min){ $('#sl-end').value=''; return; }
       const start = joinDateTime(d,t);
       const end = new Date(start.getTime() + min*60000);
@@ -388,12 +409,21 @@
     $('#sl-date').addEventListener('change', recalcEnd);
     $('#sl-start').addEventListener('input', recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
-    $$('#form-slot .seg [data-min]').forEach(b=>b.addEventListener('click', ()=>{
-      $('#sl-duration').value = b.dataset.min; recalcEnd();
+    $('#sl-dur-unit').addEventListener('change', recalcEnd);
+
+    // Quick-Buttons (setzen Wert + Einheit passend)
+    $$('#form-slot .seg [data-unit]').forEach(b=>b.addEventListener('click', ()=>{
+      const unit = b.dataset.unit;
+      const val  = b.dataset.val;
+      $('#sl-dur-unit').value = unit;
+      $('#sl-duration').value = val;
+      recalcEnd();
     }));
 
     // ---------- Slots laden & rendern + Freigabe-Workflow ----------
     let SELECTED = new Set();
+    let SLOT_CACHE = [];     // letzter fetch
+    let SLOT_FILTER = "";    // filtertext
 
     function updateBulkButtons(items){
       const byId = Object.fromEntries(items.map(x => [x.id, x]));
@@ -406,6 +436,80 @@
       $('#btn-delete').disabled  = !any;
     }
 
+    function renderSlots(items){
+      const tbody = $('#tbl-slots tbody');
+      if(!items.length){
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
+        return;
+      }
+      // Filter anwenden (Titel oder Kategorie)
+      const q = (SLOT_FILTER || '').trim().toLowerCase();
+      const filtered = !q ? items : items.filter(s =>
+        (s.title || '').toLowerCase().includes(q) ||
+        (s.category || '').toLowerCase().includes(q)
+      );
+
+      if(!filtered.length){
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">Keine Treffer für „${SLOT_FILTER}“.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      for(const s of filtered){
+        const tr = document.createElement('tr');
+        const isPending   = s.status === 'pending_review';
+        const isPublished = s.status === 'published';
+        const isArchived  = s.status === 'archived';
+        const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+
+        tr.innerHTML = `
+          <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
+          <td>${fmtLocal(s.start_at)}</td>
+          <td>${fmtLocal(s.end_at)}</td>
+          <td>${s.title}</td>
+          <td>${s.category||''}</td>
+          <td>${s.location||''}</td>
+          <td>${s.capacity||1}</td>
+          <td><span class="badge-st ${stClass}">${s.status}</span></td>
+          <td class="nowrap">
+            ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+            <button class="btn danger" data-del="${s.id}">Löschen</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // Zeilen-Checkboxen
+      $$('#tbl-slots .row-check').forEach(cb => {
+        cb.addEventListener('change', ()=>{
+          const id = cb.dataset.id;
+          if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+          updateBulkButtons(items);
+        });
+      });
+
+      // Einzelaktionen
+      $$('#tbl-slots [data-del]').forEach(b =>
+        b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
+      );
+      $$('#tbl-slots [data-arch]').forEach(b =>
+        b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
+      );
+
+      // Master-Checkbox
+      $('#chk-all').onchange = (e) => {
+        SELECTED.clear();
+        $$('#tbl-slots .row-check').forEach(cb => {
+          cb.checked = e.target.checked;
+          if(cb.checked) SELECTED.add(cb.dataset.id);
+        });
+        updateBulkButtons(items);
+      };
+
+      updateBulkButtons(items);
+    }
+
     async function loadSlots(){
       const tbody = $('#tbl-slots tbody');
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Lade …</td></tr>`;
@@ -414,63 +518,8 @@
       try{
         const r = await fetch(`${API}/slots`, {credentials:'include'});
         if(!r.ok){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`; return; }
-        const items = await r.json();
-        if(!items.length){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`; return; }
-
-        tbody.innerHTML = '';
-        for(const s of items){
-          const tr = document.createElement('tr');
-          const isPending   = s.status === 'pending_review';
-          const isPublished = s.status === 'published';
-          const isArchived  = s.status === 'archived';
-          const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
-
-          tr.innerHTML = `
-            <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
-            <td>${fmtLocal(s.start_at)}</td>
-            <td>${fmtLocal(s.end_at)}</td>
-            <td>${s.title}</td>
-            <td>${s.category||''}</td>
-            <td>${s.location||''}</td>
-            <td>${s.capacity||1}</td>
-            <td><span class="badge-st ${stClass}">${s.status}</span></td>
-            <td class="nowrap">
-              ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-              ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
-              <button class="btn danger" data-del="${s.id}">Löschen</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        }
-
-        // Zeilen-Checkboxen
-        $$('#tbl-slots .row-check').forEach(cb => {
-          cb.addEventListener('change', ()=>{
-            const id = cb.dataset.id;
-            if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
-            updateBulkButtons(items);
-          });
-        });
-
-        // Einzelaktionen
-        $$('#tbl-slots [data-del]').forEach(b =>
-          b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
-        );
-        $$('#tbl-slots [data-arch]').forEach(b =>
-          b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
-        );
-
-        // Master-Checkbox
-        $('#chk-all').onchange = (e) => {
-          SELECTED.clear();
-          $$('#tbl-slots .row-check').forEach(cb => {
-            cb.checked = e.target.checked;
-            if(cb.checked) SELECTED.add(cb.dataset.id);
-          });
-          updateBulkButtons(items);
-        };
-
-        updateBulkButtons(items);
+        SLOT_CACHE = await r.json();
+        renderSlots(SLOT_CACHE);
       }catch(e){
         tbody.innerHTML = `<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>`;
       }
@@ -529,20 +578,29 @@
     });
     $('#btn-refresh').addEventListener('click', loadSlots);
 
+    // Suche in „Meine Slots“
+    $('#slot-search').addEventListener('input', (e)=>{
+      SLOT_FILTER = e.target.value || '';
+      renderSlots(SLOT_CACHE);
+    });
+
     // ---------- Slot anlegen ----------
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const date = $('#sl-date').value, time = $('#sl-start').value, dur = parseInt($('#sl-duration').value||'0', 10);
-      if(!date || !time || !dur){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
+      const date = $('#sl-date').value, time = $('#sl-start').value;
+      const durMin = getDurationMinutes();
+      if(!date || !time || !durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
+      if(!$('#sl-location').value.trim()){ return showMsg('msg-slot','Bitte „Ort / PLZ“ ausfüllen.'); }
+
       const startLocal = joinDateTime(date,time);
-      const endLocal   = new Date(startLocal.getTime() + dur*60000);
+      const endLocal   = new Date(startLocal.getTime() + durMin*60000);
 
       const payload = {
         title: $('#sl-title').value.trim() || 'Slot',
         category: $('#sl-cat').value.trim() || 'Sonstiges',
         start_at: toLocalISO(startLocal),
         end_at: toLocalISO(endLocal),
-        location: $('#sl-location').value.trim() || null,
+        location: $('#sl-location').value.trim(),
         capacity: parseInt($('#sl-cap').value || '1',10),
         contact_method: 'mail',
         booking_link: null,
@@ -560,7 +618,8 @@
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
           showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
-          e.target.reset(); recalcEnd(); fillCategoryOptions(); await loadSlots();
+          e.target.reset(); $('#sl-dur-unit').value='min'; $('#sl-duration').value='30';
+          recalcEnd(); fillCategoryOptions(); await loadSlots();
         }else{
           const m = {
             missing_fields:'Pflichtfelder fehlen.',
@@ -623,6 +682,7 @@
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
   </footer>
 </body>
 </html>
