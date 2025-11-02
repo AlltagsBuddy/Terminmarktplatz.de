@@ -40,7 +40,6 @@
   --grad-brand: linear-gradient(135deg, var(--c-pink), var(--c-blue), var(--c-lime));
   --grad-soft: linear-gradient(135deg, rgba(124,58,237,.25), rgba(6,182,212,.25));
   --focus: 0 0 0 3px rgba(59,130,246,.45);
-  
 
   /* Form Farben */
   --field-bg: rgba(255,255,255,.06);
@@ -57,8 +56,6 @@
   --warn:#f59e0b;
 
   .req{ color:#ef4444; font-weight:700 }
-
-
 }
 
 /* ---------- Base ---------- */
@@ -146,8 +143,11 @@ button.loading::after{
 /* Checkbox-Zelle */
 .table td:first-child, .table th:first-child{ text-align:center }
 
-/* Buttons in Slot-Tabelle auffällig */
-.table .btn{
+/* ---------------------------------------------------------
+   Tabellen-Buttons (Standard-Seiten, NICHT Portal)
+   → im Portal überschreiben wir das am Ende gezielt.
+--------------------------------------------------------- */
+body:not(.page-portal) .table .btn{
   padding:8px 12px;
   border:none;
   border-radius:12px;
@@ -157,13 +157,12 @@ button.loading::after{
   box-shadow: var(--shadow-1);
   transition: transform .15s, filter .15s;
 }
-.table .btn:hover{ transform: translateY(-1px); filter: brightness(1.08); }
-.table .btn.action{ background: linear-gradient(135deg, var(--c-blue), var(--c-mint)); }
-.table .btn.danger{ background: linear-gradient(135deg, var(--c-red), #ff7b7b); }
+body:not(.page-portal) .table .btn:hover{ transform: translateY(-1px); filter: brightness(1.08); }
+body:not(.page-portal) .table .btn.action{ background: linear-gradient(135deg, var(--c-blue), var(--c-mint)); }
+body:not(.page-portal) .table .btn.danger{ background: linear-gradient(135deg, var(--c-red), #ff7b7b); }
 
 /* Deaktivierte Bulk-Buttons */
 .seg .btn[disabled]{ opacity:.55; pointer-events:none; }
-
 
 /* ---------- Hero ---------- */
 .hero{padding:86px 0 34px}
@@ -176,7 +175,7 @@ button.loading::after{
 }
 h1, h2, h3{font-weight:800; letter-spacing:.2px}
 .hero h1{
-  font-size: clamp(28px, 4vw, 52px); /* vorher: 34 / 5vw / 64 */
+  font-size: clamp(28px, 4vw, 52px);
   line-height:1.04;
   margin:14px 0 10px; letter-spacing:-0.8px;
   background:linear-gradient(90deg, #fff, #dbeafe, #fff);
@@ -256,43 +255,36 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
   content:""; width:8px; height:8px; border-radius:50%;
   background: var(--c-mint); display:inline-block; margin-right:4px;
 }
-/* =========================================================
-   Suche – Select-Felder (Umkreis & Zeitfenster) dunkel + weiße Schrift
-   → ans ENDE der style.css legen
-========================================================= */
 
-/* das sichtbare Select-Feld soll den selben dunklen Hintergrund haben wie .input */
+/* =========================================================
+   Suche – Select-Felder (Umkreis & Zeitfenster) dunkel
+========================================================= */
 .searchbar .input select{
-  color:#fff;                 /* weiße Schrift */
-  background-color: transparent; /* Hintergrund vom umgebenden .input übernehmen */
+  color:#fff;
+  background-color: transparent;
   -webkit-appearance:none;
   -moz-appearance:none;
   appearance:none;
-  background-image:none;      /* Standard-Chevron ausblenden (wir nutzen die .input-Optik) */
+  background-image:none;
 }
-
-/* Falls dein Browser dem Select trotzdem Weiß gibt, erzwinge eine Farbe direkt: */
 .searchbar .input{ 
-  background: var(--field-bg);            /* Grundfarbe deiner Felder */
+  background: var(--field-bg);
   border: 1px solid var(--field-border);
 }
 .searchbar .input:nth-child(-n+2){
-  background: var(--field-bg-strong);     /* stärkere Farbe für die ersten 2 Felder */
+  background: var(--field-bg-strong);
   border-color: var(--field-border-strong);
 }
-
-/* Dropdown-Liste (geöffnete Options) – Desktop-Browser unterstützen das,
-   iOS/macOS Safari nur eingeschränkt */
 .searchbar .input select option{
-  background: #0f172a;   /* dunkler Hintergrund für Listeneinträge */
+  background: #0f172a;
   color:#fff;
 }
-
 
 /* ---------- Sections ---------- */
 section{padding:56px 0}
 h2{
-  h2 { font-size: clamp(20px, 2.6vw, 30px); } /* vorher: (24px, 3.2vw, 36px);*/ margin:0 0 12px; letter-spacing:-.3px;
+  h2 { font-size: clamp(20px, 2.6vw, 30px); }
+  margin:0 0 12px; letter-spacing:-.3px;
   display:inline-flex; align-items:center; gap:10px;
 }
 h2::after{
@@ -359,14 +351,9 @@ h2::after{
   color:var(--fg);
 }
 .hero + section .panel .muted{color:var(--text-2); opacity:.95}
-.hero + section .demo-input{
-  border-color:var(--border);
-  background:#475569;
-}
+.hero + section .demo-input{ border-color:var(--border); background:#475569; }
 .hero + section .panel, 
-.hero + section .panel *{
-  opacity:1; filter:none;
-}
+.hero + section .panel *{ opacity:1; filter:none; }
 .hero + section .panel::before, 
 .hero + section .panel::after{content:none}
 
@@ -469,7 +456,7 @@ footer{
 .pill.warn{background:rgba(245,158,11,.14); border-color:rgba(245,158,11,.35); color:#fde68a}
 .pill.error{background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.35); color:#fecaca}
 
-/* ---------- Tabellen (Portal) ---------- */
+/* ---------- Tabellen (Portal/Allgemein Optik) ---------- */
 .table{width:100%; border-collapse:separate; border-spacing:0; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:14px; overflow:hidden}
 .table th, .table td{padding:12px 14px; text-align:left}
 .table thead th{background:rgba(255,255,255,.06); font-weight:800; color:#fff}
@@ -546,17 +533,18 @@ footer{
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important; transition:none !important}
 }
+
 /* Punkt vor der Trust-Zeile ausblenden */
-.trust::before{ content:none !important; display:none !important; 
-}
+.trust::before{ content:none !important; display:none !important; }
 
 /* Submit-Button in der Suchleiste: zentriert, eigene Reihe, volle Breite */
 .searchbar .btn[type="submit"]{
-  grid-column: 1 / -1;       /* über alle Spalten */
-  justify-self: center;      /* horizontal zentrieren */
-  padding-inline: 22px;      /* etwas breiter als Pillen */
-  margin-top: 4px;           /* kleiner Abstand nach den Feldern */
+  grid-column: 1 / -1;
+  justify-self: center;
+  padding-inline: 22px;
+  margin-top: 4px;
 }
+
 /* =========================================================
    Kontaktseite: helle Felder, dunkler Text, sichtbare Umrandung
    (gilt nur, wenn <body class="page-contact">)
@@ -584,84 +572,56 @@ footer{
 .page-contact .help{ color:#475569; } /* besser lesbar auf weiß */
 
 /* =========================================================
-   PORTAL-FIX: Buttons IMMER mit dunkler Schrift, ohne Verlauf
-   (muss am ENDE der style.css stehen)
+   PORTAL-FIX (MUSS GANZ AM ENDE STEHEN):
+   Im Anbieter-Portal (body.page-portal) sind alle Buttons
+   weiß mit schwarzer Schrift – keine Verläufe.
 ========================================================= */
 
-button,
-.btn,
-.btn.primary,
-.btn.secondary,
-.btn.action,
-.btn.danger,
-.seg .btn,
-.table .btn,
-.toolbar .btn {
-  color: #0f172a !important;                 /* schwarze Schrift */
-  background: #ffffff !important;            /* weißer Hintergrund */
-  background-image: none !important;         /* Verläufe sicher abschalten */
+.page-portal .btn,
+.page-portal .btn.primary,
+.page-portal .btn.secondary,
+.page-portal .btn.action,
+.page-portal .btn.danger,
+.page-portal .seg .btn,
+.page-portal .table .btn,
+.page-portal .toolbar .btn {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  background-image: none !important;
   text-shadow: none !important;
-  border: 1px solid #cbd5e1 !important;      /* sichtbare Kante */
+  border: 1px solid #cbd5e1 !important;
   box-shadow: var(--shadow-1) !important;
 }
 
-/* Hover ohne „Aufhellen“ des (ohnehin weißen) Buttons */
-button:hover,
-.btn:hover,
-.seg .btn:hover,
-.table .btn:hover { 
-  filter: none !important; 
+.page-portal .btn:hover,
+.page-portal .seg .btn:hover,
+.page-portal .table .btn:hover{
+  filter: none !important;
   transform: translateY(-1px);
 }
 
-/* Schnellwahltasten bei „Dauer“: klarer Look */
-.seg .btn[data-min],
-.seg .btn[data-hour]{
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color:#0f172a !important;
+.page-portal .seg .btn[disabled],
+.page-portal .toolbar .btn[disabled]{
+  opacity:.55; pointer-events:none;
 }
 
-/* Tabellen-Buttons (Veröffentlichen / Archivieren / Löschen) */
-.table .btn,
-.table .btn.action,
-.table .btn.danger {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-/* Checkbox-Label „Alle auswählen“ nicht in weiß zeichnen */
-.check { color: #0f172a !important; }
-
-/* — Optional: Primär-CTA in Suchleiste darf farbig bleiben —
-   (wenn du NUR den Submit in der Suche bunt willst, nimm das !important raus)
-.searchbar .btn[type="submit"]{
-  background: linear-gradient(135deg, var(--c-pink), var(--c-blue)) !important;
-  color:#0b0f1a !important;
-  border: none !important;
-}
-*/
-
-/* ---- PORTAL: Buttons immer dunkel lesbar ---- */
-.page-portal .btn,
-.page-portal .btn.primary,
-.page-portal .seg .btn,
-.page-portal .table .btn,
-.page-portal .table .btn.action,
-.page-portal .table .btn.danger{
-  color:#0f172a !important;
-  background:#ffffff !important;
-  border:1px solid #cbd5e1 !important;
-  text-shadow:none !important;
-  mix-blend-mode:normal !important;
-}
-
-/* Dauer-Schnellwahl explizit (die weißen runden Chips) */
-.page-portal #form-slot .seg .btn{
+/* Dauer-Schnellwahl (die runden Chips) */
+.page-portal #form-slot .seg .btn,
+.page-portal #form-slot .seg .btn[data-min],
+.page-portal #form-slot .seg .btn[data-hour]{
   color:#0f172a !important;
   background:#fff !important;
   border:1px solid #cbd5e1 !important;
 }
 
+/* Tabellen-Aktionsbuttons im Portal */
+.page-portal .table .btn,
+.page-portal .table .btn.action,
+.page-portal .table .btn.danger{
+  background:#ffffff !important;
+  color:#0f172a !important;
+  border:1px solid #cbd5e1 !important;
+}
 
+/* Checkbox-Label „Alle auswählen“ im Portal sichtbar */
+.page-portal .check { color:#0f172a !important; }
