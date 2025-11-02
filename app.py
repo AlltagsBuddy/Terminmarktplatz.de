@@ -1,18 +1,23 @@
 # app.py — API + HTML (Root-Templates; Render & Local)
+
 import os
 import traceback
-from datetime import datetime, timedelta, timezone, time
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 
-import time
-import requests
-from sqlalchemy import text
-
+# ZoneInfo robust (Backport bei < 3.9)
 try:
     from zoneinfo import ZoneInfo
 except Exception:
-    from backports.zoneinfo import ZoneInfo  # falls Python < 3.9
+    from backports.zoneinfo import ZoneInfo
 BERLIN = ZoneInfo("Europe/Berlin")
+
+import time
+import requests
+from sqlalchemy import (
+    create_engine, select, and_, or_, func, text
+)
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -21,22 +26,21 @@ from flask import (
     render_template, url_for, abort
 )
 from flask_cors import CORS
-from sqlalchemy import create_engine, select, and_, func, or_, literal, cast, Float
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from argon2 import PasswordHasher
 import jwt
 
+# Deine ORM-Modelle
 from models import Base, Provider, Slot, Booking
 
+
 # --------------------------------------------------------
-# Init / Paths / Mode
+# Init / Mode / Pfade
 # --------------------------------------------------------
 load_dotenv()
 
 APP_ROOT     = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR   = os.path.join(APP_ROOT, "static")
-TEMPLATE_DIR = APP_ROOT  # HTML-Dateien liegen im Projekt-Root
+TEMPLATE_DIR = APP_ROOT  # Deine HTML-Dateien liegen im Projekt-Root
 
 IS_RENDER = bool(os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
 API_ONLY  = os.environ.get("API_ONLY") == "1"
@@ -52,6 +56,7 @@ print("MODE       :", "API-only" if API_ONLY else "Full (API + HTML)")
 print("TEMPLATES  :", TEMPLATE_DIR)
 print("STATIC     :", STATIC_DIR)
 
+
 # --------------------------------------------------------
 # Config
 # --------------------------------------------------------
@@ -61,11 +66,12 @@ JWT_ISS           = os.environ.get("JWT_ISS", "terminmarktplatz")
 JWT_AUD           = os.environ.get("JWT_AUD", "terminmarktplatz_client")
 JWT_EXP_MIN       = int(os.environ.get("JWT_EXP_MINUTES", "60"))
 REFRESH_EXP_DAYS  = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
-MAIL_FROM         = os.environ.get("MAIL_FROM", "no-reply@example.com")
-REPLY_TO          = os.environ.get("REPLY_TO", MAIL_FROM)
-MAIL_PROVIDER     = os.environ.get("MAIL_PROVIDER", "console")
-POSTMARK_TOKEN    = os.environ.get("POSTMARK_TOKEN", "")
-CONTACT_TO        = os.environ.get("CONTACT_TO", MAIL_FROM)
+
+MAIL_FROM      = os.environ.get("MAIL_FROM", "no-reply@example.com")
+REPLY_TO       = os.environ.get("REPLY_TO", MAIL_FROM)
+MAIL_PROVIDER  = os.environ.get("MAIL_PROVIDER", "console")  # console | postmark
+POSTMARK_TOKEN = os.environ.get("POSTMARK_TOKEN", "")
+CONTACT_TO     = os.environ.get("CONTACT_TO", MAIL_FROM)
 
 def _cfg(name: str, default: str | None = None) -> str:
     val = os.environ.get(name, default)
@@ -82,42 +88,19 @@ def _external_base() -> str:
     except RuntimeError:
         return BASE_URL
 
-# SQLAlchemy auf psycopg v3 biegen
+# PostgreSQL URL für SQLAlchemy (psycopg v3) normalisieren
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql+psycopg://", 1)
 elif DB_URL.startswith("postgresql://"):
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
+
 # --------------------------------------------------------
-# DB & Crypto
+# DB / Crypto / CORS
 # --------------------------------------------------------
 engine = create_engine(DB_URL, pool_pre_ping=True)
-ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
+ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 
-def _ensure_geo_tables():
-    """
-    Legt geocode_cache an und fügt provider.lat/lon hinzu (idempotent).
-    """
-    ddl_cache = """
-    CREATE TABLE IF NOT EXISTS geocode_cache (
-      key text PRIMARY KEY,
-      lat double precision,
-      lon double precision,
-      updated_at timestamp with time zone DEFAULT now()
-    );
-    """
-    ddl_provider_lat = "ALTER TABLE provider ADD COLUMN IF NOT EXISTS lat double precision;"
-    ddl_provider_lon = "ALTER TABLE provider ADD COLUMN IF NOT EXISTS lon double precision;"
-    with engine.begin() as conn:
-        conn.exec_driver_sql(ddl_cache)
-        conn.exec_driver_sql(ddl_provider_lat)
-        conn.exec_driver_sql(ddl_provider_lon)
-
-_ensure_geo_tables()
-
-# --------------------------------------------------------
-# CORS & Security Headers
-# --------------------------------------------------------
 ALLOWED_ORIGINS = ["*"]
 CORS(
     app,
@@ -142,14 +125,85 @@ def add_headers(resp):
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     return resp
 
+
 # --------------------------------------------------------
-# Time helpers (einheitlich!)
+# Geocode-Cache (idempotent)
 # --------------------------------------------------------
+def _ensure_geo_tables():
+    ddl_cache = """
+    CREATE TABLE IF NOT EXISTS geocode_cache (
+      key text PRIMARY KEY,
+      lat double precision,
+      lon double precision,
+      updated_at timestamp with time zone DEFAULT now()
+    );
+    """
+    with engine.begin() as conn:
+        conn.exec_driver_sql(ddl_cache)
+
+_ensure_geo_tables()
+
+def _gc_key(zip_code: str | None, city: str | None) -> str:
+    if zip_code and zip_code.strip():
+        return f"zip:{zip_code.strip()}"
+    if city and city.strip():
+        return f"city:{city.strip().lower()}"
+    return ""
+
+def geocode_cached(session: Session, zip_code: str | None, city: str | None) -> tuple[float | None, float | None]:
+    """
+    Holt Koordinaten (lat, lon) aus geocode_cache; wenn nicht vorhanden,
+    via Nominatim (DE) und danach cachen. Negative Ergebnisse werden als NULL gespeichert.
+    """
+    key = _gc_key(zip_code, city)
+    if not key:
+        return None, None
+
+    row = session.execute(text("SELECT lat, lon FROM geocode_cache WHERE key=:k"), {"k": key}).first()
+    if row and row[0] is not None and row[1] is not None:
+        return float(row[0]), float(row[1])
+
+    query = zip_code if zip_code else city
+    try:
+        r = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": query, "format": "json", "limit": 1, "countrycodes": "de"},
+            headers={"User-Agent": "Terminmarktplatz/1.0 (kontakt@terminmarktplatz.de)"},
+            timeout=8,
+        )
+        if r.ok:
+            js = r.json()
+            if js:
+                lat = float(js[0]["lat"]); lon = float(js[0]["lon"])
+                session.execute(
+                    text("""INSERT INTO geocode_cache(key, lat, lon)
+                            VALUES(:k,:lat,:lon)
+                            ON CONFLICT (key) DO UPDATE
+                            SET lat=EXCLUDED.lat, lon=EXCLUDED.lon, updated_at=now()"""),
+                    {"k": key, "lat": lat, "lon": lon}
+                )
+                session.commit()
+                time.sleep(0.2)
+                return lat, lon
+    except Exception:
+        pass
+
+    # Negativ-Cache
+    session.execute(
+        text("INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,NULL,NULL) ON CONFLICT (key) DO NOTHING"),
+        {"k": key}
+    )
+    session.commit()
+    return None, None
+
+
+# --------------------------------------------------------
+# Zeit / Kategorien / Utilities
+# --------------------------------------------------------
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
 def parse_iso_utc(s: str) -> datetime:
-    """
-    Akzeptiert ISO-Strings mit 'Z' (UTC) oder mit Offset (+00:00).
-    Gibt immer einen AWARE datetime in UTC zurück.
-    """
     if not isinstance(s, str):
         raise ValueError("not a string")
     s = s.strip()
@@ -163,10 +217,6 @@ def parse_iso_utc(s: str) -> datetime:
     return dt
 
 def _to_db_utc_naive(dt: datetime) -> datetime:
-    """
-    Konvertiert Datum nach UTC und entfernt tzinfo.
-    Für TIMESTAMP WITHOUT TIME ZONE (Postgres).
-    """
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     else:
@@ -174,35 +224,12 @@ def _to_db_utc_naive(dt: datetime) -> datetime:
     return dt.replace(tzinfo=None)
 
 def _from_db_as_iso_utc(dt: datetime) -> str:
-    """
-    Gibt ISO8601 in UTC zurück, normalisiert auf 'Z'.
-    Falls DB naive UTC speichert, behandeln wir sie als UTC.
-    """
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     else:
         dt = dt.astimezone(timezone.utc)
     return dt.isoformat().replace("+00:00", "Z")
 
-def parse_local_date(s: str | None) -> datetime.date:
-    """
-    Flexibler Datumsparser für UI: 'YYYY-MM-DD' oder 'DD.MM.YYYY'.
-    Fällt auf heutiges Datum (Europe/Berlin) zurück.
-    """
-    berlin = ZoneInfo("Europe/Berlin")
-    if not s:
-        return datetime.now(berlin).date()
-    s = str(s).strip()
-    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except ValueError:
-            pass
-    return datetime.now(berlin).date()
-
-# --------------------------------------------------------
-# Kategorien-Whitelist & Normalizer
-# --------------------------------------------------------
 BRANCHES = {
     "Friseur", "Kosmetik", "Physiotherapie", "Nagelstudio", "Zahnarzt",
     "Handwerk", "KFZ-Service", "Fitness", "Coaching", "Tierarzt",
@@ -210,7 +237,6 @@ BRANCHES = {
 }
 
 def normalize_category(raw: str | None) -> str:
-    """Gültige Kategorie für die DB zurückgeben; unbekannt => 'Sonstiges'."""
     if raw is None:
         return "Sonstiges"
     val = str(raw).strip()
@@ -218,15 +244,68 @@ def normalize_category(raw: str | None) -> str:
         return "Sonstiges"
     return val if val in BRANCHES else "Sonstiges"
 
-# --------------------------------------------------------
-# Utilities
-# --------------------------------------------------------
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
 def _json_error(msg, code=400):
     return jsonify({"error": msg}), code
 
+def _cookie_flags():
+    if IS_RENDER:
+        return {"httponly": True, "secure": True, "samesite": "None"}
+    return {"httponly": True, "secure": False, "samesite": "Lax"}
+
+def slot_to_json(x: Slot):
+    return {
+        "id": x.id, "provider_id": x.provider_id,
+        "title": x.title, "category": x.category,
+        "start_at": _from_db_as_iso_utc(x.start_at),
+        "end_at": _from_db_as_iso_utc(x.end_at),
+        "location": x.location, "capacity": x.capacity,
+        "contact_method": x.contact_method, "booking_link": x.booking_link,
+        "price_cents": x.price_cents, "notes": x.notes,
+        "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
+    }
+
+
+# --------------------------------------------------------
+# Mail
+# --------------------------------------------------------
+def send_mail(to: str, subject: str, text: str):
+    try:
+        print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
+
+        if MAIL_PROVIDER == "console":
+            print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\n\n{text}\n--- END ---\n", flush=True)
+            return True, "console"
+
+        if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
+            r = requests.post(
+                "https://api.postmarkapp.com/email",
+                headers={
+                    "X-Postmark-Server-Token": POSTMARK_TOKEN,
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                json={"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text, "ReplyTo": REPLY_TO},
+                timeout=12,
+            )
+            print("Postmark response:", r.status_code, r.text, flush=True)
+            ok = 200 <= r.status_code < 300
+            return ok, f"{r.status_code} {r.text}"
+
+        if MAIL_PROVIDER != "postmark":
+            return False, f"provider={MAIL_PROVIDER} not supported"
+        if not POSTMARK_TOKEN:
+            return False, "missing POSTMARK_TOKEN"
+
+    except Exception as e:
+        print("send_mail exception:", repr(e), flush=True)
+        return False, repr(e)
+
+    return False, "unknown"
+
+
+# --------------------------------------------------------
+# Auth / Tokens
+# --------------------------------------------------------
 def issue_tokens(provider_id: str, is_admin: bool):
     now = _now()
     access = jwt.encode(
@@ -266,128 +345,6 @@ def auth_required(admin: bool = False):
         return inner
     return wrapper
 
-def send_mail(to: str, subject: str, text: str):
-    try:
-        print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
-        if MAIL_PROVIDER == "console":
-            print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\n\n{text}\n--- END ---\n", flush=True)
-            return True, "console"
-
-        if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
-            payload = {"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text, "ReplyTo": REPLY_TO}
-            r = requests.post(
-                "https://api.postmarkapp.com/email",
-                headers={
-                    "X-Postmark-Server-Token": POSTMARK_TOKEN,
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=12,
-            )
-            print("Postmark response:", r.status_code, r.text, flush=True)
-            ok = 200 <= r.status_code < 300
-            reason = f"{r.status_code} {r.text}"
-            return ok, reason
-
-        if MAIL_PROVIDER != "postmark":
-            return False, f"provider={MAIL_PROVIDER} not supported"
-        if not POSTMARK_TOKEN:
-            return False, "missing POSTMARK_TOKEN"
-
-    except Exception as e:
-        print("send_mail exception:", repr(e), flush=True)
-        return False, repr(e)
-
-    return False, "unknown"
-
-def slot_to_json(x: Slot):
-    return {
-        "id": x.id, "provider_id": x.provider_id,
-        "title": x.title, "category": x.category,
-        "start_at": _from_db_as_iso_utc(x.start_at),
-        "end_at": _from_db_as_iso_utc(x.end_at),
-        "location": x.location, "capacity": x.capacity,
-        "contact_method": x.contact_method, "booking_link": x.booking_link,
-        "price_cents": x.price_cents, "notes": x.notes,
-        "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
-    }
-
-def _cookie_flags():
-    if IS_RENDER:
-        return {"httponly": True, "secure": True, "samesite": "None"}
-    return {"httponly": True, "secure": False, "samesite": "Lax"}
-
-# --- Slot-Status-Validierung -----------------------------------------------
-VALID_STATUSES = {"pending_review", "published", "archived"}
-
-def _status_transition_ok(current: str, new: str) -> bool:
-    if new not in VALID_STATUSES:
-        return False
-    if current == new:
-        return True
-    if current == "pending_review":
-        return new in {"published", "archived"}
-    if current == "published":
-        return new in {"archived"}
-    if current == "archived":
-        return new in {"published"}
-    return False
-
-# --------------------------------------------------------
-# Geocoding + Cache
-# --------------------------------------------------------
-def _gc_key(zip_code: str | None, city: str | None) -> str:
-    if zip_code and zip_code.strip():
-        return f"zip:{zip_code.strip()}"
-    if city and city.strip():
-        return f"city:{city.strip().lower()}"
-    return ""
-
-def geocode_cached(session: Session, zip_code: str | None, city: str | None) -> tuple[float | None, float | None]:
-    """
-    Holt Koordinaten (lat, lon) für PLZ oder Stadt aus geocode_cache,
-    sonst via Nominatim und cached das Ergebnis.
-    """
-    key = _gc_key(zip_code, city)
-    if not key:
-        return None, None
-
-    row = session.execute(text("SELECT lat, lon FROM geocode_cache WHERE key=:k"), {"k": key}).first()
-    if row and row[0] is not None and row[1] is not None:
-        return float(row[0]), float(row[1])
-
-    q = zip_code if zip_code else city
-    try:
-        r = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": q, "format": "json", "limit": 1, "countrycodes": "de"},
-            headers={"User-Agent": "Terminmarktplatz/1.0 (kontakt@terminmarktplatz.de)"},
-            timeout=8,
-        )
-        if r.ok:
-            js = r.json()
-            if js:
-                lat = float(js[0]["lat"]); lon = float(js[0]["lon"])
-                session.execute(
-                    text("INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,:lat,:lon) "
-                         "ON CONFLICT (key) DO UPDATE SET lat=EXCLUDED.lat, lon=EXCLUDED.lon, updated_at=now()"),
-                    {"k": key, "lat": lat, "lon": lon}
-                )
-                session.commit()
-                time.sleep(0.2)  # fair use
-                return lat, lon
-    except Exception:
-        pass
-
-    # Negativ-Cache
-    session.execute(
-        text("INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,NULL,NULL) "
-             "ON CONFLICT (key) DO NOTHING"),
-        {"k": key}
-    )
-    session.commit()
-    return None, None
 
 # --------------------------------------------------------
 # Misc (favicon/robots + health)
@@ -410,6 +367,7 @@ def health():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
 # --------------------------------------------------------
 # API-only Gate (optional)
 # --------------------------------------------------------
@@ -426,6 +384,7 @@ def maybe_api_only():
         request.path.startswith("/static/")
     ):
         return _json_error("api_only", 404)
+
 
 # --------------------------------------------------------
 # HTML ROUTES (Full mode)
@@ -469,6 +428,7 @@ else:
     @app.get("/")
     def api_root():
         return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
+
 
 # --------------------------------------------------------
 # Public: Kontaktformular
@@ -517,8 +477,9 @@ def public_contact():
         print("[public_contact] error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
 
+
 # --------------------------------------------------------
-# Auth helpers
+# Auth helpers + Endpoints
 # --------------------------------------------------------
 def _authenticate(email: str, password: str):
     email = (email or "").strip().lower()
@@ -542,9 +503,6 @@ def _set_auth_cookies(resp, access: str, refresh: str | None = None):
         resp.set_cookie("refresh_token", refresh, max_age=REFRESH_EXP_DAYS * 86400, **flags)
     return resp
 
-# --------------------------------------------------------
-# Auth (JSON API)
-# --------------------------------------------------------
 @app.post("/auth/register")
 def register():
     try:
@@ -631,6 +589,21 @@ def auth_login_json():
     resp = make_response(jsonify({"ok": True, "access": access}))
     return _set_auth_cookies(resp, access, refresh)
 
+@app.post("/login")
+def auth_login_form():
+    email = request.form.get("email")
+    password = request.form.get("password")
+    p, err = _authenticate(email, password)
+    if err:
+        return render_template(
+            "login.html",
+            error="Login fehlgeschlagen." if err != "email_not_verified" else "E-Mail noch nicht verifiziert."
+        ), 401
+
+    access, refresh = issue_tokens(p.id, p.is_admin)
+    resp = make_response(redirect("anbieter-portal"))
+    return _set_auth_cookies(resp, access, refresh)
+
 @app.post("/auth/logout")
 @auth_required()
 def auth_logout():
@@ -659,23 +632,6 @@ def auth_refresh():
     resp = make_response(jsonify({"ok": True, "access": access}))
     return _set_auth_cookies(resp, access)
 
-# --------------------------------------------------------
-# HTML-Form Login (POST /login) → Redirect /anbieter-portal
-# --------------------------------------------------------
-@app.post("/login")
-def auth_login_form():
-    email = request.form.get("email")
-    password = request.form.get("password")
-    p, err = _authenticate(email, password)
-    if err:
-        return render_template(
-            "login.html",
-            error="Login fehlgeschlagen." if err != "email_not_verified" else "E-Mail noch nicht verifiziert."
-        ), 401
-
-    access, refresh = issue_tokens(p.id, p.is_admin)
-    resp = make_response(redirect("anbieter-portal"))
-    return _set_auth_cookies(resp, access, refresh)
 
 # --------------------------------------------------------
 # Me / Profile
@@ -714,7 +670,8 @@ def me_update():
 
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
-            if not p: return _json_error("not_found", 404)
+            if not p:
+                return _json_error("not_found", 404)
 
             for k, v in upd.items():
                 setattr(p, k, v)
@@ -733,12 +690,15 @@ def me_update():
                 s.rollback()
                 return _json_error("db_error", 400)
 
-            # Nach erfolgreichem Update: Koordinaten aktualisieren (zip/city)
+            # Koordinaten in Cache sicherstellen (optional)
             try:
                 lat, lon = geocode_cached(s, p.zip, p.city)
                 if lat and lon:
-                    p.lat = lat
-                    p.lon = lon
+                    # Versuch direktes SQL-Update (falls Spalten existieren)
+                    s.execute(
+                        text("UPDATE provider SET lat=:lat, lon=:lon WHERE id=:pid"),
+                        {"lat": lat, "lon": lon, "pid": p.id}
+                    )
                     s.commit()
             except Exception:
                 s.rollback()
@@ -748,9 +708,25 @@ def me_update():
         print("[/me] server error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
 
+
 # --------------------------------------------------------
 # Slots (Provider)
 # --------------------------------------------------------
+VALID_STATUSES = {"pending_review", "published", "archived"}
+
+def _status_transition_ok(current: str, new: str) -> bool:
+    if new not in VALID_STATUSES:
+        return False
+    if current == new:
+        return True
+    if current == "pending_review":
+        return new in {"published", "archived"}
+    if current == "published":
+        return new in {"archived"}
+    if current == "archived":
+        return new in {"published"}
+    return False
+
 @app.get("/slots")
 @auth_required()
 def slots_list():
@@ -771,7 +747,6 @@ def slots_create():
         if any(k not in data or data[k] in (None, "") for k in required):
             return _json_error("missing_fields", 400)
 
-        # Zeiten validieren
         try:
             start = parse_iso_utc(data["start_at"])
             end   = parse_iso_utc(data["end_at"])
@@ -782,7 +757,6 @@ def slots_create():
         if start <= _now():
             return _json_error("start_in_past", 409)
 
-        # Für DB (TIMESTAMP WITHOUT TIME ZONE) → UTC-naiv
         start_db = _to_db_utc_naive(start)
         end_db   = _to_db_utc_naive(end)
 
@@ -844,7 +818,6 @@ def slots_update(slot_id):
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
-            # Zeiten
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -858,7 +831,6 @@ def slots_update(slot_id):
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
-            # Felder normalisieren
             if "category" in data:
                 data["category"] = normalize_category(data.get("category"))
             if "location" in data and data["location"]:
@@ -870,7 +842,6 @@ def slots_update(slot_id):
                 if k in data:
                     setattr(slot, k, data[k])
 
-            # Statuswechsel
             if "status" in data:
                 new_status = str(data["status"])
                 cur_status = slot.status
@@ -911,6 +882,7 @@ def slots_delete(slot_id):
             return _json_error("not_found", 404)
         s.delete(slot); s.commit()
         return jsonify({"ok": True})
+
 
 # --------------------------------------------------------
 # Admin
@@ -975,6 +947,7 @@ def admin_slot_reject(sid):
         slot.status = "archived"; s.commit()
         return jsonify({"ok": True})
 
+
 # --------------------------------------------------------
 # Public (Slots + Booking)
 # --------------------------------------------------------
@@ -994,20 +967,26 @@ def _verify_booking_token(token: str) -> str | None:
     except Exception:
         return None
 
-# ---- Öffentliche Slots mit echter Umkreissuche (zip/city + radius)
+def _haversine_km(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, atan2, sqrt
+    R = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
 @app.get("/public/slots")
 def public_slots():
     """
-    Öffentliche Slots suchen.
-    Query-Parameter:
-      - category: exakt; wenn nicht in Whitelist, fallback auf ILIKE
-      - city:     ILIKE-Match gegen provider.city ODER slot.location
-      - zip:      exakte PLZ (Provider.zip)
-      - radius:   Kilometer (Haversine gegen Provider.lat/lon). Nutzt zip/city als Startpunkt.
-      - from:     ISO-Zeitpunkt (UTC oder mit Offset) -> s.start_at >= from
-      - day:      YYYY-MM-DD (lokal Europe/Berlin)    -> [day 00:00, day+1 00:00)
-      - include_full=1: auch Slots mit available <= 0 zurückgeben
-    Antwort enthält 'available', 'provider_city', 'provider_zip'.
+    Query:
+      - category   (exakt; sonst ILIKE-Fallback)
+      - city       (ILIKE gegen provider.city ODER slot.location)
+      - zip        (exakt)
+      - radius     (km; python-seitig via Haversine – nutzt zip/city als Startpunkt)
+      - from       (ISO, UTC/Offset)
+      - day        (YYYY-MM-DD lokal Europe/Berlin)
+      - include_full=1  (voll belegte trotzdem zeigen)
     """
     from_str     = request.args.get("from")
     day_str      = request.args.get("day")
@@ -1015,13 +994,13 @@ def public_slots():
     city_q       = (request.args.get("city") or "").strip()
     zip_filter   = (request.args.get("zip") or "").strip()
     include_full = request.args.get("include_full") == "1"
-    radius_raw   = request.args.get("radius")
+    radius_raw   = (request.args.get("radius") or "").strip()
     try:
-        radius_km = float(radius_raw) if radius_raw not in (None, "",) else None
+        radius_km = float(radius_raw) if radius_raw else None
     except ValueError:
         radius_km = None
 
-    # 1) Zeitfenster bestimmen
+    # Zeitfenster bestimmen
     try:
         if day_str:
             y, m, d = map(int, day_str.split("-"))
@@ -1036,13 +1015,13 @@ def public_slots():
         return _json_error("bad_datetime", 400)
 
     with Session(engine) as s:
-        # 2) Startpunkt für Radius (geocoding cache)
+        # Startpunkt (nur wenn Radius aktiv und zip/city angegeben)
         origin_lat = origin_lon = None
         if radius_km and (zip_filter or city_q):
             origin_lat, origin_lon = geocode_cached(s, zip_filter if zip_filter else None,
                                                        None if zip_filter else city_q)
 
-        # Subquery: gebuchte Plätze (hold + confirmed)
+        # belegte Plätze
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1050,22 +1029,21 @@ def public_slots():
             .subquery()
         )
 
+        # Grundmenge
         q = (
             select(
                 Slot,
                 Provider.zip.label("p_zip"),
                 Provider.city.label("p_city"),
-                Provider.lat.label("p_lat"),
-                Provider.lon.label("p_lon"),
                 func.coalesce(bq.c.booked, 0).label("booked")
             )
             .join(Provider, Provider.id == Slot.provider_id)
             .outerjoin(bq, bq.c.slot_id == Slot.id)
             .where(Slot.status == "published")
+            .where(Slot.start_at >= start_from)
+            .order_by(Slot.start_at.asc())
+            .limit(300)
         )
-
-        # Zeitfilter
-        q = q.where(Slot.start_at >= start_from)
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
@@ -1074,45 +1052,35 @@ def public_slots():
             if category in BRANCHES:
                 q = q.where(Slot.category == category)
             else:
-                q = q.where(func.lower(Slot.category).ilike(func.lower(f"%{category}%")))
+                q = q.where(Slot.category.ilike(f"%{category}%"))
 
-        # PLZ/Stadt (nur, wenn kein Radius – sonst Haversine übernimmt die Restriktion)
-        if zip_filter and not radius_km:
-            q = q.where(Provider.zip == zip_filter)
-        elif city_q and not radius_km:
-            ilike = f"%{city_q}%"
-            q = q.where(
-                func.lower(Provider.city).ilike(func.lower(ilike)) |
-                func.lower(Slot.location).ilike(func.lower(ilike))
-            )
-
-        # Radius-Filter via Haversine (gegen Provider.lat/lon)
-        if radius_km and origin_lat and origin_lon:
-            lat0 = literal(origin_lat)
-            lon0 = literal(origin_lon)
-
-            dlat = func.radians(Provider.lat - cast(lat0, Float))
-            dlon = func.radians(Provider.lon - cast(lon0, Float))
-            a = (func.pow(func.sin(dlat/2), 2) +
-                 func.cos(func.radians(Provider.lat)) *
-                 func.cos(func.radians(cast(lat0, Float))) *
-                 func.pow(func.sin(dlon/2), 2))
-            c = 2 * func.atan2(func.sqrt(a), func.sqrt(1 - a))
-            distance_km = 6371 * c
-
-            q = q.where(Provider.lat.isnot(None), Provider.lon.isnot(None))
-            q = q.where(distance_km <= radius_km)
-
-        q = q.order_by(Slot.start_at.asc()).limit(300)
+        # Ohne Radius: DB-seitiger City/PLZ-Filter
+        if radius_km is None:
+            if zip_filter:
+                q = q.where(Provider.zip == zip_filter)
+            if city_q:
+                ilike = f"%{city_q}%"
+                q = q.where(Provider.city.ilike(ilike) | Slot.location.ilike(ilike))
 
         rows = s.execute(q).all()
 
         out = []
-        for slot, p_zip, p_city, p_lat, p_lon, booked in rows:
+        for slot, p_zip, p_city, booked in rows:
             cap = slot.capacity or 1
             available = max(0, cap - int(booked or 0))
             if not include_full and available <= 0:
                 continue
+
+            # Radius-Filter python-seitig
+            if radius_km is not None:
+                if not (origin_lat and origin_lon):
+                    continue
+                plat, plon = geocode_cached(s, p_zip, p_city)
+                if not (plat and plon):
+                    continue
+                if _haversine_km(origin_lat, origin_lon, plat, plon) > radius_km:
+                    continue
+
             out.append({
                 "id": slot.id,
                 "title": slot.title,
@@ -1204,6 +1172,7 @@ def public_cancel():
             return _json_error("not_found_or_state", 404)
         b.status = "canceled"; s.commit()
         return jsonify({"ok": True})
+
 
 # --------------------------------------------------------
 # Start
