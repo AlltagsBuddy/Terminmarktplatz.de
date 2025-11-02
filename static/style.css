@@ -643,3 +643,25 @@ button:hover,
 }
 */
 
+/* ---- PORTAL: Buttons immer dunkel lesbar ---- */
+.page-portal .btn,
+.page-portal .btn.primary,
+.page-portal .seg .btn,
+.page-portal .table .btn,
+.page-portal .table .btn.action,
+.page-portal .table .btn.danger{
+  color:#0f172a !important;
+  background:#ffffff !important;
+  border:1px solid #cbd5e1 !important;
+  text-shadow:none !important;
+  mix-blend-mode:normal !important;
+}
+
+/* Dauer-Schnellwahl explizit (die weißen runden Chips) */
+.page-portal #form-slot .seg .btn{
+  color:#0f172a !important;
+  background:#fff !important;
+  border:1px solid #cbd5e1 !important;
+}
+
+

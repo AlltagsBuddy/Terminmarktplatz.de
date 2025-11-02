@@ -6,6 +6,9 @@
   <title>Mein Portal – Profil & Slots | Terminmarktplatz</title>
   <meta name="description" content="Anbieter-Portal: Profil pflegen, freie Zeitfenster/Slots anlegen, verwalten und veröffentlichen." />
   <meta name="theme-color" content="#6f53ff" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
   <base href="/">
 
   <!-- OG/Twitter minimal -->
@@ -28,7 +31,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/style.css?v=20251102"/>
 
   <style>
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
@@ -69,11 +71,7 @@
 
     .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
 
-    /* ---------------------------
-       KNOPF-OVERRIDES (HART)
-       Erzwingen schwarze Schrift,
-       keine Verläufe, sichtbarer Rand
-       --------------------------- */
+    /* --- HARTE BUTTON-OVERRIDES: gut lesbar, kein Verlauf --- */
     button, .btn { color:#0f172a !important; }
     .btn,
     .btn.primary,
@@ -85,7 +83,7 @@
       background:#ffffff !important;
       background-image:none !important;
       color:#0f172a !important;
-      border:1px solid #cbd5e1 !important; /* sichtbarer Rand */
+      border:1px solid #cbd5e1 !important;
       border-radius:12px !important;
       font-weight:800 !important;
       box-shadow: var(--shadow-1) !important;
@@ -93,7 +91,7 @@
     }
     .btn:hover{ transform: translateY(-1px); filter: none !important; }
 
-    /* Schnellwahl-Buttons bei "Dauer" deutlich sichtbar */
+    /* Schnellwahl-Buttons bei "Dauer" */
     .seg .btn { padding:8px 12px; }
     .seg .btn[data-hour], .seg .btn[data-min]{
       background:#f8fafc !important;
@@ -109,6 +107,7 @@
     }
   </style>
 </head>
+
 <body class="page-portal">
 
   <!-- Header -->
