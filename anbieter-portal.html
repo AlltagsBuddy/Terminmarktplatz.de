@@ -6,10 +6,7 @@
   <title>Mein Portal – Profil & Slots | Terminmarktplatz</title>
   <meta name="description" content="Anbieter-Portal: Profil pflegen, freie Zeitfenster/Slots anlegen, verwalten und veröffentlichen." />
   <meta name="theme-color" content="#6f53ff" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="static/style.css?v=20251103" />
-  <base href="/">
+  <base href="/" />
 
   <!-- OG/Twitter minimal -->
   <meta property="og:type" content="website"/>
@@ -28,27 +25,28 @@
 
   <!-- Assets -->
   <link rel="icon" href="static/favicon.png"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/style.css?v=20251103">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
 
+  <!-- Nur EIN Stylesheet-Import -->
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+
+  <!-- Portal-spezifische Button-Overrides (gut lesbar) -->
   <style>
-  .page-portal .btn,
-  .page-portal .btn.primary,
-  .page-portal .seg .btn,
-  .page-portal .table .btn,
-  .page-portal .table .btn.action,
-  .page-portal .table .btn.danger {
-    color:#0f172a !important;
-    background:#ffffff !important;
-    border:1px solid #cbd5e1 !important;
-    text-shadow:none !important;
-  }
-</style>
+    .page-portal .btn,
+    .page-portal .btn.primary,
+    .page-portal .seg .btn,
+    .page-portal .table .btn,
+    .page-portal .table .btn.action,
+    .page-portal .table .btn.danger {
+      color:#0f172a !important;
+      background:#ffffff !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
 
-
-  <style>
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
@@ -86,28 +84,6 @@
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
 
     .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
-
-    /* --- HARTE BUTTON-OVERRIDES: gut lesbar, kein Verlauf --- */
-    button, .btn { color:#0f172a !important; }
-    .btn,
-    .btn.primary,
-    .btn.action,
-    .btn.danger,
-    .seg .btn,
-    .table .btn,
-    .toolbar .btn {
-      background:#ffffff !important;
-      background-image:none !important;
-      color:#0f172a !important;
-      border:1px solid #cbd5e1 !important;
-      border-radius:12px !important;
-      font-weight:800 !important;
-      box-shadow: var(--shadow-1) !important;
-      text-shadow:none !important;
-    }
-    .btn:hover{ transform: translateY(-1px); filter: none !important; }
-
-    /* Schnellwahl-Buttons bei "Dauer" */
     .seg .btn { padding:8px 12px; }
     .seg .btn[data-hour], .seg .btn[data-min]{
       background:#f8fafc !important;
@@ -209,7 +185,7 @@
         <!-- Slot anlegen -->
         <div class="panel">
           <h2>Neuen Slot anlegen</h2>
-          <form id="form-slot" class="grid">
+          <form id="form-slot" class="grid" novalidate>
             <div class="field">
               <label for="sl-title">Titel <span class="req">*</span></label>
               <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
@@ -262,10 +238,9 @@
             <div class="field">
               <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
               <input id="sl-location" name="location"
-                  placeholder="z. B. 96191 Viereth / Filiale Zentrum"
-                  required pattern="(\d{5}|.{3,})"
-                  title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
-
+                     placeholder="z. B. 96191 Viereth / Filiale Zentrum"
+                     required pattern="(\d{5}|.{3,})"
+                     title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
             </div>
 
             <div class="field">
@@ -339,10 +314,24 @@
   </main>
 
   <script>
-    // ---------- API-Basis ----------
-    const API = (()=> {
+    // ---------- API-Basis (robust für Lokalnetz/Prod) ----------
+    const API = (() => {
       const h = location.hostname;
-      if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
+      const proto = location.protocol;
+
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+
+      if (isLocal) {
+        return `${proto}//${h}:5000`;
+      }
+      if (h === 'api.terminmarktplatz.de') {
+        return `${proto}//${h}`;
+      }
       return 'https://api.terminmarktplatz.de';
     })();
 
@@ -384,16 +373,28 @@
     // ---------- Auth-Gate / Me ----------
     let ME = null;
     async function requireAuth(){
-      const r = await fetch(`${API}/me`, {credentials:'include'});
-      if(!r.ok){ location.href = 'login.html?tab=login'; return; }
-      ME = await r.json();
-      $('#pf-company').value = ME.company_name || '';
-      $('#pf-branch').value  = ME.branch || '';
-      $('#pf-street').value  = ME.street || '';
-      $('#pf-zip').value     = ME.zip || '';
-      $('#pf-city').value    = ME.city || '';
-      $('#pf-phone').value   = ME.phone || '';
-      $('#pf-whatsapp').value= ME.whatsapp || '';
+      try{
+        const r = await fetch(`${API}/me`, { credentials:'include' });
+        if (!r.ok) {
+          if (r.status === 401 || r.status === 403) {
+            window.location.href = 'login.html?tab=login';
+            return;
+          }
+          showMsg('msg-profile', 'Anmeldung erforderlich oder API nicht erreichbar.', false);
+          return;
+        }
+        ME = await r.json();
+
+        $('#pf-company').value  = ME.company_name || '';
+        $('#pf-branch').value   = ME.branch || '';
+        $('#pf-street').value   = ME.street || '';
+        $('#pf-zip').value      = ME.zip || '';
+        $('#pf-city').value     = ME.city || '';
+        $('#pf-phone').value    = ME.phone || '';
+        $('#pf-whatsapp').value = ME.whatsapp || '';
+      }catch(err){
+        showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
+      }
     }
 
     // ---------- Profil speichern ----------
@@ -435,42 +436,39 @@
 
     // ---------- Slot-Form: Dauer -> Ende berechnen ----------
     function totalMinutes(){
-      const val = parseInt($('#sl-duration').value||'0',10);
+      const val = parseInt($('#sl-duration').value || '0', 10);
       const unit = $('#sl-unit').value;
-      if(!val) return 0;
-      return unit === 'h' ? val*60 : val;
+      if (!val) return 0;
+      return unit === 'h' ? val * 60 : val;
     }
     function recalcEnd(){
-      const d = $('#sl-date').value, t = $('#sl-start').value, min = totalMinutes();
+      const d = $('#sl-date').value;
+      const t = $('#sl-start').value;
+      const min = totalMinutes();
       if(!d || !t || !min){ $('#sl-end').value=''; return; }
       const start = joinDateTime(d,t);
-      const end = new Date(start.getTime() + min*60000);
+      const end   = new Date(start.getTime() + min*60000);
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
-    // Events: Datum/Uhrzeit/Dauer/Einheit ändern -> Ende neu berechnen
-      $('#sl-date').addEventListener('change', recalcEnd);
-      $('#sl-start').addEventListener('input',  recalcEnd);
-      $('#sl-duration').addEventListener('input', recalcEnd);
-      $('#sl-unit').addEventListener('change',   recalcEnd);
 
-      // Einheit umschalten beeinflusst Endzeit
-        $('#sl-unit').addEventListener('change', recalcEnd);
-        $('#sl-duration').addEventListener('input', recalcEnd);
+    // Events (genau einmal)
+    $('#sl-date').addEventListener('change',  recalcEnd);
+    $('#sl-start').addEventListener('input',  recalcEnd);
+    $('#sl-duration').addEventListener('input', recalcEnd);
+    $('#sl-unit').addEventListener('change',  recalcEnd);
 
-      // Schnellwahltasten – Stunden
-        $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
-          $('#sl-unit').value = 'h';
-          $('#sl-duration').value = b.dataset.hour;
-          recalcEnd();
-        }));
-      // Schnellwahltasten – Minuten
-        $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
-          $('#sl-unit').value = 'min';
-          $('#sl-duration').value = b.dataset.min;
-          recalcEnd();
-        }));
-
-
+    // Schnellwahl-Buttons – Minuten
+    $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
+      $('#sl-unit').value = 'min';
+      $('#sl-duration').value = b.dataset.min;
+      recalcEnd();
+    }));
+    // Schnellwahl-Buttons – Stunden
+    $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
+      $('#sl-unit').value = 'h';
+      $('#sl-duration').value = b.dataset.hour;
+      recalcEnd();
+    }));
 
     // ---------- Slots laden & rendern + Freigabe-Workflow ----------
     let SELECTED = new Set();
@@ -493,8 +491,8 @@
       tbody.innerHTML = '';
       for(const s of items){
         const tr = document.createElement('tr');
-        const isPending   = s.status === 'pending_review';
         const theStatus = s.status;
+        const isPending   = theStatus === 'pending_review';
         const isPublished = theStatus === 'published';
         const isArchived  = theStatus === 'archived';
         const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
@@ -550,7 +548,7 @@
     async function loadSlots(){
       const tbody = $('#tbl-slots tbody');
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Lade …</td></tr>`;
-      SELECTED.clear(); $('#chk-all').checked = false;
+      SELECTED.clear(); const master = $('#chk-all'); if (master) master.checked = false;
 
       try{
         const r = await fetch(`${API}/slots`, {credentials:'include'});
@@ -563,14 +561,17 @@
     }
 
     // Live-Suche Titel/Kategorie
-    $('#slot-search').addEventListener('input', ()=>{
-      const q = $('#slot-search').value.trim().toLowerCase();
-      if(!q) return renderTable(LAST_ITEMS);
-      const filtered = LAST_ITEMS.filter(s =>
-        (s.title||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q)
-      );
-      renderTable(filtered);
-    });
+    const slotSearch = $('#slot-search');
+    if (slotSearch) {
+      slotSearch.addEventListener('input', ()=>{
+        const q = slotSearch.value.trim().toLowerCase();
+        if(!q) return renderTable(LAST_ITEMS);
+        const filtered = LAST_ITEMS.filter(s =>
+          (s.title||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q)
+        );
+        renderTable(filtered);
+      });
+    }
 
     async function delSlot(id){
       if(!confirm('Diesen Slot wirklich löschen?')) return;
@@ -609,21 +610,21 @@
         fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'})
       ));
     }
-    $('#btn-publish').addEventListener('click', async ()=>{
+    $('#btn-publish')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
       await bulkSetStatus(ids, 'published'); await loadSlots();
     });
-    $('#btn-archive').addEventListener('click', async ()=>{
+    $('#btn-archive')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
       await bulkSetStatus(ids, 'archived'); await loadSlots();
     });
-    $('#btn-delete').addEventListener('click', async ()=>{
+    $('#btn-delete')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
       if(!ids.length) return;
       if(!confirm(`Diese ${ids.length} Slot(s) wirklich löschen?`)) return;
       await bulkDelete(ids); await loadSlots();
     });
-    $('#btn-refresh').addEventListener('click', loadSlots);
+    $('#btn-refresh')?.addEventListener('click', loadSlots);
 
     // ---------- Slot anlegen ----------
     $('#form-slot').addEventListener('submit', async (e)=>{
