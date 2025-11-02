@@ -68,31 +68,41 @@
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
 
     .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
-    .seg .btn{padding:8px 12px}
 
-    /* --- WICHTIG: Buttons immer mit dunkler Schrift --- */
+    /* ---------------------------
+       KNOPF-OVERRIDES (HART)
+       Erzwingen schwarze Schrift,
+       keine Verläufe, sichtbarer Rand
+       --------------------------- */
+    button, .btn { color:#0f172a !important; }
     .btn,
     .btn.primary,
     .btn.action,
-    .btn.danger {
-      color:#0f172a !important;           /* schwarze Schrift */
-      background:#ffffff !important;      /* weißer Button */
-      border:1px solid var(--border) !important;
-      border-radius:12px;
-      font-weight:800;
-      box-shadow: var(--shadow-1);
-      transition: transform .15s, filter .15s;
-    }
-    .btn:hover{ transform: translateY(-1px); filter: brightness(1.04); }
-
-    /* Tabellen-Buttons und Bulk-Buttons ebenfalls */
+    .btn.danger,
+    .seg .btn,
     .table .btn,
-    .seg .btn { color:#0f172a !important; background:#fff !important; }
+    .toolbar .btn {
+      background:#ffffff !important;
+      background-image:none !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important; /* sichtbarer Rand */
+      border-radius:12px !important;
+      font-weight:800 !important;
+      box-shadow: var(--shadow-1) !important;
+      text-shadow:none !important;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: none !important; }
+
+    /* Schnellwahl-Buttons bei "Dauer" deutlich sichtbar */
+    .seg .btn { padding:8px 12px; }
+    .seg .btn[data-hour], .seg .btn[data-min]{
+      background:#f8fafc !important;
+      border-color:#cbd5e1 !important;
+      color:#0f172a !important;
+    }
 
     /* Suchfeld oben rechts über Tabelle */
-    .slot-filter{
-      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    }
+    .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .slot-filter input{
       background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
       border-radius:12px; padding:8px 10px; min-width:220px;
@@ -184,7 +194,7 @@
         <!-- Slot anlegen -->
         <div class="panel">
           <h2>Neuen Slot anlegen</h2>
-          <form id="form-slot" class="grid">
+          <form id="form-slot" class="grid" novalidate>
             <div class="field">
               <label for="sl-title">Titel <span class="req">*</span></label>
               <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
@@ -457,8 +467,9 @@
       for(const s of items){
         const tr = document.createElement('tr');
         const isPending   = s.status === 'pending_review';
-        const isPublished = s.status === 'published';
-        const isArchived  = s.status === 'archived';
+        theStatus = s.status;
+        const isPublished = theStatus === 'published';
+        const isArchived  = theStatus === 'archived';
         const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
         tr.innerHTML = `
@@ -591,8 +602,8 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // ORT / PLZ PFLICHT
-      const loc = $('#sl-location').value.trim();
+      // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
+      const loc = ($('#sl-location').value || '').trim();
       if(!loc){
         $('#sl-location').focus();
         return showMsg('msg-slot','„Ort / PLZ“ ist ein Pflichtfeld.');
@@ -605,16 +616,16 @@
       const endLocal   = new Date(startLocal.getTime() + durMin*60000);
 
       const payload = {
-        title: $('#sl-title').value.trim() || 'Slot',
-        category: $('#sl-cat').value.trim() || 'Sonstiges',
+        title: ($('#sl-title').value||'').trim() || 'Slot',
+        category: ($('#sl-cat').value||'').trim() || 'Sonstiges',
         start_at: toLocalISO(startLocal),
         end_at: toLocalISO(endLocal),
-        location: loc,                               // Pflicht
+        location: loc,
         capacity: parseInt($('#sl-cap').value || '1',10),
         contact_method: 'mail',
         booking_link: null,
         price_cents: $('#sl-price').value ? Math.round(parseFloat($('#sl-price').value)*100) : null,
-        notes: $('#sl-notes').value.trim() || null
+        notes: ($('#sl-notes').value||'').trim() || null
       };
 
       try{
