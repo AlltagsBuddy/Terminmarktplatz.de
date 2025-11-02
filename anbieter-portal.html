@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#6f53ff" />
   <base href="/">
 
-  <!-- OG/Twitter -->
+  <!-- OG/Twitter minimal -->
   <meta property="og:type" content="website"/>
   <meta property="og:title" content="Anbieter-Portal | Terminmarktplatz"/>
   <meta property="og:image" content="static/og-cover.png"/>
@@ -17,8 +17,10 @@
   <!-- GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
   <script>
-    window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date()); gtag('config', 'G-YNZ8GW523R');
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
   </script>
 
   <!-- Assets -->
@@ -26,39 +28,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/style.css?v=20251010"/>
+  <link rel="stylesheet" href="static/style.css?v=20251102"/>
 
   <style>
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
     .grid{display:grid; gap:16px}
-    @media(min-width:920px){ .grid-2{grid-template-columns:1fr 1fr} }
+    @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
-    /* ---------- Einheitliche, gut lesbare Buttons ---------- */
-    :root{
-      --btn-bg:#eef2f7;          /* heller Hintergrund */
-      --btn-bg-hover:#e5eaf1;
-      --btn-ink:#0b0f1a;         /* dunkle Schrift */
-      --btn-border:#cfd7e3;
-    }
-    .btn, button.btn, a.btn{
-      display:inline-flex; align-items:center; justify-content:center; gap:8px;
-      padding:10px 14px; border-radius:12px; border:1px solid var(--btn-border);
-      background:var(--btn-bg); color:var(--btn-ink) !important; font-weight:800;
-      box-shadow:var(--shadow-1); transition:transform .12s, filter .12s, background .12s;
-      text-decoration:none; cursor:pointer;
-    }
-    .btn:hover{ background:var(--btn-bg-hover); transform:translateY(-1px); }
-    .btn.primary{ background:var(--btn-bg); }
-    .btn.action{ background:var(--btn-bg); }
-    .btn.danger{ background:var(--btn-bg); }
-    .seg .btn[disabled], .btn[disabled]{ opacity:.55; pointer-events:none; }
-
-    /* Eingaben / Felder */
-    .field{display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
-      border:1px solid var(--border); border-radius:12px; padding:10px;}
+    /* Formular */
+    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
+            border:1px solid var(--border); border-radius:12px; padding:10px; }
     .field input,.field select,.field textarea{
       background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
-      border-radius:12px; padding:10px; box-shadow:inset 0 1px 0 rgba(0,0,0,.03);
+      border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
     }
     .field input::placeholder,.field textarea::placeholder{ color:#64748b }
     .field input:focus,.field select:focus,.field textarea:focus{
@@ -71,7 +53,7 @@
 
     /* Tabelle */
     .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
-      border-radius:14px; overflow:hidden}
+           border-radius:14px; overflow:hidden}
     .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
     .table th{background:#f8fafc; color:#0f172a}
     .table th:first-child,.table td:first-child{ text-align:center; width:34px }
@@ -86,14 +68,35 @@
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
 
     .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
-    .seg .btn{padding:6px 10px}
+    .seg .btn{padding:8px 12px}
 
-    /* Buttons in der Tabelle – auch hier dunkle Schrift + heller BG */
-    .table .btn{ background:var(--btn-bg); color:var(--btn-ink) !important; border:1px solid var(--btn-border); }
-    .table .btn:hover{ background:var(--btn-bg-hover); transform:translateY(-1px); }
+    /* --- WICHTIG: Buttons immer mit dunkler Schrift --- */
+    .btn,
+    .btn.primary,
+    .btn.action,
+    .btn.danger {
+      color:#0f172a !important;           /* schwarze Schrift */
+      background:#ffffff !important;      /* weißer Button */
+      border:1px solid var(--border) !important;
+      border-radius:12px;
+      font-weight:800;
+      box-shadow: var(--shadow-1);
+      transition: transform .15s, filter .15s;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.04); }
 
-    /* Sucheingabe oben der Tabelle */
-    #slot-search{ padding:10px; border:1px solid var(--btn-border); border-radius:12px; background:#fff; color:#0f172a; }
+    /* Tabellen-Buttons und Bulk-Buttons ebenfalls */
+    .table .btn,
+    .seg .btn { color:#0f172a !important; background:#fff !important; }
+
+    /* Suchfeld oben rechts über Tabelle */
+    .slot-filter{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .slot-filter input{
+      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
+      border-radius:12px; padding:8px 10px; min-width:220px;
+    }
   </style>
 </head>
 <body class="page-portal">
@@ -187,6 +190,7 @@
               <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
             </div>
 
+            <!-- Kategorie -->
             <div class="field">
               <label for="sl-cat">Kategorie <span class="req">*</span></label>
               <select id="sl-cat" name="category" required>
@@ -203,24 +207,24 @@
               <input id="sl-start" type="time" step="60" required/>
             </div>
 
-            <!-- Dauer: Minuten ODER Stunden -->
+            <!-- Dauer: Minuten oder Stunden -->
             <div class="field">
               <label for="sl-duration">Dauer <span class="req">*</span></label>
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-                <input id="sl-duration" type="number" min="1" step="1" value="30" required style="max-width:120px"/>
-                <select id="sl-dur-unit" aria-label="Einheit">
-                  <option value="min" selected>Minuten</option>
+              <div style="display:flex; gap:8px; align-items:center">
+                <input id="sl-duration" type="number" min="1" step="1" value="30" required style="flex:1"/>
+                <select id="sl-unit" aria-label="Einheit">
+                  <option value="min">Minuten</option>
                   <option value="h">Stunden</option>
                 </select>
-                <div class="seg">
-                  <button type="button" class="btn" data-unit="min" data-val="15">15 min</button>
-                  <button type="button" class="btn" data-unit="min" data-val="30">30 min</button>
-                  <button type="button" class="btn" data-unit="min" data-val="45">45 min</button>
-                  <button type="button" class="btn" data-unit="min" data-val="60">60 min</button>
-                  <button type="button" class="btn" data-unit="min" data-val="90">90 min</button>
-                  <button type="button" class="btn" data-unit="h" data-val="2">2 h</button>
-                  <button type="button" class="btn" data-unit="h" data-val="3">3 h</button>
-                </div>
+              </div>
+              <div class="seg">
+                <button type="button" class="btn" data-min="15">15&nbsp;min</button>
+                <button type="button" class="btn" data-min="30">30&nbsp;min</button>
+                <button type="button" class="btn" data-min="45">45&nbsp;min</button>
+                <button type="button" class="btn" data-min="60">60&nbsp;min</button>
+                <button type="button" class="btn" data-min="90">90&nbsp;min</button>
+                <button type="button" class="btn" data-hour="1">1&nbsp;h</button>
+                <button type="button" class="btn" data-hour="2">2&nbsp;h</button>
               </div>
             </div>
 
@@ -229,10 +233,11 @@
               <input id="sl-end" type="time" readonly/>
             </div>
 
-            <!-- WICHTIG: Ort / PLZ ist Pflicht -->
+            <!-- ORT / PLZ – PFLICHT -->
             <div class="field">
               <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
-              <input id="sl-location" name="location" placeholder="z. B. 96047 Bamberg oder 96047" required/>
+              <input id="sl-location" name="location" placeholder="z. B. 96191 Viereth / Filiale Zentrum"
+                     required pattern="(\d{5}|.{3,})" title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)"/>
             </div>
 
             <div class="field">
@@ -258,19 +263,19 @@
 
         <!-- Meine Slots -->
         <div class="panel" style="grid-column:1/-1">
-          <div class="toolbar" style="justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div class="toolbar" style="justify-content:space-between">
             <h2 style="margin:0">Meine Slots</h2>
-
-            <!-- Suche nach Titel oder Kategorie -->
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-              <input id="slot-search" placeholder="Titel oder Kategorie suchen…" style="min-width:220px"/>
-              <label class="check">
-                <input type="checkbox" id="chk-all"> Alle auswählen
-              </label>
-              <button class="btn action" id="btn-publish" disabled>Veröffentlichen</button>
-              <button class="btn" id="btn-archive" disabled>Archivieren</button>
-              <button class="btn danger" id="btn-delete" disabled>Löschen</button>
-              <button class="btn" id="btn-refresh">Aktualisieren</button>
+            <div class="slot-filter">
+              <input id="slot-search" type="text" placeholder="Suche Titel oder Kategorie …">
+              <div class="seg">
+                <label class="check">
+                  <input type="checkbox" id="chk-all"> Alle auswählen
+                </label>
+                <button class="btn action" id="btn-publish" disabled>Veröffentlichen</button>
+                <button class="btn" id="btn-archive" disabled>Archivieren</button>
+                <button class="btn danger" id="btn-delete" disabled>Löschen</button>
+                <button class="btn" id="btn-refresh">Aktualisieren</button>
+              </div>
             </div>
           </div>
 
@@ -287,7 +292,7 @@
                   <th>Ende</th>
                   <th>Titel</th>
                   <th>Kategorie</th>
-                  <th class="nowrap">Ort / PLZ</th>
+                  <th class="nowrap">Ort</th>
                   <th>Kap.</th>
                   <th>Status</th>
                   <th class="nowrap">Aktionen</th>
@@ -306,6 +311,7 @@
   </main>
 
   <script>
+    // ---------- API-Basis ----------
     const API = (()=> {
       const h = location.hostname;
       if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
@@ -318,7 +324,8 @@
     function showMsg(id, text, ok=false){
       const el = document.getElementById(id);
       el.className = 'msg ' + (ok ? 'ok' : 'err');
-      el.textContent = text; el.style.display = 'block';
+      el.textContent = text;
+      el.style.display = 'block';
       setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 4200);
     }
 
@@ -334,18 +341,19 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    /* Kategorien */
+    // ---------- Kategorien (Dropdown) ----------
     const CATEGORIES = [
       "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
       "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
     ];
     function fillCategoryOptions(){
-      const sel = $('#sl-cat'); if(!sel) return;
+      const sel = $('#sl-cat');
+      if(!sel) return;
       sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
         + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    /* Auth + Profil laden */
+    // ---------- Auth-Gate / Me ----------
     let ME = null;
     async function requireAuth(){
       const r = await fetch(`${API}/me`, {credentials:'include'});
@@ -360,7 +368,7 @@
       $('#pf-whatsapp').value= ME.whatsapp || '';
     }
 
-    /* Profil speichern */
+    // ---------- Profil speichern ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = {
@@ -374,62 +382,86 @@
       };
       try{
         const r = await fetch(`${API}/me`, {
-          method:'PUT', headers:{'Content-Type':'application/json'},
-          credentials:'include', body: JSON.stringify(payload)
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
         });
         const data = await r.json().catch(()=> ({}));
-        if(r.ok){ showMsg('msg-profile','Gespeichert ✓', true); }
-        else{
-          const map = { unauthorized:'Bitte erneut anmelden.', invalid_zip:'PLZ muss 5-stellig sein.',
-            db_constraint_error:'Ungültige/fehlende Felder.', db_error:'Datenbankfehler.' };
+        if(r.ok){
+          showMsg('msg-profile','Gespeichert ✓', true);
+        }else{
+          const map = {
+            unauthorized: 'Bitte erneut anmelden.',
+            invalid_zip: 'PLZ muss 5-stellig sein.',
+            db_constraint_error: 'Ungültige/fehlende Felder (DB-Vorgaben).',
+            db_error: 'Datenbankfehler.'
+          };
           showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
-          if(r.status===401) location.href='login.html?tab=login';
+          if(r.status === 401) location.href = 'login.html?tab=login';
         }
-      }catch{ showMsg('msg-profile','Netzwerkfehler.'); }
+      }catch(e){
+        showMsg('msg-profile','Netzwerkfehler.');
+      }
     });
 
-    /* Dauer → Ende berechnen */
-    function getDurationMinutes(){
-      const val = parseFloat($('#sl-duration').value || '0');
-      const unit = $('#sl-dur-unit').value; return (!val||val<=0)?0:(unit==='h'?Math.round(val*60):Math.round(val));
+    // ---------- Slot-Form: Dauer -> Ende berechnen ----------
+    function totalMinutes(){
+      const val = parseInt($('#sl-duration').value||'0',10);
+      const unit = $('#sl-unit').value;
+      if(!val) return 0;
+      return unit === 'h' ? val*60 : val;
     }
     function recalcEnd(){
-      const d=$('#sl-date').value, t=$('#sl-start').value, min=getDurationMinutes();
-      if(!d||!t||!min){ $('#sl-end').value=''; return; }
-      const start=joinDateTime(d,t); const end=new Date(start.getTime()+min*60000);
+      const d = $('#sl-date').value, t = $('#sl-start').value, min = totalMinutes();
+      if(!d || !t || !min){ $('#sl-end').value=''; return; }
+      const start = joinDateTime(d,t);
+      const end = new Date(start.getTime() + min*60000);
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
     $('#sl-date').addEventListener('change', recalcEnd);
     $('#sl-start').addEventListener('input', recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
-    $('#sl-dur-unit').addEventListener('change', recalcEnd);
-    $$('#form-slot .seg [data-unit]').forEach(b=>b.addEventListener('click',()=>{
-      $('#sl-dur-unit').value=b.dataset.unit; $('#sl-duration').value=b.dataset.val; recalcEnd();
+    $('#sl-unit').addEventListener('change', recalcEnd);
+
+    $$('#form-slot .seg [data-min]').forEach(b=>b.addEventListener('click', ()=>{
+      $('#sl-unit').value = 'min';
+      $('#sl-duration').value = b.dataset.min;
+      recalcEnd();
+    }));
+    $$('#form-slot .seg [data-hour]').forEach(b=>b.addEventListener('click', ()=>{
+      $('#sl-unit').value = 'h';
+      $('#sl-duration').value = b.dataset.hour;
+      recalcEnd();
     }));
 
-    /* Slot-Liste */
-    let SELECTED=new Set(), SLOT_CACHE=[], SLOT_FILTER="";
+    // ---------- Slots laden & rendern + Freigabe-Workflow ----------
+    let SELECTED = new Set();
+    let LAST_ITEMS = [];
+
     function updateBulkButtons(items){
-      const byId=Object.fromEntries(items.map(x=>[x.id,x])); const ids=[...SELECTED];
-      const any=ids.length>0, anyPending=ids.some(id=>(byId[id]?.status==='pending_review'||byId[id]?.status==='archived'));
-      const anyPub=ids.some(id=>byId[id]?.status==='published');
-      $('#btn-publish').disabled=!(any&&anyPending);
-      $('#btn-archive').disabled=!(any&&anyPub);
-      $('#btn-delete').disabled=!any;
+      const byId = Object.fromEntries(items.map(x => [x.id, x]));
+      const ids = [...SELECTED];
+      const any = ids.length > 0;
+      const anyPending = ids.some(id => (byId[id]?.status === 'pending_review' || byId[id]?.status === 'archived'));
+      const anyPub     = ids.some(id => byId[id]?.status === 'published');
+      $('#btn-publish').disabled = !(any && anyPending);
+      $('#btn-archive').disabled = !(any && anyPub);
+      $('#btn-delete').disabled  = !any;
     }
-    function renderSlots(items){
-      const tbody=$('#tbl-slots tbody');
-      const q=(SLOT_FILTER||'').trim().toLowerCase();
-      const list= q? items.filter(s=>(s.title||'').toLowerCase().includes(q)||(s.category||'').toLowerCase().includes(q)) : items;
 
-      if(!list.length){ tbody.innerHTML=`<tr><td colspan="9" class="muted">${items.length?`Keine Treffer für „${SLOT_FILTER}“.`: 'Noch keine Slots angelegt.'}</td></tr>`; return; }
-      tbody.innerHTML='';
+    function renderTable(items){
+      const tbody = $('#tbl-slots tbody');
+      if(!items.length){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`; return; }
+      tbody.innerHTML = '';
+      for(const s of items){
+        const tr = document.createElement('tr');
+        const isPending   = s.status === 'pending_review';
+        const isPublished = s.status === 'published';
+        const isArchived  = s.status === 'archived';
+        const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
-      for(const s of list){
-        const isPending=s.status==='pending_review', isPublished=s.status==='published', isArchived=s.status==='archived';
-        const stClass=isPublished?'st-pub':(isArchived?'st-arch':'st-pending');
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
+        tr.innerHTML = `
           <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
           <td>${fmtLocal(s.start_at)}</td>
           <td>${fmtLocal(s.end_at)}</td>
@@ -439,93 +471,193 @@
           <td>${s.capacity||1}</td>
           <td><span class="badge-st ${stClass}">${s.status}</span></td>
           <td class="nowrap">
-            ${isPending||isArchived?`<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>`:''}
-            ${isPublished?`<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>`:''}
+            ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
-          </td>`;
+          </td>
+        `;
         tbody.appendChild(tr);
       }
 
-      $$('#tbl-slots .row-check').forEach(cb=>{
-        cb.addEventListener('change',()=>{ const id=cb.dataset.id; if(cb.checked)SELECTED.add(id); else SELECTED.delete(id); updateBulkButtons(items);});
+      // Zeilen-Checkboxen
+      $$('#tbl-slots .row-check').forEach(cb => {
+        cb.addEventListener('change', ()=>{
+          const id = cb.dataset.id;
+          if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+          updateBulkButtons(items);
+        });
       });
-      $$('#tbl-slots [data-del]').forEach(b=>b.addEventListener('click',async()=>{await delSlot(b.dataset.del); await loadSlots();}));
-      $$('#tbl-slots [data-arch]').forEach(b=>b.addEventListener('click',async()=>{await setStatus(b.dataset.arch,b.dataset.status); await loadSlots();}));
-      $('#chk-all').onchange=(e)=>{ SELECTED.clear(); $$('#tbl-slots .row-check').forEach(cb=>{cb.checked=e.target.checked; if(cb.checked)SELECTED.add(cb.dataset.id);}); updateBulkButtons(items); };
+
+      // Einzelaktionen
+      $$('#tbl-slots [data-del]').forEach(b =>
+        b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
+      );
+      $$('#tbl-slots [data-arch]').forEach(b =>
+        b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
+      );
+
+      // Master-Checkbox
+      $('#chk-all').onchange = (e) => {
+        SELECTED.clear();
+        $$('#tbl-slots .row-check').forEach(cb => {
+          cb.checked = e.target.checked;
+          if(cb.checked) SELECTED.add(cb.dataset.id);
+        });
+        updateBulkButtons(items);
+      };
+
       updateBulkButtons(items);
     }
+
     async function loadSlots(){
-      const tbody=$('#tbl-slots tbody'); tbody.innerHTML=`<tr><td colspan="9" class="muted">Lade …</td></tr>`;
-      SELECTED.clear(); $('#chk-all').checked=false;
+      const tbody = $('#tbl-slots tbody');
+      tbody.innerHTML = `<tr><td colspan="9" class="muted">Lade …</td></tr>`;
+      SELECTED.clear(); $('#chk-all').checked = false;
+
       try{
-        const r=await fetch(`${API}/slots`,{credentials:'include'});
-        if(!r.ok){ tbody.innerHTML=`<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`; return; }
-        SLOT_CACHE=await r.json(); renderSlots(SLOT_CACHE);
-      }catch{ tbody.innerHTML=`<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>`; }
+        const r = await fetch(`${API}/slots`, {credentials:'include'});
+        if(!r.ok){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`; return; }
+        LAST_ITEMS = await r.json();
+        renderTable(LAST_ITEMS);
+      }catch(e){
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>`;
+      }
     }
+
+    // Live-Suche Titel/Kategorie
+    $('#slot-search').addEventListener('input', ()=>{
+      const q = $('#slot-search').value.trim().toLowerCase();
+      if(!q) return renderTable(LAST_ITEMS);
+      const filtered = LAST_ITEMS.filter(s =>
+        (s.title||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q)
+      );
+      renderTable(filtered);
+    });
+
     async function delSlot(id){
       if(!confirm('Diesen Slot wirklich löschen?')) return;
-      try{ const r=await fetch(`${API}/slots/${id}`,{method:'DELETE',credentials:'include'}); if(!r.ok) showMsg('msg-slots','Konnte Slot nicht löschen.'); }
-      catch{ showMsg('msg-slots','Netzwerkfehler.'); }
-    }
-    async function setStatus(id,status){
       try{
-        const r=await fetch(`${API}/slots/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({status})});
+        const r = await fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'});
+        if(!r.ok) showMsg('msg-slots','Konnte Slot nicht löschen.');
+      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
+    }
+    async function setStatus(id, status){
+      try{
+        const r = await fetch(`${API}/slots/${id}`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({status})
+        });
         if(!r.ok) showMsg('msg-slots','Konnte Status nicht ändern.');
-      }catch{ showMsg('msg-slots','Netzwerkfehler.'); }
+      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
-    $('#btn-publish').addEventListener('click', async ()=>{ const ids=[...SELECTED]; await Promise.all(ids.map(id=>fetch(`${API}/slots/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({status:'published'})}))); await loadSlots(); });
-    $('#btn-archive').addEventListener('click', async ()=>{ const ids=[...SELECTED]; await Promise.all(ids.map(id=>fetch(`${API}/slots/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({status:'archived'})}))); await loadSlots(); });
-    $('#btn-delete').addEventListener('click', async ()=>{ const ids=[...SELECTED]; if(!ids.length) return; if(!confirm(`Diese ${ids.length} Slot(s) wirklich löschen?`)) return; await Promise.all(ids.map(id=>fetch(`${API}/slots/${id}`,{method:'DELETE',credentials:'include'}))); await loadSlots(); });
-    $('#btn-refresh').addEventListener('click', loadSlots);
-    $('#slot-search').addEventListener('input', e=>{ SLOT_FILTER=e.target.value||''; renderSlots(SLOT_CACHE); });
 
-    /* Slot anlegen */
-    function validateRequiredLocation(){
-      const loc=$('#sl-location').value.trim();
-      if(!loc){ $('#sl-location').focus(); showMsg('msg-slot','Bitte „Ort / PLZ“ ausfüllen.'); return false; }
-      return true;
+    // Bulk-Aktionen
+    async function bulkSetStatus(ids, status){
+      if(!ids.length) return;
+      await Promise.all(ids.map(id =>
+        fetch(`${API}/slots/${id}`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({status})
+        })
+      ));
     }
+    async function bulkDelete(ids){
+      if(!ids.length) return;
+      await Promise.all(ids.map(id =>
+        fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'})
+      ));
+    }
+    $('#btn-publish').addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      await bulkSetStatus(ids, 'published'); await loadSlots();
+    });
+    $('#btn-archive').addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      await bulkSetStatus(ids, 'archived'); await loadSlots();
+    });
+    $('#btn-delete').addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      if(!ids.length) return;
+      if(!confirm(`Diese ${ids.length} Slot(s) wirklich löschen?`)) return;
+      await bulkDelete(ids); await loadSlots();
+    });
+    $('#btn-refresh').addEventListener('click', loadSlots);
+
+    // ---------- Slot anlegen ----------
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      if(!validateRequiredLocation()) return;
 
-      const date=$('#sl-date').value, time=$('#sl-start').value, durMin=getDurationMinutes();
-      if(!date||!time||!durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
+      // ORT / PLZ PFLICHT
+      const loc = $('#sl-location').value.trim();
+      if(!loc){
+        $('#sl-location').focus();
+        return showMsg('msg-slot','„Ort / PLZ“ ist ein Pflichtfeld.');
+      }
 
-      const startLocal=joinDateTime(date,time);
-      const endLocal=new Date(startLocal.getTime()+durMin*60000);
+      const date = $('#sl-date').value, time = $('#sl-start').value, durMin = totalMinutes();
+      if(!date || !time || !durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
 
-      const payload={
-        title:$('#sl-title').value.trim()||'Slot',
-        category:$('#sl-cat').value.trim()||'Sonstiges',
-        start_at:toLocalISO(startLocal),
-        end_at:toLocalISO(endLocal),
-        location:$('#sl-location').value.trim(), /* Pflicht */
-        capacity:parseInt($('#sl-cap').value||'1',10),
-        contact_method:'mail', booking_link:null,
-        price_cents:$('#sl-price').value?Math.round(parseFloat($('#sl-price').value)*100):null,
-        notes:$('#sl-notes').value.trim()||null
+      const startLocal = joinDateTime(date,time);
+      const endLocal   = new Date(startLocal.getTime() + durMin*60000);
+
+      const payload = {
+        title: $('#sl-title').value.trim() || 'Slot',
+        category: $('#sl-cat').value.trim() || 'Sonstiges',
+        start_at: toLocalISO(startLocal),
+        end_at: toLocalISO(endLocal),
+        location: loc,                               // Pflicht
+        capacity: parseInt($('#sl-cap').value || '1',10),
+        contact_method: 'mail',
+        booking_link: null,
+        price_cents: $('#sl-price').value ? Math.round(parseFloat($('#sl-price').value)*100) : null,
+        notes: $('#sl-notes').value.trim() || null
       };
 
       try{
-        const r=await fetch(`${API}/slots`,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(payload)});
-        const data=await r.json().catch(()=>({}));
+        const r = await fetch(`${API}/slots`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json().catch(()=> ({}));
         if(r.ok){
-          showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓',true);
-          e.target.reset(); $('#sl-dur-unit').value='min'; $('#sl-duration').value='30'; recalcEnd(); fillCategoryOptions(); await loadSlots();
+          showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
+          e.target.reset(); $('#sl-unit').value='min'; recalcEnd(); fillCategoryOptions(); await loadSlots();
         }else{
-          const m={missing_fields:'Pflichtfelder fehlen.',bad_datetime:'Datum/Uhrzeit ungültig.',end_before_start:'Ende vor Start.',limit_reached:'Limit erreicht.',start_in_past:'Start liegt in der Vergangenheit.',bad_capacity:'Kapazität ungültig.',db_constraint_error:'Kategorie nicht DB-konform.',db_error:'Datenbankfehler.'};
-          showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail?' ('+data.detail+')':''}`);
+          const m = {
+            missing_fields:'Pflichtfelder fehlen.',
+            missing_location:'„Ort / PLZ“ ist ein Pflichtfeld.',
+            bad_datetime:'Datum/Uhrzeit ungültig.',
+            end_before_start:'Ende liegt vor dem Start.',
+            limit_reached:'Limit erreicht.',
+            start_in_past:'Start darf nicht in der Vergangenheit liegen.',
+            bad_capacity:'Kapazität ungültig.',
+            db_constraint_error:'Kategorie entspricht nicht den DB-Vorgaben.',
+            db_error:'Datenbankfehler.'
+          };
+          showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
         }
-      }catch{ showMsg('msg-slot','Netzwerkfehler.'); }
+      }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
     });
 
-    /* Logout */
-    $('#btn-logout').addEventListener('click', async ()=>{ try{ await fetch(`${API}/auth/logout`,{method:'POST',credentials:'include'});}catch{} location.href='login.html?tab=login'; });
+    // ---------- Logout ----------
+    $('#btn-logout').addEventListener('click', async ()=>{
+      try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
+      location.href = 'login.html?tab=login';
+    });
 
-    /* Init */
-    (async function init(){ await requireAuth(); fillCategoryOptions(); recalcEnd(); await loadSlots(); })();
+    // ---------- Init ----------
+    (async function init(){
+      await requireAuth();
+      fillCategoryOptions();
+      recalcEnd();
+      await loadSlots();
+    })();
   </script>
 
   <!-- Footer -->
@@ -559,7 +691,7 @@
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
-    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+    <script>document.getElementById('y').textContent=new Date().getFullYear();</script>
   </footer>
 </body>
 </html>
