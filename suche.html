@@ -201,11 +201,6 @@
       const d = new Date(iso);
       return d.toLocaleString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     };
-    const dateOnlyISO = (iso, tz='de-DE') => {
-      const d = new Date(iso);
-      const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${dd}`;
-    };
     const inZeitfenster = (iso, zeit) => {
       if (!zeit) return true;
       const h = new Date(iso).getHours();
@@ -230,6 +225,11 @@
     $('#f-datum').value = datum;
     $('#f-zeit').value = zeit;
 
+    // Wenn kein Datum gesetzt → heute vorfüllen (bessere Treffer)
+    if (!$('#f-datum').value) {
+      $('#f-datum').value = new Date().toISOString().slice(0,10);
+    }
+
     // Filterformular: GET-Reload ist ok – wir rendern danach.
     $('#filters').addEventListener('submit', (e)=>{ /* Standard-Submit genügt */ });
 
@@ -244,48 +244,46 @@
       empty.style.display = 'none';
       summary.textContent = 'Suche wird geladen …';
 
-      // API-Params
+      // URL-Parameter nach möglichem Reload erneut lesen
+      const sp2   = new URLSearchParams(location.search);
+      const q2    = (sp2.get('q')||'').trim();
+      const ort2  = (sp2.get('ort')||'').trim();
+      const dat2  = (sp2.get('datum')||'').trim() || new Date().toISOString().slice(0,10);
+      const zeit2 = (sp2.get('zeit')||'').trim().toLowerCase();
+
+      // ---- API-Parameter (NEU: day + city/zip)
       const params = new URLSearchParams();
-      // from = start des gewählten Tages (oder jetzt, falls leer)
-      let fromDate = datum ? new Date(datum + 'T00:00:00') : new Date();
-      params.set('from', fromDate.toISOString());
+      params.set('day', dat2);
 
-      // Kategorie → nur wenn exakte Kategorie (sonst Freitextfilter)
-      if (q && KATS.has(q)) params.set('category', q);
+      const isExactCategory = q2 && KATS.has(q2);
+      if (isExactCategory) params.set('category', q2);
 
-      // PLZ → zip (wenn Stadtname, dann später clientseitig filtern)
-      if (isZip(ort)) params.set('zip', ort);
+      if (isZip(ort2)) params.set('zip', ort2);
+      else if (ort2)   params.set('city', ort2);
 
-      // Call
+      // Optional: volle Slots ebenfalls anzeigen (Debug)
+      // params.set('include_full','1');
+
       let data = [];
       try {
         const url = `${API}/public/slots?` + params.toString();
-        const res = await fetch(url, { credentials: 'include' });
+        const res = await fetch(url, { credentials:'include' });
         if (!res.ok) throw new Error(`API ${res.status}`);
         data = await res.json();
       } catch (e) {
+        console.error(e);
         summary.textContent = 'Fehler beim Laden der Slots.';
         return;
       }
 
-      // Clientseitige Filter: Datum exakt am Tag, Zeitfenster, Stadtname, Freitext
-      const wantedDay = datum || null;
-      const kw = (q || '').toLowerCase();
-      const wantCity = (!isZip(ort) && ort) ? ort.toLowerCase() : null;
-
+      // Clientseitig nur noch Zeitfenster + Freitext (falls keine exakte Kategorie)
+      const kw = (q2 || '').toLowerCase();
       let items = data.filter(x => {
-        // Datum exakt?
-        const sameDay = wantedDay ? (dateOnlyISO(x.start_at) === wantedDay) : true;
-        // Zeitfenster?
-        const okZeit = inZeitfenster(x.start_at, zeit);
-        // Stadtname?
-        const city = (x.provider_city || x.location || '').toLowerCase();
-        const okCity = wantCity ? city.includes(wantCity) : true;
-        // Freitext (wenn q keine exakte Kategorie war)
-        const okKW = (!q || KATS.has(q))
+        const okZeit = inZeitfenster(x.start_at, zeit2);
+        const okKW   = (isExactCategory || !kw)
           ? true
           : ((x.title||'').toLowerCase().includes(kw) || (x.category||'').toLowerCase().includes(kw));
-        return sameDay && okZeit && okCity && okKW;
+        return okZeit && okKW;
       });
 
       // Sortierung
@@ -301,17 +299,20 @@
         empty.style.display = 'block';
         return;
       }
-      summary.innerHTML = `${items.length} Treffer <span class="muted">für ${ort || 'alle Orte'} am ${ (wantedDay ? new Date(wantedDay) : fromDate).toLocaleDateString('de-DE') }</span>`;
+      summary.innerHTML = `${items.length} Treffer <span class="muted">für ${ort2 || 'alle Orte'} am ${ new Date(dat2).toLocaleDateString('de-DE') }</span>`;
 
       const frag = document.createDocumentFragment();
       items.forEach((x) => {
         const cityShow = x.provider_city || x.location || '';
+        const availableBadge = (typeof x.available === 'number')
+          ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
+          : '';
         const el = document.createElement('div');
         el.className = 'card';
         el.innerHTML = `
           <div style="display:flex; justify-content:space-between; gap:10px; align-items:start">
             <div>
-              <h3>${x.title || 'Termin'}</h3>
+              <h3>${x.title || 'Termin'} ${availableBadge}</h3>
               <p class="muted">
                 <b>${fmtDateTime(x.start_at)}</b>
                 · Kategorie: ${x.category || '—'}
