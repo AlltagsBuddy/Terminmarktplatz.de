@@ -212,26 +212,28 @@
     const isZip = (s) => /^\d{5}$/.test(s || '');
     const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
 
-    // URL-Parameter → Filter übernehmen
-    const sp = new URLSearchParams(location.search);
+    // URL-Parameter → Filter übernehmen (inkl. RADIUS)
+    const sp    = new URLSearchParams(location.search);
     const q     = (sp.get('q')||'').trim();
     const ort   = (sp.get('ort')||'').trim();
     const datum = (sp.get('datum')||'').trim();
     const zeit  = (sp.get('zeit')||'').trim().toLowerCase();
+    const radius= (sp.get('radius')||'').trim();
 
-    // Felder füllen
+    // Felder füllen (damit Auswahl stehen bleibt)
     $('#f-q').value = q;
     $('#f-ort').value = ort;
     $('#f-datum').value = datum;
     $('#f-zeit').value = zeit;
+    $('#f-radius').value = radius;
 
-    // Wenn kein Datum gesetzt → heute vorfüllen (bessere Treffer)
+    // Falls kein Datum gesetzt → heute vorfüllen (bessere Treffer)
     if (!$('#f-datum').value) {
       $('#f-datum').value = new Date().toISOString().slice(0,10);
     }
 
-    // Filterformular: GET-Reload ist ok – wir rendern danach.
-    $('#filters').addEventListener('submit', (e)=>{ /* Standard-Submit genügt */ });
+    // Filterformular: GET-Reload ist ok
+    $('#filters').addEventListener('submit', ()=>{ /* Standard-Submit genügt */ });
 
     // Fetch + Render
     async function load() {
@@ -245,13 +247,14 @@
       summary.textContent = 'Suche wird geladen …';
 
       // URL-Parameter nach möglichem Reload erneut lesen
-      const sp2   = new URLSearchParams(location.search);
-      const q2    = (sp2.get('q')||'').trim();
-      const ort2  = (sp2.get('ort')||'').trim();
-      const dat2  = (sp2.get('datum')||'').trim() || new Date().toISOString().slice(0,10);
-      const zeit2 = (sp2.get('zeit')||'').trim().toLowerCase();
+      const s2     = new URLSearchParams(location.search);
+      const q2     = (s2.get('q')||'').trim();
+      const ort2   = (s2.get('ort')||'').trim();
+      const dat2   = (s2.get('datum')||'').trim() || new Date().toISOString().slice(0,10);
+      const zeit2  = (s2.get('zeit')||'').trim().toLowerCase();
+      const rad2   = (s2.get('radius')||'').trim();
 
-      // ---- API-Parameter (NEU: day + city/zip)
+      // ---- API-Parameter (day + city/zip + radius)
       const params = new URLSearchParams();
       params.set('day', dat2);
 
@@ -261,8 +264,7 @@
       if (isZip(ort2)) params.set('zip', ort2);
       else if (ort2)   params.set('city', ort2);
 
-      // Optional: volle Slots ebenfalls anzeigen (Debug)
-      // params.set('include_full','1');
+      if (rad2 && /^\d+$/.test(rad2)) params.set('radius', rad2); // <<< entscheidend
 
       let data = [];
       try {
@@ -276,7 +278,7 @@
         return;
       }
 
-      // Clientseitig nur noch Zeitfenster + Freitext (falls keine exakte Kategorie)
+      // Clientseitig nur noch Zeitfenster + Freitext (wenn keine exakte Kategorie)
       const kw = (q2 || '').toLowerCase();
       let items = data.filter(x => {
         const okZeit = inZeitfenster(x.start_at, zeit2);
@@ -299,7 +301,11 @@
         empty.style.display = 'block';
         return;
       }
-      summary.innerHTML = `${items.length} Treffer <span class="muted">für ${ort2 || 'alle Orte'} am ${ new Date(dat2).toLocaleDateString('de-DE') }</span>`;
+      summary.innerHTML = `${items.length} Treffer <span class="muted">
+        ${ort2 ? `für ${ort2}` : 'für alle Orte'}
+        ${rad2 ? ` (±${rad2} km)` : ''}
+        am ${ new Date(dat2).toLocaleDateString('de-DE') }
+      </span>`;
 
       const frag = document.createDocumentFragment();
       items.forEach((x) => {
