@@ -4,13 +4,15 @@ import traceback
 from datetime import datetime, timedelta, timezone, time
 from zoneinfo import ZoneInfo
 
-# ganz oben bei den Imports
+import time
+import requests
+from sqlalchemy import text
+
 try:
     from zoneinfo import ZoneInfo
 except Exception:
     from backports.zoneinfo import ZoneInfo  # falls Python < 3.9
 BERLIN = ZoneInfo("Europe/Berlin")
-
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -19,7 +21,7 @@ from flask import (
     render_template, url_for, abort
 )
 from flask_cors import CORS
-from sqlalchemy import create_engine, select, and_, func, or_
+from sqlalchemy import create_engine, select, and_, func, or_, literal, cast, Float
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from argon2 import PasswordHasher
@@ -91,6 +93,27 @@ elif DB_URL.startswith("postgresql://"):
 # --------------------------------------------------------
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)
+
+def _ensure_geo_tables():
+    """
+    Legt geocode_cache an und fügt provider.lat/lon hinzu (idempotent).
+    """
+    ddl_cache = """
+    CREATE TABLE IF NOT EXISTS geocode_cache (
+      key text PRIMARY KEY,
+      lat double precision,
+      lon double precision,
+      updated_at timestamp with time zone DEFAULT now()
+    );
+    """
+    ddl_provider_lat = "ALTER TABLE provider ADD COLUMN IF NOT EXISTS lat double precision;"
+    ddl_provider_lon = "ALTER TABLE provider ADD COLUMN IF NOT EXISTS lon double precision;"
+    with engine.begin() as conn:
+        conn.exec_driver_sql(ddl_cache)
+        conn.exec_driver_sql(ddl_provider_lat)
+        conn.exec_driver_sql(ddl_provider_lon)
+
+_ensure_geo_tables()
 
 # --------------------------------------------------------
 # CORS & Security Headers
@@ -251,7 +274,6 @@ def send_mail(to: str, subject: str, text: str):
             return True, "console"
 
         if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
-            import requests
             payload = {"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text, "ReplyTo": REPLY_TO}
             r = requests.post(
                 "https://api.postmarkapp.com/email",
@@ -311,6 +333,61 @@ def _status_transition_ok(current: str, new: str) -> bool:
     if current == "archived":
         return new in {"published"}
     return False
+
+# --------------------------------------------------------
+# Geocoding + Cache
+# --------------------------------------------------------
+def _gc_key(zip_code: str | None, city: str | None) -> str:
+    if zip_code and zip_code.strip():
+        return f"zip:{zip_code.strip()}"
+    if city and city.strip():
+        return f"city:{city.strip().lower()}"
+    return ""
+
+def geocode_cached(session: Session, zip_code: str | None, city: str | None) -> tuple[float | None, float | None]:
+    """
+    Holt Koordinaten (lat, lon) für PLZ oder Stadt aus geocode_cache,
+    sonst via Nominatim und cached das Ergebnis.
+    """
+    key = _gc_key(zip_code, city)
+    if not key:
+        return None, None
+
+    row = session.execute(text("SELECT lat, lon FROM geocode_cache WHERE key=:k"), {"k": key}).first()
+    if row and row[0] is not None and row[1] is not None:
+        return float(row[0]), float(row[1])
+
+    q = zip_code if zip_code else city
+    try:
+        r = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": q, "format": "json", "limit": 1, "countrycodes": "de"},
+            headers={"User-Agent": "Terminmarktplatz/1.0 (kontakt@terminmarktplatz.de)"},
+            timeout=8,
+        )
+        if r.ok:
+            js = r.json()
+            if js:
+                lat = float(js[0]["lat"]); lon = float(js[0]["lon"])
+                session.execute(
+                    text("INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,:lat,:lon) "
+                         "ON CONFLICT (key) DO UPDATE SET lat=EXCLUDED.lat, lon=EXCLUDED.lon, updated_at=now()"),
+                    {"k": key, "lat": lat, "lon": lon}
+                )
+                session.commit()
+                time.sleep(0.2)  # fair use
+                return lat, lon
+    except Exception:
+        pass
+
+    # Negativ-Cache
+    session.execute(
+        text("INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,NULL,NULL) "
+             "ON CONFLICT (key) DO NOTHING"),
+        {"k": key}
+    )
+    session.commit()
+    return None, None
 
 # --------------------------------------------------------
 # Misc (favicon/robots + health)
@@ -656,6 +733,16 @@ def me_update():
                 s.rollback()
                 return _json_error("db_error", 400)
 
+            # Nach erfolgreichem Update: Koordinaten aktualisieren (zip/city)
+            try:
+                lat, lon = geocode_cached(s, p.zip, p.city)
+                if lat and lon:
+                    p.lat = lat
+                    p.lon = lon
+                    s.commit()
+            except Exception:
+                s.rollback()
+
         return jsonify({"ok": True})
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
@@ -907,7 +994,7 @@ def _verify_booking_token(token: str) -> str | None:
     except Exception:
         return None
 
-# ---- NEU: robuste Suche mit Stadt (Provider ODER Slot), Datum & Availability
+# ---- Öffentliche Slots mit echter Umkreissuche (zip/city + radius)
 @app.get("/public/slots")
 def public_slots():
     """
@@ -916,35 +1003,45 @@ def public_slots():
       - category: exakt; wenn nicht in Whitelist, fallback auf ILIKE
       - city:     ILIKE-Match gegen provider.city ODER slot.location
       - zip:      exakte PLZ (Provider.zip)
+      - radius:   Kilometer (Haversine gegen Provider.lat/lon). Nutzt zip/city als Startpunkt.
       - from:     ISO-Zeitpunkt (UTC oder mit Offset) -> s.start_at >= from
       - day:      YYYY-MM-DD (lokal Europe/Berlin)    -> [day 00:00, day+1 00:00)
       - include_full=1: auch Slots mit available <= 0 zurückgeben
     Antwort enthält 'available', 'provider_city', 'provider_zip'.
     """
-    from_str   = request.args.get("from")
-    day_str    = request.args.get("day")
-    category   = (request.args.get("category") or "").strip()
-    city_q     = (request.args.get("city") or "").strip()
-    zip_filter = (request.args.get("zip") or "").strip()
+    from_str     = request.args.get("from")
+    day_str      = request.args.get("day")
+    category     = (request.args.get("category") or "").strip()
+    city_q       = (request.args.get("city") or "").strip()
+    zip_filter   = (request.args.get("zip") or "").strip()
     include_full = request.args.get("include_full") == "1"
+    radius_raw   = request.args.get("radius")
+    try:
+        radius_km = float(radius_raw) if radius_raw not in (None, "",) else None
+    except ValueError:
+        radius_km = None
 
     # 1) Zeitfenster bestimmen
     try:
         if day_str:
-            # Lokaler Tag in Europe/Berlin -> in UTC umrechnen
             y, m, d = map(int, day_str.split("-"))
             start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
             end_local   = start_local + timedelta(days=1)
             start_from  = start_local.astimezone(timezone.utc)
             end_until   = end_local.astimezone(timezone.utc)
         else:
-            # 'from' oder jetzt
             start_from = parse_iso_utc(from_str) if from_str else _now()
             end_until  = None
     except Exception:
         return _json_error("bad_datetime", 400)
 
     with Session(engine) as s:
+        # 2) Startpunkt für Radius (geocoding cache)
+        origin_lat = origin_lon = None
+        if radius_km and (zip_filter or city_q):
+            origin_lat, origin_lon = geocode_cached(s, zip_filter if zip_filter else None,
+                                                       None if zip_filter else city_q)
+
         # Subquery: gebuchte Plätze (hold + confirmed)
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
@@ -958,6 +1055,8 @@ def public_slots():
                 Slot,
                 Provider.zip.label("p_zip"),
                 Provider.city.label("p_city"),
+                Provider.lat.label("p_lat"),
+                Provider.lon.label("p_lon"),
                 func.coalesce(bq.c.booked, 0).label("booked")
             )
             .join(Provider, Provider.id == Slot.provider_id)
@@ -970,31 +1069,46 @@ def public_slots():
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
-        # PLZ-Filter
-        if zip_filter:
-            q = q.where(Provider.zip == zip_filter)
-
-        # City-Filter (provider.city ODER slot.location)
-        if city_q:
-            ilike = f"%{city_q}%"
-            q = q.where(
-                func.lower(Provider.city).ilike(func.lower(ilike)) |
-                func.lower(Slot.location).ilike(func.lower(ilike))
-            )
-
-        # Kategorie: exakt, ansonsten fallback auf ILIKE
+        # Kategorie
         if category:
             if category in BRANCHES:
                 q = q.where(Slot.category == category)
             else:
                 q = q.where(func.lower(Slot.category).ilike(func.lower(f"%{category}%")))
 
+        # PLZ/Stadt (nur, wenn kein Radius – sonst Haversine übernimmt die Restriktion)
+        if zip_filter and not radius_km:
+            q = q.where(Provider.zip == zip_filter)
+        elif city_q and not radius_km:
+            ilike = f"%{city_q}%"
+            q = q.where(
+                func.lower(Provider.city).ilike(func.lower(ilike)) |
+                func.lower(Slot.location).ilike(func.lower(ilike))
+            )
+
+        # Radius-Filter via Haversine (gegen Provider.lat/lon)
+        if radius_km and origin_lat and origin_lon:
+            lat0 = literal(origin_lat)
+            lon0 = literal(origin_lon)
+
+            dlat = func.radians(Provider.lat - cast(lat0, Float))
+            dlon = func.radians(Provider.lon - cast(lon0, Float))
+            a = (func.pow(func.sin(dlat/2), 2) +
+                 func.cos(func.radians(Provider.lat)) *
+                 func.cos(func.radians(cast(lat0, Float))) *
+                 func.pow(func.sin(dlon/2), 2))
+            c = 2 * func.atan2(func.sqrt(a), func.sqrt(1 - a))
+            distance_km = 6371 * c
+
+            q = q.where(Provider.lat.isnot(None), Provider.lon.isnot(None))
+            q = q.where(distance_km <= radius_km)
+
         q = q.order_by(Slot.start_at.asc()).limit(300)
 
         rows = s.execute(q).all()
 
         out = []
-        for slot, p_zip, p_city, booked in rows:
+        for slot, p_zip, p_city, p_lat, p_lon, booked in rows:
             cap = slot.capacity or 1
             available = max(0, cap - int(booked or 0))
             if not include_full and available <= 0:
@@ -1013,7 +1127,6 @@ def public_slots():
             })
 
         return jsonify(out)
-
 
 @app.post("/public/book")
 def public_book():
