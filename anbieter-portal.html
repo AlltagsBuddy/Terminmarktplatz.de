@@ -428,21 +428,24 @@
       const end = new Date(start.getTime() + min*60000);
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
-    $('#sl-date').addEventListener('change', recalcEnd);
-    $('#sl-start').addEventListener('input', recalcEnd);
-    $('#sl-duration').addEventListener('input', recalcEnd);
-    $('#sl-unit').addEventListener('change', recalcEnd);
+    // Events: Datum/Uhrzeit/Dauer/Einheit ändern -> Ende neu berechnen
+      $('#sl-date').addEventListener('change', recalcEnd);
+      $('#sl-start').addEventListener('input',  recalcEnd);
+      $('#sl-duration').addEventListener('input', recalcEnd);
+      $('#sl-unit').addEventListener('change',   recalcEnd);
 
-    $$('#form-slot .seg [data-min]').forEach(b=>b.addEventListener('click', ()=>{
-      $('#sl-unit').value = 'min';
-      $('#sl-duration').value = b.dataset.min;
-      recalcEnd();
-    }));
-    $$('#form-slot .seg [data-hour]').forEach(b=>b.addEventListener('click', ()=>{
-      $('#sl-unit').value = 'h';
-      $('#sl-duration').value = b.dataset.hour;
-      recalcEnd();
-    }));
+      // Preset-Buttons (Minuten & Stunden)
+      $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
+        $('#sl-unit').value     = 'h';
+        $('#sl-duration').value = b.dataset.hour;
+        recalcEnd();
+      }));
+      $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
+        $('#sl-unit').value     = 'min';
+        $('#sl-duration').value = b.dataset.min;
+        recalcEnd();
+      }));
+
 
     // ---------- Slots laden & rendern + Freigabe-Workflow ----------
     let SELECTED = new Set();
@@ -466,7 +469,7 @@
       for(const s of items){
         const tr = document.createElement('tr');
         const isPending   = s.status === 'pending_review';
-        theStatus = s.status;
+        const theStatus = s.status;
         const isPublished = theStatus === 'published';
         const isArchived  = theStatus === 'archived';
         const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
