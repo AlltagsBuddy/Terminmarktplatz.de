@@ -67,10 +67,17 @@ JWT_AUD           = os.environ.get("JWT_AUD", "terminmarktplatz_client")
 JWT_EXP_MIN       = int(os.environ.get("JWT_EXP_MINUTES", "60"))
 REFRESH_EXP_DAYS  = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
 
-MAIL_FROM      = os.environ.get("MAIL_FROM", "no-reply@example.com")
-REPLY_TO       = os.environ.get("REPLY_TO", MAIL_FROM)
-MAIL_PROVIDER  = os.environ.get("MAIL_PROVIDER", "console")  # console | postmark
-POSTMARK_TOKEN = os.environ.get("POSTMARK_TOKEN", "")
+# --- MAIL Konfiguration (mit Fallbacks auf alte Namen) ---
+MAIL_FROM = os.environ.get("MAIL_FROM", "no-reply@example.com")
+MAIL_REPLY_TO = os.environ.get("MAIL_REPLY_TO", os.environ.get("REPLY_TO", MAIL_FROM))
+
+MAIL_PROVIDER = os.environ.get("MAIL_PROVIDER", "console")  # console | postmark
+
+# bevorzugt neues Var-Pattern, fallback auf altes
+POSTMARK_API_TOKEN = os.environ.get("POSTMARK_API_TOKEN", os.environ.get("POSTMARK_TOKEN", ""))
+POSTMARK_MESSAGE_STREAM = os.environ.get("POSTMARK_MESSAGE_STREAM", "outbound")
+EMAILS_ENABLED = (os.environ.get("EMAILS_ENABLED", "true").lower() == "true")
+
 CONTACT_TO     = os.environ.get("CONTACT_TO", MAIL_FROM)
 
 def _cfg(name: str, default: str | None = None) -> str:
@@ -268,33 +275,77 @@ def slot_to_json(x: Slot):
 # --------------------------------------------------------
 # Mail
 # --------------------------------------------------------
-def send_mail(to: str, subject: str, text: str):
+def send_mail(to: str, subject: str, text: str = None, html: str = None, tag: str = None, metadata: dict | None = None):
+    """
+    Versendet E-Mails abhängig vom MAIL_PROVIDER.
+    - console: schreibt Mailinhalt ins Log (für lokale Tests)
+    - postmark: sendet über Postmark HTTP API
+
+    Env Variablen:
+    MAIL_PROVIDER=[console|postmark]
+    POSTMARK_API_TOKEN=pm_xxx
+    POSTMARK_MESSAGE_STREAM=outbound
+    MAIL_FROM="Name <noreply@domain.tld>"
+    MAIL_REPLY_TO=reply@domain.tld
+    EMAILS_ENABLED=true|false
+    """
     try:
-        print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to}", flush=True)
+        if not EMAILS_ENABLED:
+            print(f"[mail] disabled: EMAILS_ENABLED=false subject='{subject}' to={to}", flush=True)
+            return True, "disabled"
+
+        print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to} subject='{subject}'", flush=True)
 
         if MAIL_PROVIDER == "console":
-            print(f"\n--- MAIL (console) ---\nFrom: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\n\n{text}\n--- END ---\n", flush=True)
+            print(
+                "\n--- MAIL (console) ---\n"
+                f"From: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\nReply-To: {MAIL_REPLY_TO}\n"
+                f"\n{text or ''}\n{(html or '')}\n--- END ---\n",
+                flush=True
+            )
             return True, "console"
 
-        if MAIL_PROVIDER == "postmark" and POSTMARK_TOKEN:
+        if MAIL_PROVIDER == "postmark" and POSTMARK_API_TOKEN:
+            payload = {
+                "From": MAIL_FROM,
+                "To": to,
+                "Subject": subject,
+                "MessageStream": POSTMARK_MESSAGE_STREAM or "outbound",
+            }
+            if MAIL_REPLY_TO:
+                payload["ReplyTo"] = MAIL_REPLY_TO
+            if text:
+                payload["TextBody"] = text
+            if html:
+                payload["HtmlBody"] = html
+            if tag:
+                payload["Tag"] = tag
+            if metadata:
+                payload["Metadata"] = metadata
+
             r = requests.post(
                 "https://api.postmarkapp.com/email",
                 headers={
-                    "X-Postmark-Server-Token": POSTMARK_TOKEN,
+                    "X-Postmark-Server-Token": POSTMARK_API_TOKEN,
                     "Accept": "application/json",
                     "Content-Type": "application/json",
                 },
-                json={"From": MAIL_FROM, "To": to, "Subject": subject, "TextBody": text, "ReplyTo": REPLY_TO},
+                json=payload,
                 timeout=12,
             )
-            print("Postmark response:", r.status_code, r.text, flush=True)
-            ok = 200 <= r.status_code < 300
-            return ok, f"{r.status_code} {r.text}"
-
+            status_ok = 200 <= r.status_code < 300
+            # Logging: Status + Body (hilfreich, wenn MessageStream/From nicht stimmen)
+            try:
+                body = r.json()
+            except Exception:
+                body = r.text
+            print(f"[postmark] status={r.status_code} stream={payload.get('MessageStream')} body={body}", flush=True)
+            return status_ok, f"{r.status_code} {body if isinstance(body, str) else body.get('Message','')}"
+        
         if MAIL_PROVIDER != "postmark":
             return False, f"provider={MAIL_PROVIDER} not supported"
-        if not POSTMARK_TOKEN:
-            return False, "missing POSTMARK_TOKEN"
+        if not POSTMARK_API_TOKEN:
+            return False, "missing POSTMARK_API_TOKEN"
 
     except Exception as e:
         print("send_mail exception:", repr(e), flush=True)
@@ -419,7 +470,7 @@ if _html_enabled():
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
-        filename = slug if slug.endswith(".html") else f"{slug}.html"
+        filename = slug if slug.endswith(".html") else f"{slug}.html"}
         try:
             return render_template(filename)
         except Exception:
@@ -1126,8 +1177,13 @@ def public_book():
         base = _external_base()
         confirm_link = f"{base}{url_for('public_confirm')}?token={token}"
         cancel_link  = f"{base}{url_for('public_cancel')}?token={token}"
-        send_mail(email, "Bitte Terminbuchung bestätigen",
-                  f"Hallo {name},\n\nbitte bestätige deine Buchung:\n{confirm_link}\n\nStornieren:\n{cancel_link}\n")
+        send_mail(
+            email,
+            "Bitte Terminbuchung bestätigen",
+            text=f"Hallo {name},\n\nbitte bestätige deine Buchung:\n{confirm_link}\n\nStornieren:\n{cancel_link}\n",
+            tag="booking_request",
+            metadata={"slot_id": str(slot.id)}
+        )
         return jsonify({"ok": True})
 
 @app.get("/public/confirm")
@@ -1157,7 +1213,14 @@ def public_confirm():
 
         b.status = "confirmed"; b.confirmed_at = _now()
         s.commit()
-        send_mail(b.customer_email, "Termin bestätigt", "Dein Termin ist bestätigt.")
+
+        send_mail(
+            b.customer_email,
+            "Termin bestätigt",
+            text="Dein Termin ist bestätigt.",
+            tag="booking_confirmed",
+            metadata={"slot_id": str(slot.id)}
+        )
         return jsonify({"ok": True})
 
 @app.get("/public/cancel")
