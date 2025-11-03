@@ -470,7 +470,7 @@ if _html_enabled():
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
-        filename = slug if slug.endswith(".html") else f"{slug}.html"}
+        filename = slug if slug.endswith(".html") else f"{slug}.html"
         try:
             return render_template(filename)
         except Exception:
