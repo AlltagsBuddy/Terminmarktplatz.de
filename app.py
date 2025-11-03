@@ -4,6 +4,10 @@ import os
 import traceback
 from datetime import datetime, timedelta, timezone
 
+# SMTP (z. B. STRATO)
+from email.message import EmailMessage
+import smtplib
+
 # ZoneInfo robust (Backport bei < 3.9)
 try:
     from zoneinfo import ZoneInfo
@@ -67,18 +71,20 @@ JWT_AUD           = os.environ.get("JWT_AUD", "terminmarktplatz_client")
 JWT_EXP_MIN       = int(os.environ.get("JWT_EXP_MINUTES", "60"))
 REFRESH_EXP_DAYS  = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
 
-# --- MAIL Konfiguration (mit Fallbacks auf alte Namen) ---
-MAIL_FROM = os.environ.get("MAIL_FROM", "no-reply@example.com")
-MAIL_REPLY_TO = os.environ.get("MAIL_REPLY_TO", os.environ.get("REPLY_TO", MAIL_FROM))
+# --- MAIL Konfiguration (SMTP / Console) ---
+MAIL_PROVIDER  = os.getenv("MAIL_PROVIDER", "smtp")   # smtp | console
+MAIL_FROM      = os.getenv("MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>")
+MAIL_REPLY_TO  = os.getenv("MAIL_REPLY_TO", os.getenv("REPLY_TO", MAIL_FROM))
+EMAILS_ENABLED = os.getenv("EMAILS_ENABLED", "true").lower() == "true"
+CONTACT_TO     = os.getenv("CONTACT_TO", MAIL_FROM)
 
-MAIL_PROVIDER = os.environ.get("MAIL_PROVIDER", "console")  # console | postmark
+# SMTP (z. B. STRATO)
+SMTP_HOST    = os.getenv("SMTP_HOST")                 # z.B. smtp.strato.de
+SMTP_PORT    = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER    = os.getenv("SMTP_USER")                 # volle Adresse, z.B. info@terminmarktplatz.de
+SMTP_PASS    = os.getenv("SMTP_PASS")
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
-# bevorzugt neues Var-Pattern, fallback auf altes
-POSTMARK_API_TOKEN = os.environ.get("POSTMARK_API_TOKEN", os.environ.get("POSTMARK_TOKEN", ""))
-POSTMARK_MESSAGE_STREAM = os.environ.get("POSTMARK_MESSAGE_STREAM", "outbound")
-EMAILS_ENABLED = (os.environ.get("EMAILS_ENABLED", "true").lower() == "true")
-
-CONTACT_TO     = os.environ.get("CONTACT_TO", MAIL_FROM)
 
 def _cfg(name: str, default: str | None = None) -> str:
     val = os.environ.get(name, default)
@@ -275,19 +281,17 @@ def slot_to_json(x: Slot):
 # --------------------------------------------------------
 # Mail
 # --------------------------------------------------------
-def send_mail(to: str, subject: str, text: str = None, html: str = None, tag: str = None, metadata: dict | None = None):
+def send_mail(to: str, subject: str, text: str | None = None, html: str | None = None,
+              tag: str | None = None, metadata: dict | None = None):
     """
     Versendet E-Mails abhängig vom MAIL_PROVIDER.
-    - console: schreibt Mailinhalt ins Log (für lokale Tests)
-    - postmark: sendet über Postmark HTTP API
+    - console: schreibt Mailinhalt ins Log (für Tests)
+    - smtp:    sendet über SMTP (z. B. STRATO)
 
-    Env Variablen:
-    MAIL_PROVIDER=[console|postmark]
-    POSTMARK_API_TOKEN=pm_xxx
-    POSTMARK_MESSAGE_STREAM=outbound
-    MAIL_FROM="Name <noreply@domain.tld>"
-    MAIL_REPLY_TO=reply@domain.tld
-    EMAILS_ENABLED=true|false
+    Benötigte ENV:
+      MAIL_PROVIDER=smtp|console
+      MAIL_FROM, MAIL_REPLY_TO, EMAILS_ENABLED
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_USE_TLS (bei smtp)
     """
     try:
         if not EMAILS_ENABLED:
@@ -296,62 +300,52 @@ def send_mail(to: str, subject: str, text: str = None, html: str = None, tag: st
 
         print(f"[mail] provider={MAIL_PROVIDER} from={MAIL_FROM} to={to} subject='{subject}'", flush=True)
 
+        # Console (für lokale Tests)
         if MAIL_PROVIDER == "console":
             print(
                 "\n--- MAIL (console) ---\n"
-                f"From: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\nReply-To: {MAIL_REPLY_TO}\n"
-                f"\n{text or ''}\n{(html or '')}\n--- END ---\n",
+                f"From: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\nReply-To: {MAIL_REPLY_TO}\n\n"
+                f"{text or ''}\n{html or ''}\n--- END ---\n",
                 flush=True
             )
             return True, "console"
 
-        if MAIL_PROVIDER == "postmark" and POSTMARK_API_TOKEN:
-            payload = {
-                "From": MAIL_FROM,
-                "To": to,
-                "Subject": subject,
-                "MessageStream": POSTMARK_MESSAGE_STREAM or "outbound",
-            }
+        # SMTP (STRATO)
+        if MAIL_PROVIDER == "smtp" and SMTP_HOST and SMTP_USER and SMTP_PASS:
+            msg = EmailMessage()
+            msg["From"] = MAIL_FROM
+            msg["To"] = to
+            msg["Subject"] = subject
             if MAIL_REPLY_TO:
-                payload["ReplyTo"] = MAIL_REPLY_TO
-            if text:
-                payload["TextBody"] = text
-            if html:
-                payload["HtmlBody"] = html
-            if tag:
-                payload["Tag"] = tag
-            if metadata:
-                payload["Metadata"] = metadata
+                msg["Reply-To"] = MAIL_REPLY_TO
 
-            r = requests.post(
-                "https://api.postmarkapp.com/email",
-                headers={
-                    "X-Postmark-Server-Token": POSTMARK_API_TOKEN,
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=12,
-            )
-            status_ok = 200 <= r.status_code < 300
-            # Logging: Status + Body (hilfreich, wenn MessageStream/From nicht stimmen)
+            if html:
+                msg.set_content(text or "")
+                msg.add_alternative(html, subtype="html")
+            else:
+                msg.set_content(text or "")
+
             try:
-                body = r.json()
-            except Exception:
-                body = r.text
-            print(f"[postmark] status={r.status_code} stream={payload.get('MessageStream')} body={body}", flush=True)
-            return status_ok, f"{r.status_code} {body if isinstance(body, str) else body.get('Message','')}"
-        
-        if MAIL_PROVIDER != "postmark":
-            return False, f"provider={MAIL_PROVIDER} not supported"
-        if not POSTMARK_API_TOKEN:
-            return False, "missing POSTMARK_API_TOKEN"
+                if SMTP_USE_TLS:
+                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as s:
+                        s.starttls()
+                        s.login(SMTP_USER, SMTP_PASS)
+                        s.send_message(msg)
+                else:
+                    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as s:
+                        s.login(SMTP_USER, SMTP_PASS)
+                        s.send_message(msg)
+                print("[smtp] sent via", SMTP_HOST, flush=True)
+                return True, "smtp"
+            except Exception as e:
+                print("[smtp][ERROR]", repr(e), flush=True)
+                return False, repr(e)
+
+        return False, "mail_provider_not_configured"
 
     except Exception as e:
         print("send_mail exception:", repr(e), flush=True)
         return False, repr(e)
-
-    return False, "unknown"
 
 
 # --------------------------------------------------------
@@ -496,7 +490,7 @@ def public_contact():
         if not name or not email or not subject or not message:
             return _json_error("missing_fields", 400)
         try:
-            validate_email(email)
+            email = validate_email(email).email
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
@@ -562,7 +556,7 @@ def register():
         password = data.get("password") or ""
 
         try:
-            validate_email(email)
+            email = validate_email(email).email
         except EmailNotValidError:
             return _json_error("invalid_email")
         if len(password) < 8:
@@ -745,7 +739,6 @@ def me_update():
             try:
                 lat, lon = geocode_cached(s, p.zip, p.city)
                 if lat and lon:
-                    # Versuch direktes SQL-Update (falls Spalten existieren)
                     s.execute(
                         text("UPDATE provider SET lat=:lat, lon=:lon WHERE id=:pid"),
                         {"lat": lat, "lon": lon, "pid": p.id}
@@ -1152,9 +1145,16 @@ def public_book():
     data = request.get_json(force=True)
     slot_id = (data.get("slot_id") or "").strip()
     name    = (data.get("name") or "").strip()
-    email   = (data.get("email") or "").strip()
+    email   = (data.get("email") or "").strip().lower()
+
     if not slot_id or not name or not email:
         return _json_error("missing_fields")
+
+    # E-Mail valide?
+    try:
+        email = validate_email(email).email
+    except EmailNotValidError:
+        return _json_error("invalid_email", 400)
 
     with Session(engine) as s:
         slot = s.get(Slot, slot_id, with_for_update=True)
