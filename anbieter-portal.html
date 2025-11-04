@@ -97,6 +97,20 @@
       background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
       border-radius:12px; padding:8px 10px; min-width:220px;
     }
+
+    /* Guard / Callout wenn Profil unvollständig */
+    .callout {
+      display:none;
+      border:1px dashed #f59e0b;
+      background:#fffbeb;
+      color:#7c2d12;
+      padding:12px 14px;
+      border-radius:12px;
+      margin-bottom:10px;
+    }
+    .callout strong { color:#92400e }
+    .lock-hint { font-size: 14px; }
+    fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
   </style>
 </head>
 
@@ -155,8 +169,8 @@
               </datalist>
             </div>
             <div class="field">
-              <label for="pf-street">Straße & Nr.</label>
-              <input id="pf-street" name="street" placeholder="Musterstraße 1"/>
+              <label for="pf-street">Straße & Nr. <span class="req">*</span></label>
+              <input id="pf-street" name="street" placeholder="Musterstraße 1" required/>
             </div>
             <div class="field">
               <label for="pf-zip">PLZ <span class="req">*</span></label>
@@ -167,8 +181,8 @@
               <input id="pf-city" name="city" placeholder="Musterstadt" required/>
             </div>
             <div class="field">
-              <label for="pf-phone">Telefon</label>
-              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
+              <label for="pf-phone">Telefon <span class="req">*</span></label>
+              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required/>
             </div>
             <div class="field">
               <label for="pf-whatsapp">WhatsApp (optional)</label>
@@ -176,7 +190,7 @@
             </div>
             <div class="toolbar">
               <button class="btn primary" type="submit">Profil speichern</button>
-              <span class="muted">Tipp: Firma, Branche, PLZ & Ort ausfüllen.</span>
+              <span class="muted">Pflicht: Firma, Branche, Straße, PLZ, Ort, Telefon.</span>
             </div>
             <div id="msg-profile" class="msg"></div>
           </form>
@@ -185,81 +199,91 @@
         <!-- Slot anlegen -->
         <div class="panel">
           <h2>Neuen Slot anlegen</h2>
+
+          <!-- Guard-Hinweis, solange Profil unvollständig -->
+          <div id="slot-guard" class="callout">
+            <strong>Profil unvollständig.</strong>
+            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus (WhatsApp ist optional). Danach kannst du Slots anlegen.</div>
+          </div>
+
+          <!-- Alles im fieldset, das wir sperren -->
           <form id="form-slot" class="grid" novalidate>
-            <div class="field">
-              <label for="sl-title">Titel <span class="req">*</span></label>
-              <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
-            </div>
+            <fieldset id="slot-fields" disabled>
+              <div class="field">
+                <label for="sl-title">Titel <span class="req">*</span></label>
+                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
+              </div>
 
-            <!-- Kategorie -->
-            <div class="field">
-              <label for="sl-cat">Kategorie <span class="req">*</span></label>
-              <select id="sl-cat" name="category" required>
-                <option value="" disabled selected>Bitte wählen …</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="sl-date">Datum <span class="req">*</span></label>
-              <input id="sl-date" type="date" required/>
-            </div>
-            <div class="field">
-              <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
-              <input id="sl-start" type="time" step="60" required/>
-            </div>
-
-            <!-- Dauer: Minuten oder Stunden -->
-            <div class="field">
-              <label for="sl-duration">Dauer <span class="req">*</span></label>
-              <div style="display:flex; gap:8px; align-items:center">
-                <input id="sl-duration" type="number" min="1" step="1" value="30" required style="flex:1"/>
-                <select id="sl-unit" aria-label="Einheit">
-                  <option value="min">Minuten</option>
-                  <option value="h">Stunden</option>
+              <!-- Kategorie -->
+              <div class="field">
+                <label for="sl-cat">Kategorie <span class="req">*</span></label>
+                <select id="sl-cat" name="category" required>
+                  <option value="" disabled selected>Bitte wählen …</option>
                 </select>
               </div>
-              <div class="seg">
-                <button type="button" class="btn" data-min="15">15&nbsp;min</button>
-                <button type="button" class="btn" data-min="30">30&nbsp;min</button>
-                <button type="button" class="btn" data-min="45">45&nbsp;min</button>
-                <button type="button" class="btn" data-min="60">60&nbsp;min</button>
-                <button type="button" class="btn" data-min="90">90&nbsp;min</button>
-                <button type="button" class="btn" data-hour="1">1&nbsp;h</button>
-                <button type="button" class="btn" data-hour="2">2&nbsp;h</button>
+
+              <div class="field">
+                <label for="sl-date">Datum <span class="req">*</span></label>
+                <input id="sl-date" type="date" required/>
               </div>
-            </div>
+              <div class="field">
+                <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
+                <input id="sl-start" type="time" step="60" required/>
+              </div>
 
-            <div class="field">
-              <label for="sl-end">Ende (berechnet)</label>
-              <input id="sl-end" type="time" readonly/>
-            </div>
+              <!-- Dauer: Minuten oder Stunden -->
+              <div class="field">
+                <label for="sl-duration">Dauer <span class="req">*</span></label>
+                <div style="display:flex; gap:8px; align-items:center">
+                  <input id="sl-duration" type="number" min="1" step="1" value="30" required style="flex:1"/>
+                  <select id="sl-unit" aria-label="Einheit">
+                    <option value="min">Minuten</option>
+                    <option value="h">Stunden</option>
+                  </select>
+                </div>
+                <div class="seg">
+                  <button type="button" class="btn" data-min="15">15&nbsp;min</button>
+                  <button type="button" class="btn" data-min="30">30&nbsp;min</button>
+                  <button type="button" class="btn" data-min="45">45&nbsp;min</button>
+                  <button type="button" class="btn" data-min="60">60&nbsp;min</button>
+                  <button type="button" class="btn" data-min="90">90&nbsp;min</button>
+                  <button type="button" class="btn" data-hour="1">1&nbsp;h</button>
+                  <button type="button" class="btn" data-hour="2">2&nbsp;h</button>
+                </div>
+              </div>
 
-            <!-- ORT / PLZ – PFLICHT -->
-            <div class="field">
-              <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
-              <input id="sl-location" name="location"
-                     placeholder="z. B. 96191 Viereth / Filiale Zentrum"
-                     required pattern="(\d{5}|.{3,})"
-                     title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
-            </div>
+              <div class="field">
+                <label for="sl-end">Ende (berechnet)</label>
+                <input id="sl-end" type="time" readonly/>
+              </div>
 
-            <div class="field">
-              <label for="sl-cap">Kapazität</label>
-              <input id="sl-cap" type="number" min="1" step="1" value="1"/>
-            </div>
-            <div class="field">
-              <label for="sl-price">Preis (Euro, optional)</label>
-              <input id="sl-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
-            </div>
-            <div class="field" style="grid-column:1/-1">
-              <label for="sl-notes">Notizen (intern)</label>
-              <textarea id="sl-notes" rows="2" placeholder="optional"></textarea>
-            </div>
+              <!-- ORT / PLZ – PFLICHT -->
+              <div class="field">
+                <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
+                <input id="sl-location" name="location"
+                       placeholder="z. B. 96191 Viereth / Filiale Zentrum"
+                       required pattern="(\d{5}|.{3,})"
+                       title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
+              </div>
 
-            <div class="toolbar">
-              <button class="btn primary" type="submit">Slot anlegen</button>
-              <span class="muted">Status: <span class="badge-st st-pending">pending_review</span></span>
-            </div>
+              <div class="field">
+                <label for="sl-cap">Kapazität</label>
+                <input id="sl-cap" type="number" min="1" step="1" value="1"/>
+              </div>
+              <div class="field">
+                <label for="sl-price">Preis (Euro, optional)</label>
+                <input id="sl-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
+              </div>
+              <div class="field" style="grid-column:1/-1">
+                <label for="sl-notes">Notizen (intern)</label>
+                <textarea id="sl-notes" rows="2" placeholder="optional"></textarea>
+              </div>
+
+              <div class="toolbar">
+                <button class="btn primary" type="submit">Slot anlegen</button>
+                <span class="muted">Status: <span class="badge-st st-pending">pending_review</span></span>
+              </div>
+            </fieldset>
             <div id="msg-slot" class="msg"></div>
           </form>
         </div>
@@ -370,6 +394,40 @@
         + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
+    // ---------- Profil-Completeness & Slot-Lock ----------
+    function isValidZip(v){ return /^\d{5}$/.test((v||'').trim()); }
+    function isValidPhone(v){ return /^\+?[0-9\s\-\/]{6,}$/.test((v||'').trim()); }
+
+    function isProfileCompleteFromValues(vals){
+      return !!(
+        vals.company_name &&
+        vals.branch &&
+        vals.street &&
+        isValidZip(vals.zip) &&
+        vals.city &&
+        isValidPhone(vals.phone)
+      );
+    }
+
+    function getProfileValuesFromForm(){
+      return {
+        company_name: $('#pf-company').value.trim(),
+        branch:       $('#pf-branch').value.trim(),
+        street:       $('#pf-street').value.trim(),
+        zip:          $('#pf-zip').value.trim(),
+        city:         $('#pf-city').value.trim(),
+        phone:        $('#pf-phone').value.trim(),
+        whatsapp:     $('#pf-whatsapp').value.trim(),
+      };
+    }
+
+    function setSlotLock(locked){
+      const fs = $('#slot-fields');
+      const guard = $('#slot-guard');
+      if (fs) fs.disabled = !!locked;
+      if (guard) guard.style.display = locked ? 'block' : 'none';
+    }
+
     // ---------- Auth-Gate / Me ----------
     let ME = null;
     async function requireAuth(){
@@ -385,6 +443,7 @@
         }
         ME = await r.json();
 
+        // Felder befüllen
         $('#pf-company').value  = ME.company_name || '';
         $('#pf-branch').value   = ME.branch || '';
         $('#pf-street').value   = ME.street || '';
@@ -392,6 +451,10 @@
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
+
+        // Lock gemäß Profilstatus
+        const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
+        setSlotLock(!complete);
       }catch(err){
         showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
       }
@@ -400,15 +463,7 @@
     // ---------- Profil speichern ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const payload = {
-        company_name: $('#pf-company').value.trim(),
-        branch:       $('#pf-branch').value.trim(),
-        street:       $('#pf-street').value.trim(),
-        zip:          $('#pf-zip').value.trim(),
-        city:         $('#pf-city').value.trim(),
-        phone:        $('#pf-phone').value.trim(),
-        whatsapp:     $('#pf-whatsapp').value.trim(),
-      };
+      const payload = getProfileValuesFromForm();
       try{
         const r = await fetch(`${API}/me`, {
           method:'PUT',
@@ -419,6 +474,9 @@
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
           showMsg('msg-profile','Gespeichert ✓', true);
+          // Nach Speichern Lock neu bewerten
+          const complete = isProfileCompleteFromValues(payload);
+          setSlotLock(!complete);
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -630,6 +688,13 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
+      // Nochmals guarden (falls jemand fieldset entfernt)
+      const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
+      if(!completeNow){
+        setSlotLock(true);
+        return showMsg('msg-slot','Bitte Profil zuerst vollständig ausfüllen (WhatsApp ist optional).');
+      }
+
       // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
       const loc = ($('#sl-location').value || '').trim();
       if(!loc){
@@ -696,6 +761,15 @@
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
+
+      // Falls Nutzer im Profil tippt, weiche Live-Aktivierung ermöglichen (nicht nur nach Save)
+      ['pf-company','pf-branch','pf-street','pf-zip','pf-city','pf-phone'].forEach(id=>{
+        const el = document.getElementById(id);
+        el?.addEventListener('input', ()=>{
+          const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
+          setSlotLock(!complete);
+        });
+      });
     })();
   </script>
 
@@ -707,7 +781,7 @@
           <div class="brand-logo" aria-hidden="true">
             <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
           </div>
-          <div class="brand-title">Terminmarktplatz</div>
+        <div class="brand-title">Terminmarktplatz</div>
         </div>
         <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
       </div>
