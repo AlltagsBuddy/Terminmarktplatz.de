@@ -452,7 +452,7 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Lock gemäß Profilstatus
+        // Lock gemäß Profilstatus der serverseitigen Daten
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
       }catch(err){
@@ -460,7 +460,7 @@
       }
     }
 
-    // ---------- Profil speichern ----------
+    // ---------- Profil speichern (hier wird entsperrt) ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = getProfileValuesFromForm();
@@ -474,9 +474,11 @@
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
           showMsg('msg-profile','Gespeichert ✓', true);
-          // Nach Speichern Lock neu bewerten
           const complete = isProfileCompleteFromValues(payload);
-          setSlotLock(!complete);
+          setSlotLock(!complete); // Freigabe ausschließlich nach Save
+          if(!complete){
+            showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).');
+          }
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -688,11 +690,11 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // Nochmals guarden (falls jemand fieldset entfernt)
+      // Serverseitigen Gate simulieren: Nur nach gespeichertem, vollständigem Profil
       const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
       if(!completeNow){
         setSlotLock(true);
-        return showMsg('msg-slot','Bitte Profil zuerst vollständig ausfüllen (WhatsApp ist optional).');
+        return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
       }
 
       // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
@@ -742,7 +744,8 @@
             start_in_past:'Start darf nicht in der Vergangenheit liegen.',
             bad_capacity:'Kapazität ungültig.',
             db_constraint_error:'Kategorie entspricht nicht den DB-Vorgaben.',
-            db_error:'Datenbankfehler.'
+            db_error:'Datenbankfehler.',
+            profile_incomplete:'Profil unvollständig. Bitte erst Profil speichern.'
           };
           showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
         }
@@ -762,14 +765,8 @@
       recalcEnd();
       await loadSlots();
 
-      // Falls Nutzer im Profil tippt, weiche Live-Aktivierung ermöglichen (nicht nur nach Save)
-      ['pf-company','pf-branch','pf-street','pf-zip','pf-city','pf-phone'].forEach(id=>{
-        const el = document.getElementById(id);
-        el?.addEventListener('input', ()=>{
-          const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
-          setSlotLock(!complete);
-        });
-      });
+      // Wichtig: KEINE Live-Freischaltung beim Tippen mehr.
+      // Freigabe erfolgt ausschließlich nach erfolgreichem "Profil speichern".
     })();
   </script>
 

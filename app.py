@@ -277,6 +277,35 @@ def slot_to_json(x: Slot):
         "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
     }
 
+# ---- Neu: Validierungen & Profil-Check (Servergate) ----
+def _is_valid_zip(v: str | None) -> bool:
+    v = (v or "").strip()
+    return len(v) == 5 and v.isdigit()
+
+def _is_valid_phone(v: str | None) -> bool:
+    v = (v or "").strip()
+    # sehr einfache, robuste Prüfung (min. 6 Ziffern/Zeichen)
+    return len(v) >= 6
+
+def is_profile_complete(p: Provider) -> bool:
+    """
+    Alles Pflicht außer WhatsApp:
+      - company_name
+      - branch
+      - street
+      - zip (5-stellig)
+      - city
+      - phone (einfach ≥ 6 Zeichen)
+    """
+    return all([
+        bool(p.company_name),
+        bool(p.branch),
+        bool(p.street),
+        _is_valid_zip(p.zip),
+        bool(p.city),
+        _is_valid_phone(p.phone),
+    ])
+
 
 # --------------------------------------------------------
 # Mail
@@ -753,6 +782,8 @@ def me():
             "id": p.id, "email": p.email, "status": p.status, "is_admin": p.is_admin,
             "company_name": p.company_name, "branch": p.branch, "street": p.street,
             "zip": p.zip, "city": p.city, "phone": p.phone, "whatsapp": p.whatsapp,
+            # Neu: Frontend-Flag für harte UI-Sperre
+            "profile_complete": is_profile_complete(p)
         })
 
 @app.put("/me")
@@ -852,6 +883,7 @@ def slots_create():
         if any(k not in data or data[k] in (None, "") for k in required):
             return _json_error("missing_fields", 400)
 
+        # Zeit prüfen
         try:
             start = parse_iso_utc(data["start_at"])
             end   = parse_iso_utc(data["end_at"])
@@ -862,10 +894,26 @@ def slots_create():
         if start <= _now():
             return _json_error("start_in_past", 409)
 
+        # Ort / PLZ (serverseitig Pflicht)
+        location = (data.get("location") or "").strip()
+        if not location:
+            return _json_error("missing_location", 400)
+
+        # Kapazität prüfen (>=1)
+        cap = int(data.get("capacity") or 1)
+        if cap < 1:
+            return _json_error("bad_capacity", 400)
+
         start_db = _to_db_utc_naive(start)
         end_db   = _to_db_utc_naive(end)
 
         with Session(engine) as s:
+            # HARTE SPERRE: Profil muss vollständig sein
+            p = s.get(Provider, request.provider_id)
+            if not p or not is_profile_complete(p):
+                return _json_error("profile_incomplete", 400)
+
+            # Limit
             count = s.scalar(
                 select(func.count()).select_from(Slot).where(
                     and_(Slot.provider_id == request.provider_id,
@@ -877,17 +925,15 @@ def slots_create():
 
             title = (str(data["title"]).strip() or "Slot")[:100]
             category = normalize_category(data.get("category"))
-            location = (data.get("location") or None)
-            if location:
-                location = str(location).strip()[:120]
+            location_db = location[:120]
 
             slot = Slot(
                 provider_id=request.provider_id,
                 title=title,
                 category=category,
                 start_at=start_db, end_at=end_db,
-                location=location,
-                capacity=int(data.get("capacity") or 1),
+                location=location_db,
+                capacity=cap,
                 contact_method=(data.get("contact_method") or "mail"),
                 booking_link=(data.get("booking_link") or None),
                 price_cents=(data.get("price_cents") or None),
@@ -942,6 +988,13 @@ def slots_update(slot_id):
                 data["location"] = str(data["location"]).strip()[:120]
             if "title" in data and data["title"]:
                 data["title"] = str(data["title"]).strip()[:100]
+            if "capacity" in data:
+                try:
+                    c = int(data["capacity"])
+                    if c < 1:
+                        return _json_error("bad_capacity", 400)
+                except Exception:
+                    return _json_error("bad_capacity", 400)
 
             for k in ["title","category","location","capacity","contact_method","booking_link","price_cents","notes"]:
                 if k in data:
