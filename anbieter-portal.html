@@ -63,6 +63,7 @@
       outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25)
     }
     .req{ color:#ef4444; font-weight:700 }
+    .req-text{ color:#ef4444; font-weight:600; font-size:12px; margin-left:6px; }
 
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
@@ -111,6 +112,19 @@
     .callout strong { color:#92400e }
     .lock-hint { font-size: 14px; }
     fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
+
+    /* NEU: prominenter Hinweisbalken */
+    .alert{
+      display:none;
+      border:1px solid #f59e0b;
+      background:linear-gradient(0deg,#fff7ed,#fff7ed);
+      color:#7c2d12;
+      padding:14px 16px;
+      border-radius:14px;
+      margin:0 0 16px 0;
+    }
+    .alert strong{ color:#92400e }
+    .alert .small{ font-size:13px; opacity:.9 }
   </style>
 </head>
 
@@ -145,6 +159,16 @@
       </div>
     </section>
 
+    <!-- NEU: prominenter Hinweis oberhalb der Panels -->
+    <section>
+      <div class="container">
+        <div id="profile-alert" class="alert" role="alert" aria-live="polite">
+          <strong>Wichtig:</strong> Bevor du <em>Slots erstellen</em> kannst, muss dein <strong>Profil vollständig gespeichert</strong> sein.
+          Erforderlich sind: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em> und <em>Telefon</em>. <span class="small">(WhatsApp ist optional)</span>
+        </div>
+      </div>
+    </section>
+
     <!-- CONTENT -->
     <section>
       <div class="container grid grid-2">
@@ -153,14 +177,14 @@
         <div class="panel">
           <h2>Profil</h2>
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
-          <form id="form-profile" class="grid">
+          <form id="form-profile" class="grid" novalidate>
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
-              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required/>
+              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required aria-required="true"/>
             </div>
             <div class="field">
               <label for="pf-branch">Branche <span class="req">*</span></label>
-              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required/>
+              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required aria-required="true"/>
               <datalist id="branch-list">
                 <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
                 <option>Nagelstudio</option><option>Zahnarzt</option><option>Handwerk</option>
@@ -168,22 +192,28 @@
                 <option>Tierarzt</option><option>Behörde</option><option>Sonstiges</option>
               </datalist>
             </div>
+
+            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
-              <label for="pf-street">Straße & Nr. <span class="req">*</span></label>
-              <input id="pf-street" name="street" placeholder="Musterstraße 1" required/>
+              <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
+              <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
             </div>
+
             <div class="field">
               <label for="pf-zip">PLZ <span class="req">*</span></label>
-              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required/>
+              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required aria-required="true"/>
             </div>
             <div class="field">
               <label for="pf-city">Ort <span class="req">*</span></label>
-              <input id="pf-city" name="city" placeholder="Musterstadt" required/>
+              <input id="pf-city" name="city" placeholder="Musterstadt" required aria-required="true"/>
             </div>
+
+            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
-              <label for="pf-phone">Telefon <span class="req">*</span></label>
-              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required/>
+              <label for="pf-phone">Telefon <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
+              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required aria-required="true"/>
             </div>
+
             <div class="field">
               <label for="pf-whatsapp">WhatsApp (optional)</label>
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
@@ -211,31 +241,31 @@
             <fieldset id="slot-fields" disabled>
               <div class="field">
                 <label for="sl-title">Titel <span class="req">*</span></label>
-                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
+                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
               </div>
 
               <!-- Kategorie -->
               <div class="field">
                 <label for="sl-cat">Kategorie <span class="req">*</span></label>
-                <select id="sl-cat" name="category" required>
+                <select id="sl-cat" name="category" required aria-required="true">
                   <option value="" disabled selected>Bitte wählen …</option>
                 </select>
               </div>
 
               <div class="field">
                 <label for="sl-date">Datum <span class="req">*</span></label>
-                <input id="sl-date" type="date" required/>
+                <input id="sl-date" type="date" required aria-required="true"/>
               </div>
               <div class="field">
                 <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
-                <input id="sl-start" type="time" step="60" required/>
+                <input id="sl-start" type="time" step="60" required aria-required="true"/>
               </div>
 
               <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
                 <div style="display:flex; gap:8px; align-items:center">
-                  <input id="sl-duration" type="number" min="1" step="1" value="30" required style="flex:1"/>
+                  <input id="sl-duration" type="number" min="1" step="1" value="30" required aria-required="true" style="flex:1"/>
                   <select id="sl-unit" aria-label="Einheit">
                     <option value="min">Minuten</option>
                     <option value="h">Stunden</option>
@@ -262,7 +292,7 @@
                 <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
                 <input id="sl-location" name="location"
                        placeholder="z. B. 96191 Viereth / Filiale Zentrum"
-                       required pattern="(\d{5}|.{3,})"
+                       required aria-required="true" pattern="(\d{5}|.{3,})"
                        title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
               </div>
 
@@ -424,8 +454,10 @@
     function setSlotLock(locked){
       const fs = $('#slot-fields');
       const guard = $('#slot-guard');
+      const alert = $('#profile-alert');
       if (fs) fs.disabled = !!locked;
       if (guard) guard.style.display = locked ? 'block' : 'none';
+      if (alert) alert.style.display = locked ? 'block' : 'none'; // NEU: Hinweisbalken sichtbar solange gesperrt
     }
 
     // ---------- Auth-Gate / Me ----------
@@ -452,7 +484,7 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Lock gemäß Profilstatus der serverseitigen Daten
+        // Lock gemäß Profilstatus
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
       }catch(err){
@@ -460,7 +492,7 @@
       }
     }
 
-    // ---------- Profil speichern (hier wird entsperrt) ----------
+    // ---------- Profil speichern ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = getProfileValuesFromForm();
@@ -473,12 +505,9 @@
         });
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
-          showMsg('msg-profile','Gespeichert ✓', true);
           const complete = isProfileCompleteFromValues(payload);
-          setSlotLock(!complete); // Freigabe ausschließlich nach Save
-          if(!complete){
-            showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).');
-          }
+          showMsg('msg-profile', complete ? 'Gespeichert ✓ Profil vollständig.' : 'Gespeichert ✓ Bitte Pflichtfelder ergänzen.');
+          setSlotLock(!complete); // Hinweisbalken verschwindet, wenn vollständig
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -553,9 +582,9 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isPending   = theStatus === 'pending_review';
-        const isPublished = theStatus === 'published';
+        theStatus === 'published';
         const isArchived  = theStatus === 'archived';
-        const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+        const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
         tr.innerHTML = `
           <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
@@ -567,8 +596,8 @@
           <td>${s.capacity||1}</td>
           <td><span class="badge-st ${stClass}">${s.status}</span></td>
           <td class="nowrap">
-            ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+            ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
           </td>
         `;
@@ -690,14 +719,14 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // Serverseitigen Gate simulieren: Nur nach gespeichertem, vollständigem Profil
+      // Nochmals guarden
       const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
       if(!completeNow){
         setSlotLock(true);
         return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
       }
 
-      // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
+      // ORT / PLZ PFLICHT
       const loc = ($('#sl-location').value || '').trim();
       if(!loc){
         $('#sl-location').focus();
@@ -764,9 +793,6 @@
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
-
-      // Wichtig: KEINE Live-Freischaltung beim Tippen mehr.
-      // Freigabe erfolgt ausschließlich nach erfolgreichem "Profil speichern".
     })();
   </script>
 
