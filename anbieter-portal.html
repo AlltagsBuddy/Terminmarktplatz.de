@@ -29,20 +29,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Nur EIN Stylesheet-Import -->
-  <link rel="stylesheet" href="static/style.css?v=20251103" />
+  <!-- Styles -->
+  <link rel="stylesheet" href="static/style.css?v=20251106c" />
 
-  <!-- Portal-spezifische Overrides -->
   <style>
-    .page-portal .btn,
-    .page-portal .btn.primary,
-    .page-portal .seg .btn,
-    .page-portal .table .btn,
-    .page-portal .table .btn.action,
-    .page-portal .table .btn.danger {
+    :root{
+      --danger:#ef4444; --danger-ink:#7f1d1d; --danger-bg:#fee2e2;
+      --amber-ink:#7c2d12; --amber-bg:#fffbeb; --border:#e5e7eb;
+    }
+    body.page-portal { background: #f6f7fb; }
+
+    .page-portal .btn,.page-portal .btn.primary,.page-portal .seg .btn,
+    .page-portal .table .btn,.page-portal .table .btn.action,.page-portal .table .btn.danger{
       color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; background-image:none !important;
     }
-    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2); position:relative}
+    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2); background:#fff; padding:16px;}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
@@ -52,13 +53,12 @@
     .field input::placeholder,.field textarea::placeholder{ color:#64748b }
     .field input:focus,.field select:focus,.field textarea:focus{ outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25) }
     .req{ color:#ef4444; font-weight:700 }
-
-    .muted{color:var(--ink-dim)}
+    .muted{color:#6b7280}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 
     /* Tabelle */
     .table{width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:14px; overflow:hidden}
-    .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
+    .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; background:#fff}
     .table th{background:#f8fafc; color:#0f172a}
     .table th:first-child,.table td:first-child{ text-align:center; width:34px }
 
@@ -75,39 +75,54 @@
     .seg .btn { padding:8px 12px; }
     .seg .btn[data-hour], .seg .btn[data-min]{ background:#f8fafc !important; border-color:#cbd5e1 !important; color:#0f172a !important; }
 
-    /* Suchfeld oben rechts über Tabelle */
+    /* Sticky roter Warnbanner */
+    .alert-red{
+      position: sticky; top: 0; z-index: 2000;
+      display:block;
+      border:2px solid var(--danger);
+      background:var(--danger-bg);
+      color:var(--danger-ink);
+      padding:14px 16px; border-radius:14px; margin:0 0 16px;
+      box-shadow: 0 6px 14px rgba(127,29,29,.18);
+      font-weight:700;
+    }
+    .alert-red .sub{ font-weight:600; opacity:.95; }
+
+    /* Guard / Callout im Slot-Panel */
+    .callout { display:block; border:1px dashed #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
+    .callout strong { color:#92400e }
+    .lock-hint { font-size: 14px; }
+    fieldset[disabled] { filter: grayscale(0.1); opacity: .75; pointer-events: none; }
+
+    /* Klick-Schutz-Layer über gesperrter Slot-Maske */
+    #slot-overlay{
+      display:none; position:relative; height:0;
+    }
+    #slot-overlay.active{ display:block; height:0; }
+    #slot-overlay.active::after{
+      content:"Erst Profil vervollständigen!";
+      position:absolute; inset:0; top:-8px; height:calc(100% + 8px);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:800;
+      background:rgba(239,68,68,.10);
+      border:2px dashed var(--danger);
+      color:var(--danger-ink);
+      border-radius:14px;
+      pointer-events:none;
+    }
+
+    /* Suche / Aktionen über Tabelle */
     .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .slot-filter input{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:8px 10px; min-width:220px; }
 
-    /* ROTER Sticky Hinweis-Banner */
-    .alert-red{
-      position: sticky; top: 0; z-index: 1000;
-      display:none; border:2px solid #ef4444; background:#fee2e2; color:#7f1d1d;
-      padding:14px 16px; border-radius:14px; margin:0 0 16px;
-      box-shadow: 0 8px 18px rgba(127,29,29,.18);
-      font-weight:800; letter-spacing:.2px;
-    }
-    .alert-red .sub{ font-weight:600; opacity:.95 }
-    .alert-pulse { animation: pulse 600ms ease-out 1; }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      40% { transform: scale(1.015); }
-      100% { transform: scale(1); }
-    }
-
-    /* Guard / Callout im Slot-Panel */
-    .callout { display:none; border:1px dashed #ef4444; background:#fee2e2; color:#7f1d1d; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
-    .callout strong { color:#991b1b }
-    .lock-hint { font-size: 14px; }
-
-    /* Blocker, der Klicks auf die Slot-Maske abfängt, solange gesperrt */
-    .slot-blocker{
-      position:absolute; inset:56px 12px 12px 12px; /* lässt Titel/Überschrift klickbar */
-      display:none; cursor:not-allowed; z-index:10;
-      background: rgba(255, 255, 255, 0.0); /* unsichtbar, nur Click-Catcher */
-    }
-
-    fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
+    .nowrap{ white-space:nowrap }
+    .table-wrap{ overflow:auto; background:#fff; border-radius:14px; }
+    .container{ max-width:1100px; margin:0 auto; padding:0 16px; }
+    header .nav{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; }
+    .brand{ display:flex; gap:10px; align-items:center; text-decoration:none; }
+    .brand-title{ font-weight:800; color:#0f172a; }
+    .nav-links a{ margin-right:14px; text-decoration:none; color:#0f172a; }
+    .hero .badge{ background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:3px 8px; border-radius:999px; font-size:12px; }
   </style>
 </head>
 
@@ -142,11 +157,11 @@
       </div>
     </section>
 
-    <!-- ROTER STICKY HINWEIS (sofort sichtbar bis Profil vollständig) -->
+    <!-- STICKY ROTES WARNBANNER -->
     <section>
       <div class="container">
-        <div id="profile-alert" class="alert-red" role="alert" aria-live="assertive">
-          Bitte erst dein Profil vervollständigen, danach kannst du deine freien Slots erstellen!
+        <div id="force-banner" class="alert-red" role="alert" aria-live="assertive">
+          ⚠️ Bitte erst dein Profil vervollständigen, danach kannst du deine freien Slots erstellen!
           <div class="sub">Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional.</div>
         </div>
       </div>
@@ -204,17 +219,17 @@
         </div>
 
         <!-- Slot anlegen -->
-        <div class="panel" id="slot-panel">
+        <div class="panel">
           <h2>Neuen Slot anlegen</h2>
 
           <!-- Guard-Hinweis, solange Profil unvollständig -->
           <div id="slot-guard" class="callout">
             <strong>Profil unvollständig.</strong>
-            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus. Danach kannst du Slots anlegen.</div>
+            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus (WhatsApp ist optional). Danach kannst du Slots anlegen.</div>
           </div>
 
-          <!-- Unsichtbarer Click-Blocker -->
-          <div id="slot-blocker" class="slot-blocker" aria-hidden="true"></div>
+          <!-- Overlay-Variante: sichtbarer Sperr-Hinweis -->
+          <div id="slot-overlay"></div>
 
           <!-- Alles im fieldset, das wir sperren -->
           <form id="form-slot" class="grid" novalidate>
@@ -348,24 +363,13 @@
   </main>
 
   <script>
-    // ---------- API-Basis (robust für Lokalnetz/Prod) ----------
+    // ---------- API-Basis ----------
     const API = (() => {
-      const h = location.hostname;
-      const proto = location.protocol;
-
+      const h = location.hostname, proto = location.protocol;
       const isLocal =
-        h === 'localhost' ||
-        h === '127.0.0.1' ||
-        /^192\.168\./.test(h) ||
-        /^10\./.test(h) ||
-        h.endsWith('.local');
-
-      if (isLocal) {
-        return `${proto}//${h}:5000`;
-      }
-      if (h === 'api.terminmarktplatz.de') {
-        return `${proto}//${h}`;
-      }
+        h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h) || h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
       return 'https://api.terminmarktplatz.de';
     })();
 
@@ -393,15 +397,10 @@
     }
 
     // ---------- Kategorien (Dropdown) ----------
-    const CATEGORIES = [
-      "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
-      "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
-    ];
+    const CATEGORIES = ["Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt","Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"];
     function fillCategoryOptions(){
-      const sel = $('#sl-cat');
-      if(!sel) return;
-      sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
-        + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+      const sel = $('#sl-cat'); if(!sel) return;
+      sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>` + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     // ---------- Profil-Completeness & Slot-Lock ----------
@@ -431,26 +430,28 @@
       };
     }
 
-    function pingBanner(){
-      const b = $('#profile-alert');
-      if(!b) return;
-      b.classList.remove('alert-pulse');
-      // force reflow to restart animation
-      void b.offsetWidth;
-      b.classList.add('alert-pulse');
-    }
-
     function setSlotLock(locked){
       const fs = $('#slot-fields');
       const guard = $('#slot-guard');
-      const banner = $('#profile-alert');
-      const blocker = $('#slot-blocker');
+      const banner = $('#force-banner');
+      const ov = $('#slot-overlay');
       if (fs) fs.disabled = !!locked;
-      if (guard) guard.style.display = locked ? 'block' : 'none';
+      if (guard)  guard.style.display  = locked ? 'block' : 'none';
       if (banner) banner.style.display = locked ? 'block' : 'none';
-      if (blocker) blocker.style.display = locked ? 'block' : 'none';
-      if (locked) pingBanner();
+      if (ov) ov.classList.toggle('active', !!locked);
     }
+
+    // --- Klick-Falle auf kompletter Slot-Maske wenn gelockt ---
+    // Nutzt Capture-Phase, damit *jeder* Klick (auch auf Inputs) abgefangen wird.
+    $('#form-slot').addEventListener('click', (e)=>{
+      const locked = $('#slot-fields').disabled;
+      if (locked){
+        e.preventDefault();
+        e.stopPropagation();
+        showMsg('msg-slot','Erst Profil vervollständigen!');
+        $('#force-banner')?.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    }, true);
 
     // ---------- Auth-Gate / Me ----------
     let ME = null;
@@ -478,6 +479,7 @@
 
         // Lock gemäß Profilstatus der serverseitigen Daten
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
+        console.log('[portal] profile complete:', complete);
         setSlotLock(!complete);
       }catch(err){
         showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
@@ -499,7 +501,7 @@
         if(r.ok){
           showMsg('msg-profile','Gespeichert ✓', true);
           const complete = isProfileCompleteFromValues(payload);
-          setSlotLock(!complete);
+          setSlotLock(!complete); // Freigabe ausschließlich nach Save
           if(!complete){
             showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).');
           }
@@ -532,7 +534,7 @@
       if(!d || !t || !min){ $('#sl-end').value=''; return; }
       const start = joinDateTime(d,t);
       const end   = new Date(start.getTime() + min*60000);
-      $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+      $('#sl-end').value = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
     }
 
     // Events (genau einmal)
@@ -541,13 +543,12 @@
     $('#sl-duration').addEventListener('input', recalcEnd);
     $('#sl-unit').addEventListener('change',  recalcEnd);
 
-    // Schnellwahl-Buttons – Minuten
+    // Schnellwahl-Buttons
     $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
       $('#sl-unit').value = 'min';
       $('#sl-duration').value = b.dataset.min;
       recalcEnd();
     }));
-    // Schnellwahl-Buttons – Stunden
     $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
       $('#sl-unit').value = 'h';
       $('#sl-duration').value = b.dataset.hour;
@@ -577,7 +578,7 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isPending   = theStatus === 'pending_review';
-        const isPublished = isPublished = theStatus === 'published';
+        const isPublished = theStatus === 'published';
         const isArchived  = theStatus === 'archived';
         const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
@@ -676,61 +677,32 @@
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
 
-    // Bulk-Aktionen
-    async function bulkSetStatus(ids, status){
-      if(!ids.length) return;
-      await Promise.all(ids.map(id =>
-        fetch(`${API}/slots/${id}`, {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify({status})
-        })
-      ));
-    }
-    async function bulkDelete(ids){
-      if(!ids.length) return;
-      await Promise.all(ids.map(id =>
-        fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'})
-      ));
-    }
-    $('#btn-publish')?.addEventListener('click', async ()=>{
-      const ids = [...SELECTED];
-      await bulkSetStatus(ids, 'published'); await loadSlots();
-    });
-    $('#btn-archive')?.addEventListener('click', async ()=>{
-      const ids = [...SELECTED];
-      await bulkSetStatus(ids, 'archived'); await loadSlots();
-    });
-    $('#btn-delete')?.addEventListener('click', async ()=>{
-      const ids = [...SELECTED];
-      if(!ids.length) return;
-      if(!confirm(`Diese ${ids.length} Slot(s) wirklich löschen?`)) return;
-      await bulkDelete(ids); await loadSlots();
-    });
-    $('#btn-refresh')?.addEventListener('click', loadSlots);
-
     // ---------- Slot anlegen ----------
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // Nur nach gespeichertem, vollständigem Profil
-      const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
-      if(!completeNow){
-        setSlotLock(true);
+      // Harter Client-Gate
+      if($('#slot-fields').disabled){
         showMsg('msg-slot','Erst Profil vervollständigen!');
-        pingBanner();
+        $('#force-banner')?.scrollIntoView({behavior:'smooth', block:'start'});
         return;
       }
 
-      // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
+      // ORT / PLZ PFLICHT
       const loc = ($('#sl-location').value || '').trim();
       if(!loc){
         $('#sl-location').focus();
         return showMsg('msg-slot','„Ort / PLZ“ ist ein Pflichtfeld.');
       }
 
-      const date = $('#sl-date').value, time = $('#sl-start').value, durMin = totalMinutes();
+      const date = $('#sl-date').value, time = $('#sl-start').value;
+      const durMin = (()=>{
+        const val = parseInt($('#sl-duration').value || '0', 10);
+        const unit = $('#sl-unit').value;
+        if (!val) return 0;
+        return unit === 'h' ? val * 60 : val;
+      })();
+
       if(!date || !time || !durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
 
       const startLocal = joinDateTime(date,time);
@@ -774,15 +746,12 @@
             profile_incomplete:'Profil unvollständig. Bitte erst Profil speichern.'
           };
           showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
+          if (data && data.error === 'profile_incomplete') {
+            setSlotLock(true);
+            $('#force-banner')?.scrollIntoView({behavior:'smooth', block:'start'});
+          }
         }
       }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
-    });
-
-    // Klicks auf gesperrte Slot-Maske abfangen → Hinweis
-    $('#slot-blocker').addEventListener('click', ()=>{
-      showMsg('msg-slot','Erst Profil vervollständigen!');
-      pingBanner();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     // ---------- Logout ----------
@@ -793,7 +762,7 @@
 
     // ---------- Init ----------
     (async function init(){
-      // Sofort sperren & roten Banner zeigen, bis /me geladen und Profil vollständig ist
+      // Sofort sperren & Banner anzeigen, bevor /me geladen ist:
       setSlotLock(true);
       await requireAuth();
       fillCategoryOptions();
@@ -804,31 +773,31 @@
 
   <!-- Footer -->
   <footer>
-    <div class="container foot-grid">
+    <div class="container foot-grid" style="display:grid; grid-template-columns:1.2fr .8fr .8fr .8fr; gap:16px; padding:24px 0">
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein" width="40" height="40">
           </div>
-        <div class="brand-title">Terminmarktplatz</div>
+          <div class="brand-title">Terminmarktplatz</div>
         </div>
         <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a><br/>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
-        <a class="foot-link" href="impressum.html">Impressum</a>
-        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
-        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="impressum.html">Impressum</a><br/>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a><br/>
+        <a class="foot-link" href="agb.html">AGB</a><br/>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
-        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a><br/>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
