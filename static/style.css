@@ -162,7 +162,7 @@ body:not(.page-portal) .table .btn.action{ background: linear-gradient(135deg, v
 body:not(.page-portal) .table .btn.danger{ background: linear-gradient(135deg, var(--c-red), #ff7b7b); }
 
 /* Deaktivierte Bulk-Buttons */
-.seg .btn[disabled]{ opacity:.55; pointer-events:none; }
+.seg .btn[disabled]{ background:linear-gradient(135deg, var(--c-purple), var(--c-cyan)); }
 
 /* ---------- Hero ---------- */
 .hero{padding:86px 0 34px}
