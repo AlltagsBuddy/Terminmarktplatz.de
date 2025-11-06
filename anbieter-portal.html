@@ -19,8 +19,7 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){ dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-YNZ8GW523R');
+    gtag('js', new Date()); gtag('config', 'G-YNZ8GW523R');
   </script>
 
   <!-- Assets -->
@@ -29,53 +28,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="static/style.css?v=20251106c" />
+  <!-- Wichtig: Cache-Buster anpassen -->
+  <link rel="stylesheet" href="static/style.css?v=20251106e" />
 
   <style>
-    :root{
-      --danger:#ef4444; --danger-ink:#7f1d1d; --danger-bg:#fee2e2;
-      --amber-ink:#7c2d12; --amber-bg:#fffbeb; --border:#e5e7eb;
-    }
-    body.page-portal { background: #f6f7fb; }
-
-    .page-portal .btn,.page-portal .btn.primary,.page-portal .seg .btn,
-    .page-portal .table .btn,.page-portal .table .btn.action,.page-portal .table .btn.danger{
-      color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; background-image:none !important;
-    }
-    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2); background:#fff; padding:16px;}
-    .grid{display:grid; gap:16px}
-    @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
-
-    /* Formular */
-    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:10px; }
-    .field input,.field select,.field textarea{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03); }
-    .field input::placeholder,.field textarea::placeholder{ color:#64748b }
-    .field input:focus,.field select:focus,.field textarea:focus{ outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25) }
-    .req{ color:#ef4444; font-weight:700 }
-    .muted{color:#6b7280}
-    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-
-    /* Tabelle */
-    .table{width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:14px; overflow:hidden}
-    .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; background:#fff}
-    .table th{background:#f8fafc; color:#0f172a}
-    .table th:first-child,.table td:first-child{ text-align:center; width:34px }
-
-    .badge-st{padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border)}
-    .st-pending{background:#fff7ed}
-    .st-pub{background:#ecfeff}
-    .st-arch{background:#f1f5f9}
-
-    .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
-    .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
-    .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
-
-    .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
-    .seg .btn { padding:8px 12px; }
-    .seg .btn[data-hour], .seg .btn[data-min]{ background:#f8fafc !important; border-color:#cbd5e1 !important; color:#0f172a !important; }
+    /* ---- NUR Zusatzstyles; dunkles Grundlayout kommt aus style.css ---- */
 
     /* Sticky roter Warnbanner */
+    :root{ --danger:#ef4444; --danger-ink:#7f1d1d; --danger-bg:#fee2e2; }
     .alert-red{
       position: sticky; top: 0; z-index: 2000;
       display:block;
@@ -88,16 +48,13 @@
     }
     .alert-red .sub{ font-weight:600; opacity:.95; }
 
-    /* Guard / Callout im Slot-Panel */
+    /* Callout/Lock im Slot-Panel */
     .callout { display:block; border:1px dashed #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
-    .callout strong { color:#92400e }
     .lock-hint { font-size: 14px; }
     fieldset[disabled] { filter: grayscale(0.1); opacity: .75; pointer-events: none; }
 
-    /* Klick-Schutz-Layer über gesperrter Slot-Maske */
-    #slot-overlay{
-      display:none; position:relative; height:0;
-    }
+    /* Klick-Schutz-Layer bei gesperrter Slot-Maske */
+    #slot-overlay{ display:none; position:relative; height:0; }
     #slot-overlay.active{ display:block; height:0; }
     #slot-overlay.active::after{
       content:"Erst Profil vervollständigen!";
@@ -111,23 +68,25 @@
       pointer-events:none;
     }
 
-    /* Suche / Aktionen über Tabelle */
-    .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .slot-filter input{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:8px 10px; min-width:220px; }
-
+    /* Helper */
+    .grid{display:grid; gap:16px}
+    @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
+    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
     .nowrap{ white-space:nowrap }
-    .table-wrap{ overflow:auto; background:#fff; border-radius:14px; }
     .container{ max-width:1100px; margin:0 auto; padding:0 16px; }
-    header .nav{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; }
-    .brand{ display:flex; gap:10px; align-items:center; text-decoration:none; }
-    .brand-title{ font-weight:800; color:#0f172a; }
-    .nav-links a{ margin-right:14px; text-decoration:none; color:#0f172a; }
-    .hero .badge{ background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; padding:3px 8px; border-radius:999px; font-size:12px; }
+
+    /* Doppelte Pflicht-Sterne verhindern: falls global ::after schon einen Stern setzt,
+       blenden wir manuelle <span class="req">*</span> aus. */
+    label .req{ display:none !important; }
+
+    /* Messages */
+    .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
+    .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
+    .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
   </style>
 </head>
 
 <body class="page-portal">
-
   <!-- Header -->
   <header>
     <div class="container nav">
@@ -147,7 +106,7 @@
   </header>
 
   <main>
-    <!-- HERO -->
+    <!-- HERO (Dark-Styles kommen aus style.css) -->
     <section class="hero" style="padding:36px 0 18px">
       <div class="container">
         <span class="badge">Anbieter-Portal</span>
@@ -174,8 +133,8 @@
         <!-- Profil -->
         <div class="panel">
           <h2>Profil</h2>
-          <p class="muted">Du musst erts dein Profil vervollständigen und speichern, 
-            danach kannst du deine freien Slots erstellen.</p>
+          <p class="muted">Bitte Profil vollständig ausfüllen und speichern – erst dann kannst du Slots anlegen.</p>
+
           <form id="form-profile" class="grid">
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
@@ -211,9 +170,10 @@
               <label for="pf-whatsapp">WhatsApp (optional)</label>
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
             </div>
+
             <div class="toolbar">
               <button class="btn primary" type="submit">Profil speichern</button>
-              <span class="muted">Erst wenn dein Profil vollständig und gespeichert ist, kannst du Slots anlegen.</span>
+              <span class="muted">Erst wenn dein Profil vollständig ist, kannst du Slots anlegen.</span>
             </div>
             <div id="msg-profile" class="msg"></div>
           </form>
@@ -240,7 +200,6 @@
                 <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
               </div>
 
-              <!-- Kategorie -->
               <div class="field">
                 <label for="sl-cat">Kategorie <span class="req">*</span></label>
                 <select id="sl-cat" name="category" required>
@@ -257,7 +216,6 @@
                 <input id="sl-start" type="time" step="60" required/>
               </div>
 
-              <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
                 <div style="display:flex; gap:8px; align-items:center">
@@ -442,8 +400,7 @@
       if (ov) ov.classList.toggle('active', !!locked);
     }
 
-    // --- Klick-Falle auf kompletter Slot-Maske wenn gelockt ---
-    // Nutzt Capture-Phase, damit *jeder* Klick (auch auf Inputs) abgefangen wird.
+    // Klick-Fang wenn gelockt
     $('#form-slot').addEventListener('click', (e)=>{
       const locked = $('#slot-fields').disabled;
       if (locked){
@@ -478,16 +435,15 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Lock gemäß Profilstatus der serverseitigen Daten
+        // Lock gemäß Profilstatus
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
-        console.log('[portal] profile complete:', complete);
         setSlotLock(!complete);
       }catch(err){
         showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
       }
     }
 
-    // ---------- Profil speichern (hier wird entsperrt) ----------
+    // ---------- Profil speichern ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = getProfileValuesFromForm();
@@ -502,10 +458,8 @@
         if(r.ok){
           showMsg('msg-profile','Gespeichert ✓', true);
           const complete = isProfileCompleteFromValues(payload);
-          setSlotLock(!complete); // Freigabe ausschließlich nach Save
-          if(!complete){
-            showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).');
-          }
+          setSlotLock(!complete);
+          if(!complete){ showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).'); }
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -516,12 +470,10 @@
           showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
           if(r.status === 401) location.href = 'login.html?tab=login';
         }
-      }catch(e){
-        showMsg('msg-profile','Netzwerkfehler.');
-      }
+      }catch(e){ showMsg('msg-profile','Netzwerkfehler.'); }
     });
 
-    // ---------- Slot-Form: Dauer -> Ende berechnen ----------
+    // ---------- Slot-Form: Dauer -> Ende ----------
     function totalMinutes(){
       const val = parseInt($('#sl-duration').value || '0', 10);
       const unit = $('#sl-unit').value;
@@ -537,26 +489,18 @@
       const end   = new Date(start.getTime() + min*60000);
       $('#sl-end').value = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
     }
-
-    // Events (genau einmal)
     $('#sl-date').addEventListener('change',  recalcEnd);
     $('#sl-start').addEventListener('input',  recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
     $('#sl-unit').addEventListener('change',  recalcEnd);
-
-    // Schnellwahl-Buttons
     $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
-      $('#sl-unit').value = 'min';
-      $('#sl-duration').value = b.dataset.min;
-      recalcEnd();
+      $('#sl-unit').value = 'min'; $('#sl-duration').value = b.dataset.min; recalcEnd();
     }));
     $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
-      $('#sl-unit').value = 'h';
-      $('#sl-duration').value = b.dataset.hour;
-      recalcEnd();
+      $('#sl-unit').value = 'h'; $('#sl-duration').value = b.dataset.hour; recalcEnd();
     }));
 
-    // ---------- Slots laden & rendern + Freigabe-Workflow ----------
+    // ---------- Slots laden & rendern ----------
     let SELECTED = new Set();
     let LAST_ITEMS = [];
 
@@ -601,7 +545,6 @@
         tbody.appendChild(tr);
       }
 
-      // Zeilen-Checkboxen
       $$('#tbl-slots .row-check').forEach(cb => {
         cb.addEventListener('change', ()=>{
           const id = cb.dataset.id;
@@ -610,7 +553,6 @@
         });
       });
 
-      // Einzelaktionen
       $$('#tbl-slots [data-del]').forEach(b =>
         b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
       );
@@ -618,7 +560,6 @@
         b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
       );
 
-      // Master-Checkbox
       $('#chk-all').onchange = (e) => {
         SELECTED.clear();
         $$('#tbl-slots .row-check').forEach(cb => {
@@ -646,19 +587,6 @@
       }
     }
 
-    // Live-Suche Titel/Kategorie
-    const slotSearch = $('#slot-search');
-    if (slotSearch) {
-      slotSearch.addEventListener('input', ()=>{
-        const q = slotSearch.value.trim().toLowerCase();
-        if(!q) return renderTable(LAST_ITEMS);
-        const filtered = LAST_ITEMS.filter(s =>
-          (s.title||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q)
-        );
-        renderTable(filtered);
-      });
-    }
-
     async function delSlot(id){
       if(!confirm('Diesen Slot wirklich löschen?')) return;
       try{
@@ -678,98 +606,20 @@
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
 
-    // ---------- Slot anlegen ----------
-    $('#form-slot').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-
-      // Harter Client-Gate
-      if($('#slot-fields').disabled){
-        showMsg('msg-slot','Erst Profil vervollständigen!');
-        $('#force-banner')?.scrollIntoView({behavior:'smooth', block:'start'});
-        return;
-      }
-
-      // ORT / PLZ PFLICHT
-      const loc = ($('#sl-location').value || '').trim();
-      if(!loc){
-        $('#sl-location').focus();
-        return showMsg('msg-slot','„Ort / PLZ“ ist ein Pflichtfeld.');
-      }
-
-      const date = $('#sl-date').value, time = $('#sl-start').value;
-      const durMin = (()=>{
-        const val = parseInt($('#sl-duration').value || '0', 10);
-        const unit = $('#sl-unit').value;
-        if (!val) return 0;
-        return unit === 'h' ? val * 60 : val;
-      })();
-
-      if(!date || !time || !durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
-
-      const startLocal = joinDateTime(date,time);
-      const endLocal   = new Date(startLocal.getTime() + durMin*60000);
-
-      const payload = {
-        title: ($('#sl-title').value||'').trim() || 'Slot',
-        category: ($('#sl-cat').value||'').trim() || 'Sonstiges',
-        start_at: toLocalISO(startLocal),
-        end_at: toLocalISO(endLocal),
-        location: loc,
-        capacity: parseInt($('#sl-cap').value || '1',10),
-        contact_method: 'mail',
-        booking_link: null,
-        price_cents: $('#sl-price').value ? Math.round(parseFloat($('#sl-price').value)*100) : null,
-        notes: ($('#sl-notes').value||'').trim() || null
-      };
-
-      try{
-        const r = await fetch(`${API}/slots`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify(payload)
-        });
-        const data = await r.json().catch(()=> ({}));
-        if(r.ok){
-          showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
-          e.target.reset(); $('#sl-unit').value='min'; recalcEnd(); fillCategoryOptions(); await loadSlots();
-        }else{
-          const m = {
-            missing_fields:'Pflichtfelder fehlen.',
-            missing_location:'„Ort / PLZ“ ist ein Pflichtfeld.',
-            bad_datetime:'Datum/Uhrzeit ungültig.',
-            end_before_start:'Ende liegt vor dem Start.',
-            limit_reached:'Limit erreicht.',
-            start_in_past:'Start darf nicht in der Vergangenheit liegen.',
-            bad_capacity:'Kapazität ungültig.',
-            db_constraint_error:'Kategorie entspricht nicht den DB-Vorgaben.',
-            db_error:'Datenbankfehler.',
-            profile_incomplete:'Profil unvollständig. Bitte erst Profil speichern.'
-          };
-          showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
-          if (data && data.error === 'profile_incomplete') {
-            setSlotLock(true);
-            $('#force-banner')?.scrollIntoView({behavior:'smooth', block:'start'});
-          }
-        }
-      }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
-    });
-
-    // ---------- Logout ----------
-    $('#btn-logout').addEventListener('click', async ()=>{
-      try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
-      location.href = 'login.html?tab=login';
-    });
-
     // ---------- Init ----------
     (async function init(){
-      // Sofort sperren & Banner anzeigen, bevor /me geladen ist:
-      setSlotLock(true);
+      setSlotLock(true);          // sofort sperren + Banner zeigen
       await requireAuth();
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
     })();
+
+    // ---------- Logout ----------
+    document.getElementById('btn-logout').addEventListener('click', async ()=>{
+      try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
+      location.href = 'login.html?tab=login';
+    });
   </script>
 
   <!-- Footer -->
