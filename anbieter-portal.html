@@ -39,8 +39,9 @@
     .page-portal .seg .btn,
     .page-portal .table .btn,
     .page-portal .table .btn.action,
-    .page-portal .table .btn.danger { color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; background-image:none !important; }
-
+    .page-portal .table .btn.danger {
+      color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; background-image:none !important;
+    }
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
@@ -78,11 +79,20 @@
     .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .slot-filter input{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:8px 10px; min-width:220px; }
 
-    /* Hinweis-Banner (sichtbar bis Profil vollständig ist) */
-    .alert{ display:block; border:1px solid #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin:0 0 16px; }
-    .alert strong{ color:#92400e }
+    /* Sticky Hinweis-Banner (sofort sichtbar) */
+    .alert-bar{
+      position: sticky; top: 0; z-index: 1000;
+      display:block; border:2px solid #f59e0b; background:#FEF3C7; /* amber-100 */
+      color:#7c2d12; padding:14px 16px; border-radius:14px; margin:0 0 16px;
+      box-shadow: 0 6px 14px rgba(124,45,18,.15);
+    }
+    .alert-bar strong{ color:#92400e }
+    .alert-bar .row{ display:flex; gap:12px; align-items:center; }
+    .alert-bar .icon{ font-size:22px; line-height:1; }
+    .alert-bar .txt{ font-weight:700 }
+    .alert-bar .sub{ font-weight:500; opacity:.9 }
 
-    /* Guard / Callout innerhalb des Slot-Panels (auch sichtbar bis Profil vollst.) */
+    /* Guard / Callout im Slot-Panel (sichtbar bis Profil vollst.) */
     .callout { display:block; border:1px dashed #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
     .callout strong { color:#92400e }
     .lock-hint { font-size: 14px; }
@@ -121,16 +131,23 @@
       </div>
     </section>
 
-    <!-- CONTENT -->
+    <!-- STICKY HINWEIS (immer sofort sichtbar, bis Profil vollständig ist) -->
     <section>
       <div class="container">
-        <!-- Globaler, klar sichtbarer Hinweis -->
-        <div id="profile-alert" class="alert">
-          <strong>Wichtig:</strong> Bitte zuerst dein <strong>Profil vollständig speichern</strong>.
-          Erst danach kannst du Slots erstellen. Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional.
+        <div id="profile-alert" class="alert-bar" role="alert" aria-live="assertive">
+          <div class="row">
+            <div class="icon">⚠️</div>
+            <div>
+              <div class="txt">Profil zuerst vollständig speichern!</div>
+              <div class="sub">Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional. Danach kannst du Slots erstellen.</div>
+            </div>
+          </div>
         </div>
       </div>
+    </section>
 
+    <!-- CONTENT -->
+    <section>
       <div class="container grid grid-2">
 
         <!-- Profil -->
@@ -174,7 +191,7 @@
             </div>
             <div class="toolbar">
               <button class="btn primary" type="submit">Profil speichern</button>
-              <span class="muted">Pflicht: Firma, Branche, Straße, PLZ, Ort, Telefon.</span>
+              <span class="muted">Pflicht: Firma, Branche, Straße & Nr., PLZ, Ort, Telefon.</span>
             </div>
             <div id="msg-profile" class="msg"></div>
           </form>
@@ -244,7 +261,10 @@
               <!-- ORT / PLZ – PFLICHT -->
               <div class="field">
                 <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
-                <input id="sl-location" name="location" placeholder="z. B. 96191 Viereth / Filiale Zentrum" required pattern="(\d{5}|.{3,})" title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
+                <input id="sl-location" name="location"
+                       placeholder="z. B. 96191 Viereth / Filiale Zentrum"
+                       required pattern="(\d{5}|.{3,})"
+                       title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
               </div>
 
               <div class="field">
@@ -743,8 +763,8 @@
 
     // ---------- Init ----------
     (async function init(){
-      // Sofort sperren & Banner anzeigen, bis /me geladen und Profil vollständig ist
-      setSlotLock(true);
+      // WICHTIG: Vorab sperren & Banner zeigen, noch bevor /me geladen ist:
+      setSlotLock(true); // zeigt auch #profile-alert an
 
       await requireAuth();
       fillCategoryOptions();
