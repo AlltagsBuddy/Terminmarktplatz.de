@@ -42,7 +42,7 @@ load_dotenv()
 
 APP_ROOT     = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR   = os.path.join(APP_ROOT, "static")
-TEMPLATE_DIR = APP_ROOT  # Deine HTML-Dateien liegen im Projekt-Root
+TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")  # <— WICHTIG: Templates-Ordner!
 
 IS_RENDER = bool(os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
 API_ONLY  = os.environ.get("API_ONLY") == "1"
@@ -53,6 +53,10 @@ app = Flask(
     static_url_path="/static",
     template_folder=TEMPLATE_DIR,
 )
+
+# Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
+if not IS_RENDER:
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 print("MODE       :", "API-only" if API_ONLY else "Full (API + HTML)")
 print("TEMPLATES  :", TEMPLATE_DIR)
@@ -119,17 +123,16 @@ elif DB_URL.startswith("postgresql://"):
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 
-ALLOWED_ORIGINS = ["*"]
+ALLOWED_ORIGINS = [
+    "https://terminmarktplatz.de",
+    "https://www.terminmarktplatz.de",
+    "https://api.terminmarktplatz.de",
+    "http://127.0.0.1:5000",
+    "http://localhost:5000",
+]
 CORS(
     app,
-    resources={
-        r"/auth/*":   {"origins": ALLOWED_ORIGINS},
-        r"/me":       {"origins": ALLOWED_ORIGINS},
-        r"/slots*":   {"origins": ALLOWED_ORIGINS},
-        r"/admin/*":  {"origins": ALLOWED_ORIGINS},
-        r"/public/*": {"origins": ALLOWED_ORIGINS},
-        r"/api/*":    {"origins": ALLOWED_ORIGINS},
-    },
+    resources={r"/*": {"origins": ALLOWED_ORIGINS}},
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -284,19 +287,9 @@ def _is_valid_zip(v: str | None) -> bool:
 
 def _is_valid_phone(v: str | None) -> bool:
     v = (v or "").strip()
-    # sehr einfache, robuste Prüfung (min. 6 Ziffern/Zeichen)
     return len(v) >= 6
 
 def is_profile_complete(p: Provider) -> bool:
-    """
-    Alles Pflicht außer WhatsApp:
-      - company_name
-      - branch
-      - street
-      - zip (5-stellig)
-      - city
-      - phone (einfach ≥ 6 Zeichen)
-    """
     return all([
         bool(p.company_name),
         bool(p.branch),
@@ -312,13 +305,6 @@ def is_profile_complete(p: Provider) -> bool:
 # --------------------------------------------------------
 def send_mail(to: str, subject: str, text: str | None = None, html: str | None = None,
               tag: str | None = None, metadata: dict | None = None):
-    """
-    MAIL_PROVIDER:
-      - 'resend'   -> HTTPS API (empfohlen auf Render)
-      - 'postmark' -> HTTPS API
-      - 'smtp'     -> direkte SMTP-Verbindung (lokal sinnvoll, Render blockiert meist)
-      - 'console'  -> schreibt nur ins Log
-    """
     try:
         if not EMAILS_ENABLED:
             print(f"[mail] disabled: EMAILS_ENABLED=false subject='{subject}' to={to}", flush=True)
@@ -327,7 +313,6 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
         provider = (MAIL_PROVIDER or "resend").lower()
         print(f"[mail] provider={provider} from={MAIL_FROM} to={to} subject='{subject}'", flush=True)
 
-        # ---- console ----
         if provider == "console":
             print(
                 "\n--- MAIL (console) ---\n"
@@ -337,95 +322,61 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
             )
             return True, "console"
 
-        # ---- resend (HTTPS) ----
         if provider == "resend":
             if not RESEND_API_KEY:
                 return False, "missing RESEND_API_KEY"
-            payload = {
-                "from": MAIL_FROM,
-                "to": [to],
-                "subject": subject,
-                "text": text or None,
-                "html": html or None,
-            }
-            if MAIL_REPLY_TO:
-                payload["reply_to"] = [MAIL_REPLY_TO]
-
+            payload = {"from": MAIL_FROM, "to": [to], "subject": subject}
+            if text: payload["text"] = text
+            if html: payload["html"] = html
+            if MAIL_REPLY_TO: payload["reply_to"] = [MAIL_REPLY_TO]
             r = requests.post(
                 "https://api.resend.com/emails",
-                headers={
-                    "Authorization": f"Bearer {RESEND_API_KEY}",
-                    "Content-Type": "application/json",
-                },
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
                 json=payload, timeout=15
             )
             ok = 200 <= r.status_code < 300
             print("[resend]", r.status_code, r.text, flush=True)
             return ok, f"{r.status_code}"
 
-        # ---- postmark (HTTPS) ----
         if provider == "postmark":
             if not POSTMARK_API_TOKEN:
                 return False, "missing POSTMARK_API_TOKEN"
-            payload = {
-                "From": MAIL_FROM,
-                "To": to,
-                "Subject": subject,
-                "MessageStream": POSTMARK_MESSAGE_STREAM or "outbound",
-            }
+            payload = {"From": MAIL_FROM, "To": to, "Subject": subject, "MessageStream": POSTMARK_MESSAGE_STREAM}
             if MAIL_REPLY_TO: payload["ReplyTo"] = MAIL_REPLY_TO
-            if text:          payload["TextBody"] = text
-            if html:          payload["HtmlBody"] = html
-            if tag:           payload["Tag"] = tag
-            if metadata:      payload["Metadata"] = metadata
-
+            if text: payload["TextBody"] = text
+            if html: payload["HtmlBody"] = html
+            if tag: payload["Tag"] = tag
+            if metadata: payload["Metadata"] = metadata
             r = requests.post(
                 "https://api.postmarkapp.com/email",
-                headers={
-                    "X-Postmark-Server-Token": POSTMARK_API_TOKEN,
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
+                headers={"X-Postmark-Server-Token": POSTMARK_API_TOKEN, "Accept": "application/json", "Content-Type": "application/json"},
                 json=payload, timeout=15
             )
             ok = 200 <= r.status_code < 300
             print("[postmark]", r.status_code, r.text, flush=True)
             return ok, f"{r.status_code}"
 
-        # ---- smtp (nur ausserhalb Render) ----
         if provider == "smtp":
-            missing = [k for k, v in {
-                "SMTP_HOST": SMTP_HOST, "SMTP_PORT": SMTP_PORT, "SMTP_USER": SMTP_USER, "SMTP_PASS": SMTP_PASS
-            }.items() if not v]
+            missing = [k for k, v in {"SMTP_HOST": SMTP_HOST, "SMTP_PORT": SMTP_PORT, "SMTP_USER": SMTP_USER, "SMTP_PASS": SMTP_PASS}.items() if not v]
             if missing:
                 return False, f"missing smtp config: {', '.join(missing)}"
-
-            # robustes From:
             disp_name, _ = parseaddr(MAIL_FROM or "")
             from_hdr = formataddr((disp_name or "Terminmarktplatz", SMTP_USER))
-
             msg = EmailMessage()
-            msg["From"] = from_hdr
-            msg["To"] = to
-            msg["Subject"] = subject
+            msg["From"] = from_hdr; msg["To"] = to; msg["Subject"] = subject
             if MAIL_REPLY_TO: msg["Reply-To"] = MAIL_REPLY_TO
-
             if html:
                 msg.set_content(text or "")
                 msg.add_alternative(html, subtype="html")
             else:
                 msg.set_content(text or "")
-
             try:
                 if SMTP_USE_TLS:
                     with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-                        s.starttls()
-                        s.login(SMTP_USER, SMTP_PASS)
-                        s.send_message(msg, from_addr=SMTP_USER)
+                        s.starttls(); s.login(SMTP_USER, SMTP_PASS); s.send_message(msg, from_addr=SMTP_USER)
                 else:
                     with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-                        s.login(SMTP_USER, SMTP_PASS)
-                        s.send_message(msg, from_addr=SMTP_USER)
+                        s.login(SMTP_USER, SMTP_PASS); s.send_message(msg, from_addr=SMTP_USER)
                 return True, "smtp"
             except Exception as e:
                 print("[smtp][ERROR]", repr(e), flush=True)
@@ -445,14 +396,12 @@ def issue_tokens(provider_id: str, is_admin: bool):
     now = _now()
     access = jwt.encode(
         {"sub": provider_id, "adm": is_admin, "iss": JWT_ISS, "aud": JWT_AUD,
-         "iat": int(now.timestamp()),
-         "exp": int((now + timedelta(minutes=JWT_EXP_MIN)).timestamp())},
+         "iat": int(now.timestamp()), "exp": int((now + timedelta(minutes=JWT_EXP_MIN)).timestamp())},
         SECRET, algorithm="HS256",
     )
     refresh = jwt.encode(
         {"sub": provider_id, "iss": JWT_ISS, "aud": JWT_AUD, "typ": "refresh",
-         "iat": int(now.timestamp()),
-         "exp": int((now + timedelta(days=REFRESH_EXP_DAYS)).timestamp())},
+         "iat": int(now.timestamp()), "exp": int((now + timedelta(days=REFRESH_EXP_DAYS)).timestamp())},
         SECRET, algorithm="HS256",
     )
     return access, refresh
@@ -538,6 +487,10 @@ if _html_enabled():
 
     @app.get("/anbieter-portal")
     def anbieter_portal_page():
+        return render_template("anbieter-portal.html")
+
+    @app.get("/anbieter-portal.html")
+    def anbieter_portal_page_html():
         return render_template("anbieter-portal.html")
 
     @app.get("/impressum")
@@ -662,10 +615,8 @@ def register():
             provider_id = p.id
             reg_email   = p.email
 
-        payload = {
-            "sub": provider_id, "aud": "verify", "iss": JWT_ISS,
-            "exp": int((_now() + timedelta(days=2)).timestamp())
-        }
+        payload = {"sub": provider_id, "aud": "verify", "iss": JWT_ISS,
+                   "exp": int((_now() + timedelta(days=2)).timestamp())}
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
         ok_mail, reason = send_mail(reg_email, "Bitte E-Mail bestätigen",
@@ -782,7 +733,6 @@ def me():
             "id": p.id, "email": p.email, "status": p.status, "is_admin": p.is_admin,
             "company_name": p.company_name, "branch": p.branch, "street": p.street,
             "zip": p.zip, "city": p.city, "phone": p.phone, "whatsapp": p.whatsapp,
-            # Neu: Frontend-Flag für harte UI-Sperre
             "profile_complete": is_profile_complete(p)
         })
 
@@ -883,7 +833,6 @@ def slots_create():
         if any(k not in data or data[k] in (None, "") for k in required):
             return _json_error("missing_fields", 400)
 
-        # Zeit prüfen
         try:
             start = parse_iso_utc(data["start_at"])
             end   = parse_iso_utc(data["end_at"])
@@ -894,12 +843,10 @@ def slots_create():
         if start <= _now():
             return _json_error("start_in_past", 409)
 
-        # Ort / PLZ (serverseitig Pflicht)
         location = (data.get("location") or "").strip()
         if not location:
             return _json_error("missing_location", 400)
 
-        # Kapazität prüfen (>=1)
         cap = int(data.get("capacity") or 1)
         if cap < 1:
             return _json_error("bad_capacity", 400)
@@ -908,12 +855,10 @@ def slots_create():
         end_db   = _to_db_utc_naive(end)
 
         with Session(engine) as s:
-            # HARTE SPERRE: Profil muss vollständig sein
             p = s.get(Provider, request.provider_id)
             if not p or not is_profile_complete(p):
                 return _json_error("profile_incomplete", 400)
 
-            # Limit
             count = s.scalar(
                 select(func.count()).select_from(Slot).where(
                     and_(Slot.provider_id == request.provider_id,
@@ -1131,8 +1076,9 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    c = 2 * atan2(sqrt(a), sqrt(a))
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))  # <- hier muss sqrt(1 - a) stehen
     return R * c
+
 
 @app.get("/public/slots")
 def public_slots():
@@ -1152,7 +1098,6 @@ def public_slots():
     except ValueError:
         radius_km = None
 
-    # Zeitfenster bestimmen
     try:
         if day_str:
             y, m, d = map(int, day_str.split("-"))
@@ -1167,13 +1112,11 @@ def public_slots():
         return _json_error("bad_datetime", 400)
 
     with Session(engine) as s:
-        # Startpunkt (nur wenn Radius aktiv und zip/city angegeben)
         origin_lat = origin_lon = None
         if radius_km and (zip_filter or city_q):
             origin_lat, origin_lon = geocode_cached(s, zip_filter if zip_filter else None,
                                                        None if zip_filter else city_q)
 
-        # belegte Plätze
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1181,7 +1124,6 @@ def public_slots():
             .subquery()
         )
 
-        # Grundmenge
         q = (
             select(
                 Slot,
@@ -1199,14 +1141,12 @@ def public_slots():
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
-        # Kategorie
         if category:
             if category in BRANCHES:
                 q = q.where(Slot.category == category)
             else:
                 q = q.where(Slot.category.ilike(f"%{category}%"))
 
-        # Ohne Radius: DB-seitiger City/PLZ-Filter
         if radius_km is None:
             if zip_filter:
                 q = q.where(Provider.zip == zip_filter)
@@ -1223,7 +1163,6 @@ def public_slots():
             if not include_full and available <= 0:
                 continue
 
-            # Radius-Filter python-seitig
             if radius_km is not None:
                 if not (origin_lat and origin_lon):
                     continue
