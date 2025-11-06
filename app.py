@@ -130,13 +130,33 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "http://localhost:5000",
 ]
+# --- CORS -------------------------------------------------
+if IS_RENDER:
+    ALLOWED_ORIGINS = [
+        "https://terminmarktplatz.de",
+        "https://www.terminmarktplatz.de",
+    ]
+else:
+    ALLOWED_ORIGINS = [
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+    ]
+
 CORS(
     app,
-    resources={r"/*": {"origins": ALLOWED_ORIGINS}},
+    resources={
+        r"/auth/*":   {"origins": ALLOWED_ORIGINS},
+        r"/me":       {"origins": ALLOWED_ORIGINS},
+        r"/slots*":   {"origins": ALLOWED_ORIGINS},
+        r"/admin/*":  {"origins": ALLOWED_ORIGINS},
+        r"/public/*": {"origins": ALLOWED_ORIGINS},
+        r"/api/*":    {"origins": ALLOWED_ORIGINS},
+    },
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods=["GET","POST","PUT","DELETE","OPTIONS"],
 )
+
 
 @app.after_request
 def add_headers(resp):
