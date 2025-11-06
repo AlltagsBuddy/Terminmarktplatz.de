@@ -624,5 +624,25 @@ footer{
   border:1px solid #cbd5e1 !important;
 }
 
+/* Auto-* für alle Pflichtfelder, basierend auf dem required-Attribut */
+.field label:has(+ input[required]),
+.field label:has(+ select[required]),
+.field label:has(+ textarea[required]) {
+  position: relative;
+  padding-right: 8px;
+}
+.field label:has(+ input[required])::after,
+.field label:has(+ select[required])::after,
+.field label:has(+ textarea[required])::after {
+  content: " *";
+  color: var(--danger, #ef4444);
+  font-weight: 700;
+}
+
+/* Falls manche Labels bereits <span class="req">*</span> enthalten:
+   verhindere Doppelstern über den Auto-Selector */
+.field label:has(.req)::after { content: none; }
+
+
 /* Checkbox-Label „Alle auswählen“ im Portal sichtbar */
 .page-portal .check { color:#0f172a !important; }
