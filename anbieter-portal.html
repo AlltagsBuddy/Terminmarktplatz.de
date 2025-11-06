@@ -32,45 +32,31 @@
   <!-- Nur EIN Stylesheet-Import -->
   <link rel="stylesheet" href="static/style.css?v=20251103" />
 
-  <!-- Portal-spezifische Button-Overrides (gut lesbar) -->
+  <!-- Portal-spezifische Overrides -->
   <style>
     .page-portal .btn,
     .page-portal .btn.primary,
     .page-portal .seg .btn,
     .page-portal .table .btn,
     .page-portal .table .btn.action,
-    .page-portal .table .btn.danger {
-      color:#0f172a !important;
-      background:#ffffff !important;
-      border:1px solid #cbd5e1 !important;
-      text-shadow:none !important;
-      background-image:none !important;
-    }
+    .page-portal .table .btn.danger { color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; background-image:none !important; }
 
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
     /* Formular */
-    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
-            border:1px solid var(--border); border-radius:12px; padding:10px; }
-    .field input,.field select,.field textarea{
-      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
-      border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
-    }
+    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:10px; }
+    .field input,.field select,.field textarea{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03); }
     .field input::placeholder,.field textarea::placeholder{ color:#64748b }
-    .field input:focus,.field select:focus,.field textarea:focus{
-      outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25)
-    }
+    .field input:focus,.field select:focus,.field textarea:focus{ outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25) }
     .req{ color:#ef4444; font-weight:700 }
-    .req-text{ color:#ef4444; font-weight:600; font-size:12px; margin-left:6px; }
 
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 
     /* Tabelle */
-    .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
-           border-radius:14px; overflow:hidden}
+    .table{width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:14px; overflow:hidden}
     .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
     .table th{background:#f8fafc; color:#0f172a}
     .table th:first-child,.table td:first-child{ text-align:center; width:34px }
@@ -86,45 +72,21 @@
 
     .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
     .seg .btn { padding:8px 12px; }
-    .seg .btn[data-hour], .seg .btn[data-min]{
-      background:#f8fafc !important;
-      border-color:#cbd5e1 !important;
-      color:#0f172a !important;
-    }
+    .seg .btn[data-hour], .seg .btn[data-min]{ background:#f8fafc !important; border-color:#cbd5e1 !important; color:#0f172a !important; }
 
     /* Suchfeld oben rechts über Tabelle */
     .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .slot-filter input{
-      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
-      border-radius:12px; padding:8px 10px; min-width:220px;
-    }
+    .slot-filter input{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:8px 10px; min-width:220px; }
 
-    /* Guard / Callout wenn Profil unvollständig */
-    .callout {
-      display:none;
-      border:1px dashed #f59e0b;
-      background:#fffbeb;
-      color:#7c2d12;
-      padding:12px 14px;
-      border-radius:12px;
-      margin-bottom:10px;
-    }
+    /* Hinweis-Banner (sichtbar bis Profil vollständig ist) */
+    .alert{ display:block; border:1px solid #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin:0 0 16px; }
+    .alert strong{ color:#92400e }
+
+    /* Guard / Callout innerhalb des Slot-Panels (auch sichtbar bis Profil vollst.) */
+    .callout { display:block; border:1px dashed #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
     .callout strong { color:#92400e }
     .lock-hint { font-size: 14px; }
     fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
-
-    /* NEU: prominenter Hinweisbalken */
-    .alert{
-      display:none;
-      border:1px solid #f59e0b;
-      background:linear-gradient(0deg,#fff7ed,#fff7ed);
-      color:#7c2d12;
-      padding:14px 16px;
-      border-radius:14px;
-      margin:0 0 16px 0;
-    }
-    .alert strong{ color:#92400e }
-    .alert .small{ font-size:13px; opacity:.9 }
   </style>
 </head>
 
@@ -159,32 +121,30 @@
       </div>
     </section>
 
-    <!-- NEU: prominenter Hinweis oberhalb der Panels -->
-    <section>
-      <div class="container">
-        <div id="profile-alert" class="alert" role="alert" aria-live="polite">
-          <strong>Wichtig:</strong> Bevor du <em>Slots erstellen</em> kannst, muss dein <strong>Profil vollständig gespeichert</strong> sein.
-          Erforderlich sind: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em> und <em>Telefon</em>. <span class="small">(WhatsApp ist optional)</span>
-        </div>
-      </div>
-    </section>
-
     <!-- CONTENT -->
     <section>
+      <div class="container">
+        <!-- Globaler, klar sichtbarer Hinweis -->
+        <div id="profile-alert" class="alert">
+          <strong>Wichtig:</strong> Bitte zuerst dein <strong>Profil vollständig speichern</strong>.
+          Erst danach kannst du Slots erstellen. Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional.
+        </div>
+      </div>
+
       <div class="container grid grid-2">
 
         <!-- Profil -->
         <div class="panel">
           <h2>Profil</h2>
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
-          <form id="form-profile" class="grid" novalidate>
+          <form id="form-profile" class="grid">
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
-              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required aria-required="true"/>
+              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required/>
             </div>
             <div class="field">
               <label for="pf-branch">Branche <span class="req">*</span></label>
-              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required aria-required="true"/>
+              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required/>
               <datalist id="branch-list">
                 <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
                 <option>Nagelstudio</option><option>Zahnarzt</option><option>Handwerk</option>
@@ -192,28 +152,22 @@
                 <option>Tierarzt</option><option>Behörde</option><option>Sonstiges</option>
               </datalist>
             </div>
-
-            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
-              <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
-              <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
+              <label for="pf-street">Straße & Nr. <span class="req">*</span></label>
+              <input id="pf-street" name="street" placeholder="Musterstraße 1" required/>
             </div>
-
             <div class="field">
               <label for="pf-zip">PLZ <span class="req">*</span></label>
-              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required aria-required="true"/>
+              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required/>
             </div>
             <div class="field">
               <label for="pf-city">Ort <span class="req">*</span></label>
-              <input id="pf-city" name="city" placeholder="Musterstadt" required aria-required="true"/>
+              <input id="pf-city" name="city" placeholder="Musterstadt" required/>
             </div>
-
-            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
-              <label for="pf-phone">Telefon <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
-              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required aria-required="true"/>
+              <label for="pf-phone">Telefon <span class="req">*</span></label>
+              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required/>
             </div>
-
             <div class="field">
               <label for="pf-whatsapp">WhatsApp (optional)</label>
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
@@ -241,31 +195,31 @@
             <fieldset id="slot-fields" disabled>
               <div class="field">
                 <label for="sl-title">Titel <span class="req">*</span></label>
-                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
+                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
               </div>
 
               <!-- Kategorie -->
               <div class="field">
                 <label for="sl-cat">Kategorie <span class="req">*</span></label>
-                <select id="sl-cat" name="category" required aria-required="true">
+                <select id="sl-cat" name="category" required>
                   <option value="" disabled selected>Bitte wählen …</option>
                 </select>
               </div>
 
               <div class="field">
                 <label for="sl-date">Datum <span class="req">*</span></label>
-                <input id="sl-date" type="date" required aria-required="true"/>
+                <input id="sl-date" type="date" required/>
               </div>
               <div class="field">
                 <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
-                <input id="sl-start" type="time" step="60" required aria-required="true"/>
+                <input id="sl-start" type="time" step="60" required/>
               </div>
 
               <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
                 <div style="display:flex; gap:8px; align-items:center">
-                  <input id="sl-duration" type="number" min="1" step="1" value="30" required aria-required="true" style="flex:1"/>
+                  <input id="sl-duration" type="number" min="1" step="1" value="30" required style="flex:1"/>
                   <select id="sl-unit" aria-label="Einheit">
                     <option value="min">Minuten</option>
                     <option value="h">Stunden</option>
@@ -290,10 +244,7 @@
               <!-- ORT / PLZ – PFLICHT -->
               <div class="field">
                 <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
-                <input id="sl-location" name="location"
-                       placeholder="z. B. 96191 Viereth / Filiale Zentrum"
-                       required aria-required="true" pattern="(\d{5}|.{3,})"
-                       title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
+                <input id="sl-location" name="location" placeholder="z. B. 96191 Viereth / Filiale Zentrum" required pattern="(\d{5}|.{3,})" title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
               </div>
 
               <div class="field">
@@ -454,10 +405,10 @@
     function setSlotLock(locked){
       const fs = $('#slot-fields');
       const guard = $('#slot-guard');
-      const alert = $('#profile-alert');
+      const banner = $('#profile-alert');
       if (fs) fs.disabled = !!locked;
       if (guard) guard.style.display = locked ? 'block' : 'none';
-      if (alert) alert.style.display = locked ? 'block' : 'none'; // NEU: Hinweisbalken sichtbar solange gesperrt
+      if (banner) banner.style.display = locked ? 'block' : 'none';
     }
 
     // ---------- Auth-Gate / Me ----------
@@ -484,7 +435,7 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Lock gemäß Profilstatus
+        // Lock gemäß Profilstatus der serverseitigen Daten
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
       }catch(err){
@@ -492,7 +443,7 @@
       }
     }
 
-    // ---------- Profil speichern ----------
+    // ---------- Profil speichern (hier wird entsperrt) ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = getProfileValuesFromForm();
@@ -505,9 +456,12 @@
         });
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
+          showMsg('msg-profile','Gespeichert ✓', true);
           const complete = isProfileCompleteFromValues(payload);
-          showMsg('msg-profile', complete ? 'Gespeichert ✓ Profil vollständig.' : 'Gespeichert ✓ Bitte Pflichtfelder ergänzen.');
-          setSlotLock(!complete); // Hinweisbalken verschwindet, wenn vollständig
+          setSlotLock(!complete); // Freigabe ausschließlich nach Save
+          if(!complete){
+            showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).');
+          }
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -582,9 +536,9 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isPending   = theStatus === 'pending_review';
-        theStatus === 'published';
+        const isPublished = theStatus === 'published';
         const isArchived  = theStatus === 'archived';
-        const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+        const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
         tr.innerHTML = `
           <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
@@ -596,8 +550,8 @@
           <td>${s.capacity||1}</td>
           <td><span class="badge-st ${stClass}">${s.status}</span></td>
           <td class="nowrap">
-            ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+            ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
           </td>
         `;
@@ -719,14 +673,14 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // Nochmals guarden
+      // Serverseitigen Gate simulieren: Nur nach gespeichertem, vollständigem Profil
       const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
       if(!completeNow){
         setSlotLock(true);
         return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
       }
 
-      // ORT / PLZ PFLICHT
+      // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
       const loc = ($('#sl-location').value || '').trim();
       if(!loc){
         $('#sl-location').focus();
@@ -789,6 +743,9 @@
 
     // ---------- Init ----------
     (async function init(){
+      // Sofort sperren & Banner anzeigen, bis /me geladen und Profil vollständig ist
+      setSlotLock(true);
+
       await requireAuth();
       fillCategoryOptions();
       recalcEnd();

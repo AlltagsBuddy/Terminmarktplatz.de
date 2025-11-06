@@ -470,6 +470,7 @@ footer{
   border:1px solid var(--border); color:#fff; padding:12px 14px; border-radius:12px; box-shadow:var(--shadow-2);
 }
 .alert{
+  display:block; /* Standard: sichtbar, bis das Profil vollständig ist */
   padding:12px 14px; border-radius:12px; border:1px solid var(--border);
   background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
 }
