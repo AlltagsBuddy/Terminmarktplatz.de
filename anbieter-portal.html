@@ -19,7 +19,8 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){ dataLayer.push(arguments); }
-    gtag('js', new Date()); gtag('config', 'G-YNZ8GW523R');
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
   </script>
 
   <!-- Assets -->
@@ -28,65 +29,107 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Wichtig: Cache-Buster anpassen -->
-  <link rel="stylesheet" href="static/style.css?v=20251106e" />
+  <!-- Nur EIN Stylesheet-Import -->
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
 
+  <!-- Portal-spezifische Button-Overrides (gut lesbar) -->
   <style>
-    /* ---- NUR Zusatzstyles; dunkles Grundlayout kommt aus style.css ---- */
-
-    /* Sticky roter Warnbanner */
-    :root{ --danger:#ef4444; --danger-ink:#7f1d1d; --danger-bg:#fee2e2; }
-    .alert-red{
-      position: sticky; top: 0; z-index: 2000;
-      display:block;
-      border:2px solid var(--danger);
-      background:var(--danger-bg);
-      color:var(--danger-ink);
-      padding:14px 16px; border-radius:14px; margin:0 0 16px;
-      box-shadow: 0 6px 14px rgba(127,29,29,.18);
-      font-weight:700;
-    }
-    .alert-red .sub{ font-weight:600; opacity:.95; }
-
-    /* Callout/Lock im Slot-Panel */
-    .callout { display:block; border:1px dashed #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
-    .lock-hint { font-size: 14px; }
-    fieldset[disabled] { filter: grayscale(0.1); opacity: .75; pointer-events: none; }
-
-    /* Klick-Schutz-Layer bei gesperrter Slot-Maske */
-    #slot-overlay{ display:none; position:relative; height:0; }
-    #slot-overlay.active{ display:block; height:0; }
-    #slot-overlay.active::after{
-      content:"Erst Profil vervollständigen!";
-      position:absolute; inset:0; top:-8px; height:calc(100% + 8px);
-      display:flex; align-items:center; justify-content:center;
-      font-weight:800;
-      background:rgba(239,68,68,.10);
-      border:2px dashed var(--danger);
-      color:var(--danger-ink);
-      border-radius:14px;
-      pointer-events:none;
+    .page-portal .btn,
+    .page-portal .btn.primary,
+    .page-portal .seg .btn,
+    .page-portal .table .btn,
+    .page-portal .table .btn.action,
+    .page-portal .table .btn.danger {
+      color:#0f172a !important;
+      background:#ffffff !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
     }
 
-    /* Helper */
+    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
+
+    /* Formular */
+    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
+            border:1px solid var(--border); border-radius:12px; padding:10px; }
+    .field input,.field select,.field textarea{
+      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
+      border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
+    }
+    .field input::placeholder,.field textarea::placeholder{ color:#64748b }
+    .field input:focus,.field select:focus,.field textarea:focus{
+      outline:none; border-color:#60a5fa; box-shadow:0 0 0 3px rgba(59,130,246,.25)
+    }
+    .req{ color:#ef4444; font-weight:700 }
+    .req-text{ color:#ef4444; font-weight:600; font-size:12px; margin-left:6px; }
+
+    .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .nowrap{ white-space:nowrap }
-    .container{ max-width:1100px; margin:0 auto; padding:0 16px; }
 
-    /* Doppelte Pflicht-Sterne verhindern: falls global ::after schon einen Stern setzt,
-       blenden wir manuelle <span class="req">*</span> aus. */
-    label .req{ display:none !important; }
+    /* Tabelle */
+    .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
+           border-radius:14px; overflow:hidden}
+    .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
+    .table th{background:#f8fafc; color:#0f172a}
+    .table th:first-child,.table td:first-child{ text-align:center; width:34px }
 
-    /* Messages */
+    .badge-st{padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border)}
+    .st-pending{background:#fff7ed}
+    .st-pub{background:#ecfeff}
+    .st-arch{background:#f1f5f9}
+
     .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
     .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
+
+    .seg{margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap}
+    .seg .btn { padding:8px 12px; }
+    .seg .btn[data-hour], .seg .btn[data-min]{
+      background:#f8fafc !important;
+      border-color:#cbd5e1 !important;
+      color:#0f172a !important;
+    }
+
+    /* Suchfeld oben rechts über Tabelle */
+    .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .slot-filter input{
+      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
+      border-radius:12px; padding:8px 10px; min-width:220px;
+    }
+
+    /* Guard / Callout wenn Profil unvollständig */
+    .callout {
+      display:none;
+      border:1px dashed #f59e0b;
+      background:#fffbeb;
+      color:#7c2d12;
+      padding:12px 14px;
+      border-radius:12px;
+      margin-bottom:10px;
+    }
+    .callout strong { color:#92400e }
+    .lock-hint { font-size: 14px; }
+    fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
+
+    /* NEU: prominenter Hinweisbalken */
+    .alert{
+      display:none;
+      border:1px solid #f59e0b;
+      background:linear-gradient(0deg,#fff7ed,#fff7ed);
+      color:#7c2d12;
+      padding:14px 16px;
+      border-radius:14px;
+      margin:0 0 16px 0;
+    }
+    .alert strong{ color:#92400e }
+    .alert .small{ font-size:13px; opacity:.9 }
   </style>
 </head>
 
 <body class="page-portal">
+
   <!-- Header -->
   <header>
     <div class="container nav">
@@ -106,7 +149,7 @@
   </header>
 
   <main>
-    <!-- HERO (Dark-Styles kommen aus style.css) -->
+    <!-- HERO -->
     <section class="hero" style="padding:36px 0 18px">
       <div class="container">
         <span class="badge">Anbieter-Portal</span>
@@ -116,12 +159,12 @@
       </div>
     </section>
 
-    <!-- STICKY ROTES WARNBANNER -->
+    <!-- NEU: prominenter Hinweis oberhalb der Panels -->
     <section>
       <div class="container">
-        <div id="force-banner" class="alert-red" role="alert" aria-live="assertive">
-          ⚠️ Bitte erst dein Profil vervollständigen, danach kannst du deine freien Slots erstellen!
-          <div class="sub">Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional.</div>
+        <div id="profile-alert" class="alert" role="alert" aria-live="polite">
+          <strong>Wichtig:</strong> Bevor du <em>Slots erstellen</em> kannst, muss dein <strong>Profil vollständig gespeichert</strong> sein.
+          Erforderlich sind: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em> und <em>Telefon</em>. <span class="small">(WhatsApp ist optional)</span>
         </div>
       </div>
     </section>
@@ -133,16 +176,15 @@
         <!-- Profil -->
         <div class="panel">
           <h2>Profil</h2>
-          <p class="muted">Bitte Profil vollständig ausfüllen und speichern – erst dann kannst du Slots anlegen.</p>
-
-          <form id="form-profile" class="grid">
+          <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
+          <form id="form-profile" class="grid" novalidate>
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
-              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required/>
+              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required aria-required="true"/>
             </div>
             <div class="field">
               <label for="pf-branch">Branche <span class="req">*</span></label>
-              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required/>
+              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required aria-required="true"/>
               <datalist id="branch-list">
                 <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
                 <option>Nagelstudio</option><option>Zahnarzt</option><option>Handwerk</option>
@@ -150,30 +192,35 @@
                 <option>Tierarzt</option><option>Behörde</option><option>Sonstiges</option>
               </datalist>
             </div>
+
+            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
-              <label for="pf-street">Straße & Nr. <span class="req">*</span></label>
-              <input id="pf-street" name="street" placeholder="Musterstraße 1" required/>
+              <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
+              <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
             </div>
+
             <div class="field">
               <label for="pf-zip">PLZ <span class="req">*</span></label>
-              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required/>
+              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required aria-required="true"/>
             </div>
             <div class="field">
               <label for="pf-city">Ort <span class="req">*</span></label>
-              <input id="pf-city" name="city" placeholder="Musterstadt" required/>
+              <input id="pf-city" name="city" placeholder="Musterstadt" required aria-required="true"/>
             </div>
+
+            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
-              <label for="pf-phone">Telefon <span class="req">*</span></label>
-              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required/>
+              <label for="pf-phone">Telefon <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
+              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required aria-required="true"/>
             </div>
+
             <div class="field">
               <label for="pf-whatsapp">WhatsApp (optional)</label>
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
             </div>
-
             <div class="toolbar">
               <button class="btn primary" type="submit">Profil speichern</button>
-              <span class="muted">Erst wenn dein Profil vollständig ist, kannst du Slots anlegen.</span>
+              <span class="muted">Pflicht: Firma, Branche, Straße, PLZ, Ort, Telefon.</span>
             </div>
             <div id="msg-profile" class="msg"></div>
           </form>
@@ -186,40 +233,39 @@
           <!-- Guard-Hinweis, solange Profil unvollständig -->
           <div id="slot-guard" class="callout">
             <strong>Profil unvollständig.</strong>
-            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus. Danach kannst du Slots anlegen.</div>
+            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus (WhatsApp ist optional). Danach kannst du Slots anlegen.</div>
           </div>
-
-          <!-- Overlay-Variante: sichtbarer Sperr-Hinweis -->
-          <div id="slot-overlay"></div>
 
           <!-- Alles im fieldset, das wir sperren -->
           <form id="form-slot" class="grid" novalidate>
             <fieldset id="slot-fields" disabled>
               <div class="field">
                 <label for="sl-title">Titel <span class="req">*</span></label>
-                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required/>
+                <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
               </div>
 
+              <!-- Kategorie -->
               <div class="field">
                 <label for="sl-cat">Kategorie <span class="req">*</span></label>
-                <select id="sl-cat" name="category" required>
+                <select id="sl-cat" name="category" required aria-required="true">
                   <option value="" disabled selected>Bitte wählen …</option>
                 </select>
               </div>
 
               <div class="field">
                 <label for="sl-date">Datum <span class="req">*</span></label>
-                <input id="sl-date" type="date" required/>
+                <input id="sl-date" type="date" required aria-required="true"/>
               </div>
               <div class="field">
                 <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
-                <input id="sl-start" type="time" step="60" required/>
+                <input id="sl-start" type="time" step="60" required aria-required="true"/>
               </div>
 
+              <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
                 <div style="display:flex; gap:8px; align-items:center">
-                  <input id="sl-duration" type="number" min="1" step="1" value="30" required style="flex:1"/>
+                  <input id="sl-duration" type="number" min="1" step="1" value="30" required aria-required="true" style="flex:1"/>
                   <select id="sl-unit" aria-label="Einheit">
                     <option value="min">Minuten</option>
                     <option value="h">Stunden</option>
@@ -246,7 +292,7 @@
                 <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
                 <input id="sl-location" name="location"
                        placeholder="z. B. 96191 Viereth / Filiale Zentrum"
-                       required pattern="(\d{5}|.{3,})"
+                       required aria-required="true" pattern="(\d{5}|.{3,})"
                        title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
               </div>
 
@@ -322,13 +368,24 @@
   </main>
 
   <script>
-    // ---------- API-Basis ----------
+    // ---------- API-Basis (robust für Lokalnetz/Prod) ----------
     const API = (() => {
-      const h = location.hostname, proto = location.protocol;
+      const h = location.hostname;
+      const proto = location.protocol;
+
       const isLocal =
-        h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h) || h.endsWith('.local');
-      if (isLocal) return `${proto}//${h}:5000`;
-      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+
+      if (isLocal) {
+        return `${proto}//${h}:5000`;
+      }
+      if (h === 'api.terminmarktplatz.de') {
+        return `${proto}//${h}`;
+      }
       return 'https://api.terminmarktplatz.de';
     })();
 
@@ -356,10 +413,15 @@
     }
 
     // ---------- Kategorien (Dropdown) ----------
-    const CATEGORIES = ["Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt","Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"];
+    const CATEGORIES = [
+      "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
+      "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
+    ];
     function fillCategoryOptions(){
-      const sel = $('#sl-cat'); if(!sel) return;
-      sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>` + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+      const sel = $('#sl-cat');
+      if(!sel) return;
+      sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
+        + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     // ---------- Profil-Completeness & Slot-Lock ----------
@@ -392,24 +454,11 @@
     function setSlotLock(locked){
       const fs = $('#slot-fields');
       const guard = $('#slot-guard');
-      const banner = $('#force-banner');
-      const ov = $('#slot-overlay');
+      const alert = $('#profile-alert');
       if (fs) fs.disabled = !!locked;
-      if (guard)  guard.style.display  = locked ? 'block' : 'none';
-      if (banner) banner.style.display = locked ? 'block' : 'none';
-      if (ov) ov.classList.toggle('active', !!locked);
+      if (guard) guard.style.display = locked ? 'block' : 'none';
+      if (alert) alert.style.display = locked ? 'block' : 'none'; // NEU: Hinweisbalken sichtbar solange gesperrt
     }
-
-    // Klick-Fang wenn gelockt
-    $('#form-slot').addEventListener('click', (e)=>{
-      const locked = $('#slot-fields').disabled;
-      if (locked){
-        e.preventDefault();
-        e.stopPropagation();
-        showMsg('msg-slot','Erst Profil vervollständigen!');
-        $('#force-banner')?.scrollIntoView({behavior:'smooth', block:'start'});
-      }
-    }, true);
 
     // ---------- Auth-Gate / Me ----------
     let ME = null;
@@ -456,10 +505,9 @@
         });
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
-          showMsg('msg-profile','Gespeichert ✓', true);
           const complete = isProfileCompleteFromValues(payload);
-          setSlotLock(!complete);
-          if(!complete){ showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).'); }
+          showMsg('msg-profile', complete ? 'Gespeichert ✓ Profil vollständig.' : 'Gespeichert ✓ Bitte Pflichtfelder ergänzen.');
+          setSlotLock(!complete); // Hinweisbalken verschwindet, wenn vollständig
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -470,10 +518,12 @@
           showMsg('msg-profile', map[data.error] || 'Konnte Profil nicht speichern.');
           if(r.status === 401) location.href = 'login.html?tab=login';
         }
-      }catch(e){ showMsg('msg-profile','Netzwerkfehler.'); }
+      }catch(e){
+        showMsg('msg-profile','Netzwerkfehler.');
+      }
     });
 
-    // ---------- Slot-Form: Dauer -> Ende ----------
+    // ---------- Slot-Form: Dauer -> Ende berechnen ----------
     function totalMinutes(){
       const val = parseInt($('#sl-duration').value || '0', 10);
       const unit = $('#sl-unit').value;
@@ -487,20 +537,29 @@
       if(!d || !t || !min){ $('#sl-end').value=''; return; }
       const start = joinDateTime(d,t);
       const end   = new Date(start.getTime() + min*60000);
-      $('#sl-end').value = `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
+      $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
+
+    // Events (genau einmal)
     $('#sl-date').addEventListener('change',  recalcEnd);
     $('#sl-start').addEventListener('input',  recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
     $('#sl-unit').addEventListener('change',  recalcEnd);
+
+    // Schnellwahl-Buttons – Minuten
     $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
-      $('#sl-unit').value = 'min'; $('#sl-duration').value = b.dataset.min; recalcEnd();
+      $('#sl-unit').value = 'min';
+      $('#sl-duration').value = b.dataset.min;
+      recalcEnd();
     }));
+    // Schnellwahl-Buttons – Stunden
     $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
-      $('#sl-unit').value = 'h'; $('#sl-duration').value = b.dataset.hour; recalcEnd();
+      $('#sl-unit').value = 'h';
+      $('#sl-duration').value = b.dataset.hour;
+      recalcEnd();
     }));
 
-    // ---------- Slots laden & rendern ----------
+    // ---------- Slots laden & rendern + Freigabe-Workflow ----------
     let SELECTED = new Set();
     let LAST_ITEMS = [];
 
@@ -523,9 +582,9 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isPending   = theStatus === 'pending_review';
-        const isPublished = theStatus === 'published';
+        theStatus === 'published';
         const isArchived  = theStatus === 'archived';
-        const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+        const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
         tr.innerHTML = `
           <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
@@ -537,14 +596,15 @@
           <td>${s.capacity||1}</td>
           <td><span class="badge-st ${stClass}">${s.status}</span></td>
           <td class="nowrap">
-            ${isPending || isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+            ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
           </td>
         `;
         tbody.appendChild(tr);
       }
 
+      // Zeilen-Checkboxen
       $$('#tbl-slots .row-check').forEach(cb => {
         cb.addEventListener('change', ()=>{
           const id = cb.dataset.id;
@@ -553,6 +613,7 @@
         });
       });
 
+      // Einzelaktionen
       $$('#tbl-slots [data-del]').forEach(b =>
         b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
       );
@@ -560,6 +621,7 @@
         b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
       );
 
+      // Master-Checkbox
       $('#chk-all').onchange = (e) => {
         SELECTED.clear();
         $$('#tbl-slots .row-check').forEach(cb => {
@@ -587,6 +649,19 @@
       }
     }
 
+    // Live-Suche Titel/Kategorie
+    const slotSearch = $('#slot-search');
+    if (slotSearch) {
+      slotSearch.addEventListener('input', ()=>{
+        const q = slotSearch.value.trim().toLowerCase();
+        if(!q) return renderTable(LAST_ITEMS);
+        const filtered = LAST_ITEMS.filter(s =>
+          (s.title||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q)
+        );
+        renderTable(filtered);
+      });
+    }
+
     async function delSlot(id){
       if(!confirm('Diesen Slot wirklich löschen?')) return;
       try{
@@ -606,49 +681,148 @@
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
 
+    // Bulk-Aktionen
+    async function bulkSetStatus(ids, status){
+      if(!ids.length) return;
+      await Promise.all(ids.map(id =>
+        fetch(`${API}/slots/${id}`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify({status})
+        })
+      ));
+    }
+    async function bulkDelete(ids){
+      if(!ids.length) return;
+      await Promise.all(ids.map(id =>
+        fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'})
+      ));
+    }
+    $('#btn-publish')?.addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      await bulkSetStatus(ids, 'published'); await loadSlots();
+    });
+    $('#btn-archive')?.addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      await bulkSetStatus(ids, 'archived'); await loadSlots();
+    });
+    $('#btn-delete')?.addEventListener('click', async ()=>{
+      const ids = [...SELECTED];
+      if(!ids.length) return;
+      if(!confirm(`Diese ${ids.length} Slot(s) wirklich löschen?`)) return;
+      await bulkDelete(ids); await loadSlots();
+    });
+    $('#btn-refresh')?.addEventListener('click', loadSlots);
+
+    // ---------- Slot anlegen ----------
+    $('#form-slot').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+
+      // Nochmals guarden
+      const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
+      if(!completeNow){
+        setSlotLock(true);
+        return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
+      }
+
+      // ORT / PLZ PFLICHT
+      const loc = ($('#sl-location').value || '').trim();
+      if(!loc){
+        $('#sl-location').focus();
+        return showMsg('msg-slot','„Ort / PLZ“ ist ein Pflichtfeld.');
+      }
+
+      const date = $('#sl-date').value, time = $('#sl-start').value, durMin = totalMinutes();
+      if(!date || !time || !durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
+
+      const startLocal = joinDateTime(date,time);
+      const endLocal   = new Date(startLocal.getTime() + durMin*60000);
+
+      const payload = {
+        title: ($('#sl-title').value||'').trim() || 'Slot',
+        category: ($('#sl-cat').value||'').trim() || 'Sonstiges',
+        start_at: toLocalISO(startLocal),
+        end_at: toLocalISO(endLocal),
+        location: loc,
+        capacity: parseInt($('#sl-cap').value || '1',10),
+        contact_method: 'mail',
+        booking_link: null,
+        price_cents: $('#sl-price').value ? Math.round(parseFloat($('#sl-price').value)*100) : null,
+        notes: ($('#sl-notes').value||'').trim() || null
+      };
+
+      try{
+        const r = await fetch(`${API}/slots`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json().catch(()=> ({}));
+        if(r.ok){
+          showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
+          e.target.reset(); $('#sl-unit').value='min'; recalcEnd(); fillCategoryOptions(); await loadSlots();
+        }else{
+          const m = {
+            missing_fields:'Pflichtfelder fehlen.',
+            missing_location:'„Ort / PLZ“ ist ein Pflichtfeld.',
+            bad_datetime:'Datum/Uhrzeit ungültig.',
+            end_before_start:'Ende liegt vor dem Start.',
+            limit_reached:'Limit erreicht.',
+            start_in_past:'Start darf nicht in der Vergangenheit liegen.',
+            bad_capacity:'Kapazität ungültig.',
+            db_constraint_error:'Kategorie entspricht nicht den DB-Vorgaben.',
+            db_error:'Datenbankfehler.',
+            profile_incomplete:'Profil unvollständig. Bitte erst Profil speichern.'
+          };
+          showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
+        }
+      }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
+    });
+
+    // ---------- Logout ----------
+    $('#btn-logout').addEventListener('click', async ()=>{
+      try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
+      location.href = 'login.html?tab=login';
+    });
+
     // ---------- Init ----------
     (async function init(){
-      setSlotLock(true);          // sofort sperren + Banner zeigen
       await requireAuth();
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
     })();
-
-    // ---------- Logout ----------
-    document.getElementById('btn-logout').addEventListener('click', async ()=>{
-      try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
-      location.href = 'login.html?tab=login';
-    });
   </script>
 
   <!-- Footer -->
   <footer>
-    <div class="container foot-grid" style="display:grid; grid-template-columns:1.2fr .8fr .8fr .8fr; gap:16px; padding:24px 0">
+    <div class="container foot-grid">
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein" width="40" height="40">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
           </div>
-          <div class="brand-title">Terminmarktplatz</div>
+        <div class="brand-title">Terminmarktplatz</div>
         </div>
         <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-        <a class="foot-link" href="anbieter.html">Für Anbieter</a><br/>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
-        <a class="foot-link" href="impressum.html">Impressum</a><br/>
-        <a class="foot-link" href="datenschutz.html">Datenschutz</a><br/>
-        <a class="foot-link" href="agb.html">AGB</a><br/>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
-        <a class="foot-link" href="kontakt.html">Kontaktformular</a><br/>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
