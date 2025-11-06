@@ -42,7 +42,7 @@
     .page-portal .table .btn.danger {
       color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; background-image:none !important;
     }
-    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
+    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2); position:relative}
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
@@ -79,23 +79,34 @@
     .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .slot-filter input{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:8px 10px; min-width:220px; }
 
-    /* Sticky Hinweis-Banner (sofort sichtbar) */
-    .alert-bar{
+    /* ROTER Sticky Hinweis-Banner */
+    .alert-red{
       position: sticky; top: 0; z-index: 1000;
-      display:block; border:2px solid #f59e0b; background:#FEF3C7; /* amber-100 */
-      color:#7c2d12; padding:14px 16px; border-radius:14px; margin:0 0 16px;
-      box-shadow: 0 6px 14px rgba(124,45,18,.15);
+      display:none; border:2px solid #ef4444; background:#fee2e2; color:#7f1d1d;
+      padding:14px 16px; border-radius:14px; margin:0 0 16px;
+      box-shadow: 0 8px 18px rgba(127,29,29,.18);
+      font-weight:800; letter-spacing:.2px;
     }
-    .alert-bar strong{ color:#92400e }
-    .alert-bar .row{ display:flex; gap:12px; align-items:center; }
-    .alert-bar .icon{ font-size:22px; line-height:1; }
-    .alert-bar .txt{ font-weight:700 }
-    .alert-bar .sub{ font-weight:500; opacity:.9 }
+    .alert-red .sub{ font-weight:600; opacity:.95 }
+    .alert-pulse { animation: pulse 600ms ease-out 1; }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.015); }
+      100% { transform: scale(1); }
+    }
 
-    /* Guard / Callout im Slot-Panel (sichtbar bis Profil vollst.) */
-    .callout { display:block; border:1px dashed #f59e0b; background:#fffbeb; color:#7c2d12; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
-    .callout strong { color:#92400e }
+    /* Guard / Callout im Slot-Panel */
+    .callout { display:none; border:1px dashed #ef4444; background:#fee2e2; color:#7f1d1d; padding:12px 14px; border-radius:12px; margin-bottom:10px; }
+    .callout strong { color:#991b1b }
     .lock-hint { font-size: 14px; }
+
+    /* Blocker, der Klicks auf die Slot-Maske abfängt, solange gesperrt */
+    .slot-blocker{
+      position:absolute; inset:56px 12px 12px 12px; /* lässt Titel/Überschrift klickbar */
+      display:none; cursor:not-allowed; z-index:10;
+      background: rgba(255, 255, 255, 0.0); /* unsichtbar, nur Click-Catcher */
+    }
+
     fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
   </style>
 </head>
@@ -131,17 +142,12 @@
       </div>
     </section>
 
-    <!-- STICKY HINWEIS (immer sofort sichtbar, bis Profil vollständig ist) -->
+    <!-- ROTER STICKY HINWEIS (sofort sichtbar bis Profil vollständig) -->
     <section>
       <div class="container">
-        <div id="profile-alert" class="alert-bar" role="alert" aria-live="assertive">
-          <div class="row">
-            <div class="icon">⚠️</div>
-            <div>
-              <div class="txt">Profil zuerst vollständig speichern!</div>
-              <div class="sub">Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional. Danach kannst du Slots erstellen.</div>
-            </div>
-          </div>
+        <div id="profile-alert" class="alert-red" role="alert" aria-live="assertive">
+          Bitte erst dein Profil vervollständigen, danach kannst du deine freien Slots erstellen!
+          <div class="sub">Pflichtfelder: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em>, <em>Telefon</em>. WhatsApp ist optional.</div>
         </div>
       </div>
     </section>
@@ -198,14 +204,17 @@
         </div>
 
         <!-- Slot anlegen -->
-        <div class="panel">
+        <div class="panel" id="slot-panel">
           <h2>Neuen Slot anlegen</h2>
 
           <!-- Guard-Hinweis, solange Profil unvollständig -->
           <div id="slot-guard" class="callout">
             <strong>Profil unvollständig.</strong>
-            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus (WhatsApp ist optional). Danach kannst du Slots anlegen.</div>
+            <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus. Danach kannst du Slots anlegen.</div>
           </div>
+
+          <!-- Unsichtbarer Click-Blocker -->
+          <div id="slot-blocker" class="slot-blocker" aria-hidden="true"></div>
 
           <!-- Alles im fieldset, das wir sperren -->
           <form id="form-slot" class="grid" novalidate>
@@ -422,13 +431,25 @@
       };
     }
 
+    function pingBanner(){
+      const b = $('#profile-alert');
+      if(!b) return;
+      b.classList.remove('alert-pulse');
+      // force reflow to restart animation
+      void b.offsetWidth;
+      b.classList.add('alert-pulse');
+    }
+
     function setSlotLock(locked){
       const fs = $('#slot-fields');
       const guard = $('#slot-guard');
       const banner = $('#profile-alert');
+      const blocker = $('#slot-blocker');
       if (fs) fs.disabled = !!locked;
       if (guard) guard.style.display = locked ? 'block' : 'none';
       if (banner) banner.style.display = locked ? 'block' : 'none';
+      if (blocker) blocker.style.display = locked ? 'block' : 'none';
+      if (locked) pingBanner();
     }
 
     // ---------- Auth-Gate / Me ----------
@@ -478,7 +499,7 @@
         if(r.ok){
           showMsg('msg-profile','Gespeichert ✓', true);
           const complete = isProfileCompleteFromValues(payload);
-          setSlotLock(!complete); // Freigabe ausschließlich nach Save
+          setSlotLock(!complete);
           if(!complete){
             showMsg('msg-profile','Bitte alle Pflichtfelder ausfüllen (WhatsApp ist optional).');
           }
@@ -556,7 +577,7 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isPending   = theStatus === 'pending_review';
-        const isPublished = theStatus === 'published';
+        const isPublished = isPublished = theStatus === 'published';
         const isArchived  = theStatus === 'archived';
         const stClass = isPublished ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
@@ -693,11 +714,13 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // Serverseitigen Gate simulieren: Nur nach gespeichertem, vollständigem Profil
+      // Nur nach gespeichertem, vollständigem Profil
       const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
       if(!completeNow){
         setSlotLock(true);
-        return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
+        showMsg('msg-slot','Erst Profil vervollständigen!');
+        pingBanner();
+        return;
       }
 
       // ORT / PLZ PFLICHT (zusätzlich zur HTML-Validierung)
@@ -755,6 +778,13 @@
       }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
     });
 
+    // Klicks auf gesperrte Slot-Maske abfangen → Hinweis
+    $('#slot-blocker').addEventListener('click', ()=>{
+      showMsg('msg-slot','Erst Profil vervollständigen!');
+      pingBanner();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     // ---------- Logout ----------
     $('#btn-logout').addEventListener('click', async ()=>{
       try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
@@ -763,9 +793,8 @@
 
     // ---------- Init ----------
     (async function init(){
-      // WICHTIG: Vorab sperren & Banner zeigen, noch bevor /me geladen ist:
-      setSlotLock(true); // zeigt auch #profile-alert an
-
+      // Sofort sperren & roten Banner zeigen, bis /me geladen und Profil vollständig ist
+      setSlotLock(true);
       await requireAuth();
       fillCategoryOptions();
       recalcEnd();
