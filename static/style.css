@@ -54,8 +54,6 @@
   --error:#ef4444;
   --success:#10b981;
   --warn:#f59e0b;
-
-  .req{ color:#ef4444; font-weight:700 }
 }
 
 /* ---------- Base ---------- */
@@ -145,7 +143,6 @@ button.loading::after{
 
 /* ---------------------------------------------------------
    Tabellen-Buttons (Standard-Seiten, NICHT Portal)
-   → im Portal überschreiben wir das am Ende gezielt.
 --------------------------------------------------------- */
 body:not(.page-portal) .table .btn{
   padding:8px 12px;
@@ -203,17 +200,11 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
 }
 .input:focus-within{outline: none; background:var(--field-bg-focus); box-shadow: var(--focus)}
-
-/* Inhalt der Felder → weiß */
 .input input,
 .input select{
   all:unset; color:#fff; width:100%;
 }
-
-/* Platzhalter in der Suche dezent weiß */
 .searchbar .input input::placeholder{ color:rgba(255,255,255,.65); }
-
-/* Erste zwei Felder (Leistung + Ort) stärker betont */
 .searchbar .input:nth-child(-n+2){
   background: var(--field-bg-strong);
   border-color: var(--field-border-strong);
@@ -222,31 +213,20 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
   background: var(--field-bg-focus-strong);
   box-shadow: var(--focus);
 }
-
-/* Datum: Text & Icon auf dunkel sichtbar */
 .searchbar .input input[type="date"]{ color:#fff; }
 .searchbar .input input[type="date"]::-webkit-calendar-picker-indicator{ filter: invert(1) opacity(.9); }
 .searchbar .input input[type="date"]::-webkit-datetime-edit{ color:#fff; }
-
-/* Select (Zeitraum): systempfeil neutralisieren */
 .searchbar .input select{
-  -webkit-appearance:none; -moz-appearance:none; appearance:none;
-  background-image:none;
+  -webkit-appearance:none; -moz-appearance:none; appearance:none; background-image:none;
 }
-
-/* Autofill auf dunkel fixen */
 .input input:-webkit-autofill{
   -webkit-text-fill-color:#fff; transition: background-color 5000s ease-in-out 0s;
 }
-
-/* Such-Submit */
 .btn.primary[type="submit"]{
   background:linear-gradient(135deg, var(--c-pink), var(--c-blue));
   border:none; color:#0b0f1a; font-weight:900;
 }
 .btn.primary[type="submit"]:hover{filter: brightness(1.1)}
-
-/* Trust-Zeile */
 .trust{
   display:flex; gap:14px; align-items:center; margin-top:14px;
   color:rgba(255,255,255,.8); font-size:14px; justify-content:center;
@@ -283,7 +263,7 @@ h1, h2, h3{font-weight:800; letter-spacing:.2px}
 /* ---------- Sections ---------- */
 section{padding:56px 0}
 h2{
-  h2 { font-size: clamp(20px, 2.6vw, 30px); }
+  font-size: clamp(20px, 2.6vw, 30px);
   margin:0 0 12px; letter-spacing:-.3px;
   display:inline-flex; align-items:center; gap:10px;
 }
@@ -573,9 +553,8 @@ footer{
 .page-contact .help{ color:#475569; } /* besser lesbar auf weiß */
 
 /* =========================================================
-   PORTAL-FIX (MUSS GANZ AM ENDE STEHEN):
-   Im Anbieter-Portal (body.page-portal) sind alle Buttons
-   weiß mit schwarzer Schrift – keine Verläufe.
+   PORTAL-FIX (Buttons im Anbieter-Portal aktuell hell)
+   (unverändert belassen, nur Pflichtstern & Banner angepasst)
 ========================================================= */
 
 .page-portal .btn,
@@ -624,25 +603,29 @@ footer{
   border:1px solid #cbd5e1 !important;
 }
 
-/* Auto-* für alle Pflichtfelder, basierend auf dem required-Attribut */
+/* =========================================================
+   Pflichtfelder: genau EIN roter Stern
+========================================================= */
+/* vorhandene <span class="req">*</span> ausblenden */
+.field label .req{ display:none !important; }
+/* Stern automatisch anhängen, wenn das nächste Feld required ist */
 .field label:has(+ input[required]),
 .field label:has(+ select[required]),
-.field label:has(+ textarea[required]) {
-  position: relative;
-  padding-right: 8px;
+.field label:has(+ textarea[required]){
+  position:relative; padding-right:8px;
 }
 .field label:has(+ input[required])::after,
 .field label:has(+ select[required])::after,
-.field label:has(+ textarea[required])::after {
-  content: " *";
-  color: var(--danger, #ef4444);
-  font-weight: 700;
+.field label:has(+ textarea[required])::after{
+  content:" *";
+  color:var(--error);
+  font-weight:700;
 }
 
-/* Falls manche Labels bereits <span class="req">*</span> enthalten:
-   verhindere Doppelstern über den Auto-Selector */
-.field label:has(.req)::after { content: none; }
-
+/* =========================================================
+   Slot-Bereich: roter Warnbanner komplett ausblenden
+========================================================= */
+#force-banner{ display:none !important; }
 
 /* Checkbox-Label „Alle auswählen“ im Portal sichtbar */
 .page-portal .check { color:#0f172a !important; }
