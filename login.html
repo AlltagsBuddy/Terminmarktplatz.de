@@ -133,6 +133,9 @@
       </div>
     </section>
 
+      <!-- Status/Info-Banner -->
+        <div id="form-info" role="status" aria-live="polite" style="display:none"></div>
+
     <!-- FORMS -->
     <section>
       <div class="container" id="tab-content">
@@ -401,15 +404,24 @@
             body: JSON.stringify({email, password: pw1})
           });
           const data = await res.json().catch(()=>({}));
-          if(!res.ok || data.error){
-            hideLoading(); lockForm(form, false);
-            const msgs = {
-              email_exists: 'Diese E-Mail ist bereits registriert.',
-              invalid_email: 'Bitte gib eine gültige E-Mail an.',
-              password_too_short: 'Passwort muss mindestens 8 Zeichen haben.'
-            };
-            return showAlert('register-alert', msgs[data.error] || 'Registrierung fehlgeschlagen.');
+          if (r.ok) {
+            const data = await r.json().catch(()=> ({}));
+            showInfo('success', (data && data.message) || 'Bitte E-Mails prüfen und Anmeldung bestätigen.');
+            // Formular leeren, wenn gewünscht:
+            e.target.reset?.();
+
+            // Falls du Login/Registrieren-Tabs hast: auf Login-Tab umschalten
+            document.querySelector('.tab[data-tab="login"]')?.click();
+
+          } else {
+            const data = await r.json().catch(()=> ({}));
+            showInfo('error',
+              data?.error === 'email_exists'
+                ? 'E-Mail ist bereits registriert.'
+                : 'Registrierung fehlgeschlagen. Bitte erneut versuchen.'
+            );
           }
+
           // Erfolg: deutlicher Hinweis + Wechsel zum Login
           loadingText.textContent = 'Fast geschafft!';
           loadingSub.textContent  = 'Wir haben dir eine Bestätigungs-E-Mail gesendet.';
@@ -447,5 +459,37 @@
     const want = url.searchParams.get('tab');
     if (want && ['login','register','profile'].includes(want)) switchTab(want);
   </script>
+
+      <script>
+    function showInfo(kind, text){
+      const box = document.getElementById('form-info');
+      if(!box) return;
+      box.className = ''; // reset Klassen
+      box.style.display = 'block';
+      if(kind === 'success') box.classList.add('success');
+      if(kind === 'error')   box.classList.add('error');
+      if(kind === 'warn')    box.classList.add('warn');
+      box.textContent = text;
+    }
+
+            (function onLoadVerifyBanner(){
+      const params = new URLSearchParams(location.search);
+      if (params.get('verified') === '1') {
+        showInfo('success', 'E-Mail bestätigt. Du kannst dich jetzt anmelden.');
+        // Query aufräumen
+        params.delete('verified');
+        const clean = location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.replaceState({}, '', clean);
+      } else if (params.get('verified') === '0') {
+        showInfo('warn', 'Verifizierung nicht möglich oder abgelaufen. Bitte neuen Link anfordern.');
+        params.delete('verified');
+        const clean = location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.replaceState({}, '', clean);
+      }
+    })();
+
+  </script>
+
+
 </body>
 </html>

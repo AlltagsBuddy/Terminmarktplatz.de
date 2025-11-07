@@ -635,17 +635,51 @@ def register():
             provider_id = p.id
             reg_email   = p.email
 
-        payload = {"sub": provider_id, "aud": "verify", "iss": JWT_ISS,
-                   "exp": int((_now() + timedelta(days=2)).timestamp())}
+        # --- NEU: Admin-Notification bei neuer Registrierung -------------------
+        try:
+            admin_to = os.getenv("ADMIN_NOTIFY_TO", CONTACT_TO)
+            if admin_to:
+                subj = "[Terminmarktplatz] Neuer Anbieter registriert"
+                txt  = (
+                    "Es hat sich ein neuer Anbieter registriert.\n\n"
+                    f"ID: {provider_id}\n"
+                    f"E-Mail: {reg_email}\n"
+                    f"Zeit: {_now().isoformat()}\n"
+                    "Status: pending (E-Mail-Verifizierung ausstehend)\n"
+                )
+                # optional: Tag/Metadata (für Postmark/Resend)
+                send_mail(
+                    admin_to, subj, text=txt,
+                    tag="provider_signup",
+                    metadata={"provider_id": str(provider_id), "email": reg_email}
+                )
+        except Exception as _e:
+            # NIE die Registrierung abbrechen, nur loggen
+            print("[notify_admin][register] failed:", repr(_e), flush=True)
+        # ----------------------------------------------------------------------
+
+        payload = {
+            "sub": provider_id, "aud": "verify", "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=2)).timestamp())
+        }
         token = jwt.encode(payload, SECRET, algorithm="HS256")
         link = f"{BASE_URL}/auth/verify?token={token}"
         ok_mail, reason = send_mail(reg_email, "Bitte E-Mail bestätigen",
                                     f"Willkommen beim Terminmarktplatz.\n\nBitte bestätige deine E-Mail:\n{link}\n")
-        return jsonify({"ok": True, "mail_sent": ok_mail, "mail_reason": reason})
+        return jsonify({
+            "ok": True,
+            "mail_sent": ok_mail,
+            "mail_reason": reason,
+            "message": "Registrierung gespeichert. Bitte prüfe deine E-Mails und bestätige die Anmeldung.",
+            "post_verify_redirect": f"{FRONTEND_URL}/login.html?verified=1"
+        })
+
+
 
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": "server_error", "detail": str(e)}), 500
+
 
 @app.get("/auth/verify")
 def auth_verify():
@@ -653,14 +687,11 @@ def auth_verify():
     debug = request.args.get("debug") == "1"
 
     def _ret(kind: str):
-        url = f"{FRONTEND_URL}/login.html"
+        # 👇 Immer zurück auf die Login-Seite, mit Query-Flag
+        url = f"{FRONTEND_URL}/login.html?verified={'1' if kind=='1' else '0'}"
         if debug:
             return jsonify({"ok": kind == "1", "redirect": url})
         return redirect(url)
-
-    if not token:
-        return _ret("missing")
-
     try:
         data = jwt.decode(token, SECRET, algorithms=["HS256"], audience="verify", issuer=JWT_ISS)
     except jwt.ExpiredSignatureError:
