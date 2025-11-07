@@ -285,8 +285,8 @@ def _json_error(msg, code=400):
 
 def _cookie_flags():
     if IS_RENDER:
-        return {"httponly": True, "secure": True, "samesite": "None"}
-    return {"httponly": True, "secure": False, "samesite": "Lax"}
+        return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
+    return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
 
 def slot_to_json(x: Slot):
     return {
@@ -635,7 +635,7 @@ def register():
             provider_id = p.id
             reg_email   = p.email
 
-        # --- NEU: Admin-Notification bei neuer Registrierung -------------------
+        # --- Admin-Notification bei neuer Registrierung -------------------
         try:
             admin_to = os.getenv("ADMIN_NOTIFY_TO", CONTACT_TO)
             if admin_to:
@@ -647,16 +647,14 @@ def register():
                     f"Zeit: {_now().isoformat()}\n"
                     "Status: pending (E-Mail-Verifizierung ausstehend)\n"
                 )
-                # optional: Tag/Metadata (für Postmark/Resend)
                 send_mail(
                     admin_to, subj, text=txt,
                     tag="provider_signup",
                     metadata={"provider_id": str(provider_id), "email": reg_email}
                 )
         except Exception as _e:
-            # NIE die Registrierung abbrechen, nur loggen
             print("[notify_admin][register] failed:", repr(_e), flush=True)
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
 
         payload = {
             "sub": provider_id, "aud": "verify", "iss": JWT_ISS,
@@ -674,8 +672,6 @@ def register():
             "post_verify_redirect": f"{FRONTEND_URL}/login.html?verified=1"
         })
 
-
-
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": "server_error", "detail": str(e)}), 500
@@ -687,7 +683,7 @@ def auth_verify():
     debug = request.args.get("debug") == "1"
 
     def _ret(kind: str):
-        # 👇 Immer zurück auf die Login-Seite, mit Query-Flag
+        # Immer zurück auf die Login-Seite, mit Query-Flag
         url = f"{FRONTEND_URL}/login.html?verified={'1' if kind=='1' else '0'}"
         if debug:
             return jsonify({"ok": kind == "1", "redirect": url})
@@ -745,8 +741,9 @@ def auth_login_form():
 @auth_required()
 def auth_logout():
     resp = make_response(jsonify({"ok": True}))
-    resp.delete_cookie("access_token")
-    resp.delete_cookie("refresh_token")
+    flags = _cookie_flags()
+    resp.delete_cookie("access_token", **flags)
+    resp.delete_cookie("refresh_token", **flags)
     return resp
 
 @app.post("/auth/refresh")
@@ -768,6 +765,29 @@ def auth_refresh():
     access, _ = issue_tokens(data["sub"], bool(data.get("adm")))
     resp = make_response(jsonify({"ok": True, "access": access}))
     return _set_auth_cookies(resp, access)
+
+# --- NEU: Account löschen --------------------------------
+@app.delete("/me")
+@auth_required()
+def delete_me():
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            # DB-FKs erledigen Cascade: provider -> slot -> booking
+            s.delete(p)
+            s.commit()
+
+        resp = make_response(jsonify({"ok": True, "deleted": True}))
+        flags = _cookie_flags()
+        resp.delete_cookie("access_token", **flags)
+        resp.delete_cookie("refresh_token", **flags)
+        return resp
+    except Exception as e:
+        app.logger.exception("delete_me failed")
+        return jsonify({"error": "server_error"}), 500
+# ---------------------------------------------------------
 
 
 # --------------------------------------------------------
@@ -1127,7 +1147,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))  # <- hier muss sqrt(1 - a) stehen
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
 
