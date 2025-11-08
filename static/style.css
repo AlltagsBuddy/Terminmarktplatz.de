@@ -621,6 +621,25 @@ footer{
   color:var(--error);
   font-weight:700;
 }
+/* --- User Dropdown --- */
+.user-menu{ position:relative; z-index:60 }
+.user-menu .menu{
+  position:absolute; right:0; top:calc(100% + 8px);
+  min-width:220px; padding:6px;
+  background:#ffffff; color:#0f172a;
+  border:1px solid #cbd5e1; border-radius:12px;
+  box-shadow: var(--shadow-2);
+}
+.user-menu .menu[hidden]{ display:none !important; }
+.user-menu .item{
+  display:flex; width:100%; gap:8px;
+  padding:10px 12px; border-radius:10px;
+  background:transparent; border:0; cursor:pointer;
+  text-align:left; font-weight:800;
+}
+.user-menu .item:hover{ background:#f1f5f9; }
+.user-menu .item.danger{ color:#b91c1c; }
+
 
 /* =========================================================
    Slot-Bereich: roter Warnbanner komplett ausblenden
