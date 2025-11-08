@@ -286,8 +286,22 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
+   
+
+
   <!-- Konsolidierter JS-Block -->
   <script>
+// Hinweis nach Account-Löschung
+      (() => {
+        const p = new URLSearchParams(location.search);
+        if (p.get('deleted') === '1') {
+          const box = document.getElementById('form-info');
+          if (box){ box.className='success'; box.style.display='block'; box.textContent='Konto wurde gelöscht.'; }
+          p.delete('deleted');
+          history.replaceState({},'', location.pathname + (p.toString()?('?'+p.toString()):'')); 
+        }
+      })();
+
     // ---------- API-Basis ----------
     const API = (() => {
       const h = location.hostname, proto = location.protocol;

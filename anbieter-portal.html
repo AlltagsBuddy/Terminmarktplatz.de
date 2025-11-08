@@ -145,6 +145,13 @@
       <div class="cta-group">
         <button id="btn-logout" class="btn">Abmelden</button>
       </div>
+      <!-- Konto löschen -->
+        <div class="panel" style="margin-top:16px">
+          <h3>Konto löschen</h3>
+          <p class="muted">Achtung: Dadurch werden auch alle Slots und Buchungen gelöscht. Dieser Schritt kann nicht rückgängig gemacht werden.</p>
+          <button id="btn-delete-account" class="btn danger">Konto endgültig löschen</button>
+          <div id="del-msg" class="error-text" style="display:none; margin-top:8px;"></div>
+        </div>
     </div>
   </header>
 
@@ -159,7 +166,7 @@
       </div>
     </section>
 
-    <!-- NEU: prominenter Hinweis oberhalb der Panels -->
+    <!-- NEU: prominenter Hinweis oberhalb der Panels 
     <section>
       <div class="container">
         <div id="profile-alert" class="alert" role="alert" aria-live="polite">
@@ -167,7 +174,7 @@
           Erforderlich sind: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em> und <em>Telefon</em>. <span class="small">(WhatsApp ist optional)</span>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <!-- CONTENT -->
     <section>
@@ -794,7 +801,53 @@
       recalcEnd();
       await loadSlots();
     })();
+    
   </script>
+
+  <script>
+    (function(){
+      const API = (()=>{
+        const h = location.hostname;
+        if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
+        return 'https://api.terminmarktplatz.de';
+      })();
+
+      const btn = document.getElementById('btn-delete-account');
+      const msg = document.getElementById('del-msg');
+      if (!btn) return;
+
+      function showMsg(t){ msg.textContent = t; msg.style.display = 'block'; }
+      function hideMsg(){ msg.style.display = 'none'; msg.textContent = ''; }
+
+      btn.addEventListener('click', async ()=>{
+        hideMsg();
+        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen?');
+        if (!ok) return;
+
+        btn.disabled = true; btn.classList.add('loading');
+        try{
+          const res = await fetch(`${API}/me`, {
+            method: 'DELETE',
+            credentials: 'include',          // <<< WICHTIG: Cookies mitschicken
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (res.ok){
+            // Cookies werden serverseitig gelöscht; zurück zur Login-Seite
+            window.location.href = '/login.html?deleted=1';
+            return;
+          }
+          const data = await res.json().catch(()=> ({}));
+          showMsg(data?.error === 'not_found' ? 'Konto nicht gefunden.' : 'Löschen fehlgeschlagen.');
+        }catch(e){
+          showMsg('Netzwerkfehler – bitte später erneut versuchen.');
+        }finally{
+          btn.disabled = false; btn.classList.remove('loading');
+        }
+      });
+    })();
+    </script>
+
 
   <!-- Footer -->
   <footer>
