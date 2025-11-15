@@ -1157,7 +1157,7 @@ def public_slots():
     Query:
       - category, city, zip, radius, from, day, include_full, q
     """
-    from_str     = request.args.get("from")
+    from_str     = request.args.get("from")  # optional
     day_str      = request.args.get("day")
     category     = (request.args.get("category") or "").strip()
     city_q       = (request.args.get("city") or "").strip()
@@ -1165,24 +1165,31 @@ def public_slots():
     include_full = request.args.get("include_full") == "1"
     radius_raw   = (request.args.get("radius") or "").strip()
 
-    # NEU: freier Suchbegriff für Titel & Kategorie
+    # freier Suchbegriff für Titel & Kategorie
     search_term  = (request.args.get("q") or "").strip()
 
+    # Radius parsen (optional)
     try:
         radius_km = float(radius_raw) if radius_raw else None
     except ValueError:
         radius_km = None
 
+    # Datumslogik: nur filtern, wenn User etwas angibt
+    start_from = None
+    end_until  = None
     try:
         if day_str:
+            # Tag-Filter (z.B. 2025-11-15)
             y, m, d = map(int, day_str.split("-"))
             start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
             end_local   = start_local + timedelta(days=1)
             start_from  = start_local.astimezone(timezone.utc)
             end_until   = end_local.astimezone(timezone.utc)
-        else:
-            start_from = parse_iso_utc(from_str) if from_str else _now()
-            end_until  = None
+        elif from_str and from_str.strip():
+            # „ab diesem Zeitpunkt“, nur wenn from wirklich gesetzt ist
+            start_from  = parse_iso_utc(from_str.strip())
+            end_until   = None
+        # WICHTIG: kein Default _now() → wenn nichts angegeben, bleibt beides None
     except Exception:
         return _json_error("bad_datetime", 400)
 
@@ -1202,7 +1209,7 @@ def public_slots():
             .subquery()
         )
 
-        # Basis-Query ohne Order/Limit – Reihenfolge hängt von Suche ab
+        # Basis-Query OHNE Zeitfilter
         q = (
             select(
                 Slot,
@@ -1213,9 +1220,11 @@ def public_slots():
             .join(Provider, Provider.id == Slot.provider_id)
             .outerjoin(bq, bq.c.slot_id == Slot.id)
             .where(Slot.status == "published")
-            .where(Slot.start_at >= start_from)
         )
 
+        # Zeitfilter nur, wenn gesetzt
+        if start_from is not None:
+            q = q.where(Slot.start_at >= start_from)
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
@@ -1226,7 +1235,7 @@ def public_slots():
             else:
                 q = q.where(Slot.category.ilike(f"%{category}%"))
 
-        # PLZ / Stadt / Radius-Logik wie bisher
+        # PLZ / Stadt / Radius-Logik
         if radius_km is None:
             if zip_filter:
                 q = q.where(Provider.zip == zip_filter)
@@ -1234,7 +1243,7 @@ def public_slots():
                 ilike = f"%{city_q}%"
                 q = q.where(Provider.city.ilike(ilike) | Slot.location.ilike(ilike))
 
-        # NEU: Textsuche auf Titel & Kategorie inkl. ähnlicher Begriffe
+        # Textsuche auf Titel & Kategorie inkl. ähnlicher Begriffe
         if search_term:
             pattern   = f"%{search_term}%"
             sim_title = func.similarity(Slot.title, search_term)
@@ -1249,16 +1258,14 @@ def public_slots():
                 )
             )
 
-            # Relevanz: erst Similarity, dann Startzeit
             q = q.order_by(
                 func.greatest(sim_title, sim_cat).desc(),
                 Slot.start_at.asc()
             )
         else:
-            # Standard: chronologisch sortiert wie vorher
+            # keine Volltextsuche → chronologisch
             q = q.order_by(Slot.start_at.asc())
 
-        # Limit wie gehabt
         q = q.limit(300)
 
         rows = s.execute(q).all()
