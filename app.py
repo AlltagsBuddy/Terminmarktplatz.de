@@ -1165,7 +1165,7 @@ def public_slots():
     include_full = request.args.get("include_full") == "1"
     radius_raw   = (request.args.get("radius") or "").strip()
 
-    # freier Suchbegriff für Titel & Kategorie
+    # Freier Suchbegriff für Titel & Kategorie
     search_term  = (request.args.get("q") or "").strip()
 
     # Radius parsen (optional)
@@ -1178,8 +1178,6 @@ def public_slots():
     # - wenn day gesetzt: nur dieser Tag
     # - wenn from gesetzt: ab diesem Zeitpunkt
     # - wenn nichts gesetzt: ab jetzt (nur Zukunft)
-    start_from = None
-    end_until  = None
     try:
         if day_str:
             y, m, d = map(int, day_str.split("-"))
@@ -1187,13 +1185,9 @@ def public_slots():
             end_local   = start_local + timedelta(days=1)
             start_from  = start_local.astimezone(timezone.utc)
             end_until   = end_local.astimezone(timezone.utc)
-        elif from_str and from_str.strip():
-            start_from  = parse_iso_utc(from_str.strip())
-            end_until   = None
         else:
-            # Default: keine Angabe -> nur zukünftige Termine
-            start_from  = _now()
-            end_until   = None
+            start_from = parse_iso_utc(from_str) if from_str else _now()
+            end_until  = None
     except Exception:
         return _json_error("bad_datetime", 400)
 
@@ -1206,6 +1200,7 @@ def public_slots():
                 None if zip_filter else city_q
             )
 
+        # Buchungsaggregat (wie gehabt)
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1213,7 +1208,7 @@ def public_slots():
             .subquery()
         )
 
-        # Basis-Query
+        # Basis-Query (wie vorher)
         q = (
             select(
                 Slot,
@@ -1224,52 +1219,41 @@ def public_slots():
             .join(Provider, Provider.id == Slot.provider_id)
             .outerjoin(bq, bq.c.slot_id == Slot.id)
             .where(Slot.status == "published")
+            .where(Slot.start_at >= start_from)
+            .order_by(Slot.start_at.asc())
+            .limit(300)
         )
 
-        # Zeitfilter (immer, weil wir start_from jetzt garantiert setzen)
-        if start_from is not None:
-            q = q.where(Slot.start_at >= start_from)
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
-        # Kategorie
+        # Kategorie-Filter
         if category:
             if category in BRANCHES:
                 q = q.where(Slot.category == category)
             else:
                 q = q.where(Slot.category.ilike(f"%{category}%"))
 
-        # PLZ / Stadt / Radius
+        # PLZ / Stadt / Radius-Logik
         if radius_km is None:
             if zip_filter:
                 q = q.where(Provider.zip == zip_filter)
             if city_q:
-                ilike = f"%{city_q}%"
-                q = q.where(Provider.city.ilike(ilike) | Slot.location.ilike(ilike))
+                ilike_city = f"%{city_q}%"
+                q = q.where(
+                    Provider.city.ilike(ilike_city) |
+                    Slot.location.ilike(ilike_city)
+                )
 
-        # Volltext-Suche auf Titel & Kategorie (inkl. Similarity)
+        # NEU: Textsuche auf Titel & Kategorie (ohne similarity, nur ILIKE)
         if search_term:
-            pattern   = f"%{search_term}%"
-            sim_title = func.similarity(Slot.title, search_term)
-            sim_cat   = func.similarity(Slot.category, search_term)
-
+            pattern = f"%{search_term}%"
             q = q.where(
                 or_(
                     Slot.title.ilike(pattern),
                     Slot.category.ilike(pattern),
-                    sim_title > 0.3,
-                    sim_cat > 0.3,
                 )
             )
-
-            q = q.order_by(
-                func.greatest(sim_title, sim_cat).desc(),
-                Slot.start_at.asc()
-            )
-        else:
-            q = q.order_by(Slot.start_at.asc())
-
-        q = q.limit(300)
 
         rows = s.execute(q).all()
 
@@ -1303,7 +1287,6 @@ def public_slots():
             })
 
         return jsonify(out)
-
 
 @app.post("/public/book")
 def public_book():
