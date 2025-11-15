@@ -1177,7 +1177,9 @@ def public_slots():
     # Datumslogik:
     # - wenn day gesetzt: nur dieser Tag
     # - wenn from gesetzt: ab diesem Zeitpunkt
-    # - wenn nichts gesetzt: ab jetzt (nur Zukunft)
+    # - wenn nichts gesetzt oder fehlerhaft: ab jetzt (nur Zukunft)
+    start_from = None
+    end_until  = None
     try:
         if day_str:
             y, m, d = map(int, day_str.split("-"))
@@ -1185,11 +1187,16 @@ def public_slots():
             end_local   = start_local + timedelta(days=1)
             start_from  = start_local.astimezone(timezone.utc)
             end_until   = end_local.astimezone(timezone.utc)
+        elif from_str and from_str.strip():
+            start_from = parse_iso_utc(from_str.strip())
+            end_until  = None
         else:
-            start_from = parse_iso_utc(from_str) if from_str else _now()
+            start_from = _now()
             end_until  = None
     except Exception:
-        return _json_error("bad_datetime", 400)
+        # Fallback: wenn irgendwas schiefgeht, nicht crashen
+        start_from = _now()
+        end_until  = None
 
     with Session(engine) as s:
         origin_lat = origin_lon = None
@@ -1200,7 +1207,7 @@ def public_slots():
                 None if zip_filter else city_q
             )
 
-        # Buchungsaggregat (wie gehabt)
+        # Buchungsaggregat
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1208,7 +1215,7 @@ def public_slots():
             .subquery()
         )
 
-        # Basis-Query (wie vorher)
+        # Basis-Query: nur veröffentlichte Slots
         q = (
             select(
                 Slot,
@@ -1219,11 +1226,11 @@ def public_slots():
             .join(Provider, Provider.id == Slot.provider_id)
             .outerjoin(bq, bq.c.slot_id == Slot.id)
             .where(Slot.status == "published")
-            .where(Slot.start_at >= start_from)
-            .order_by(Slot.start_at.asc())
-            .limit(300)
         )
 
+        # Zeitfilter (immer, damit nur Zukunft)
+        if start_from is not None:
+            q = q.where(Slot.start_at >= start_from)
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
@@ -1234,7 +1241,7 @@ def public_slots():
             else:
                 q = q.where(Slot.category.ilike(f"%{category}%"))
 
-        # PLZ / Stadt / Radius-Logik
+        # PLZ / Stadt / Radius-Logik (Radius nur bei vorhandenen Koordinaten)
         if radius_km is None:
             if zip_filter:
                 q = q.where(Provider.zip == zip_filter)
@@ -1245,7 +1252,7 @@ def public_slots():
                     Slot.location.ilike(ilike_city)
                 )
 
-        # NEU: Textsuche auf Titel & Kategorie (ohne similarity, nur ILIKE)
+        # Textsuche auf Titel & Kategorie (ohne similarity, nur ILIKE)
         if search_term:
             pattern = f"%{search_term}%"
             q = q.where(
@@ -1254,6 +1261,9 @@ def public_slots():
                     Slot.category.ilike(pattern),
                 )
             )
+
+        # Sortierung & Limit
+        q = q.order_by(Slot.start_at.asc()).limit(300)
 
         rows = s.execute(q).all()
 
