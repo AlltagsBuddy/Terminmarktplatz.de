@@ -1155,7 +1155,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 def public_slots():
     """
     Query:
-      - category, city, zip, radius, from, day, include_full
+      - category, city, zip, radius, from, day, include_full, q
     """
     from_str     = request.args.get("from")
     day_str      = request.args.get("day")
@@ -1164,6 +1164,10 @@ def public_slots():
     zip_filter   = (request.args.get("zip") or "").strip()
     include_full = request.args.get("include_full") == "1"
     radius_raw   = (request.args.get("radius") or "").strip()
+
+    # NEU: freier Suchbegriff für Titel & Kategorie
+    search_term  = (request.args.get("q") or "").strip()
+
     try:
         radius_km = float(radius_raw) if radius_raw else None
     except ValueError:
@@ -1185,8 +1189,11 @@ def public_slots():
     with Session(engine) as s:
         origin_lat = origin_lon = None
         if radius_km and (zip_filter or city_q):
-            origin_lat, origin_lon = geocode_cached(s, zip_filter if zip_filter else None,
-                                                       None if zip_filter else city_q)
+            origin_lat, origin_lon = geocode_cached(
+                s,
+                zip_filter if zip_filter else None,
+                None if zip_filter else city_q
+            )
 
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
@@ -1195,6 +1202,7 @@ def public_slots():
             .subquery()
         )
 
+        # Basis-Query ohne Order/Limit – Reihenfolge hängt von Suche ab
         q = (
             select(
                 Slot,
@@ -1206,24 +1214,52 @@ def public_slots():
             .outerjoin(bq, bq.c.slot_id == Slot.id)
             .where(Slot.status == "published")
             .where(Slot.start_at >= start_from)
-            .order_by(Slot.start_at.asc())
-            .limit(300)
         )
+
         if end_until is not None:
             q = q.where(Slot.start_at < end_until)
 
+        # Kategorie-Filter (Dropdown / Freitext)
         if category:
             if category in BRANCHES:
                 q = q.where(Slot.category == category)
             else:
                 q = q.where(Slot.category.ilike(f"%{category}%"))
 
+        # PLZ / Stadt / Radius-Logik wie bisher
         if radius_km is None:
             if zip_filter:
                 q = q.where(Provider.zip == zip_filter)
             if city_q:
                 ilike = f"%{city_q}%"
                 q = q.where(Provider.city.ilike(ilike) | Slot.location.ilike(ilike))
+
+        # NEU: Textsuche auf Titel & Kategorie inkl. ähnlicher Begriffe
+        if search_term:
+            pattern   = f"%{search_term}%"
+            sim_title = func.similarity(Slot.title, search_term)
+            sim_cat   = func.similarity(Slot.category, search_term)
+
+            q = q.where(
+                or_(
+                    Slot.title.ilike(pattern),
+                    Slot.category.ilike(pattern),
+                    sim_title > 0.3,
+                    sim_cat > 0.3,
+                )
+            )
+
+            # Relevanz: erst Similarity, dann Startzeit
+            q = q.order_by(
+                func.greatest(sim_title, sim_cat).desc(),
+                Slot.start_at.asc()
+            )
+        else:
+            # Standard: chronologisch sortiert wie vorher
+            q = q.order_by(Slot.start_at.asc())
+
+        # Limit wie gehabt
+        q = q.limit(300)
 
         rows = s.execute(q).all()
 
