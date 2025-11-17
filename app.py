@@ -300,7 +300,7 @@ def slot_to_json(x: Slot):
         "status": x.status, "created_at": _from_db_as_iso_utc(x.created_at),
     }
 
-# ---- Neu: Validierungen & Profil-Check (Servergate) ----
+# ---- Validierungen & Profil-Check ----
 def _is_valid_zip(v: str | None) -> bool:
     v = (v or "").strip()
     return len(v) == 5 and v.isdigit()
@@ -766,7 +766,7 @@ def auth_refresh():
     resp = make_response(jsonify({"ok": True, "access": access}))
     return _set_auth_cookies(resp, access)
 
-# --- NEU: Account löschen --------------------------------
+# --- Account löschen --------------------------------
 @app.delete("/me")
 @auth_required()
 def delete_me():
@@ -848,7 +848,7 @@ def me_update():
                 s.rollback()
                 return _json_error("db_error", 400)
 
-            # Koordinaten in Provider + Cache sicherstellen
+            # Koordinaten in Cache (optional, für spätere Optimierungen)
             try:
                 lat, lon = geocode_cached(s, p.zip, p.city)
                 if lat is not None and lon is not None:
@@ -1154,55 +1154,75 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 @app.get("/public/slots")
 def public_slots():
     """
-    Query:
-      - category, city, zip, ort_plz, radius, from, day, include_full, q
+    Query (Frontend):
+      - q       : Freitext, z.B. 'Friseur'
+      - ort     : PLZ oder Stadt (ein Feld)
+      - radius  : Umkreis in km (optional)
+      - datum   : TT.MM.JJJJ (optional)
+      - zeit    : ignoriert (Beliebig / Vormittag ...)
+
+    Zusätzlich kompatibel:
+      - category, city, zip, day, from, include_full
     """
-    from_str     = request.args.get("from")  # optional
-    day_str      = request.args.get("day")
-    category     = (request.args.get("category") or "").strip()
-    city_q       = (request.args.get("city") or "").strip()
-    zip_filter   = (request.args.get("zip") or "").strip()
-    ort_plz      = (request.args.get("ort_plz") or "").strip()
+    # Frontend-Parameter
+    q_text     = (request.args.get("q") or "").strip()
+    ort        = (request.args.get("ort") or "").strip()
+    radius_raw = (request.args.get("radius") or "").strip()
+    datum_raw  = (request.args.get("datum") or "").strip()
+    _zeit      = (request.args.get("zeit") or "").strip()  # aktuell ignoriert
+
+    # Alte / zusätzliche Parameter
+    category   = (request.args.get("category") or "").strip()
+    city_q     = (request.args.get("city") or "").strip()
+    zip_filter = (request.args.get("zip") or "").strip()
+    day_str    = (request.args.get("day") or "").strip()
+    from_str   = (request.args.get("from") or "").strip()
     include_full = request.args.get("include_full") == "1"
-    radius_raw   = (request.args.get("radius") or "").strip()
 
-    # Freier Suchbegriff für Titel & Kategorie
-    search_term  = (request.args.get("q") or "").strip()
-
-    # Wenn ort_plz gesetzt ist und city/zip noch leer sind: ableiten
-    if ort_plz and not zip_filter and not city_q:
-        if ort_plz.isdigit() and len(ort_plz) == 5:
-            zip_filter = ort_plz
+    # Ort-Feld (ort) in zip/city aufsplitten, falls zip/city nicht explizit gesetzt sind
+    if ort and not zip_filter and not city_q:
+        if ort.isdigit() and len(ort) == 5:
+            zip_filter = ort
         else:
-            city_q = ort_plz
+            city_q = ort
 
-    # Radius parsen (optional)
+    # Wenn q exakt eine bekannte Branche ist, als Kategorie nutzen
+    search_term = q_text
+    if not category and q_text in BRANCHES:
+        category = q_text
+        # search_term lassen wir trotzdem, damit auch Titel mit 'Friseur' gefunden werden
+
+    # Radius parsen
     try:
         radius_km = float(radius_raw) if radius_raw else None
     except ValueError:
         radius_km = None
 
-    # Datumslogik:
-    # - wenn day gesetzt: nur dieser Tag
-    # - wenn from gesetzt: ab diesem Zeitpunkt
-    # - wenn nichts gesetzt oder fehlerhaft: ab jetzt (nur Zukunft)
+    # Datumslogik
     start_from = None
     end_until  = None
     try:
-        if day_str:
+        if datum_raw:
+            # Format TT.MM.JJJJ
+            parts = datum_raw.split(".")
+            if len(parts) == 3:
+                d, m, y = map(int, parts)
+                start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
+                end_local   = start_local + timedelta(days=1)
+                start_from  = start_local.astimezone(timezone.utc)
+                end_until   = end_local.astimezone(timezone.utc)
+        elif day_str:
+            # Format YYYY-MM-DD
             y, m, d = map(int, day_str.split("-"))
             start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
             end_local   = start_local + timedelta(days=1)
             start_from  = start_local.astimezone(timezone.utc)
             end_until   = end_local.astimezone(timezone.utc)
-        elif from_str and from_str.strip():
-            start_from = parse_iso_utc(from_str.strip())
-            end_until  = None
+        elif from_str:
+            start_from = parse_iso_utc(from_str)
         else:
             start_from = _now()
-            end_until  = None
     except Exception:
-        # Fallback: wenn irgendwas schiefgeht, nicht crashen
         start_from = _now()
         end_until  = None
 
@@ -1223,14 +1243,12 @@ def public_slots():
             .subquery()
         )
 
-        # Basis-Query: nur veröffentlichte Slots
-        q = (
+        # Basis-Query
+        sq = (
             select(
                 Slot,
                 Provider.zip.label("p_zip"),
                 Provider.city.label("p_city"),
-                Provider.lat.label("p_lat"),
-                Provider.lon.label("p_lon"),
                 func.coalesce(bq.c.booked, 0).label("booked")
             )
             .join(Provider, Provider.id == Slot.provider_id)
@@ -1238,34 +1256,36 @@ def public_slots():
             .where(Slot.status == "published")
         )
 
-        # Zeitfilter (immer, damit nur Zukunft)
+        # Zeitfilter
         if start_from is not None:
-            q = q.where(Slot.start_at >= start_from)
+            sq = sq.where(Slot.start_at >= start_from)
         if end_until is not None:
-            q = q.where(Slot.start_at < end_until)
+            sq = sq.where(Slot.start_at < end_until)
 
         # Kategorie-Filter
         if category:
             if category in BRANCHES:
-                q = q.where(Slot.category == category)
+                sq = sq.where(Slot.category == category)
             else:
-                q = q.where(Slot.category.ilike(f"%{category}%"))
+                sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
-        # PLZ / Stadt ohne Radius
+        # Stadt/PLZ-Filter nur, wenn KEIN Radius (bei Radius filtern wir später mit Distanz)
         if radius_km is None:
             if zip_filter:
-                q = q.where(Provider.zip == zip_filter)
+                sq = sq.where(Provider.zip == zip_filter)
             if city_q:
                 ilike_city = f"%{city_q}%"
-                q = q.where(
-                    Provider.city.ilike(ilike_city) |
-                    Slot.location.ilike(ilike_city)
+                sq = sq.where(
+                    or_(
+                        Provider.city.ilike(ilike_city),
+                        Slot.location.ilike(ilike_city)
+                    )
                 )
 
-        # Textsuche auf Titel & Kategorie
+        # Textsuche auf Titel/Kategorie
         if search_term:
             pattern = f"%{search_term}%"
-            q = q.where(
+            sq = sq.where(
                 or_(
                     Slot.title.ilike(pattern),
                     Slot.category.ilike(pattern),
@@ -1273,43 +1293,26 @@ def public_slots():
             )
 
         # Sortierung & Limit
-        q = q.order_by(Slot.start_at.asc()).limit(300)
+        sq = sq.order_by(Slot.start_at.asc()).limit(300)
 
-        rows = s.execute(q).all()
+        rows = s.execute(sq).all()
 
         out = []
-        for slot, p_zip, p_city, p_lat, p_lon, booked in rows:
+        for slot, p_zip, p_city, booked in rows:
             cap = slot.capacity or 1
             available = max(0, cap - int(booked or 0))
             if not include_full and available <= 0:
                 continue
 
-            # Radiusfilter (wenn gesetzt)
+            # Radiusfilter
             if radius_km is not None:
-                # Ohne Mittelpunkt keine Umkreissuche
                 if origin_lat is None or origin_lon is None:
+                    # ohne Mittelpunkt macht Umkreissuche keinen Sinn
                     continue
-
-                target_lat = p_lat
-                target_lon = p_lon
-
-                # Falls Provider noch keine Koordinaten hat → geocode & speichern
-                if target_lat is None or target_lon is None:
-                    target_lat, target_lon = geocode_cached(s, p_zip, p_city)
-                    if target_lat is not None and target_lon is not None:
-                        try:
-                            s.execute(
-                                text("UPDATE provider SET lat=:lat, lon=:lon WHERE zip=:zip AND city=:city"),
-                                {"lat": target_lat, "lon": target_lon, "zip": p_zip, "city": p_city}
-                            )
-                            s.commit()
-                        except Exception:
-                            s.rollback()
-
-                if target_lat is None or target_lon is None:
+                plat, plon = geocode_cached(s, p_zip, p_city)
+                if plat is None or plon is None:
                     continue
-
-                if _haversine_km(origin_lat, origin_lon, target_lat, target_lon) > radius_km:
+                if _haversine_km(origin_lat, origin_lon, plat, plon) > radius_km:
                     continue
 
             out.append({
