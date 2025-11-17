@@ -848,10 +848,10 @@ def me_update():
                 s.rollback()
                 return _json_error("db_error", 400)
 
-            # Koordinaten in Cache sicherstellen (optional)
+            # Koordinaten in Provider + Cache sicherstellen
             try:
                 lat, lon = geocode_cached(s, p.zip, p.city)
-                if lat and lon:
+                if lat is not None and lon is not None:
                     s.execute(
                         text("UPDATE provider SET lat=:lat, lon=:lon WHERE id=:pid"),
                         {"lat": lat, "lon": lon, "pid": p.id}
@@ -1155,18 +1155,26 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 def public_slots():
     """
     Query:
-      - category, city, zip, radius, from, day, include_full, q
+      - category, city, zip, ort_plz, radius, from, day, include_full, q
     """
     from_str     = request.args.get("from")  # optional
     day_str      = request.args.get("day")
     category     = (request.args.get("category") or "").strip()
     city_q       = (request.args.get("city") or "").strip()
     zip_filter   = (request.args.get("zip") or "").strip()
+    ort_plz      = (request.args.get("ort_plz") or "").strip()
     include_full = request.args.get("include_full") == "1"
     radius_raw   = (request.args.get("radius") or "").strip()
 
     # Freier Suchbegriff für Titel & Kategorie
     search_term  = (request.args.get("q") or "").strip()
+
+    # Wenn ort_plz gesetzt ist und city/zip noch leer sind: ableiten
+    if ort_plz and not zip_filter and not city_q:
+        if ort_plz.isdigit() and len(ort_plz) == 5:
+            zip_filter = ort_plz
+        else:
+            city_q = ort_plz
 
     # Radius parsen (optional)
     try:
@@ -1200,7 +1208,7 @@ def public_slots():
 
     with Session(engine) as s:
         origin_lat = origin_lon = None
-        if radius_km and (zip_filter or city_q):
+        if radius_km is not None and (zip_filter or city_q):
             origin_lat, origin_lon = geocode_cached(
                 s,
                 zip_filter if zip_filter else None,
@@ -1221,6 +1229,8 @@ def public_slots():
                 Slot,
                 Provider.zip.label("p_zip"),
                 Provider.city.label("p_city"),
+                Provider.lat.label("p_lat"),
+                Provider.lon.label("p_lon"),
                 func.coalesce(bq.c.booked, 0).label("booked")
             )
             .join(Provider, Provider.id == Slot.provider_id)
@@ -1241,7 +1251,7 @@ def public_slots():
             else:
                 q = q.where(Slot.category.ilike(f"%{category}%"))
 
-        # PLZ / Stadt / Radius-Logik (Radius nur bei vorhandenen Koordinaten)
+        # PLZ / Stadt ohne Radius
         if radius_km is None:
             if zip_filter:
                 q = q.where(Provider.zip == zip_filter)
@@ -1252,7 +1262,7 @@ def public_slots():
                     Slot.location.ilike(ilike_city)
                 )
 
-        # Textsuche auf Titel & Kategorie (ohne similarity, nur ILIKE)
+        # Textsuche auf Titel & Kategorie
         if search_term:
             pattern = f"%{search_term}%"
             q = q.where(
@@ -1268,19 +1278,38 @@ def public_slots():
         rows = s.execute(q).all()
 
         out = []
-        for slot, p_zip, p_city, booked in rows:
+        for slot, p_zip, p_city, p_lat, p_lon, booked in rows:
             cap = slot.capacity or 1
             available = max(0, cap - int(booked or 0))
             if not include_full and available <= 0:
                 continue
 
+            # Radiusfilter (wenn gesetzt)
             if radius_km is not None:
-                if not (origin_lat and origin_lon):
+                # Ohne Mittelpunkt keine Umkreissuche
+                if origin_lat is None or origin_lon is None:
                     continue
-                plat, plon = geocode_cached(s, p_zip, p_city)
-                if not (plat and plon):
+
+                target_lat = p_lat
+                target_lon = p_lon
+
+                # Falls Provider noch keine Koordinaten hat → geocode & speichern
+                if target_lat is None or target_lon is None:
+                    target_lat, target_lon = geocode_cached(s, p_zip, p_city)
+                    if target_lat is not None and target_lon is not None:
+                        try:
+                            s.execute(
+                                text("UPDATE provider SET lat=:lat, lon=:lon WHERE zip=:zip AND city=:city"),
+                                {"lat": target_lat, "lon": target_lon, "zip": p_zip, "city": p_city}
+                            )
+                            s.commit()
+                        except Exception:
+                            s.rollback()
+
+                if target_lat is None or target_lon is None:
                     continue
-                if _haversine_km(origin_lat, origin_lon, plat, plon) > radius_km:
+
+                if _haversine_km(origin_lat, origin_lon, target_lat, target_lon) > radius_km:
                     continue
 
             out.append({
