@@ -187,14 +187,14 @@
     <section class="booking-success-card">
       <div class="booking-success-summary">
         {% if slot %}
-          <div class="booking-success-row">
-            <div class="booking-success-label">Termin</div>
-            <div class="booking-success-value">
-              {{ slot.startzeit }}
-              {# ggf. schöner formatiert: {{ slot.startzeit.strftime('%d.%m.%Y %H:%M') }} #}
+            <div class="booking-success-row">
+                <div class="booking-success-label">Termin</div>
+                <div class="booking-success-value">
+                {{ slot.start_at.strftime('%d.%m.%Y %H:%M') if slot.start_at }}
+                </div>
             </div>
-          </div>
-        {% endif %}
+            {% endif %}
+
 
         {% if provider %}
           <div class="booking-success-row">
