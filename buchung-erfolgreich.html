@@ -191,23 +191,24 @@
             <div class="booking-success-label">Termin</div>
             <div class="booking-success-value">
               {{ slot.startzeit }}
+              {# ggf. schöner formatiert: {{ slot.startzeit.strftime('%d.%m.%Y %H:%M') }} #}
             </div>
           </div>
         {% endif %}
 
-        {% if anbieter %}
+        {% if provider %}
           <div class="booking-success-row">
             <div class="booking-success-label">Anbieter</div>
             <div class="booking-success-value">
-              {{ anbieter.name or anbieter.firmenname if anbieter.name is defined or anbieter.firmenname is defined else 'Anbieter' }}
+              {{ provider.company_name }}
             </div>
           </div>
 
-          {% if anbieter.ort or anbieter.plz %}
+          {% if provider.zip or provider.city %}
             <div class="booking-success-row">
               <div class="booking-success-label">Ort</div>
               <div class="booking-success-value">
-                {{ anbieter.plz }} {{ anbieter.ort }}
+                {{ provider.zip }} {{ provider.city }}
               </div>
             </div>
           {% endif %}
