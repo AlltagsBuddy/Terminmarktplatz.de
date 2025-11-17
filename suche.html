@@ -212,25 +212,21 @@
     const isZip = (s) => /^\d{5}$/.test(s || '');
     const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
 
-    // URL-Parameter → Filter übernehmen (inkl. RADIUS)
-    const sp    = new URLSearchParams(location.search);
-    const q     = (sp.get('q')||'').trim();
-    const ort   = (sp.get('ort')||'').trim();
-    const datum = (sp.get('datum')||'').trim();
-    const zeit  = (sp.get('zeit')||'').trim().toLowerCase();
-    const radius= (sp.get('radius')||'').trim();
+    // URL-Parameter → Filter übernehmen
+    const sp     = new URLSearchParams(location.search);
+    const q      = (sp.get('q')||'').trim();
+    const ort    = (sp.get('ort')||'').trim();
+    const dayUrl = (sp.get('day')||'').trim();
+    const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
+    const radius = (sp.get('radius')||'').trim();
 
     // Felder füllen (damit Auswahl stehen bleibt)
-    $('#f-q').value = q;
-    $('#f-ort').value = ort;
-    $('#f-datum').value = datum;
-    $('#f-zeit').value = zeit;
+    $('#f-q').value      = q;
+    $('#f-ort').value    = ort;
+    $('#f-zeit').value   = zeit;
     $('#f-radius').value = radius;
-
-    // Falls kein Datum gesetzt → heute vorfüllen (bessere Treffer)
-    if (!$('#f-datum').value) {
-      $('#f-datum').value = new Date().toISOString().slice(0,10);
-    }
+    const dayInput = document.getElementById('search-day');
+    if (dayInput) dayInput.value = dayUrl;   // keine Auto-Setzung auf heute
 
     // Filterformular: GET-Reload ist ok
     $('#filters').addEventListener('submit', ()=>{ /* Standard-Submit genügt */ });
@@ -247,16 +243,20 @@
       summary.textContent = 'Suche wird geladen …';
 
       // URL-Parameter nach möglichem Reload erneut lesen
-      const s2     = new URLSearchParams(location.search);
-      const q2     = (s2.get('q')||'').trim();
-      const ort2   = (s2.get('ort')||'').trim();
-      const dat2   = (s2.get('datum')||'').trim() || new Date().toISOString().slice(0,10);
-      const zeit2  = (s2.get('zeit')||'').trim().toLowerCase();
-      const rad2   = (s2.get('radius')||'').trim();
+      const s2    = new URLSearchParams(location.search);
+      const q2    = (s2.get('q')||'').trim();
+      const ort2  = (s2.get('ort')||'').trim();
+      const day2  = (s2.get('day')||'').trim();
+      const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
+      const rad2  = (s2.get('radius')||'').trim();
 
-      // ---- API-Parameter (day + city/zip + radius)
+      // ---- API-Parameter (day optional + city/zip + radius)
       const params = new URLSearchParams();
-      params.set('day', dat2);
+
+      // Nur setzen, wenn der Nutzer ein Datum gewählt hat
+      if (day2) {
+        params.set('day', day2);
+      }
 
       const isExactCategory = q2 && KATS.has(q2);
       if (isExactCategory) params.set('category', q2);
@@ -264,11 +264,11 @@
       if (isZip(ort2)) params.set('zip', ort2);
       else if (ort2)   params.set('city', ort2);
 
-      if (rad2 && /^\d+$/.test(rad2)) params.set('radius', rad2); // <<< entscheidend
+      if (rad2 && /^\d+$/.test(rad2)) params.set('radius', rad2);
 
       let data = [];
       try {
-        const url = `${API}/public/slots?` + params.toString();
+        const url = `${API}/public/slots` + (params.toString() ? `?${params.toString()}` : '');
         const res = await fetch(url, { credentials:'include' });
         if (!res.ok) throw new Error(`API ${res.status}`);
         data = await res.json();
@@ -301,10 +301,18 @@
         empty.style.display = 'block';
         return;
       }
+
+      let datePart = '';
+      if (day2) {
+        datePart = `am ${ new Date(day2).toLocaleDateString('de-DE') }`;
+      } else {
+        datePart = 'in nächster Zeit';
+      }
+
       summary.innerHTML = `${items.length} Treffer <span class="muted">
         ${ort2 ? `für ${ort2}` : 'für alle Orte'}
         ${rad2 ? ` (±${rad2} km)` : ''}
-        am ${ new Date(dat2).toLocaleDateString('de-DE') }
+        ${datePart ? ` ${datePart}` : ''}
       </span>`;
 
       const frag = document.createDocumentFragment();
