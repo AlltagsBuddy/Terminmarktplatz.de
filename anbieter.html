@@ -27,15 +27,135 @@
 
   <!-- Main CSS (mit Cache-Buster) -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <!-- Page-spezifische Mobile-Optimierung -->
+  <style>
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        padding-inline: 16px;
+      }
+
+      .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .cta-group {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      /* HERO */
+      .hero {
+        padding: 28px 0 16px !important;
+      }
+
+      .hero h1 {
+        font-size: 1.7rem;
+        line-height: 1.25;
+      }
+
+      .hero .lead {
+        font-size: 0.96rem;
+      }
+
+      /* Hero-Buttons: untereinander auf kleinen Screens */
+      .hero .btn {
+        min-width: 0;
+      }
+
+      .hero .btn.primary,
+      .hero .btn {
+        flex: 1 1 100%;
+        text-align: center;
+        justify-content: center;
+      }
+
+      /* Provider-CTA Bereich */
+      .cta-provider {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .cta-provider .panel {
+        width: 100%;
+      }
+
+      .cta-provider .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .cta-provider ul {
+        padding-left: 18px;
+      }
+
+      /* Features-Karten untereinander */
+      .features {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Ablauf-Kacheln untereinander */
+      .how {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .how .step {
+        padding: 10px 12px;
+      }
+
+      /* FAQ etwas kompakter */
+      .faq details summary {
+        font-size: 0.95rem;
+      }
+
+      /* Footer-Spalten stapeln */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+    }
+  </style>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 </head>
 <body>
   <!-- Header -->
@@ -76,7 +196,7 @@
       </div>
     </section>
 
-    <!-- PROVIDER CTA (überarbeitet im bestehenden Stil) -->
+    <!-- PROVIDER CTA -->
     <section>
       <div class="container cta-provider">
         <div class="panel">
@@ -88,7 +208,6 @@
               <li>✔️ No-Shows reduzieren durch Bestätigungs- & Erinnerungs-Mails</li>
               <li>✔️ Smarte Preissteuerung (Last-Minute-Rabatte optional)</li>
               <li>✔️ Kalender-Sync (iCal/Google/Outlook) & Webhooks/API</li>
-            
               <li>✔️ EU-Hosting & DSGVO-konform</li>
               <li>✔️ Keine Abo-Pflicht · faire & transparente Konditionen</li>
               <li>✔️ Einfache Website-Einbindung (Button/Link)</li>
@@ -165,19 +284,17 @@
             <summary>Welche Daten sehen Kund:innen?</summary>
             <p class="muted">Titel, Dauer, Kategorie, Ort (optional), Preis (optional) und Kontaktweg. Du behältst die Kontrolle.</p>
           </details>
-          
         </div>
 
         <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
           <a class="btn primary" href="login.html">Jetzt starten</a>
           <a class="btn" href="preise.html">Preise ansehen</a>
-    
         </div>
       </div>
     </section>
   </main>
 
-       <!-- Footer -->
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -193,7 +310,6 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -201,13 +317,11 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>

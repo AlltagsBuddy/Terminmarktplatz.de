@@ -32,7 +32,7 @@
   <!-- Nur EIN Stylesheet-Import -->
   <link rel="stylesheet" href="static/style.css?v=20251103" />
 
-  <!-- Portal-spezifische Button-Overrides (gut lesbar) -->
+  <!-- Portal-spezifische Button-Overrides + Mobile-Optimierung -->
   <style>
     .page-portal .btn,
     .page-portal .btn.primary,
@@ -125,6 +125,140 @@
     }
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
+
+    /* --- Mobile-Optimierung Anbieter-Portal --- */
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-inline: 16px;
+      }
+
+      .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .cta-group {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      .user-menu {
+        margin-left: auto;
+      }
+
+      /* Hero-Abstand etwas kompakter */
+      .hero {
+        padding: 28px 0 14px !important;
+      }
+
+      .hero h1 {
+        font-size: 1.6rem;
+        line-height: 1.25;
+      }
+
+      .hero .lead {
+        font-size: 0.95rem;
+      }
+
+      /* Panels / Grid: einspaltig */
+      .grid-2 {
+        grid-template-columns: 1fr !important;
+      }
+
+      .panel {
+        margin-bottom: 12px;
+      }
+
+      /* Formular / Toolbar: stapeln statt quetschen */
+      .toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .toolbar .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Slot-Form: Buttons / Dauer-Buttons besser lesbar */
+      #form-slot .seg {
+        gap: 6px;
+      }
+
+      #form-slot .seg .btn {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+      }
+
+      /* Slot-Filter + Bulk-Buttons */
+      .slot-filter {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .slot-filter input {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .slot-filter .seg {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .slot-filter .seg .btn {
+        font-size: 0.8rem;
+        padding: 6px 8px;
+      }
+
+      /* Tabelle mobil: horizontales Scrollen statt Mini-Schrift */
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .table {
+        min-width: 720px;
+      }
+
+      .table th,
+      .table td {
+        font-size: 0.85rem;
+        padding: 8px 8px;
+      }
+
+      /* Footer-Spalten untereinander */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+    }
   </style>
 </head>
 
@@ -146,7 +280,7 @@
         <button id="btn-logout" class="btn">Abmelden</button>
       </div>
       <!-- Konto löschen -->
-        <!-- User-Dropdown -->
+      <!-- User-Dropdown -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           Konto ▾
@@ -156,7 +290,7 @@
           <a class="item" href="kontakt.html" role="menuitem">Kontaktformular</a>
           <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
         </div>
-    </div>
+      </div>
 
       <!-- RECHTSER BEREICH: entweder Login-CTAs oder User-Dropdown 
       <div class="cta-group" id="auth-ctas" hidden>
@@ -174,6 +308,7 @@
           <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
         </div>
       </div>
+    </div>
   </header>
 
   <main>
@@ -186,16 +321,6 @@
           Neue Slots starten als <em>„pending_review“</em>. Nach deiner Bestätigung werden sie veröffentlicht.</p>
       </div>
     </section>
-
-    <!-- NEU: prominenter Hinweis oberhalb der Panels 
-    <section>
-      <div class="container">
-        <div id="profile-alert" class="alert" role="alert" aria-live="polite">
-          <strong>Wichtig:</strong> Bevor du <em>Slots erstellen</em> kannst, muss dein <strong>Profil vollständig gespeichert</strong> sein.
-          Erforderlich sind: <em>Firma</em>, <em>Branche</em>, <em>Straße & Nr.</em>, <em>PLZ</em>, <em>Ort</em> und <em>Telefon</em>. <span class="small">(WhatsApp ist optional)</span>
-        </div>
-      </div>
-    </section> -->
 
     <!-- CONTENT -->
     <section>
@@ -485,7 +610,7 @@
       const alert = $('#profile-alert');
       if (fs) fs.disabled = !!locked;
       if (guard) guard.style.display = locked ? 'block' : 'none';
-      if (alert) alert.style.display = locked ? 'block' : 'none'; // NEU: Hinweisbalken sichtbar solange gesperrt
+      if (alert) alert.style.display = locked ? 'block' : 'none';
     }
 
     // ---------- Auth-Gate / Me ----------
@@ -535,7 +660,7 @@
         if(r.ok){
           const complete = isProfileCompleteFromValues(payload);
           showMsg('msg-profile', complete ? 'Gespeichert ✓ Profil vollständig.' : 'Gespeichert ✓ Bitte Pflichtfelder ergänzen.');
-          setSlotLock(!complete); // Hinweisbalken verschwindet, wenn vollständig
+          setSlotLock(!complete);
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -568,7 +693,7 @@
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
 
-    // Events (genau einmal)
+    // Events
     $('#sl-date').addEventListener('change',  recalcEnd);
     $('#sl-start').addEventListener('input',  recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
@@ -610,7 +735,6 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isPending   = theStatus === 'pending_review';
-        theStatus === 'published';
         const isArchived  = theStatus === 'archived';
         const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
@@ -822,7 +946,6 @@
       recalcEnd();
       await loadSlots();
     })();
-    
   </script>
 
   <script>
@@ -849,12 +972,11 @@
         try{
           const res = await fetch(`${API}/me`, {
             method: 'DELETE',
-            credentials: 'include',          // <<< WICHTIG: Cookies mitschicken
+            credentials: 'include',
             headers: { 'Accept': 'application/json' }
           });
 
           if (res.ok){
-            // Cookies werden serverseitig gelöscht; zurück zur Login-Seite
             window.location.href = '/login.html?deleted=1';
             return;
           }
@@ -867,67 +989,60 @@
         }
       });
     })();
-    </script>
+  </script>
 
-          <script>
-      (function(){
-        // API-Basis (falls schon vorhanden, unverändert lassen)
-        const API = (typeof window.API === 'string')
-          ? window.API
-          : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
+  <script>
+    (function(){
+      const API = (typeof window.API === 'string')
+        ? window.API
+        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
 
-        const btn  = document.getElementById('userMenuBtn');
-        const menu = document.getElementById('userMenu');
-        if(!btn || !menu) return;
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if(!btn || !menu) return;
 
-        // Toggle
-        function openMenu(open){
-          menu.hidden = !open;
-          btn.setAttribute('aria-expanded', String(open));
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if(!el) return;
+        const action = el.dataset.action;
+
+        if(action === 'logout'){
+          try{
+            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
         }
-        btn.addEventListener('click', (e)=>{
-          e.stopPropagation();
-          openMenu(menu.hidden); // toggle
-        });
 
-        // Close on outside click / ESC
-        document.addEventListener('click', ()=> openMenu(false));
-        document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
-
-        // Actions
-        menu.addEventListener('click', async (e)=>{
-          const el = e.target.closest('.item');
-          if(!el) return;
-          const action = el.dataset.action;
-
-          if(action === 'logout'){
-            try{
-              await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-            }catch(_){}
-            location.href = '/login.html';
-          }
-
-          if(action === 'delete'){
-            const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-            if(!ok) return;
-            try{
-              const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-              if(res.ok){
-                location.href = '/login.html?deleted=1';
-              }else{
-                const data = await res.json().catch(()=>({}));
-                alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-              }
-            }catch(err){
-              alert('Netzwerkfehler – bitte später erneut versuchen.');
+        if(action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if(!ok) return;
+          try{
+            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+            if(res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=>({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
             }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
           }
-          // Kontaktformular ist normaler Link (href="kontakt.html")
-        });
-      })();
-      </script>
-
-
+        }
+      });
+    })();
+  </script>
 
   <!-- Footer -->
   <footer>
@@ -937,7 +1052,7 @@
           <div class="brand-logo" aria-hidden="true">
             <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
           </div>
-        <div class="brand-title">Terminmarktplatz</div>
+          <div class="brand-title">Terminmarktplatz</div>
         </div>
         <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
       </div>

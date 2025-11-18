@@ -1,4 +1,4 @@
-     <!-- FILE: agb.html -->
+<!-- FILE: agb.html -->
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
@@ -38,16 +38,61 @@
     .legal li{margin:4px 0}
     .legal .note{font-size:14px; color:var(--ink-dim)}
     .legal .panel a{ text-decoration: underline; }
-    .table-like{display:grid; grid-template-columns:2fr 1fr; gap:8px; align-items:start}
-    .table-like div{padding:8px 10px; border:1px solid var(--border); border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03))}
+    .table-like{
+      display:grid;
+      grid-template-columns:2fr 1fr;
+      gap:8px;
+      align-items:start
+    }
+    .table-like div{
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03))
+    }
     .table-like .head{font-weight:800}
-    @media (max-width:760px){ .table-like{grid-template-columns:1fr} }
+    @media (max-width:760px){
+      .table-like{grid-template-columns:1fr}
+    }
+
+    /* Mobile-Optimierungen */
+    @media (max-width: 768px){
+      header .nav{
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:flex-start;
+      }
+      header .brand{
+        margin-bottom:4px;
+      }
+      header .cta-group{
+        margin-left:auto;
+      }
+      .hero{
+        padding-top:28px !important;
+        padding-bottom:16px !important;
+      }
+      .hero h1{
+        font-size:1.6rem;
+        line-height:1.25;
+      }
+      .hero .lead{
+        font-size:0.95rem;
+      }
+      .legal .panel{
+        padding:16px 14px;
+        border-radius:16px;
+      }
+    }
   </style>
 </head>
 <body>
   <!-- Header -->
   <header>
-    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation"
+         style="flex-wrap:wrap; gap:8px; align-items:flex-start;">
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
@@ -218,16 +263,12 @@
             <strong>[AlltagsBuddy / Annett Hofmann]</strong><br>
             <strong>[Einzelunternehmen]</strong><br>
             <strong>[]</strong><br>
-            E-Mail: <a href="mailto:nfo@terminmarktplatz.de">info@terminmarktplatz.de</a><br>
-                     </p>
+            E-Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a><br>
+          </p>
         </div>
       </div>
     </section>
   </main>
-  <script>
-    document.getElementById('y').textContent = new Date().getFullYear();
-    document.getElementById('stand').textContent = new Date().toLocaleDateString('de-DE');
-  </script>
 
    <!-- Footer -->
   <footer>
@@ -262,15 +303,15 @@
     
       </div>
     </div>
-    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten。</div>
   </footer>
+
+  <script>
+    // Jahr im Footer + Stand-Datum im Hero
+    const yEl = document.getElementById('y');
+    if (yEl) yEl.textContent = new Date().getFullYear();
+    const standEl = document.getElementById('stand');
+    if (standEl) standEl.textContent = new Date().toLocaleDateString('de-DE');
+  </script>
 </body>
 </html>
-
-     
-     
-     
-     
-     
-     
-    

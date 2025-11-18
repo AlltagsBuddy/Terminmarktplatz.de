@@ -36,6 +36,130 @@
 
   <!-- Main CSS (mit Cache-Buster) -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+  <!-- Mobile-Optimierung nur für diese Seite -->
+  <style>
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-inline: 16px;
+      }
+
+      .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        text-align: center;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 4px 8px;
+      }
+
+      .cta-group {
+        width: 100%;
+        justify-content: center;
+        gap: 8px;
+        margin-left: 0;
+      }
+
+      .cta-group .btn {
+        flex: 1 1 auto;
+        text-align: center;
+        max-width: 160px;
+      }
+
+      /* Hero / Intro */
+      .hero {
+        padding: 28px 0 16px !important;
+      }
+
+      .hero h1 {
+        font-size: 1.6rem;
+        line-height: 1.25;
+      }
+
+      .hero .lead {
+        font-size: 0.95rem;
+      }
+
+      /* Suchkarte im Hero */
+      .search-card {
+        padding: 12px;
+      }
+
+      .search-card .searchbar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .search-card .input {
+        width: 100%;
+      }
+
+      .search-card .input input,
+      .search-card .input select {
+        width: 100%;
+      }
+
+      .search-card .btn.primary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Ablauf ("So funktioniert's") */
+      .how {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .how .step {
+        padding: 10px 12px;
+      }
+
+      /* Vorteile-Karten */
+      .container.features,
+      .features {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Ergebnisliste-Beispiel – auf schmalen Screens nicht als 4-Spalten-Zeile quetschen */
+      .table [role="row"] {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        row-gap: 4px;
+      }
+
+      .table [role="row"] > div:nth-child(1) {
+        grid-column: 1 / -1;
+      }
+
+      /* Footer-Spalten untereinander */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
