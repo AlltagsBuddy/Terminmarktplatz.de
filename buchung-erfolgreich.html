@@ -221,14 +221,15 @@
       Dort finden Sie alle weiteren Informationen zu Ihrer Buchung.
     </p>
 
-    <div class="booking-success-actions">
-        <a href="{{ url_for('any_page', slug='suche') }}" class="btn-primary-booking">
+        <div class="booking-success-actions">
+        <a href="{{ frontend_url }}/suche" class="btn-primary-booking">
             Weitere freie Termine finden
         </a>
-        <a href="{{ url_for('index') }}" class="btn-secondary-booking">
+        <a href="{{ frontend_url }}/" class="btn-secondary-booking">
             Zur Startseite
         </a>
         </div>
+
   </main>
 </body>
 </html>

@@ -524,6 +524,7 @@ if _html_enabled():
     @app.get("/agb")
     def agb():
         return render_template("agb.html")
+    
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
@@ -532,6 +533,7 @@ if _html_enabled():
             return render_template(filename)
         except Exception:
             abort(404)
+        
 else:
     @app.get("/")
     def api_root():
@@ -1446,13 +1448,15 @@ def public_confirm():
         # Status "confirmed": nichts mehr ändern, nur anzeigen
 
         # HTML-Bestätigungsseite anzeigen
-        return render_template(
+            return render_template(
             "buchung_erfolg.html",
             booking=b,
             slot=slot,
             provider=provider,
             bereits_bestaetigt=already_confirmed,
+            frontend_url=FRONTEND_URL,
         )
+
 
 
 @app.get("/public/cancel")
