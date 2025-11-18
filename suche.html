@@ -344,7 +344,7 @@
     // URL-Parameter → Filter übernehmen
     const sp     = new URLSearchParams(location.search);
     const q      = (sp.get('q')||'').trim();
-    aconst ort    = (sp.get('ort')||'').trim();
+    const ort    = (sp.get('ort')||'').trim();
     const dayUrl = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
