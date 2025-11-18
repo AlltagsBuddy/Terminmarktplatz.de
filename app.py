@@ -1479,6 +1479,7 @@ def public_confirm():
             slot=slot,
             provider=provider,
             bereits_bestaetigt=already_confirmed,
+            frontend_url=FRONTEND_URL,
         )
     except Exception as e:
         app.logger.exception("public_confirm failed")
@@ -1487,16 +1488,73 @@ def public_confirm():
 
 @app.get("/public/cancel")
 def public_cancel():
+    """
+    Storniert eine Buchung über den Token aus der E-Mail
+    und zeigt danach die HTML-Storno-Seite an.
+    """
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
         return _json_error("invalid_token", 400)
-    with Session(engine) as s:
-        b = s.get(Booking, booking_id, with_for_update=True)
-        if not b or b.status == "canceled":
-            return _json_error("not_found_or_state", 404)
-        b.status = "canceled"; s.commit()
-        return jsonify({"ok": True})
+
+    try:
+        with Session(engine) as s:
+            b = s.get(Booking, booking_id, with_for_update=True)
+            if not b:
+                return _json_error("not_found", 404)
+
+            # Slot & Provider laden (für Anzeige)
+            slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+            provider_obj = s.get(Provider, slot_obj.provider_id) if slot_obj else None
+
+            already_canceled = (b.status == "canceled")
+
+            # Nur wenn noch nicht storniert, jetzt stornieren
+            if b.status in ("hold", "confirmed"):
+                b.status = "canceled"
+                s.commit()
+
+            # Optional: bei bereits "canceled" nichts ändern, aber trotzdem Seite anzeigen
+
+            # ==== ORM-Objekte in Dicts umwandeln ====
+            booking = {
+                "id": b.id,
+                "customer_name": b.customer_name,
+                "customer_email": b.customer_email,
+                "status": b.status,
+                "created_at": b.created_at,
+                "confirmed_at": getattr(b, "confirmed_at", None),
+            }
+
+            slot = None
+            if slot_obj is not None:
+                slot = {
+                    "id": slot_obj.id,
+                    "title": slot_obj.title,
+                    "start_at": slot_obj.start_at,
+                    "end_at": slot_obj.end_at,
+                    "location": slot_obj.location,
+                }
+
+            provider = None
+            if provider_obj is not None:
+                provider = {
+                    "company_name": provider_obj.company_name,
+                    "zip": provider_obj.zip,
+                    "city": provider_obj.city,
+                }
+
+        return render_template(
+            "buchung_storniert.html",
+            booking=booking,
+            slot=slot,
+            provider=provider,
+            bereits_storniert=already_canceled,
+            frontend_url=FRONTEND_URL,
+        )
+    except Exception as e:
+        app.logger.exception("public_cancel failed")
+        return jsonify({"error": "server_error"}), 500
 
 
 # --------------------------------------------------------
