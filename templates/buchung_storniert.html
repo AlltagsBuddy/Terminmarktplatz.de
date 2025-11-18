@@ -1,20 +1,16 @@
-<!-- FILE: templates/buchung_erfolg.html -->
+<!-- FILE: templates/buchung_storniert.html -->
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Buchung erfolgreich | Terminmarktplatz</title>
-  <meta name="description" content="Bestätigung Ihrer Buchung auf dem Terminmarktplatz." />
+  <title>Termin storniert | Terminmarktplatz</title>
+  <meta name="description" content="Bestätigung der Stornierung Ihrer Buchung auf dem Terminmarktplatz." />
   <meta name="theme-color" content="#6f53ff" />
 
-  <!-- Globale Styles wie auf den anderen Seiten -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
-    /* Mobile-first, orientiert am Stil der Startseite:
-       zentrierter Content, Card, Primärfarbe #6f53ff */
-
     .booking-page-shell {
       max-width: 960px;
       margin: 0 auto;
@@ -38,8 +34,8 @@
       gap: 8px;
       padding: 5px 12px;
       border-radius: 999px;
-      background: #ecfdf3;
-      color: #15803d;
+      background: #fef2f2;
+      color: #b91c1c;
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 10px;
@@ -49,7 +45,7 @@
       width: 20px;
       height: 20px;
       border-radius: 999px;
-      border: 2px solid #22c55e;
+      border: 2px solid #f97373;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -58,7 +54,7 @@
 
     .booking-title {
       font-size: 20px;
-      margin: 0 0 6px;
+      margin: 0 0 8px;
       line-height: 1.3;
     }
 
@@ -81,7 +77,7 @@
     .booking-card {
       background: #ffffff;
       border-radius: 14px;
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
       padding: 16px 14px 12px;
       margin-top: 18px;
       margin-bottom: 18px;
@@ -192,19 +188,23 @@
   <main class="booking-page-shell">
     <section class="booking-header">
       <div class="booking-badge">
-        <span class="booking-badge-icon">✔</span>
-        <span>Termin bestätigt</span>
+        <span class="booking-badge-icon">✖</span>
+        <span>Termin storniert</span>
       </div>
 
-      {% if bereits_bestaetigt %}
-        <h1 class="booking-title">Diese Buchung ist bereits bestätigt</h1>
+      {% if bereits_storniert %}
+        <h1 class="booking-title">Diese Buchung wurde bereits storniert</h1>
         <p class="booking-subtitle">
-          Der Bestätigungslink wurde schon einmal verwendet. Die Buchung bleibt natürlich bestehen.
+          Der Stornierungslink wurde schon einmal verwendet. Die Buchung ist weiterhin als storniert markiert.
         </p>
       {% else %}
-        <h1 class="booking-title">Ihre Buchung war erfolgreich</h1>
+        <h1 class="booking-title">Ihre Buchung wurde storniert</h1>
         <p class="booking-subtitle">
-          Vielen Dank! Ihr Termin wurde bestätigt. Eine Bestätigungsmail mit allen Details ist unterwegs.
+          {% if customer_name %}
+            {{ customer_name }}, Ihr Termin wurde erfolgreich storniert.
+          {% else %}
+            Ihr Termin wurde erfolgreich storniert.
+          {% endif %}
         </p>
       {% endif %}
     </section>
@@ -241,8 +241,7 @@
     </section>
 
     <p class="booking-info">
-      Bitte prüfen Sie Ihr E-Mail-Postfach (und ggf. den Spam-Ordner).
-      Dort finden Sie alle weiteren Informationen zu Ihrer Buchung.
+      Sie können jederzeit nach einem neuen passenden Termin suchen.
     </p>
 
     <div class="booking-actions">
