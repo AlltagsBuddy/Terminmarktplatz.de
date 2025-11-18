@@ -12,10 +12,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
-    /* Mobile-first, orientiert am Stil der Startseite:
-       zentrierter Content, Card, Primärfarbe #6f53ff */
+    /* Nur lokale Ergänzungen, kein komplettes Überschreiben des Layouts */
 
-    .booking-page-shell {
+    .booking-success-page {
       max-width: 960px;
       margin: 0 auto;
       padding: 24px 16px 40px;
@@ -23,31 +22,31 @@
     }
 
     @media (min-width: 768px) {
-      .booking-page-shell {
+      .booking-success-page {
         padding-top: 40px;
       }
     }
 
-    .booking-header {
-      margin-bottom: 20px;
+    .booking-success-header {
+      margin-bottom: 18px;
     }
 
-    .booking-badge {
+    .booking-success-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 5px 12px;
+      padding: 4px 10px;
       border-radius: 999px;
       background: #ecfdf3;
       color: #15803d;
       font-size: 13px;
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
-    .booking-badge-icon {
-      width: 20px;
-      height: 20px;
+    .booking-success-icon {
+      width: 18px;
+      height: 18px;
       border-radius: 999px;
       border: 2px solid #22c55e;
       display: flex;
@@ -56,13 +55,13 @@
       font-size: 12px;
     }
 
-    .booking-title {
-      font-size: 20px;
+    .booking-success-title {
+      font-size: 22px;
       margin: 0 0 6px;
       line-height: 1.3;
     }
 
-    .booking-subtitle {
+    .booking-success-subtitle {
       font-size: 14px;
       color: #4b5563;
       margin: 0;
@@ -70,76 +69,63 @@
     }
 
     @media (min-width: 768px) {
-      .booking-title {
+      .booking-success-title {
         font-size: 24px;
-      }
-      .booking-subtitle {
-        font-size: 15px;
       }
     }
 
-    .booking-card {
+    .booking-success-card {
       background: #ffffff;
-      border-radius: 14px;
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
-      padding: 16px 14px 12px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      padding: 16px 14px 14px;
       margin-top: 18px;
       margin-bottom: 18px;
       box-sizing: border-box;
     }
 
     @media (min-width: 640px) {
-      .booking-card {
+      .booking-success-card {
         padding: 18px 18px 16px;
       }
     }
 
-    .booking-summary {
+    .booking-success-summary {
       font-size: 14px;
     }
 
-    .booking-row {
+    .booking-success-row {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: 8px;
+      margin-bottom: 6px;
     }
 
-    .booking-label {
+    .booking-success-label {
       font-weight: 600;
       color: #374151;
-      font-size: 14px;
     }
 
-    .booking-value {
+    .booking-success-value {
       text-align: right;
       color: #111827;
-      font-size: 14px;
-      max-width: 55%;
-      word-wrap: break-word;
     }
 
-    .booking-info {
+    .booking-success-info {
       font-size: 13px;
       color: #6b7280;
       margin-bottom: 18px;
       max-width: 640px;
     }
 
-    @media (min-width: 640px) {
-      .booking-info {
-        font-size: 14px;
-      }
-    }
-
-    .booking-actions {
+    .booking-success-actions {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     @media (min-width: 480px) {
-      .booking-actions {
+      .booking-success-actions {
         flex-direction: row;
         flex-wrap: wrap;
       }
@@ -150,24 +136,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 11px 16px;
+      padding: 10px 14px;
       border-radius: 999px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       text-decoration: none;
       border: none;
       cursor: pointer;
       box-sizing: border-box;
       white-space: nowrap;
-      min-height: 44px;
-      width: 100%;
-    }
-
-    @media (min-width: 480px) {
-      .btn-primary-booking,
-      .btn-secondary-booking {
-        width: auto;
-      }
     }
 
     .btn-primary-booking {
@@ -180,58 +157,57 @@
     }
 
     .btn-secondary-booking {
-      background: #ffffff;
+      background: transparent;
       color: #4b5563;
       border: 1px solid #e5e7eb;
     }
   </style>
 </head>
 <body>
-  {% include "_header.html" %}
-
-  <main class="booking-page-shell">
-    <section class="booking-header">
-      <div class="booking-badge">
-        <span class="booking-badge-icon">✔</span>
-        <span>Termin bestätigt</span>
+  <main class="booking-success-page">
+    <section class="booking-success-header">
+      <div class="booking-success-badge">
+        <span class="booking-success-icon">✔</span>
+        <span>Buchung bestätigt</span>
       </div>
 
       {% if bereits_bestaetigt %}
-        <h1 class="booking-title">Diese Buchung ist bereits bestätigt</h1>
-        <p class="booking-subtitle">
+        <h1 class="booking-success-title">Diese Buchung ist bereits bestätigt</h1>
+        <p class="booking-success-subtitle">
           Der Bestätigungslink wurde schon einmal verwendet. Die Buchung bleibt natürlich bestehen.
         </p>
       {% else %}
-        <h1 class="booking-title">Ihre Buchung war erfolgreich</h1>
-        <p class="booking-subtitle">
+        <h1 class="booking-success-title">Ihre Buchung war erfolgreich</h1>
+        <p class="booking-success-subtitle">
           Vielen Dank! Ihr Termin wurde bestätigt. Eine Bestätigungsmail mit allen Details ist unterwegs.
         </p>
       {% endif %}
     </section>
 
-    <section class="booking-card">
-      <div class="booking-summary">
-        {% if slot and slot.start_at %}
-          <div class="booking-row">
-            <div class="booking-label">Termin</div>
-            <div class="booking-value">
-              {{ slot.start_at.strftime('%d.%m.%Y %H:%M') }}
+    <section class="booking-success-card">
+        <div class="booking-success-summary">
+            {% if slot and slot.start_at %}
+            <div class="booking-success-row">
+                <div class="booking-success-label">Termin</div>
+                <div class="booking-success-value">
+                {{ slot.start_at.strftime('%d.%m.%Y %H:%M') }}
+                </div>
             </div>
-          </div>
-        {% endif %}
+            {% endif %}
+
 
         {% if provider %}
-          <div class="booking-row">
-            <div class="booking-label">Anbieter</div>
-            <div class="booking-value">
+          <div class="booking-success-row">
+            <div class="booking-success-label">Anbieter</div>
+            <div class="booking-success-value">
               {{ provider.company_name }}
             </div>
           </div>
 
           {% if provider.zip or provider.city %}
-            <div class="booking-row">
-              <div class="booking-label">Ort</div>
-              <div class="booking-value">
+            <div class="booking-success-row">
+              <div class="booking-success-label">Ort</div>
+              <div class="booking-success-value">
                 {{ provider.zip }} {{ provider.city }}
               </div>
             </div>
@@ -240,19 +216,20 @@
       </div>
     </section>
 
-    <p class="booking-info">
-      Bitte prüfen Sie Ihr E-Mail-Postfach (und ggf. den Spam-Ordner).
+    <p class="booking-success-info">
+      Bitte prüfen Sie Ihr E-Mail-Postfach (und ggf. den Spam-Ordner). 
       Dort finden Sie alle weiteren Informationen zu Ihrer Buchung.
     </p>
 
-    <div class="booking-actions">
-      <a href="{{ url_for('any_page', slug='suche') }}" class="btn-primary-booking">
-        Weitere freie Termine finden
-      </a>
-      <a href="{{ url_for('index') }}" class="btn-secondary-booking">
-        Zur Startseite
-      </a>
-    </div>
+        <div class="booking-success-actions">
+        <a href="{{ frontend_url }}/suche" class="btn-primary-booking">
+            Weitere freie Termine finden
+        </a>
+        <a href="{{ frontend_url }}/" class="btn-secondary-booking">
+            Zur Startseite
+        </a>
+        </div>
+
   </main>
 </body>
 </html>
