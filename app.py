@@ -1382,73 +1382,85 @@ def public_confirm():
     """
     Bestätigt eine Terminbuchung über den Token aus der E-Mail
     und zeigt danach die HTML-Bestätigungsseite an.
+
+    Diese Funktion liefert in allen Fällen ein gültiges Flask-Response-Objekt
+    (kein "None" mehr -> kein 500-Fehler durch fehlendes return).
     """
-    token = request.args.get("token")
+    token = request.args.get("token", "")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
         return _json_error("invalid_token", 400)
 
-    with Session(engine) as s:
-        # Buchung holen
-        b = s.get(Booking, booking_id, with_for_update=True)
-        if not b:
-            return _json_error("not_found", 404)
+    try:
+        # Wir holen alles innerhalb der Session ...
+        with Session(engine) as s:
+            # Buchung holen
+            b = s.get(Booking, booking_id, with_for_update=True)
+            if not b:
+                return _json_error("not_found", 404)
 
-        # Slot & Provider für die Anzeige laden
-        slot = s.get(Slot, b.slot_id) if b.slot_id else None
-        provider = s.get(Provider, slot.provider_id) if slot else None
+            # Slot & Provider für die Anzeige laden
+            slot = s.get(Slot, b.slot_id) if b.slot_id else None
+            provider = s.get(Provider, slot.provider_id) if slot else None
 
-        # Wurde die Buchung bereits bestätigt?
-        already_confirmed = (b.status == "confirmed")
+            # Wurde die Buchung bereits bestätigt?
+            already_confirmed = (b.status == "confirmed")
 
-        # Falls die Buchung noch im Hold-Status ist, jetzt versuchen zu bestätigen
-        if b.status == "hold":
-            # Hold abgelaufen?
-            if (_now() - b.created_at) > timedelta(minutes=BOOKING_HOLD_MIN):
-                b.status = "canceled"
+            # Falls die Buchung noch im Hold-Status ist, jetzt versuchen zu bestätigen
+            if b.status == "hold":
+                # Hold abgelaufen?
+                if (_now() - b.created_at) > timedelta(minutes=BOOKING_HOLD_MIN):
+                    b.status = "canceled"
+                    s.commit()
+                    return _json_error("hold_expired", 409)
+
+                # Slot noch vorhanden?
+                if not slot:
+                    b.status = "canceled"
+                    s.commit()
+                    return _json_error("slot_missing", 404)
+
+                # Kapazität prüfen
+                active = s.scalar(
+                    select(func.count()).select_from(Booking).where(
+                        and_(
+                            Booking.slot_id == slot.id,
+                            Booking.status.in_(["hold", "confirmed"]),
+                        )
+                    )
+                ) or 0
+                if active > (slot.capacity or 1):
+                    b.status = "canceled"
+                    s.commit()
+                    return _json_error("slot_full", 409)
+
+                # Jetzt bestätigen
+                b.status = "confirmed"
+                b.confirmed_at = _now()
                 s.commit()
-                return _json_error("hold_expired", 409)
 
-            # Slot noch vorhanden?
-            if not slot:
-                b.status = "canceled"
-                s.commit()
-                return _json_error("slot_missing", 404)
+                # Bestätigungs-Mail nur beim ersten Mal schicken
+                try:
+                    send_mail(
+                        b.customer_email,
+                        "Termin bestätigt",
+                        text="Dein Termin ist bestätigt.",
+                        tag="booking_confirmed",
+                        metadata={"slot_id": str(slot.id)},
+                    )
+                except Exception as e:
+                    app.logger.warning("send_mail booking_confirmed failed: %r", e)
 
-            # Kapazität prüfen
-            active = s.scalar(
-                select(func.count()).select_from(Booking).where(
-                    and_(Booking.slot_id == slot.id,
-                         Booking.status.in_(["hold", "confirmed"]))
-                )
-            ) or 0
-            if active > (slot.capacity or 1):
-                b.status = "canceled"
-                s.commit()
-                return _json_error("slot_full", 409)
+            elif b.status == "canceled":
+                # Stornierte Buchungen nicht mehr bestätigen
+                return _json_error("booking_canceled", 409)
 
-            # Jetzt bestätigen
-            b.status = "confirmed"
-            b.confirmed_at = _now()
-            s.commit()
+            # Wenn wir hier sind: Status "confirmed" (oder ungewöhnlich, aber vorhanden)
+            # -> nichts am Status ändern, nur anzeigen
 
-            # Bestätigungs-Mail nur beim ersten Mal schicken
-            send_mail(
-                b.customer_email,
-                "Termin bestätigt",
-                text="Dein Termin ist bestätigt.",
-                tag="booking_confirmed",
-                metadata={"slot_id": str(slot.id)}
-            )
-
-        elif b.status == "canceled":
-            # Stornierte Buchungen nicht mehr bestätigen
-            return _json_error("booking_canceled", 409)
-
-        # Status "confirmed": nichts mehr ändern, nur anzeigen
-
-        # HTML-Bestätigungsseite anzeigen
-            return render_template(
+        # ... und rendern das Template NACH der Session,
+        # damit die View garantiert ein Response zurückgibt.
+        return render_template(
             "buchung_erfolg.html",
             booking=b,
             slot=slot,
@@ -1456,6 +1468,12 @@ def public_confirm():
             bereits_bestaetigt=already_confirmed,
             frontend_url=FRONTEND_URL,
         )
+
+    except Exception as e:
+        # Fallback: niemals ohne Response rausfallen
+        app.logger.exception("public_confirm failed: %r", e)
+        return _json_error("server_error", 500)
+
 
 
 
