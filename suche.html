@@ -29,6 +29,119 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+  <!-- Page-spezifische Optimierung (v. a. mobil) -->
+  <style>
+    /* Nur dieser Abbrechen-Button im Buchungsdialog */
+    .booking-cancel-btn {
+      background: rgba(111, 83, 255, 0.08);
+      border: 1px solid rgba(111, 83, 255, 0.35);
+      color: #111827;
+      box-shadow: none;
+    }
+    .booking-cancel-btn:hover {
+      background: rgba(111, 83, 255, 0.16);
+      border-color: rgba(111, 83, 255, 0.7);
+    }
+
+    /* Toolbar über den Ergebnissen */
+    .results-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    /* Ergebnis-Grid */
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Actions im Buchungsdialog */
+    .book-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    /* Dialog-Breite allgemein */
+    .loading-dialog {
+      max-width: 480px;
+      width: 100%;
+    }
+
+    /* Mobile Optimierungen */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 20px 0 12px;
+      }
+      .hero h1 {
+        font-size: 1.6rem;
+      }
+      .hero .lead {
+        font-size: 0.95rem;
+      }
+
+      .search-card {
+        padding: 12px;
+      }
+
+      .searchbar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .searchbar .input {
+        width: 100%;
+      }
+
+      .searchbar .input input,
+      .searchbar .input select {
+        width: 100%;
+      }
+
+      .searchbar .btn.primary {
+        width: 100%;
+        justify-content: center;
+        margin-top: 4px;
+      }
+
+      .results-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 12px;
+      }
+
+      .book-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+      }
+      .book-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .loading-dialog {
+        max-width: 100%;
+        width: calc(100% - 32px);
+        margin: 0 16px;
+        padding: 16px 14px;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -102,7 +215,7 @@
     <!-- RESULTATE -->
     <section>
       <div class="container">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px">
+        <div class="results-toolbar">
           <div class="pill" id="summary">Suche wird geladen …</div>
           <div class="input" style="max-width:320px">
             <select id="sort">
@@ -112,7 +225,7 @@
           </div>
         </div>
 
-        <div id="results" class="features" style="grid-template-columns:1fr 1fr; gap:16px"></div>
+        <div id="results" class="features results-grid"></div>
 
         <div id="empty" class="panel" style="display:none; margin-top:10px">
           <h3>Keine Treffer</h3>
@@ -175,8 +288,8 @@
         <label>E-Mail
           <input id="book-email" type="email" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px">
         </label>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px">
-          <button type="button" class="btn" id="book-cancel">Abbrechen</button>
+        <div class="book-actions">
+          <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
           <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
         </div>
       </form>
