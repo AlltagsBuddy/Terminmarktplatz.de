@@ -31,9 +31,6 @@ from flask_cors import CORS
 from argon2 import PasswordHasher
 import jwt
 
-from jinja2 import ChoiceLoader, FileSystemLoader, TemplateNotFound
-
-
 # Deine ORM-Modelle
 from models import Base, Provider, Slot, Booking
 
@@ -56,13 +53,6 @@ app = Flask(
     static_url_path="/static",
     template_folder=TEMPLATE_DIR,
 )
-
-# Jinja: sowohl TEMPLATE_DIR als auch APP_ROOT durchsuchen,
-# falls einige HTMLs noch im Projektroot liegen.
-app.jinja_loader = ChoiceLoader([
-    FileSystemLoader(TEMPLATE_DIR),
-    FileSystemLoader(APP_ROOT),
-])
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -534,7 +524,6 @@ if _html_enabled():
     @app.get("/agb")
     def agb():
         return render_template("agb.html")
-    
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
@@ -543,7 +532,6 @@ if _html_enabled():
             return render_template(filename)
         except Exception:
             abort(404)
-        
 else:
     @app.get("/")
     def api_root():
@@ -588,7 +576,7 @@ def public_contact():
         ok, reason = send_mail(CONTACT_TO, f"[Terminmarktplatz] Kontakt: {subject}", body)
         try:
             send_mail(email, "Danke für deine Nachricht",
-                      "Wir haben deine Nachricht erhalten und melden uns bald.\n\n— Terminmarktplatz")
+                      "Wir haben deine Nachricht erhalten undmelden uns bald.\n\n— Terminmarktplatz")
         except Exception:
             pass
 
@@ -1406,8 +1394,8 @@ def public_confirm():
                 return _json_error("not_found", 404)
 
             # Slot & Provider für die Anzeige laden
-            slot = s.get(Slot, b.slot_id) if b.slot_id else None
-            provider = s.get(Provider, slot.provider_id) if slot else None
+            slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+            provider_obj = s.get(Provider, slot_obj.provider_id) if slot_obj else None
 
             # Wurde die Buchung bereits bestätigt?
             already_confirmed = (b.status == "confirmed")
@@ -1421,7 +1409,7 @@ def public_confirm():
                     return _json_error("hold_expired", 409)
 
                 # Slot noch vorhanden?
-                if not slot:
+                if not slot_obj:
                     b.status = "canceled"
                     s.commit()
                     return _json_error("slot_missing", 404)
@@ -1429,11 +1417,11 @@ def public_confirm():
                 # Kapazität prüfen
                 active = s.scalar(
                     select(func.count()).select_from(Booking).where(
-                        and_(Booking.slot_id == slot.id,
+                        and_(Booking.slot_id == slot_obj.id,
                              Booking.status.in_(["hold", "confirmed"]))
                     )
                 ) or 0
-                if active > (slot.capacity or 1):
+                if active > (slot_obj.capacity or 1):
                     b.status = "canceled"
                     s.commit()
                     return _json_error("slot_full", 409)
@@ -1449,31 +1437,49 @@ def public_confirm():
                     "Termin bestätigt",
                     text="Dein Termin ist bestätigt.",
                     tag="booking_confirmed",
-                    metadata={"slot_id": str(slot.id)}
+                    metadata={"slot_id": str(slot_obj.id)}
                 )
 
             elif b.status == "canceled":
                 # Stornierte Buchungen nicht mehr bestätigen
                 return _json_error("booking_canceled", 409)
 
-        # ---- ausserhalb der Session: nur noch rendern ----
-        try:
-            return render_template(
-                "buchung_erfolg.html",
-                booking=b,
-                slot=slot,
-                provider=provider,
-                bereits_bestaetigt=already_confirmed,
-            )
-        except TemplateNotFound:
-            # Fallback, falls das Template immer noch nicht gefunden wird
-            return jsonify({
-                "ok": True,
-                "booking_id": booking_id,
+            # ==== ORM-Objekte in einfache Dicts umwandeln, bevor Session zu ist ====
+            booking = {
+                "id": b.id,
+                "customer_name": b.customer_name,
+                "customer_email": b.customer_email,
                 "status": b.status,
-                "hint": "Template buchung_erfolg.html nicht gefunden – liegt es im templates-Ordner?"
-            }), 200
+                "created_at": b.created_at,
+                "confirmed_at": getattr(b, "confirmed_at", None),
+            }
 
+            slot = None
+            if slot_obj is not None:
+                slot = {
+                    "id": slot_obj.id,
+                    "title": slot_obj.title,
+                    "start_at": slot_obj.start_at,
+                    "end_at": slot_obj.end_at,
+                    "location": slot_obj.location,
+                }
+
+            provider = None
+            if provider_obj is not None:
+                provider = {
+                    "company_name": provider_obj.company_name,
+                    "zip": provider_obj.zip,
+                    "city": provider_obj.city,
+                }
+
+        # Session ist hier bereits zu, aber wir arbeiten nur noch mit Dicts.
+        return render_template(
+            "buchung_erfolg.html",
+            booking=booking,
+            slot=slot,
+            provider=provider,
+            bereits_bestaetigt=already_confirmed,
+        )
     except Exception as e:
         app.logger.exception("public_confirm failed")
         return jsonify({"error": "server_error"}), 500
