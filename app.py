@@ -31,6 +31,9 @@ from flask_cors import CORS
 from argon2 import PasswordHasher
 import jwt
 
+from jinja2 import ChoiceLoader, FileSystemLoader, TemplateNotFound
+
+
 # Deine ORM-Modelle
 from models import Base, Provider, Slot, Booking
 
@@ -53,6 +56,13 @@ app = Flask(
     static_url_path="/static",
     template_folder=TEMPLATE_DIR,
 )
+
+# Jinja: sowohl TEMPLATE_DIR als auch APP_ROOT durchsuchen,
+# falls einige HTMLs noch im Projektroot liegen.
+app.jinja_loader = ChoiceLoader([
+    FileSystemLoader(TEMPLATE_DIR),
+    FileSystemLoader(APP_ROOT),
+])
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -1382,17 +1392,13 @@ def public_confirm():
     """
     Bestätigt eine Terminbuchung über den Token aus der E-Mail
     und zeigt danach die HTML-Bestätigungsseite an.
-
-    Diese Funktion liefert in allen Fällen ein gültiges Flask-Response-Objekt
-    (kein "None" mehr -> kein 500-Fehler durch fehlendes return).
     """
-    token = request.args.get("token", "")
+    token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
         return _json_error("invalid_token", 400)
 
     try:
-        # Wir holen alles innerhalb der Session ...
         with Session(engine) as s:
             # Buchung holen
             b = s.get(Booking, booking_id, with_for_update=True)
@@ -1423,10 +1429,8 @@ def public_confirm():
                 # Kapazität prüfen
                 active = s.scalar(
                     select(func.count()).select_from(Booking).where(
-                        and_(
-                            Booking.slot_id == slot.id,
-                            Booking.status.in_(["hold", "confirmed"]),
-                        )
+                        and_(Booking.slot_id == slot.id,
+                             Booking.status.in_(["hold", "confirmed"]))
                     )
                 ) or 0
                 if active > (slot.capacity or 1):
@@ -1440,41 +1444,39 @@ def public_confirm():
                 s.commit()
 
                 # Bestätigungs-Mail nur beim ersten Mal schicken
-                try:
-                    send_mail(
-                        b.customer_email,
-                        "Termin bestätigt",
-                        text="Dein Termin ist bestätigt.",
-                        tag="booking_confirmed",
-                        metadata={"slot_id": str(slot.id)},
-                    )
-                except Exception as e:
-                    app.logger.warning("send_mail booking_confirmed failed: %r", e)
+                send_mail(
+                    b.customer_email,
+                    "Termin bestätigt",
+                    text="Dein Termin ist bestätigt.",
+                    tag="booking_confirmed",
+                    metadata={"slot_id": str(slot.id)}
+                )
 
             elif b.status == "canceled":
                 # Stornierte Buchungen nicht mehr bestätigen
                 return _json_error("booking_canceled", 409)
 
-            # Wenn wir hier sind: Status "confirmed" (oder ungewöhnlich, aber vorhanden)
-            # -> nichts am Status ändern, nur anzeigen
-
-        # ... und rendern das Template NACH der Session,
-        # damit die View garantiert ein Response zurückgibt.
-        return render_template(
-            "buchung_erfolg.html",
-            booking=b,
-            slot=slot,
-            provider=provider,
-            bereits_bestaetigt=already_confirmed,
-            frontend_url=FRONTEND_URL,
-        )
+        # ---- ausserhalb der Session: nur noch rendern ----
+        try:
+            return render_template(
+                "buchung_erfolg.html",
+                booking=b,
+                slot=slot,
+                provider=provider,
+                bereits_bestaetigt=already_confirmed,
+            )
+        except TemplateNotFound:
+            # Fallback, falls das Template immer noch nicht gefunden wird
+            return jsonify({
+                "ok": True,
+                "booking_id": booking_id,
+                "status": b.status,
+                "hint": "Template buchung_erfolg.html nicht gefunden – liegt es im templates-Ordner?"
+            }), 200
 
     except Exception as e:
-        # Fallback: niemals ohne Response rausfallen
-        app.logger.exception("public_confirm failed: %r", e)
-        return _json_error("server_error", 500)
-
-
+        app.logger.exception("public_confirm failed")
+        return jsonify({"error": "server_error"}), 500
 
 
 @app.get("/public/cancel")
