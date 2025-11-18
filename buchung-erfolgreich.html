@@ -185,15 +185,16 @@
     </section>
 
     <section class="booking-success-card">
-      <div class="booking-success-summary">
-        {% if slot %}
-          <div class="booking-success-row">
-            <div class="booking-success-label">Termin</div>
-            <div class="booking-success-value">
-              {{ slot.start_at.strftime('%d.%m.%Y %H:%M') if slot.start_at }}
+        <div class="booking-success-summary">
+            {% if slot and slot.start_at %}
+            <div class="booking-success-row">
+                <div class="booking-success-label">Termin</div>
+                <div class="booking-success-value">
+                {{ slot.start_at.strftime('%d.%m.%Y %H:%M') }}
+                </div>
             </div>
-          </div>
-        {% endif %}
+            {% endif %}
+
 
         {% if provider %}
           <div class="booking-success-row">
@@ -221,13 +222,13 @@
     </p>
 
     <div class="booking-success-actions">
-      <a href="{{ url_for('any_page', slug='suche') }}" class="btn-primary-booking">
-        Weitere freie Termine finden
-      </a>
-      <a href="{{ url_for('index') }}" class="btn-secondary-booking">
-        Zur Startseite
-      </a>
-    </div>
+        <a href="{{ url_for('any_page', slug='suche') }}" class="btn-primary-booking">
+            Weitere freie Termine finden
+        </a>
+        <a href="{{ url_for('index') }}" class="btn-secondary-booking">
+            Zur Startseite
+        </a>
+        </div>
   </main>
 </body>
 </html>
