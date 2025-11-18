@@ -32,6 +32,12 @@
 
   <!-- Page-spezifische Optimierung (v. a. mobil) -->
   <style>
+    /* 1) Kein horizontales Scrollen, Banner bleibt im Viewport */
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
     /* Nur dieser Abbrechen-Button im Buchungsdialog */
     .booking-cancel-btn {
       background: rgba(111, 83, 255, 0.08);
@@ -68,10 +74,18 @@
       margin-top: 6px;
     }
 
-    /* Dialog-Breite allgemein */
+    /* Popup-Dialog zentrieren und begrenzen */
+    .loading-backdrop {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
     .loading-dialog {
       max-width: 480px;
       width: 100%;
+      box-sizing: border-box;
     }
 
     /* Mobile Optimierungen */
@@ -125,6 +139,15 @@
         padding: 12px;
       }
 
+      /* Popup auf Mobil full-width und Buttons untereinander */
+      .loading-dialog {
+        max-width: 420px;
+        width: 100%;
+        margin: 0;
+        padding: 16px 14px;
+        border-radius: 18px;
+      }
+
       .book-actions {
         flex-direction: column-reverse;
         align-items: stretch;
@@ -132,13 +155,6 @@
       .book-actions .btn {
         width: 100%;
         justify-content: center;
-      }
-
-      .loading-dialog {
-        max-width: 100%;
-        width: calc(100% - 32px);
-        margin: 0 16px;
-        padding: 16px 14px;
       }
     }
   </style>
@@ -328,7 +344,7 @@
     // URL-Parameter → Filter übernehmen
     const sp     = new URLSearchParams(location.search);
     const q      = (sp.get('q')||'').trim();
-    const ort    = (sp.get('ort')||'').trim();
+    aconst ort    = (sp.get('ort')||'').trim();
     const dayUrl = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
