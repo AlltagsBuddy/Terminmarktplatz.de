@@ -133,6 +133,7 @@
         flex-wrap: wrap;
         gap: 8px;
         padding-inline: 16px;
+        align-items: flex-start;
       }
 
       .brand-title {
@@ -154,8 +155,7 @@
 
       .cta-group {
         margin-left: 0;
-        width: 100%;
-        justify-content: flex-end;
+        width: auto;
         gap: 8px;
       }
 
@@ -225,6 +225,8 @@
       .slot-filter .seg {
         width: 100%;
         justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
       }
 
       .slot-filter .seg .btn {
@@ -279,7 +281,6 @@
       <div class="cta-group">
         <button id="btn-logout" class="btn">Abmelden</button>
       </div>
-      <!-- Konto löschen -->
       <!-- User-Dropdown -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
@@ -292,22 +293,12 @@
         </div>
       </div>
 
-      <!-- RECHTSER BEREICH: entweder Login-CTAs oder User-Dropdown 
+      <!-- Ursprünglicher Umschalt-Bereich für Login/Dropdown bleibt auskommentiert
       <div class="cta-group" id="auth-ctas" hidden>
         <a class="btn" href="login.html?tab=login">Anmelden</a>
         <a class="btn primary" href="login.html?tab=register">Registrieren</a>
-      </div> -->
-
-      <div class="user-menu" id="user-menu" hidden>
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          Konto ▾
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <button class="item" data-action="logout" role="menuitem">Abmelden</button>
-          <a class="item" href="kontakt.html" role="menuitem">Kontaktformular</a>
-          <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
-        </div>
       </div>
+      -->
     </div>
   </header>
 
@@ -346,7 +337,7 @@
               </datalist>
             </div>
 
-            <!-- NEU: Pflichtfeld-Klartext -->
+            <!-- Pflichtfelder -->
             <div class="field">
               <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
               <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
@@ -361,7 +352,6 @@
               <input id="pf-city" name="city" placeholder="Musterstadt" required aria-required="true"/>
             </div>
 
-            <!-- NEU: Pflichtfeld-Klartext -->
             <div class="field">
               <label for="pf-phone">Telefon <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
               <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required aria-required="true"/>
@@ -734,7 +724,6 @@
       for(const s of items){
         const tr = document.createElement('tr');
         const theStatus = s.status;
-        const isPending   = theStatus === 'pending_review';
         const isArchived  = theStatus === 'archived';
         const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
@@ -774,14 +763,17 @@
       );
 
       // Master-Checkbox
-      $('#chk-all').onchange = (e) => {
-        SELECTED.clear();
-        $$('#tbl-slots .row-check').forEach(cb => {
-          cb.checked = e.target.checked;
-          if(cb.checked) SELECTED.add(cb.dataset.id);
-        });
-        updateBulkButtons(items);
-      };
+      const chkAll = $('#chk-all');
+      if (chkAll) {
+        chkAll.onchange = (e) => {
+          SELECTED.clear();
+          $$('#tbl-slots .row-check').forEach(cb => {
+            cb.checked = e.target.checked;
+            if(cb.checked) SELECTED.add(cb.dataset.id);
+          });
+          updateBulkButtons(items);
+        };
+      }
 
       updateBulkButtons(items);
     }
@@ -960,11 +952,11 @@
       const msg = document.getElementById('del-msg');
       if (!btn) return;
 
-      function showMsg(t){ msg.textContent = t; msg.style.display = 'block'; }
-      function hideMsg(){ msg.style.display = 'none'; msg.textContent = ''; }
+      function showDelMsg(t){ msg.textContent = t; msg.style.display = 'block'; }
+      function hideDelMsg(){ msg.style.display = 'none'; msg.textContent = ''; }
 
       btn.addEventListener('click', async ()=>{
-        hideMsg();
+        hideDelMsg();
         const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen?');
         if (!ok) return;
 
@@ -981,9 +973,9 @@
             return;
           }
           const data = await res.json().catch(()=> ({}));
-          showMsg(data?.error === 'not_found' ? 'Konto nicht gefunden.' : 'Löschen fehlgeschlagen.');
+          showDelMsg(data?.error === 'not_found' ? 'Konto nicht gefunden.' : 'Löschen fehlgeschlagen.');
         }catch(e){
-          showMsg('Netzwerkfehler – bitte später erneut versuchen.');
+          showDelMsg('Netzwerkfehler – bitte später erneut versuchen.');
         }finally{
           btn.disabled = false; btn.classList.remove('loading');
         }
