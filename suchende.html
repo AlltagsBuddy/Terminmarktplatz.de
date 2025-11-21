@@ -39,16 +39,32 @@
 
   <!-- Mobile-Optimierung nur für diese Seite -->
   <style>
+    /* Grundlegende Begrenzung, damit mobil nichts horizontal scrollt */
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .hamburger {
+      display: none;
+    }
+
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
         flex-wrap: wrap;
         gap: 8px;
         padding-inline: 16px;
+        align-items: flex-start;
       }
 
       .brand-title {
         font-size: 1.05rem;
+      }
+
+      .hamburger {
+        display: block;
+        margin-left: auto;
       }
 
       .nav-links {
@@ -70,6 +86,7 @@
         justify-content: center;
         gap: 8px;
         margin-left: 0;
+        flex-wrap: wrap;
       }
 
       .cta-group .btn {
@@ -171,6 +188,7 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
       <nav class="nav-links" id="nav-links">
         <a href="anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
         <a class="active" href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
@@ -394,6 +412,12 @@
   <script>
     // Footer-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Mobile Nav Toggle (einfaches Umschalten der Klasse, Layout ist bereits responsiv)
+    const nav = document.querySelector('.nav');
+    document.getElementById('hamburger')?.addEventListener('click', () => {
+      nav.classList.toggle('open');
+    });
   </script>
 </body>
 </html>

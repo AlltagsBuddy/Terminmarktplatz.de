@@ -32,11 +32,13 @@
 
   <!-- Page-spezifische Optimierung (v. a. mobil) -->
   <style>
-    /* 1) Kein horizontales Scrollen, Banner bleibt im Viewport */
+    /* 1) Kein horizontales Scrollen */
     html, body {
       max-width: 100%;
       overflow-x: hidden;
     }
+
+    .hamburger{display:none;}
 
     /* Nur dieser Abbrechen-Button im Buchungsdialog */
     .booking-cancel-btn {
@@ -90,6 +92,39 @@
 
     /* Mobile Optimierungen */
     @media (max-width: 768px) {
+      /* Header / Navigation */
+      .container.nav{
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:flex-start;
+        padding-inline:16px;
+      }
+      .brand-title{
+        font-size:1.05rem;
+      }
+      .hamburger{
+        display:block;
+        margin-left:auto;
+      }
+      .nav-links{
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:8px;
+        margin-top:4px;
+        text-align:center;
+      }
+      .nav-links a{
+        font-size:0.9rem;
+        padding:2px 6px;
+      }
+      .cta-group{
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        margin-top:4px;
+      }
+
       .hero {
         padding: 20px 0 12px;
       }
@@ -156,6 +191,16 @@
         width: 100%;
         justify-content: center;
       }
+
+      /* Footer untereinander */
+      .foot-grid{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:16px;
+      }
+      .foot-col{
+        margin-top:4px;
+      }
     }
   </style>
 </head>
@@ -169,6 +214,7 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
@@ -223,7 +269,7 @@
             </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
           </div>
-          <div class="trust">Es werden nur, <strong>freie</strong> Slots angezeigt.</div>
+          <div class="trust">Es werden nur <strong>freie</strong> Slots angezeigt.</div>
         </form>
       </div>
     </section>
@@ -344,7 +390,7 @@
     // URL-Parameter → Filter übernehmen
     const sp     = new URLSearchParams(location.search);
     const q      = (sp.get('q')||'').trim();
-    aconst ort    = (sp.get('ort')||'').trim();
+    const ort    = (sp.get('ort')||'').trim();
     const dayUrl = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
@@ -526,6 +572,12 @@
 
     // Start
     load();
+
+    // Mobile Nav
+    const nav = document.querySelector('.nav');
+    document.getElementById('hamburger')?.addEventListener('click', ()=>{
+      nav.classList.toggle('open');
+    });
   </script>
 </body>
 </html>
