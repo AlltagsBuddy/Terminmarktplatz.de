@@ -36,6 +36,105 @@
 
   <!-- Main CSS (mit Cache-Buster) -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+  <!-- Seiten-spezifisches Styling inkl. Mobile -->
+  <style>
+    .price-hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:6px;
+    }
+
+    /* Vergleichstabelle: Wrapper scrollfähig machen */
+    .table{
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:#fff;
+      margin-top:8px;
+    }
+    .table table{
+      min-width:600px;
+    }
+
+    @media (max-width: 768px){
+      /* Header-Layout für Mobile */
+      .container.nav{
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:flex-start;
+        padding-inline:16px;
+      }
+      .brand-title{
+        font-size:1.05rem;
+      }
+      .nav-links{
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:8px;
+        text-align:center;
+      }
+      .nav-links a{
+        font-size:0.9rem;
+        padding:2px 6px;
+      }
+      .cta-group{
+        width:100%;
+        justify-content:flex-end;
+        gap:8px;
+      }
+      .cta-group .btn{
+        padding-inline:10px;
+      }
+
+      /* Hero enger / kleinere Schrift */
+      .hero{
+        padding:28px 0 16px !important;
+      }
+      .hero h1{
+        font-size:1.7rem;
+        line-height:1.25;
+      }
+      .hero .lead{
+        font-size:0.96rem;
+      }
+      .price-hero-actions{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .price-hero-actions .btn{
+        width:100%;
+        justify-content:center;
+      }
+
+      /* Panels / Cards enger & 1-spaltig */
+      .panel{
+        padding:14px;
+      }
+      .features{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:12px;
+      }
+      .card{
+        padding:14px;
+      }
+
+      /* Footer-Spalten untereinander */
+      .foot-grid{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:16px;
+      }
+      .foot-col{
+        margin-top:4px;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -47,6 +146,7 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
+      <button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>
       <nav class="nav-links" id="nav-links">
         <a href="anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
         <a href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
@@ -70,7 +170,7 @@
           Danach nutzt du die <strong>Basisversion gratis</strong> mit fairer Erfolgsprovision. 
           Mehr Reichweite & Features? Wähle ein Premium-Paket.
         </p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+        <div class="price-hero-actions">
           <a class="btn primary" href="login.html?tab=register">Jetzt kostenlos starten</a>
         </div>
       </div>
@@ -208,8 +308,9 @@
         </div>
       </div>
     </section>
-              
-                 <!-- Footer -->
+  </main>
+
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -225,7 +326,6 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -233,17 +333,22 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
-  <body>  
-    <html>
-      
+
+  <script>
+    // Jahr im Footer
+    document.getElementById('y').textContent = new Date().getFullYear();
+    // Mobile Nav
+    const nav = document.querySelector('.nav');
+    document.getElementById('hamburger')?.addEventListener('click', ()=>nav.classList.toggle('open'));
+  </script>
+</body>
+</html>

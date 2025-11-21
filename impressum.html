@@ -36,6 +36,74 @@
     .impressum h3{margin:16px 0 6px}
     .impressum p{margin:6px 0}
     .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
+
+    /* Mobile-Optimierung */
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        padding-inline: 16px;
+      }
+
+      .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .cta-group {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      /* Hero kompakter */
+      .hero {
+        padding: 28px 0 14px !important;
+      }
+
+      .hero h1 {
+        font-size: 1.6rem;
+        line-height: 1.25;
+      }
+
+      .hero .lead {
+        font-size: 0.95rem;
+      }
+
+      /* Card / Inhalt */
+      .card.impressum {
+        padding: 18px !important;
+      }
+
+      /* Footer-Spalten untereinander */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+    }
   </style>
 </head>
 <base href="/" />

@@ -20,15 +20,109 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <!-- Page-spezifische Mobile-Optimierung -->
+  <style>
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .page-contact .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        padding-inline: 16px;
+      }
+
+      .page-contact .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .page-contact .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .page-contact .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .page-contact .cta-group {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .page-contact .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      /* Hero-Bereich */
+      .page-contact .hero {
+        padding: 28px 0 14px !important;
+      }
+
+      .page-contact .hero h1 {
+        font-size: 1.7rem;
+        line-height: 1.25;
+      }
+
+      .page-contact .hero .lead {
+        font-size: 0.96rem;
+      }
+
+      /* Formular-Layout: 1 Spalte statt 2 */
+      .page-contact .panel {
+        padding: 16px;
+      }
+
+      .page-contact .panel .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Formular-Buttons auf Mobile besser klickbar */
+      .page-contact .form-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .page-contact .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .page-contact .form-note {
+        font-size: 0.9rem;
+      }
+
+      /* Footer-Spalten stapeln */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+    }
+  </style>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 </head>
 <body class="page-contact">
 

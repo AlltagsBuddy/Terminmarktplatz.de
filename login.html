@@ -89,6 +89,100 @@
       .form-grid{grid-template-columns:1fr}
       .form-grid .col-2{grid-column:span 1}
     }
+
+    /* Mobile-Optimierung Login-Seite */
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .page-login .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        padding-inline: 16px;
+      }
+
+      .page-login .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .page-login .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .page-login .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .page-login .cta-group {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .page-login .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      /* Hero-Bereich kompakter */
+      .page-login .hero {
+        padding: 28px 0 14px !important;
+      }
+
+      .page-login .hero h1 {
+        font-size: 1.7rem;
+        line-height: 1.25;
+      }
+
+      .page-login .hero .lead {
+        font-size: 0.96rem;
+      }
+
+      /* Tabs: untereinander auf kleinen Screens */
+      .page-login .tabs {
+        justify-content: center;
+      }
+
+      .page-login .tab-btn {
+        flex: 1 1 100%;
+        text-align: center;
+      }
+
+      /* Panels / Formulare */
+      .page-login .panel {
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+
+      .page-login .form-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .page-login .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .page-login .form-note {
+        font-size: 0.9rem;
+      }
+
+      /* Footer-Spalten stapeln */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+    }
   </style>
 </head>
 
@@ -121,22 +215,22 @@
         <a class="btn primary" href="login.html?tab=register">Registrieren</a>
       </div>
     </div>
-            <!-- RECHTSER BEREICH: entweder Login-CTAs oder User-Dropdown 
-      <div class="cta-group" id="auth-ctas" hidden>
-        <a class="btn" href="login.html?tab=login">Anmelden</a>
-        <a class="btn primary" href="login.html?tab=register">Registrieren</a>
-      </div> -->
+    <!-- RECHTSER BEREICH: entweder Login-CTAs oder User-Dropdown 
+    <div class="cta-group" id="auth-ctas" hidden>
+      <a class="btn" href="login.html?tab=login">Anmelden</a>
+      <a class="btn primary" href="login.html?tab=register">Registrieren</a>
+    </div> -->
 
-      <div class="user-menu" id="user-menu" hidden>
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          Konto ▾
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <button class="item" data-action="logout" role="menuitem">Abmelden</button>
-          <a class="item" href="kontakt.html" role="menuitem">Kontaktformular</a>
-          <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
-        </div>
+    <div class="user-menu" id="user-menu" hidden>
+      <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+        Konto ▾
+      </button>
+      <div id="userMenu" class="menu" role="menu" hidden>
+        <button class="item" data-action="logout" role="menuitem">Abmelden</button>
+        <a class="item" href="kontakt.html" role="menuitem">Kontaktformular</a>
+        <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
       </div>
+    </div>
   </header>
 
   <main>
@@ -302,21 +396,18 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-   
-
-
   <!-- Konsolidierter JS-Block -->
   <script>
-// Hinweis nach Account-Löschung
-      (() => {
-        const p = new URLSearchParams(location.search);
-        if (p.get('deleted') === '1') {
-          const box = document.getElementById('form-info');
-          if (box){ box.className='success'; box.style.display='block'; box.textContent='Konto wurde gelöscht.'; }
-          p.delete('deleted');
-          history.replaceState({},'', location.pathname + (p.toString()?('?'+p.toString()):'')); 
-        }
-      })();
+    // Hinweis nach Account-Löschung
+    (() => {
+      const p = new URLSearchParams(location.search);
+      if (p.get('deleted') === '1') {
+        const box = document.getElementById('form-info');
+        if (box){ box.className='success'; box.style.display='block'; box.textContent='Konto wurde gelöscht.'; }
+        p.delete('deleted');
+        history.replaceState({},'', location.pathname + (p.toString()?('?'+p.toString()):'')); 
+      }
+    })();
 
     // ---------- API-Basis ----------
     const API = (() => {

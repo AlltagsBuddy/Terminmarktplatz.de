@@ -38,6 +38,149 @@
   <!-- Styles (root-relative) -->
   <link rel="stylesheet" href="/static/style.css?v=8">
 
+  <!-- Page-spezifische Mobile-Optimierung -->
+  <style>
+    @media (max-width: 768px) {
+      /* Header / Navigation */
+      .container.nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        padding-inline: 16px;
+      }
+
+      .brand-title {
+        font-size: 1.05rem;
+      }
+
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .cta-group {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      /* HERO */
+      .hero {
+        padding: 32px 0 18px !important;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .hero h1 {
+        font-size: 1.7rem;
+        line-height: 1.25;
+      }
+
+      .hero .lead {
+        font-size: 0.96rem;
+      }
+
+      /* Suchkarte / Formular mobil stapeln */
+      .search-card {
+        margin-top: 14px;
+      }
+
+      .searchbar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .searchbar .input {
+        width: 100%;
+      }
+
+      .searchbar input,
+      .searchbar select {
+        width: 100%;
+      }
+
+      .searchbar .btn,
+      .searchbar button {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .trust {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+
+      /* Kategorien – Chips enger und besser umbrechend */
+      .categories {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .categories .chip {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+      }
+
+      /* Feature-Karten untereinander */
+      .features {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      /* Footer-Spalten untereinander */
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .foot-col {
+        margin-top: 4px;
+      }
+
+      /* Cookie-Banner auf kleinen Screens */
+      .cookie .wrap {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .cookie .btns {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-start;
+      }
+
+      .cookie .btns .btn {
+        flex: 1 1 48%;
+        text-align: center;
+      }
+    }
+  </style>
+
   <!-- Structured Data (mit http-URLs) -->
   <script type="application/ld+json">
 {
@@ -97,7 +240,7 @@
               <label class="input" aria-label="Ort">
                 📍 <input type="text" name="ort" placeholder="PLZ / Stadt">
               </label>
-               <label class="input" aria-label="Umkreis">
+              <label class="input" aria-label="Umkreis">
                 <select name="radius" id="f-radius" title="Umkreis um PLZ">
                     <option value="">Umkreis</option>
                     <option value="5">5 km</option>
@@ -107,7 +250,7 @@
                     <option value="75">75 km</option>
                     <option value="100">100 km</option>
                 </select>
-                </label>
+              </label>
 
               <label class="input" aria-label="Datum">
                 📅 <input type="date" name="datum">
