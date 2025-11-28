@@ -306,8 +306,7 @@
       <div class="cta-group">
         <button id="btn-logout" class="btn">Abmelden</button>
       </div>
-      <!-- User-Dropdown -->
-    
+
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -321,13 +320,6 @@
           <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
         </div>
       </div>
-
-      <!-- Ursprünglicher Umschalt-Bereich für Login/Dropdown bleibt auskommentiert
-      <div class="cta-group" id="auth-ctas" hidden>
-        <a class="btn" href="login.html?tab=login">Anmelden</a>
-        <a class="btn primary" href="login.html?tab=register">Registrieren</a>
-      </div>
-      -->
     </div>
   </header>
 
@@ -647,7 +639,6 @@
         }
         ME = await r.json();
 
-        // Felder befüllen
         $('#pf-company').value  = ME.company_name || '';
         $('#pf-branch').value   = ME.branch || '';
         $('#pf-street').value   = ME.street || '';
@@ -656,7 +647,6 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Lock gemäß Profilstatus
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
       }catch(err){
@@ -712,19 +702,16 @@
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
 
-    // Events
     $('#sl-date').addEventListener('change',  recalcEnd);
     $('#sl-start').addEventListener('input',  recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
     $('#sl-unit').addEventListener('change',  recalcEnd);
 
-    // Schnellwahl-Buttons – Minuten
     $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
       $('#sl-unit').value = 'min';
       $('#sl-duration').value = b.dataset.min;
       recalcEnd();
     }));
-    // Schnellwahl-Buttons – Stunden
     $$('#form-slot .seg [data-hour]').forEach(b => b.addEventListener('click', ()=>{
       $('#sl-unit').value = 'h';
       $('#sl-duration').value = b.dataset.hour;
@@ -753,23 +740,24 @@
         return;
       }
       tbody.innerHTML = '';
+      const now = new Date();
+
       for(const s of items){
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isArchived  = theStatus === 'archived';
         const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
-        // NEU: Logik für gebuchte / abgelaufene Slots
-        const now = new Date();
         const endDate = s.end_at ? new Date(s.end_at) : null;
         const isPast = !!(endDate && endDate < now);
 
-        // Hier ggf. an Backend-Felder anpassen (is_booked / booked_count / remaining_capacity)
-        const isBooked = !!(
-          s.is_booked ||
-          (typeof s.booked_count === 'number' && s.booked_count > 0) ||
-          (typeof s.remaining_capacity === 'number' && s.remaining_capacity <= 0)
-        );
+        const capacity = s.capacity || 1;
+        const bookedCount = typeof s.booked === 'number' ? s.booked : 0;
+        const available = typeof s.available === 'number'
+          ? s.available
+          : Math.max(0, capacity - bookedCount);
+
+        const isBooked = bookedCount > 0;
 
         let rowClass = '';
         if (isPast) rowClass += ' slot-past';
@@ -777,9 +765,11 @@
         tr.className = rowClass.trim();
 
         const hintParts = [];
-        if (isBooked) hintParts.push('Gebucht');
+        if (isBooked) {
+          hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
+        }
         if (isPast) hintParts.push('Abgelaufen');
-        const hintText = hintParts.length ? hintParts.join(' & ') : '';
+        const hintText = hintParts.length ? hintParts.join(' • ') : '';
 
         tr.innerHTML = `
           <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
@@ -791,7 +781,7 @@
           </td>
           <td>${s.category||''}</td>
           <td>${s.location||''}</td>
-          <td>${s.capacity||1}</td>
+          <td>${capacity}</td>
           <td><span class="badge-st ${stClass}">${s.status}</span></td>
           <td class="nowrap">
             ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
@@ -802,7 +792,6 @@
         tbody.appendChild(tr);
       }
 
-      // Zeilen-Checkboxen
       $$('#tbl-slots .row-check').forEach(cb => {
         cb.addEventListener('change', ()=>{
           const id = cb.dataset.id;
@@ -811,7 +800,6 @@
         });
       });
 
-      // Einzelaktionen
       $$('#tbl-slots [data-del]').forEach(b =>
         b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
       );
@@ -819,7 +807,6 @@
         b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
       );
 
-      // Master-Checkbox
       const chkAll = $('#chk-all');
       if (chkAll) {
         chkAll.onchange = (e) => {
@@ -853,7 +840,6 @@
       }
     }
 
-    // Live-Suche Titel/Kategorie
     const slotSearch = $('#slot-search');
     if (slotSearch) {
       slotSearch.addEventListener('input', ()=>{
@@ -885,7 +871,6 @@
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
 
-    // Bulk-Aktionen
     async function bulkSetStatus(ids, status){
       if(!ids.length) return;
       await Promise.all(ids.map(id =>
@@ -923,14 +908,12 @@
     $('#form-slot').addEventListener('submit', async (e)=>{
       e.preventDefault();
 
-      // Nochmals guarden
       const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
       if(!completeNow){
         setSlotLock(true);
         return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
       }
 
-      // ORT / PLZ PFLICHT
       const loc = ($('#sl-location').value || '').trim();
       if(!loc){
         $('#sl-location').focus();

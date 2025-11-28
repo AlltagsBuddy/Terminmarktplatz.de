@@ -889,11 +889,41 @@ def _status_transition_ok(current: str, new: str) -> bool:
 def slots_list():
     status = request.args.get("status")
     with Session(engine) as s:
-        q = select(Slot).where(Slot.provider_id == request.provider_id)
+        # Buchungs-Aggregat: alle "hold" + "confirmed" Buchungen pro Slot
+        bq = (
+            select(Booking.slot_id, func.count().label("booked"))
+            .where(Booking.status.in_(["hold", "confirmed"]))
+            .group_by(Booking.slot_id)
+            .subquery()
+        )
+
+        q = (
+            select(
+                Slot,
+                func.coalesce(bq.c.booked, 0).label("booked")
+            )
+            .outerjoin(bq, bq.c.slot_id == Slot.id)
+            .where(Slot.provider_id == request.provider_id)
+        )
+
         if status:
             q = q.where(Slot.status == status)
-        slots = s.scalars(q.order_by(Slot.start_at.desc())).all()
-        return jsonify([slot_to_json(x) for x in slots])
+
+        rows = s.execute(q.order_by(Slot.start_at.desc())).all()
+
+        out = []
+        for slot, booked in rows:
+            cap = slot.capacity or 1
+            booked = int(booked or 0)
+            available = max(0, cap - booked)
+
+            item = slot_to_json(slot)
+            item["booked"] = booked
+            item["available"] = available
+            out.append(item)
+
+        return jsonify(out)
+
 
 @app.post("/slots")
 @auth_required()
