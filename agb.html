@@ -130,21 +130,25 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-
-      <!-- User-Dropdown – nur mobil sichtbar (per CSS) -->
-      <div class="user-menu">
+            <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
-          <a href="login.html?tab=login" class="item" role="menuitem">Anmelden</a>
-          <button type="button" class="item" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item" role="menuitem">Slot anlegen</a>
-          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-          <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
-        </div>
-      </div>
+          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- Nur sichtbar, wenn eingeloggt -->
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+              <!-- Immer sichtbar -->
+              <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+            </div>
+          </div>
+
 
       <!-- Desktop-Navigation -->
       <nav class="nav-links">
