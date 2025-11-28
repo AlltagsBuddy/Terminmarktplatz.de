@@ -2,13 +2,14 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-YNZ8GW523R');
-  </script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YNZ8GW523R');
+</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,7 +25,6 @@
   <meta name="twitter:card" content="summary_large_image" />
 
   <base href="/" />
-
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,7 +52,7 @@
       display:none;
     }
 
-    /* Mobile-Optimierung */
+    /* Mobile-Optimierung + Menü wie AGB */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -66,13 +66,36 @@
         font-size: 1.05rem;
       }
 
-      /* Desktop-Nav auf Mobile ausblenden */
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      .cta-group {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .cta-group .btn {
+        padding-inline: 10px;
+      }
+
+      /* Desktop-Nav & CTA auf Mobile ausblenden */
       .nav-links,
       .cta-group {
         display:none !important;
       }
 
-      /* Nur auf Mobile: Burger-Menü rechts */
+      /* Burger-Menü nur mobil anzeigen */
       .user-menu {
         display:block;
         margin-left:auto;
@@ -109,7 +132,7 @@
       }
     }
 
-    /* Desktop: Nav sichtbar, Burger-Menü weg */
+    /* Desktop: Nav sichtbar, Burger ausblenden */
     @media (min-width: 769px){
       .user-menu {
         display:none;
@@ -126,7 +149,6 @@
     }
   </style>
 </head>
-
 <body>
   <!-- Header -->
   <header>
@@ -290,15 +312,13 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <!-- Footer-Jahr -->
   <script>
-    (function(){
-      const yEl = document.getElementById('y');
-      if (yEl) yEl.textContent = new Date().getFullYear();
-    })();
+    // Jahreszahl im Footer
+    const yEl = document.getElementById('y');
+    if (yEl) yEl.textContent = new Date().getFullYear();
   </script>
 
-  <!-- User-Menü Logik (Burger + Auth-State) -->
+  <!-- User-Menü Logik (mobil) -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -332,14 +352,13 @@
           loggedEls.forEach(el => el.style.display = isLoggedIn ? '' : 'none');
           outEls.forEach(el => el.style.display = isLoggedIn ? 'none' : '');
         }catch(_){
-          // Bei Fehler: als "nicht eingeloggt" behandeln
           loggedEls.forEach(el => el.style.display = 'none');
           outEls.forEach(el => el.style.display = '');
         }
       }
       initAuthState();
 
-      // Aktionen im Menü (Logout / Delete)
+      // Aktionen im Menü (Logout / Konto löschen)
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
         if(!el) return;
