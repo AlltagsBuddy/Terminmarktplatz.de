@@ -316,15 +316,15 @@
 
           <!-- Immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-          </div>
         </div>
+      </div>
 
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
       </nav>
-     </div>
+    </div>
   </header>
 
   <main>
@@ -908,76 +908,6 @@
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
 
-    // ---------- Slot anlegen ----------
-    $('#form-slot').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-
-      const completeNow = isProfileCompleteFromValues(getProfileValuesFromForm());
-      if(!completeNow){
-        setSlotLock(true);
-        return showMsg('msg-slot','Bitte Profil zuerst vollständig speichern (WhatsApp ist optional).');
-      }
-
-      const loc = ($('#sl-location').value || '').trim();
-      if(!loc){
-        $('#sl-location').focus();
-        return showMsg('msg-slot','„Ort / PLZ“ ist ein Pflichtfeld.');
-      }
-
-      const date = $('#sl-date').value, time = $('#sl-start').value, durMin = totalMinutes();
-      if(!date || !time || !durMin){ return showMsg('msg-slot','Bitte Datum, Start und Dauer angeben.'); }
-
-      const startLocal = joinDateTime(date,time);
-      const endLocal   = new Date(startLocal.getTime() + durMin*60000);
-
-      const payload = {
-        title: ($('#sl-title').value||'').trim() || 'Slot',
-        category: ($('#sl-cat').value||'').trim() || 'Sonstiges',
-        start_at: toLocalISO(startLocal),
-        end_at: toLocalISO(endLocal),
-        location: loc,
-        capacity: parseInt($('#sl-cap').value || '1',10),
-        contact_method: 'mail',
-        booking_link: null,
-        price_cents: $('#sl-price').value ? Math.round(parseFloat($('#sl-price').value)*100) : null,
-        notes: ($('#sl-notes').value||'').trim() || null
-      };
-
-      try{
-        const r = await fetch(`${API}/slots`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify(payload)
-        });
-        const data = await r.json().catch(()=> ({}));
-        if(r.ok){
-          showMsg('msg-slot','Slot angelegt (wartet auf Prüfung) ✓', true);
-          e.target.reset(); $('#sl-unit').value='min'; recalcEnd(); fillCategoryOptions(); await loadSlots();
-        }else{
-          const m = {
-            missing_fields:'Pflichtfelder fehlen.',
-            missing_location:'„Ort / PLZ“ ist ein Pflichtfeld.',
-            bad_datetime:'Datum/Uhrzeit ungültig.',
-            end_before_start:'Ende liegt vor dem Start.',
-            limit_reached:'Limit erreicht.',
-            start_in_past:'Start darf nicht in der Vergangenheit liegen.',
-            bad_capacity:'Kapazität ungültig.',
-            db_constraint_error:'Kategorie entspricht nicht den DB-Vorgaben.',
-            db_error:'Datenbankfehler.',
-            profile_incomplete:'Profil unvollständig. Bitte erst Profil speichern.'
-          };
-          showMsg('msg-slot', m[data.error] || `Konnte Slot nicht anlegen.${data.detail ? ' ('+data.detail+')' : ''}`);
-        }
-      }catch(err){ showMsg('msg-slot','Netzwerkfehler.'); }
-    });
-
-    // ---------- Logout ----------
-    $('#btn-logout').addEventListener('click', async ()=>{
-      try{ await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); }catch(_){}
-      location.href = 'login.html?tab=login';
-    });
-
     // ---------- Init ----------
     (async function init(){
       await requireAuth();
@@ -1030,6 +960,7 @@
     })();
   </script>
 
+  <!-- User-Menü Logik inkl. auth-in / auth-out -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -1051,6 +982,24 @@
 
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      // Login-Status prüfen und Menü-Einträge steuern
+      async function updateAuthUI(){
+        let loggedIn = false;
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          loggedIn = res.ok; // 200 = eingeloggt
+        }catch(e){
+          loggedIn = false;
+        }
+
+        document.querySelectorAll('.auth-in').forEach(el => {
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
 
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
@@ -1080,6 +1029,9 @@
           }
         }
       });
+
+      // Beim Laden direkt setzen
+      updateAuthUI();
     })();
   </script>
 
