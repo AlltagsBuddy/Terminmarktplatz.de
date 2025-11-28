@@ -1154,43 +1154,52 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 @app.get("/public/slots")
 def public_slots():
     """
-    Query (Frontend):
-      - q       : Freitext, z.B. 'Friseur'
-      - ort     : PLZ oder Stadt (ein Feld)
-      - radius  : Umkreis in km (optional)
-      - datum   : TT.MM.JJJJ (optional)
-      - zeit    : ignoriert (Beliebig / Vormittag ...)
+    Öffentliche Slot-Suche.
 
-    Zusätzlich kompatibel:
-      - category, city, zip, day, from, include_full
+    Haupt-Parameter (neue Suche.html):
+      - q         : Freitext (Titel/Kategorie)
+      - location  : Ort / PLZ, wie im SLOT-Feld "Ort / PLZ" eingegeben
+      - radius    : Umkreis in km (optional)
+      - day       : YYYY-MM-DD (optional)
+      - datum     : TT.MM.JJJJ (optional, alt)
+      - category  : exakte Kategorie (optional)
+      - include_full : "1" zeigt auch vollgebuchte Slots
+
+    Abwärtskompatibel:
+      - ort       : wird wie location behandelt
+      - city, zip : werden weiterhin für Geocoding/Radius akzeptiert
     """
-    # Frontend-Parameter
-    q_text     = (request.args.get("q") or "").strip()
-    ort        = (request.args.get("ort") or "").strip()
-    radius_raw = (request.args.get("radius") or "").strip()
-    datum_raw  = (request.args.get("datum") or "").strip()
-    _zeit      = (request.args.get("zeit") or "").strip()  # aktuell ignoriert
+    # neue Parameter
+    q_text      = (request.args.get("q") or "").strip()
+    location_raw = (request.args.get("location") or "").strip()
+    # alt: ort -> wie location behandeln, falls location leer
+    if not location_raw:
+        location_raw = (request.args.get("ort") or "").strip()
 
-    # Alte / zusätzliche Parameter
-    category   = (request.args.get("category") or "").strip()
-    city_q     = (request.args.get("city") or "").strip()
-    zip_filter = (request.args.get("zip") or "").strip()
-    day_str    = (request.args.get("day") or "").strip()
-    from_str   = (request.args.get("from") or "").strip()
+    radius_raw  = (request.args.get("radius") or "").strip()
+    datum_raw   = (request.args.get("datum") or "").strip()
+    _zeit       = (request.args.get("zeit") or "").strip()  # aktuell ignoriert
+
+    # alte / zusätzliche Parameter
+    category    = (request.args.get("category") or "").strip()
+    city_q      = (request.args.get("city") or "").strip()
+    zip_filter  = (request.args.get("zip") or "").strip()
+    day_str     = (request.args.get("day") or "").strip()
+    from_str    = (request.args.get("from") or "").strip()
     include_full = request.args.get("include_full") == "1"
 
-    # Ort-Feld (ort) in zip/city aufsplitten, falls zip/city nicht explizit gesetzt sind
-    if ort and not zip_filter and not city_q:
-        if ort.isdigit() and len(ort) == 5:
-            zip_filter = ort
+    # Falls city/zip nicht explizit gesetzt sind, aus location_raw ableiten
+    if location_raw and not zip_filter and not city_q:
+        if location_raw.isdigit() and len(location_raw) == 5:
+            zip_filter = location_raw
         else:
-            city_q = ort
+            city_q = location_raw
 
     # Wenn q exakt eine bekannte Branche ist, als Kategorie nutzen
     search_term = q_text
     if not category and q_text in BRANCHES:
         category = q_text
-        # search_term lassen wir trotzdem, damit auch Titel mit 'Friseur' gefunden werden
+        # search_term bleibt, damit Titel mit 'Friseur' etc. trotzdem matchen
 
     # Radius parsen
     try:
@@ -1228,6 +1237,7 @@ def public_slots():
 
     with Session(engine) as s:
         origin_lat = origin_lon = None
+        # Geocoding für Radius: Eingabe wird über zip/city abgebildet
         if radius_km is not None and (zip_filter or city_q):
             origin_lat, origin_lon = geocode_cached(
                 s,
@@ -1269,18 +1279,14 @@ def public_slots():
             else:
                 sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
-        # Stadt/PLZ-Filter nur, wenn KEIN Radius (bei Radius filtern wir später mit Distanz)
+        # Orts-/PLZ-Filter: jetzt nur noch über Slot.location (nicht Provider-Profil)
+        # Nur anwenden, wenn KEIN Radius (bei Radius filtern wir später per Distanz)
+        # Für Kompatibilität fallback auf city_q/zip_filter, falls location_raw leer
         if radius_km is None:
-            if zip_filter:
-                sq = sq.where(Provider.zip == zip_filter)
-            if city_q:
-                ilike_city = f"%{city_q}%"
-                sq = sq.where(
-                    or_(
-                        Provider.city.ilike(ilike_city),
-                        Slot.location.ilike(ilike_city)
-                    )
-                )
+            loc_for_filter = location_raw or city_q or zip_filter
+            if loc_for_filter:
+                pattern_loc = f"%{loc_for_filter}%"
+                sq = sq.where(Slot.location.ilike(pattern_loc))
 
         # Textsuche auf Titel/Kategorie
         if search_term:
@@ -1304,7 +1310,7 @@ def public_slots():
             if not include_full and available <= 0:
                 continue
 
-            # Radiusfilter
+            # Radiusfilter (weiterhin über Provider-Standort, da Slot.location nur Text ist)
             if radius_km is not None:
                 if origin_lat is None or origin_lon is None:
                     # ohne Mittelpunkt macht Umkreissuche keinen Sinn

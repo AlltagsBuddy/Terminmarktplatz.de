@@ -80,6 +80,31 @@
     .st-pub{background:#ecfeff}
     .st-arch{background:#f1f5f9}
 
+    /* NEU: visuelle Hervorhebung für gebuchte / abgelaufene Slots */
+    .table tr.slot-past td{
+      background:#f9fafb;
+      color:#94a3b8;
+    }
+    .table tr.slot-booked td{
+      background:#ecfdf5;
+    }
+    .table tr.slot-booked.slot-past td{
+      background:#e5e7eb;
+    }
+    .slot-hint{
+      display:block;
+      font-size:12px;
+      margin-top:2px;
+    }
+    .slot-past .slot-hint{
+      color:#64748b;
+      font-style:italic;
+    }
+    .slot-booked .slot-hint{
+      color:#15803d;
+      font-weight:500;
+    }
+
     .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
     .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
@@ -283,20 +308,19 @@
       </div>
       <!-- User-Dropdown -->
     
-          <div class="user-menu">
-      <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-        ☰ Menü
-      </button>
-      <div id="userMenu" class="menu" role="menu" hidden>
-        <a href="login.html?tab=login" class="item" role="menuitem">Anmelden</a>
-        <button type="button" class="item" data-action="logout" role="menuitem">Abmelden</button>
-        <a href="anbieter-portal.html" class="item" role="menuitem">Profil</a>
-        <a href="anbieter-portal.html#step-3" class="item" role="menuitem">Slot anlegen</a>
-        <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-        <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <a href="login.html?tab=login" class="item" role="menuitem">Anmelden</a>
+          <button type="button" class="item" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item" role="menuitem">Slot anlegen</a>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
+        </div>
       </div>
-    </div>
-
 
       <!-- Ursprünglicher Umschalt-Bereich für Login/Dropdown bleibt auskommentiert
       <div class="cta-group" id="auth-ctas" hidden>
@@ -724,7 +748,10 @@
 
     function renderTable(items){
       const tbody = $('#tbl-slots tbody');
-      if(!items.length){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`; return; }
+      if(!items.length){
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
+        return;
+      }
       tbody.innerHTML = '';
       for(const s of items){
         const tr = document.createElement('tr');
@@ -732,11 +759,36 @@
         const isArchived  = theStatus === 'archived';
         const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
+        // NEU: Logik für gebuchte / abgelaufene Slots
+        const now = new Date();
+        const endDate = s.end_at ? new Date(s.end_at) : null;
+        const isPast = !!(endDate && endDate < now);
+
+        // Hier ggf. an Backend-Felder anpassen (is_booked / booked_count / remaining_capacity)
+        const isBooked = !!(
+          s.is_booked ||
+          (typeof s.booked_count === 'number' && s.booked_count > 0) ||
+          (typeof s.remaining_capacity === 'number' && s.remaining_capacity <= 0)
+        );
+
+        let rowClass = '';
+        if (isPast) rowClass += ' slot-past';
+        if (isBooked) rowClass += ' slot-booked';
+        tr.className = rowClass.trim();
+
+        const hintParts = [];
+        if (isBooked) hintParts.push('Gebucht');
+        if (isPast) hintParts.push('Abgelaufen');
+        const hintText = hintParts.length ? hintParts.join(' & ') : '';
+
         tr.innerHTML = `
           <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
           <td>${fmtLocal(s.start_at)}</td>
           <td>${fmtLocal(s.end_at)}</td>
-          <td>${s.title}</td>
+          <td>
+            ${s.title}
+            ${hintText ? `<span class="slot-hint">${hintText}</span>` : ''}
+          </td>
           <td>${s.category||''}</td>
           <td>${s.location||''}</td>
           <td>${s.capacity||1}</td>
@@ -790,7 +842,10 @@
 
       try{
         const r = await fetch(`${API}/slots`, {credentials:'include'});
-        if(!r.ok){ tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`; return; }
+        if(!r.ok){
+          tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`;
+          return;
+        }
         LAST_ITEMS = await r.json();
         renderTable(LAST_ITEMS);
       }catch(e){

@@ -227,7 +227,7 @@
     </div>
     <!-- User-Dropdown -->
     
-          <div class="user-menu">
+    <div class="user-menu">
       <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
         ☰ Menü
       </button>
@@ -399,7 +399,6 @@
       if (zeit === 'abend') return h >= 17 && h < 21;
       return true;
     };
-    const isZip = (s) => /^\d{5}$/.test(s || '');
     const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
 
     // URL-Parameter → Filter übernehmen
@@ -440,7 +439,7 @@
       const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
       const rad2  = (s2.get('radius')||'').trim();
 
-      // ---- API-Parameter (day optional + city/zip + radius)
+      // ---- API-Parameter (day optional + SLOT-LOCATION + radius)
       const params = new URLSearchParams();
 
       // Nur setzen, wenn der Nutzer ein Datum gewählt hat
@@ -451,8 +450,10 @@
       const isExactCategory = q2 && KATS.has(q2);
       if (isExactCategory) params.set('category', q2);
 
-      if (isZip(ort2)) params.set('zip', ort2);
-      else if (ort2)   params.set('city', ort2);
+      // WICHTIG: Suche über den Ort aus dem SLOT: ?location=
+      if (ort2) {
+        params.set('location', ort2);
+      }
 
       if (rad2 && /^\d+$/.test(rad2)) params.set('radius', rad2);
 
@@ -507,7 +508,8 @@
 
       const frag = document.createDocumentFragment();
       items.forEach((x) => {
-        const cityShow = x.provider_city || x.location || '';
+        // Ort aus dem SLOT bevorzugen, erst dann Provider-Profil
+        const cityShow = x.location || x.provider_city || '';
         const availableBadge = (typeof x.available === 'number')
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
           : '';
