@@ -24,7 +24,6 @@
   <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <base href="/" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,21 +37,7 @@
     .impressum p{margin:6px 0}
     .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
 
-    /* Menü-Button im User-Menü: weiß */
-    .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
-    }
-
-    /* Standard: Burger-Menü ausblenden */
-    .user-menu {
-      display:none;
-    }
-
-    /* Mobile-Optimierung + Menü wie AGB */
+    /* Mobile-Optimierung */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -89,18 +74,6 @@
         padding-inline: 10px;
       }
 
-      /* Desktop-Nav & CTA auf Mobile ausblenden */
-      .nav-links,
-      .cta-group {
-        display:none !important;
-      }
-
-      /* Burger-Menü nur mobil anzeigen */
-      .user-menu {
-        display:block;
-        margin-left:auto;
-      }
-
       /* Hero kompakter */
       .hero {
         padding: 28px 0 14px !important;
@@ -131,28 +104,14 @@
         margin-top: 4px;
       }
     }
-
-    /* Desktop: Nav sichtbar, Burger ausblenden */
-    @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-        gap:12px;
-      }
-      .cta-group {
-        display:flex;
-        gap:8px;
-        margin-left:auto;
-      }
-    }
   </style>
 </head>
+<base href="/" />
+<link rel="stylesheet" href="/static/style.css?v=20251010" />
 <body>
   <!-- Header -->
   <header>
-    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
@@ -160,7 +119,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Mobile User-Dropdown -->
+          <!-- Mobile User-Dropdown -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -181,12 +140,13 @@
       </div>
 
       <nav class="nav-links">
-        <a href="anbieter.html">Für Anbieter</a>
-        <a href="suchende.html">Für Suchende</a>
-        <a href="preise.html">Preise</a>
-      </nav>
-    </div>
-  </header>
+          <a href="anbieter.html">Für Anbieter</a>
+          <a href="suchende.html">Für Suchende</a>
+          <a href="preise.html">Preise</a>
+        </nav>
+        </div>
+      </div>
+    </header>
 
   <main>
     <section class="hero" style="padding:40px 0 16px">
@@ -212,9 +172,10 @@
             Website: <span class="fill">https://terminmarktplatz.de</span>
           </p>
 
+    
           <h3>Verantwortlich i. S. d. § 18 Abs. 2 MStV</h3>
           <p>
-            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 &lt;Viereth-Trunstadt&gt;</span>
+            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 <Viereth-Trunstadt></Viereth-Trunstadt></span>
           </p>
 
           <hr style="border:none; border-top:1px solid var(--ab-border); margin:18px 0">
@@ -274,12 +235,14 @@
             <span class="fill">Links zu offiziellen Profilen – z. B. Instagram, Facebook, LinkedIn, X, YouTube</span><br>
             Es gelten die Nutzungs- und Datenschutzbestimmungen der jeweiligen Plattformbetreiber.
           </p>
+
+          
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
+      <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -295,6 +258,7 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
+      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -302,92 +266,29 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
+        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <script>
-    // Jahreszahl im Footer
-    const yEl = document.getElementById('y');
-    if (yEl) yEl.textContent = new Date().getFullYear();
-  </script>
+    <script>
+      // Mobile Nav
+      const nav = document.querySelector('.nav');
+      const hb = document.getElementById('hamburger');
+      if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
 
-  <!-- User-Menü Logik (mobil) -->
-  <script>
-    (function(){
-      const API = (typeof window.API === 'string')
-        ? window.API
-        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
-
-      const btn  = document.getElementById('userMenuBtn');
-      const menu = document.getElementById('userMenu');
-      if(!btn || !menu) return;
-
-      function openMenu(open){
-        menu.hidden = !open;
-        btn.setAttribute('aria-expanded', String(open));
-      }
-
-      btn.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        openMenu(menu.hidden);
-      });
-
-      document.addEventListener('click', ()=> openMenu(false));
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
-
-      // Auth-abhängige Sichtbarkeit
-      async function initAuthState(){
-        const loggedEls = menu.querySelectorAll('.auth-in');
-        const outEls    = menu.querySelectorAll('.auth-out');
-        try{
-          const r = await fetch(`${API}/me`, { credentials:'include' });
-          const isLoggedIn = r.ok;
-          loggedEls.forEach(el => el.style.display = isLoggedIn ? '' : 'none');
-          outEls.forEach(el => el.style.display = isLoggedIn ? 'none' : '');
-        }catch(_){
-          loggedEls.forEach(el => el.style.display = 'none');
-          outEls.forEach(el => el.style.display = '');
-        }
-      }
-      initAuthState();
-
-      // Aktionen im Menü (Logout / Konto löschen)
-      menu.addEventListener('click', async (e)=>{
-        const el = e.target.closest('.item');
-        if(!el) return;
-        const action = el.dataset.action;
-
-        if(action === 'logout'){
-          try{
-            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-          }catch(_){}
-          location.href = '/login.html';
-        }
-
-        if(action === 'delete'){
-          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-          if(!ok) return;
-          try{
-            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-            if(res.ok){
-              location.href = '/login.html?deleted=1';
-            }else{
-              const data = await res.json().catch(()=>({}));
-              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-            }
-          }catch(err){
-            alert('Netzwerkfehler – bitte später erneut versuchen.');
-          }
-        }
-      });
-    })();
-  </script>
+      // Jahreszahl & Datum
+      document.getElementById('y').textContent = new Date().getFullYear();
+      const d = new Date();
+      const pad = (n)=> String(n).padStart(2,'0');
+      document.getElementById('asof').textContent = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
+    </script>
 </body>
 </html>
