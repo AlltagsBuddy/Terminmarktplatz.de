@@ -2,14 +2,13 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -57,6 +56,11 @@
 
     /* Standard: Burger-Menü ausblenden, Desktop-Navi sichtbar */
     .user-menu {
+      display: none;
+    }
+
+    /* Standard: auth-in zunächst ausblenden – wird per JS nur bei Login angezeigt */
+    .auth-in {
       display: none;
     }
 
@@ -130,7 +134,9 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-            <div class="user-menu">
+
+      <!-- Mobile User-Dropdown -->
+      <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
         </button>
@@ -144,11 +150,10 @@
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
-              <!-- Immer sichtbar -->
-              <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-            </div>
-          </div>
-
+          <!-- Immer sichtbar -->
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
+      </div>
 
       <!-- Desktop-Navigation -->
       <nav class="nav-links">
@@ -322,7 +327,7 @@
     </section>
   </main>
 
-   <!-- Footer -->
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -363,7 +368,7 @@
     if (standEl) standEl.textContent = new Date().toLocaleDateString('de-DE');
   </script>
 
-  <!-- User-Menü Logik (mobil) -->
+  <!-- User-Menü Logik (mobil + Auth-Status) -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -386,6 +391,24 @@
 
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      // Login-Status prüfen und auth-in / auth-out steuern
+      async function updateAuthUI(){
+        let loggedIn = false;
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          loggedIn = res.ok; // 200 = eingeloggt, 401/403 = nicht
+        }catch(e){
+          loggedIn = false;
+        }
+
+        document.querySelectorAll('.auth-in').forEach(el => {
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
 
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
@@ -415,6 +438,9 @@
           }
         }
       });
+
+      // Direkt beim Laden: Sichtbarkeit setzen
+      updateAuthUI();
     })();
   </script>
 </body>
