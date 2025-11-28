@@ -28,8 +28,23 @@
   <!-- Main CSS (mit Cache-Buster) -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Page-spezifische Mobile-Optimierung -->
+  <!-- Page-spezifische Mobile-Optimierung + Menü-Logik -->
   <style>
+
+      .user-menu .btn {
+            background:#ffffff;
+            color:#0f172a;
+            border:1px solid #cbd5e1;
+            text-shadow:none;
+            background-image:none;
+          }
+
+
+    /* Standard: Burger-Menü ausblenden */
+    .user-menu {
+      display: none;
+    }
+
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -43,12 +58,15 @@
         font-size: 1.05rem;
       }
 
+      /* Desktop-Nav auf Mobile ausblenden, nur Burger-Menü */
       .nav-links {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        text-align: center;
+        display: none !important;
+      }
+
+      /* Burger-Menü nur mobil */
+      .user-menu {
+        display: block;
+        margin-left: auto;
       }
 
       .nav-links a {
@@ -142,6 +160,18 @@
         margin-top: 4px;
       }
     }
+
+    /* Desktop: Nav sichtbar, Burger-Menü weg */
+    @media (min-width: 769px) {
+      .user-menu {
+        display: none;
+      }
+      .nav-links {
+        display: flex;
+        gap: 12px;
+        margin-left: auto;
+      }
+    }
   </style>
 
   <!-- Google tag (gtag.js) -->
@@ -164,7 +194,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-          <!-- Mobile User-Dropdown -->
+      <!-- Mobile User-Dropdown -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -184,13 +214,12 @@
         </div>
       </div>
 
-      <!--<button class="btn secondary hamburger" id="hamburger" aria-label="Navigation umschalten">☰</button>-->  
       <nav class="nav-links" id="nav-links">
         <a href="anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
         <a href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
         <a href="preise.html" aria-label="Preise">Preise</a>
       </nav>
-      </div>
+    </div>
   </header>
 
   <main>
@@ -341,13 +370,85 @@
   </footer>
 
   <script>
-    // Mobile Nav
-    const nav = document.querySelector('.nav');
-    const hb = document.getElementById('hamburger');
-    if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
-
     // Footer-Jahr
-    document.getElementById('y').textContent = new Date().getFullYear();
+    const yEl = document.getElementById('y');
+    if (yEl) yEl.textContent = new Date().getFullYear();
+  </script>
+
+  <!-- User-Menü Logik (mobil) -->
+  <script>
+    (function(){
+      const API = (typeof window.API === 'string')
+        ? window.API
+        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
+
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if(!btn || !menu) return;
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      // Login-Status prüfen und Menü-Einträge steuern
+      async function updateAuthUI(){
+        let loggedIn = false;
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          loggedIn = res.ok; // 200 = eingeloggt
+        }catch(e){
+          loggedIn = false;
+        }
+
+        document.querySelectorAll('.auth-in').forEach(el => {
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
+
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if(!el) return;
+        const action = el.dataset.action;
+
+        if(action === 'logout'){
+          try{
+            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+
+        if(action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if(!ok) return;
+          try{
+            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+            if(res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=>({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          }
+        }
+      });
+
+      // Direkt beim Laden prüfen
+      updateAuthUI();
+    })();
   </script>
 </body>
 </html>
