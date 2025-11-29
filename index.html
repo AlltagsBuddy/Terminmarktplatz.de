@@ -40,7 +40,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css?v=8">
 
-  <!-- Menü-Button & Anzeige-Logik wie Datenschutz/Impressum -->
+  <!-- Menü-Button & Anzeige-Logik wie Impressum/Datenschutz -->
   <style>
     /* Menü-Button im User-Menü: weiß */
     .user-menu .btn {
@@ -71,8 +71,7 @@
       }
     }
 
-    /* Page-spezifische Mobile-Optimierung + Menü-Verhalten mobil
-       identisch zur Datenschutz-/Impressum-Logik, plus Startseiten-Layout */
+    /* Mobile-Optimierung + Menü-Verhalten mobil wie Impressum/Datenschutz */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -222,14 +221,14 @@
   <!-- Header / Navigation -->
   <header>
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="/" aria-label="Startseite">
+      <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Mobile User-Dropdown (wie AGB/Impressum/Datenschutz) -->
+      <!-- Mobile User-Dropdown (wie Impressum/Datenschutz) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -433,7 +432,7 @@
     })();
   </script>
 
-  <!-- User-Menü Logik (mobil) inkl. Auth-Status – wie AGB/Impressum/Datenschutz -->
+  <!-- User-Menü Logik (mobil) inkl. Auth-Status – wie Impressum -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
