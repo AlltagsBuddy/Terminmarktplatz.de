@@ -40,7 +40,8 @@
   <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css?v=8">
 
-  <!-- Menü-Button & Anzeige-Logik wie Impressum/Datenschutz -->
+  <!-- Menü-Button & Anzeige-Logik wie Impressum/Datenschutz,
+       aber Links auch auf Mobile sichtbar -->
   <style>
     /* Menü-Button im User-Menü: weiß */
     .user-menu .btn {
@@ -51,9 +52,22 @@
       background-image:none;
     }
 
-    /* Standard: Mobile-Burger aus, Desktop-Nav an */
+    /* Standard: Desktop-Nav sichtbar, Burger nur für mobile */
     .user-menu {
       display:none;
+    }
+
+    .nav-links {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
+    }
+
+    .cta-group {
+      display:flex;
+      gap:8px;
+      margin-left:auto;
     }
 
     @media (min-width: 769px){
@@ -62,16 +76,13 @@
       }
       .nav-links {
         display:flex;
-        gap:12px;
       }
       .cta-group {
         display:flex;
-        gap:8px;
-        margin-left:auto;
       }
     }
 
-    /* Mobile-Optimierung + Menü-Verhalten mobil wie Impressum/Datenschutz */
+    /* Mobile-Optimierung + Menü-Verhalten mobil */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -85,13 +96,27 @@
         font-size: 1.05rem;
       }
 
-      /* Desktop-Nav & CTA auf Mobile ausblenden,
-         stattdessen nur das weiße Burger-Menü */
-      .nav-links,
+      /* Links auch auf Mobile sichtbar, unter dem Logo */
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+        margin-top: 4px;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      /* CTA-Gruppe ausblenden, falls vorhanden */
       .cta-group {
         display: none !important;
       }
 
+      /* Burger-Menü zusätzlich rechts vom Logo */
       .user-menu {
         display:block;
         margin-left:auto;
@@ -228,7 +253,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Mobile User-Dropdown (wie Impressum/Datenschutz) -->
+      <!-- Mobile User-Dropdown -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -432,7 +457,7 @@
     })();
   </script>
 
-  <!-- User-Menü Logik (mobil) inkl. Auth-Status – wie Impressum -->
+  <!-- User-Menü Logik (mobil) inkl. Auth-Status -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
