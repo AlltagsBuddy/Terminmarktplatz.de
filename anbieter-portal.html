@@ -156,16 +156,19 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* Desktop: Nav-Links sichtbar, User-Menü (Hamburger) ausgeblendet */
-    @media (min-width: 769px) {
-      .user-menu {
-        display: none;
-      }
-      .nav-links {
-        display: flex;
-        gap: 16px;
-      }
-    }
+    /* Desktop: Nav-Links UND User-Menü sichtbar */
+@media (min-width: 769px) {
+  .user-menu {
+    display: block;      /* Menü auch auf Desktop anzeigen */
+    margin-left: auto;   /* schiebt das Menü nach rechts */
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 16px;
+  }
+}
+
 
     /* MOBILE-OPTIMIERUNG PORTAL */
     @media (max-width: 768px) {
