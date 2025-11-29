@@ -156,19 +156,57 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* Desktop: Nav-Links UND User-Menü sichtbar */
-@media (min-width: 769px) {
-  .user-menu {
-    display: block;      /* Menü auch auf Desktop anzeigen */
-    margin-left: auto;   /* schiebt das Menü nach rechts */
-  }
+    /* === DESKTOP NAV: Brand | Links | Menü-Button hinter "Preise" === */
+    @media (min-width: 769px) {
+      .container.nav {
+        display:flex;
+        align-items:center !important;
+        justify-content:flex-start;
+        flex-wrap:nowrap !important;
+        gap:16px;
+      }
 
-  .nav-links {
-    display: flex;
-    gap: 16px;
-  }
-}
+      .container.nav .brand {
+        margin-right:24px;
+      }
 
+      .container.nav .nav-links {
+        order:2;
+        display:flex;
+        gap:16px;
+        margin-left:auto; /* schiebt Links + Menü nach rechts */
+      }
+
+      .container.nav .user-menu {
+        order:3;
+        display:block;
+        margin-left:16px; /* Abstand hinter "Preise" */
+      }
+
+      /* Button wie ein weiterer Nav-Link aussehen lassen */
+      #userMenuBtn {
+        padding:10px 12px;
+        border:none;
+        border-radius:0;
+        background:transparent;
+        box-shadow:none;
+        color:var(--ink-dim);
+        font-weight:700;
+        font-family:inherit;
+        cursor:pointer;
+      }
+
+      #userMenuBtn:hover {
+        color:#ffffff;
+        background:transparent;
+      }
+
+      /* Dropdown-Position auf Desktop */
+      .user-menu .menu {
+        top:calc(100% + 8px);
+        right:0;
+      }
+    }
 
     /* MOBILE-OPTIMIERUNG PORTAL */
     @media (max-width: 768px) {
@@ -203,7 +241,7 @@
         padding: 2px 4px;
       }
 
-      /* User-Menü (Konto / Profil / Logout / Kontakt) nur mobil anzeigen */
+      /* User-Menü (Konto / Profil / Logout / Kontakt) auf Mobil sichtbar */
       .user-menu {
         display: block;
         margin-left: auto;
@@ -411,7 +449,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Weißer Mobile-Button NUR für Konto / Kontakt -->
+      <!-- Weißer Mobile-Button / Desktop-Menü-Button -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
