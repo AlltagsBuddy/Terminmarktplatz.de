@@ -1,10 +1,10 @@
-# models.py
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import uuid4
+from decimal import Decimal
 
-from sqlalchemy import Text, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy import Text, Integer, Boolean, DateTime, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -48,9 +48,31 @@ class Provider(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
+    # NEU: Limit freie Slots pro Monat (z.B. 3)
+    free_slots_per_month: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=3,
+    )
+
+    # NEU: Gebühr pro gebuchtem Slot (z.B. 2,00 €)
+    booking_fee_eur: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False,
+        default=Decimal("2.00"),
+    )
+
     # Beziehungen
     slots: Mapped[list["Slot"]] = relationship(
         "Slot",
+        back_populates="provider",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    # NEU: direkte Beziehung zu Buchungen (praktisch für Abrechnung)
+    bookings: Mapped[list["Booking"]] = relationship(
+        "Booking",
         back_populates="provider",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -125,6 +147,13 @@ class Booking(Base):
         nullable=False,
     )
 
+    # NEU: direkte Referenz zum Provider (vereinfacht Abrechnung)
+    provider_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("provider.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
     customer_name: Mapped[str] = mapped_column(Text, nullable=False)
     customer_email: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -137,5 +166,16 @@ class Booking(Base):
     )
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # NEU: Gebühr für diese Buchung (in EUR)
+    provider_fee_eur: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False,
+        default=Decimal("2.00"),
+    )
+
+    # NEU: schon in einer Rechnung / Abrechnung enthalten?
+    is_billed: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Beziehungen
     slot: Mapped[Slot] = relationship("Slot", back_populates="bookings")
+    provider: Mapped[Provider] = relationship("Provider", back_populates="bookings")

@@ -2,6 +2,7 @@
 import os
 import traceback
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal  # NEU: für Geldbeträge
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
@@ -318,6 +319,41 @@ def is_profile_complete(p: Provider) -> bool:
         bool(p.city),
         _is_valid_phone(p.phone),
     ])
+
+
+# NEU: Limit-Check – max. freie Slots pro Monat
+def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
+    """
+    Prüft, ob der Provider im aktuellen Monat noch kostenlose Slots anlegen darf.
+    Basis: Provider.free_slots_per_month (Standard: 3).
+    Es werden Slots im Status pending_review/published gezählt, deren Startdatum
+    im aktuellen Monat (Zeitzone Berlin) liegt.
+    """
+    p = session.get(Provider, provider_id)
+    if not p:
+        return False
+    free_limit = p.free_slots_per_month or 3
+
+    now_berlin = datetime.now(BERLIN)
+    first_local = now_berlin.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if now_berlin.month == 12:
+        next_local = first_local.replace(year=now_berlin.year + 1, month=1)
+    else:
+        next_local = first_local.replace(month=now_berlin.month + 1)
+
+    first_utc_naive = _to_db_utc_naive(first_local)
+    next_utc_naive = _to_db_utc_naive(next_local)
+
+    count = session.scalar(
+        select(func.count()).select_from(Slot).where(
+            Slot.provider_id == provider_id,
+            Slot.start_at >= first_utc_naive,
+            Slot.start_at < next_utc_naive,
+            Slot.status.in_(["pending_review", "published"]),
+        )
+    ) or 0
+
+    return count < free_limit
 
 
 # --------------------------------------------------------
@@ -960,6 +996,11 @@ def slots_create():
             if not p or not is_profile_complete(p):
                 return _json_error("profile_incomplete", 400)
 
+            # NEU: Limit 3 kostenlose Slots pro Monat
+            if not provider_can_create_free_slot(s, request.provider_id):
+                return _json_error("free_slot_limit_reached", 400)
+
+            # bestehendes globales Limit
             count = s.scalar(
                 select(func.count()).select_from(Slot).where(
                     and_(Slot.provider_id == request.provider_id,
@@ -1298,9 +1339,9 @@ def public_slots():
 
         # Zeitfilter
         if start_from is not None:
-            sq = sq.where(Slot.start_at >= start_from)
+            sq = sq.where(Slot.start_at >= _to_db_utc_naive(start_from))
         if end_until is not None:
-            sq = sq.where(Slot.start_at < end_until)
+            sq = sq.where(Slot.start_at < _to_db_utc_naive(end_until))
 
         # Kategorie-Filter
         if category:
@@ -1395,7 +1436,21 @@ def public_book():
         if active >= (slot.capacity or 1):
             return _json_error("slot_full", 409)
 
-        b = Booking(slot_id=slot.id, customer_name=name, customer_email=email, status="hold")
+        # NEU: Gebühr pro Buchung hinterlegen
+        provider = s.get(Provider, slot.provider_id)
+        if provider and provider.booking_fee_eur is not None:
+            fee = provider.booking_fee_eur
+        else:
+            fee = Decimal("2.00")
+
+        b = Booking(
+            slot_id=slot.id,
+            provider_id=slot.provider_id,
+            customer_name=name,
+            customer_email=email,
+            status="hold",
+            provider_fee_eur=fee,
+        )
         s.add(b); s.commit()
 
         token = _booking_token(b.id)
