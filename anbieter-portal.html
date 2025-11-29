@@ -156,13 +156,12 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* === DESKTOP NAV: Brand | Links | Menü-Button hinter "Preise" === */
+    /* === DESKTOP NAV: Brand links, dann Links, dann Menü-Button direkt hinter "Preise" === */
     @media (min-width: 769px) {
       .container.nav {
         display:flex;
-        align-items:center !important;
+        align-items:center;
         justify-content:flex-start;
-        flex-wrap:nowrap !important;
         gap:16px;
       }
 
@@ -171,34 +170,32 @@
       }
 
       .container.nav .nav-links {
-        order:2;
         display:flex;
+        align-items:center;
         gap:16px;
-        margin-left:auto; /* schiebt Links + Menü nach rechts */
+        margin-left:auto;  /* schiebt die Links nach rechts */
       }
 
-      .container.nav .user-menu {
-        order:3;
-        display:block;
-        margin-left:16px; /* Abstand hinter "Preise" */
+      .nav-links .user-menu {
+        position:relative;
+        margin-left:16px;  /* Abstand hinter "Preise" */
       }
 
-      /* Button wie ein weiterer Nav-Link aussehen lassen */
+      /* Button optisch auf Höhe der Links */
       #userMenuBtn {
-        padding:10px 12px;
-        border:none;
-        border-radius:0;
-        background:transparent;
-        box-shadow:none;
-        color:var(--ink-dim);
-        font-weight:700;
+        padding:8px 12px;
+        border-radius:999px;
+        border:1px solid #cbd5e1;
+        background:#ffffff;
+        color:#0f172a;
         font-family:inherit;
+        font-weight:700;
         cursor:pointer;
+        line-height:1.2;
       }
 
       #userMenuBtn:hover {
-        color:#ffffff;
-        background:transparent;
+        background:#e5e7eb;
       }
 
       /* Dropdown-Position auf Desktop */
@@ -241,10 +238,9 @@
         padding: 2px 4px;
       }
 
-      /* User-Menü (Konto / Profil / Logout / Kontakt) auf Mobil sichtbar */
+      /* User-Menü auf Mobil sichtbar, hängt innerhalb der Nav mit drin */
       .user-menu {
         display: block;
-        margin-left: auto;
       }
 
       .hero {
@@ -352,7 +348,7 @@
         padding: 4px 6px;
       }
 
-      /* MOBILE TABLE -> CARD LAYOUT, KEIN ZOOM-NOTWENDIG */
+      /* MOBILE TABLE -> CARD LAYOUT */
       .table-wrap {
         width: 100%;
         overflow-x: visible;
@@ -402,7 +398,6 @@
         white-space: normal;
       }
 
-      /* Checkbox-Zelle etwas schmaler und ohne Labeltext */
       .table tbody tr td[data-label="✓"]::before {
         content: "";
         min-width: 0;
@@ -436,7 +431,7 @@
 
 <body class="page-portal">
 
- <!-- Header -->
+  <!-- Header -->
   <header>
     <div class="container nav"
         role="navigation"
@@ -449,31 +444,31 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Weißer Mobile-Button / Desktop-Menü-Button -->
-      <div class="user-menu">
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          ☰ Menü
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
-          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-          <!-- Nur sichtbar, wenn eingeloggt -->
-          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-          <!-- Immer sichtbar -->
-          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-        </div>
-      </div>
-
-      <!-- Hauptnavigation – immer sichtbar -->
+      <!-- Hauptnavigation inkl. Menü-Button hinter "Preise" -->
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
+
+        <!-- User-Menü jetzt IN der Nav, direkt hinter "Preise" -->
+        <div class="user-menu">
+          <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+            ☰ Menü
+          </button>
+          <div id="userMenu" class="menu" role="menu" hidden>
+            <!-- Nur sichtbar, wenn NICHT eingeloggt -->
+            <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+            <!-- Nur sichtbar, wenn eingeloggt -->
+            <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+            <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+            <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+            <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+            <!-- Immer sichtbar -->
+            <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          </div>
+        </div>
       </nav>
     </div>
   </header>
