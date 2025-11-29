@@ -765,6 +765,50 @@ footer{
     display: block;
   }
 
+  /* =========================================================
+   NAV: Links "Für Anbieter / Für Suchende / Preise"
+   auch auf Mobile immer sichtbar
+========================================================= */
+@media (max-width: 768px) {
+  /* Header-Container darf umbrechen */
+  .container.nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* Brand links, User-Menü rechts in der ersten Zeile */
+  .brand {
+    margin-right: auto;
+  }
+
+  /* Hauptnavigation: immer sichtbar, ganze Breite */
+  .nav-links {
+    display: flex !important;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .nav-links a {
+    font-size: 0.9rem;
+    padding: 6px 8px;
+  }
+
+  /* CTA-Gruppe (Anmelden/Registrieren) bleibt sichtbar,
+     rutscht bei wenig Platz einfach in die nächste Zeile */
+  .cta-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+
   /* Optional: Wenn du auf Mobil NUR das Hamburger-Menü willst,
      kannst du hier zusätzlich die Standard-Nav ausblenden. 
      Auskommentieren, wenn du das nicht willst. */
