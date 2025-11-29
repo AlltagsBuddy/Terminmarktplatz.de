@@ -173,14 +173,15 @@
         display:flex;
         align-items:center;
         gap:16px;
-        margin-left:auto;
+        margin-left:auto;  /* schiebt die Links nach rechts */
       }
 
       .nav-links .user-menu {
         position:relative;
-        margin-left:16px;
+        margin-left:16px;  /* Abstand hinter "Preise" */
       }
 
+      /* Button optisch auf Höhe der Links */
       #userMenuBtn {
         padding:8px 12px;
         border-radius:999px;
@@ -197,6 +198,7 @@
         background:#e5e7eb;
       }
 
+      /* Dropdown-Position auf Desktop */
       .user-menu .menu {
         top:calc(100% + 8px);
         right:0;
@@ -220,6 +222,7 @@
         font-size: 1.0rem;
       }
 
+      /* Hauptnavigation – auch mobil sichtbar */
       .nav-links {
         display: flex !important;
         width: 100%;
@@ -235,6 +238,7 @@
         padding: 2px 4px;
       }
 
+      /* User-Menü auf Mobil sichtbar, hängt innerhalb der Nav mit drin */
       .user-menu {
         display: block;
       }
@@ -265,12 +269,6 @@
         margin-bottom: 8px;
         padding: 10px 8px;
         border-radius: 16px;
-      }
-
-      /* Form-Panels (Profil + Slot) schmaler auf Mobile */
-      .panel-form {
-        max-width: 520px;
-        margin: 0 auto 8px;
       }
 
       .panel h2 {
@@ -350,6 +348,7 @@
         padding: 4px 6px;
       }
 
+      /* MOBILE TABLE -> CARD LAYOUT */
       .table-wrap {
         width: 100%;
         overflow-x: visible;
@@ -445,23 +444,28 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
+      <!-- Hauptnavigation inkl. Menü-Button hinter "Preise" -->
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
 
+        <!-- User-Menü jetzt IN der Nav, direkt hinter "Preise" -->
         <div class="user-menu">
           <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
             ☰ Menü
           </button>
           <div id="userMenu" class="menu" role="menu" hidden>
+            <!-- Nur sichtbar, wenn NICHT eingeloggt -->
             <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
 
+            <!-- Nur sichtbar, wenn eingeloggt -->
             <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
             <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
             <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
             <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
+            <!-- Immer sichtbar -->
             <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
           </div>
         </div>
@@ -485,7 +489,7 @@
       <div class="container grid grid-2">
 
         <!-- Profil -->
-        <div class="panel panel-form">
+        <div class="panel">
           <h2>Profil</h2>
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
           <form id="form-profile" class="grid" novalidate>
@@ -504,6 +508,7 @@
               </datalist>
             </div>
 
+            <!-- Pflichtfelder -->
             <div class="field">
               <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
               <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
@@ -536,14 +541,16 @@
         </div>
 
         <!-- Slot anlegen -->
-        <div class="panel panel-form">
+        <div class="panel">
           <h2>Neuen Slot anlegen</h2>
 
+          <!-- Guard-Hinweis, solange Profil unvollständig -->
           <div id="slot-guard" class="callout">
             <strong>Profil unvollständig.</strong>
             <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus (WhatsApp ist optional). Danach kannst du Slots anlegen.</div>
           </div>
 
+          <!-- Alles im fieldset, das wir sperren -->
           <form id="form-slot" class="grid" novalidate>
             <fieldset id="slot-fields" disabled>
               <div class="field">
@@ -551,6 +558,7 @@
                 <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
               </div>
 
+              <!-- Kategorie -->
               <div class="field">
                 <label for="sl-cat">Kategorie <span class="req">*</span></label>
                 <select id="sl-cat" name="category" required aria-required="true">
@@ -567,6 +575,7 @@
                 <input id="sl-start" type="time" step="60" required aria-required="true"/>
               </div>
 
+              <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
                 <div style="display:flex; gap:8px; align-items:center">
@@ -592,6 +601,7 @@
                 <input id="sl-end" type="time" readonly/>
               </div>
 
+              <!-- ORT / PLZ – PFLICHT -->
               <div class="field">
                 <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
                 <input id="sl-location" name="location"
@@ -672,6 +682,7 @@
   </main>
 
   <script>
+    // ---------- API-Basis (robust für Lokalnetz/Prod) ----------
     const API = (() => {
       const h = location.hostname;
       const proto = location.protocol;
@@ -714,6 +725,7 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    // ---------- Kategorien (Dropdown) ----------
     const CATEGORIES = [
       "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
       "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
@@ -725,6 +737,7 @@
         + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
+    // ---------- Profil-Completeness & Slot-Lock ----------
     function isValidZip(v){ return /^\d{5}$/.test((v||'').trim()); }
     function isValidPhone(v){ return /^\+?[0-9\s\-\/]{6,}$/.test((v||'').trim()); }
 
@@ -760,6 +773,7 @@
       if (alert) alert.style.display = locked ? 'block' : 'none';
     }
 
+    // ---------- Auth-Gate / Me ----------
     let ME = null;
     async function requireAuth(){
       try{
@@ -789,6 +803,7 @@
       }
     }
 
+    // ---------- Profil speichern ----------
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const payload = getProfileValuesFromForm();
@@ -819,6 +834,7 @@
       }
     });
 
+    // ---------- Slot-Form: Dauer -> Ende berechnen ----------
     function totalMinutes(){
       const val = parseInt($('#sl-duration').value || '0', 10);
       const unit = $('#sl-unit').value;
@@ -851,6 +867,7 @@
       recalcEnd();
     }));
 
+    // ---------- Slot anlegen (POST /slots) ----------
     document.getElementById('form-slot').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fs = document.getElementById('slot-fields');
@@ -913,6 +930,7 @@
       }
     });
 
+    // ---------- Slots laden & rendern + Freigabe-Workflow ----------
     let SELECTED = new Set();
     let LAST_ITEMS = [];
 
@@ -1098,6 +1116,7 @@
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
 
+    // ---------- Init ----------
     (async function init(){
       await requireAuth();
       fillCategoryOptions();
@@ -1149,6 +1168,7 @@
     })();
   </script>
 
+  <!-- User-Menü Logik inkl. auth-in / auth-out -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -1171,6 +1191,7 @@
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
 
+      // Login-Status prüfen und Menü-Einträge steuern
       async function updateAuthUI(){
         let loggedIn = false;
         try{
@@ -1221,6 +1242,7 @@
     })();
   </script>
 
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
