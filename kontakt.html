@@ -29,7 +29,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Page-spezifische Mobile-Optimierung + Menü-Style wie index/impressum/kategorie -->
+  <!-- Menü-Style wie neue index.html: Burger + drei Links auch auf Mobile -->
   <style>
     /* Weißer Menü-Button wie auf index/impressum/kategorie */
     .user-menu .btn {
@@ -40,9 +40,22 @@
       background-image:none;
     }
 
-    /* Standard: Burger-Menü ausblenden, Desktop-Navi sichtbar */
+    /* Standard: Desktop-Nav sichtbar, Burger nur für mobile */
     .user-menu {
       display:none;
+    }
+
+    .nav-links {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
+    }
+
+    .cta-group {
+      display:flex;
+      gap:8px;
+      margin-left:auto;
     }
 
     /* Desktop */
@@ -52,12 +65,9 @@
       }
       .nav-links {
         display:flex;
-        gap:12px;
       }
       .cta-group {
         display:flex;
-        gap:8px;
-        margin-left:auto;
       }
     }
 
@@ -75,12 +85,27 @@
         font-size: 1.05rem;
       }
 
-      /* Desktop-Navigation & CTA auf Mobile ausblenden, nur Burger-Menü */
-      .nav-links,
+      /* Links auch auf Mobile sichtbar, unter dem Logo */
+      .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+        margin-top: 4px;
+      }
+
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      /* CTA-Gruppe (falls vorhanden) auf Mobile ausblenden */
       .cta-group {
         display: none !important;
       }
 
+      /* Burger-Menü zusätzlich rechts vom Logo */
       .user-menu {
         display:block;
         margin-left:auto;
@@ -163,7 +188,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Mobile User-Dropdown (wie index/impressum/kategorie) -->
+      <!-- Mobile User-Dropdown (gleich wie index) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü

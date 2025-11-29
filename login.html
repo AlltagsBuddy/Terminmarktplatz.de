@@ -35,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/style.css?v=20251107" />
 
-  <!-- Seitenstil: Panels dunkel, Eingabefelder hell -->
+  <!-- Seitenstil: Panels dunkel, Eingabefelder hell + Menü wie index/kontakt -->
   <style>
     /* Weißer Menü-Button wie auf index/kategorie/impressum/kontakt */
     .user-menu .btn {
@@ -46,8 +46,22 @@
       background-image:none;
     }
 
+    /* Standard: Desktop-Nav sichtbar, Burger aus */
     .user-menu {
       display:none;
+    }
+
+    .nav-links {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
+    }
+
+    .cta-group {
+      display:flex;
+      gap:8px;
+      margin-left:auto;
     }
 
     @media (min-width: 769px){
@@ -56,12 +70,9 @@
       }
       .nav-links {
         display:flex;
-        gap:12px;
       }
       .cta-group {
         display:flex;
-        gap:8px;
-        margin-left:auto;
       }
     }
 
@@ -118,50 +129,42 @@
       .form-grid .col-2{grid-column:span 1}
     }
 
-    /* Mobile-Optimierung Login-Seite */
+    /* Mobile-Optimierung Login-Seite + Menü-Verhalten wie index/kontakt */
     @media (max-width: 768px) {
       /* Header / Navigation */
-      .page-login .container.nav {
+      .container.nav {
         flex-wrap: wrap;
         gap: 8px;
         align-items: flex-start;
         padding-inline: 16px;
       }
 
-      .page-login .brand-title {
+      .brand-title {
         font-size: 1.05rem;
       }
 
-      .page-login .nav-links {
+      /* Drei Links auch auf Mobile sichtbar, unter dem Logo */
+      .nav-links {
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
         gap: 8px;
         text-align: center;
+        margin-top: 4px;
       }
 
-      .page-login .nav-links a {
+      .nav-links a {
         font-size: 0.9rem;
         padding: 2px 6px;
       }
 
-      .page-login .cta-group {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .page-login .cta-group .btn {
-        padding-inline: 10px;
-      }
-
-      /* Desktop-Links auf Mobile ausblenden – nur weißer Menü-Button */
-      .page-login .nav-links,
-      .page-login .cta-group {
+      /* CTA-Gruppe (falls vorhanden) auf Mobile ausblenden */
+      .cta-group {
         display: none !important;
       }
 
-      .page-login .user-menu {
+      /* Burger-Menü rechts neben dem Logo */
+      .user-menu {
         display:block;
         margin-left:auto;
       }
@@ -265,11 +268,11 @@
         </div>
       </div>
 
-          <nav class="nav-links">
-            <a href="anbieter.html">Für Anbieter</a>
-            <a href="suchende.html">Für Suchende</a>
-            <a href="preise.html">Preise</a>
-          </nav>
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
     </div>
   </header>
 
