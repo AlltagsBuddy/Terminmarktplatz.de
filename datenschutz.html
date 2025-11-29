@@ -24,8 +24,6 @@
   <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <base href="/" />
-
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,11 +95,15 @@
         padding-inline: 16px;
       }
 
+      header .brand{
+        margin-bottom:4px;
+      }
+
       .brand-title {
         font-size: 1.05rem;
       }
 
-      /* Desktop-Links auf Mobile ausblenden */
+      /* Desktop-Links & CTA auf Mobile ausblenden */
       .nav-links,
       .cta-group {
         display:none !important;
@@ -167,6 +169,9 @@
     }
   </style>
 </head>
+
+<base href="/" />
+<link rel="stylesheet" href="/static/style.css?v=20251010" />
 
 <body>
   <!-- Header -->
@@ -303,7 +308,7 @@
             <li><strong>Kommunikation:</strong> Inhalte aus Kontaktformular / E-Mail.</li>
             <li><strong>Abrechnungsdaten <span class="pill">optional</span>:</strong> Zahlungsinfos (über Zahlungsdienstleister).</li>
           </ul>
-          <p>Besondere Kategorien i. S. v. Art. 9 DSGVO werden не gezielt verarbeitet.</p>
+          <p>Besondere Kategorien i. S. v. Art. 9 DSGVO werden nicht gezielt verarbeitet.</p>
 
           <h2 id="empfaenger">5. Empfänger & Auftragsverarbeiter</h2>
           <p>Wir setzen sorgfältig ausgewählte Dienstleister (Auftragsverarbeiter) ein. Kategorien von Empfängern:</p>
