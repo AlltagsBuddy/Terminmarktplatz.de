@@ -37,7 +37,7 @@
     .impressum p{margin:6px 0}
     .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
 
-    /* Menü-Button im User-Menü: weiß wie in AGB */
+    /* Menü-Button im User-Menü: weiß (wie AGB) */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -51,9 +51,8 @@
       display:none;
     }
 
-    /* Mobile-Optimierung + Menü-Verhalten wie AGB */
+    /* Mobile-Optimierung + Menü-Verhalten wie in AGB */
     @media (max-width: 768px) {
-      /* Header / Navigation */
       .container.nav {
         flex-wrap: wrap;
         gap: 8px;
@@ -82,6 +81,7 @@
         padding: 2px 6px;
       }
 
+      /* falls irgendwo CTA-Buttons im Header wären */
       .cta-group {
         width: 100%;
         justify-content: flex-end;
@@ -165,7 +165,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Mobile User-Dropdown (wie in AGB) -->
+      <!-- Mobile User-Dropdown -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -217,7 +217,6 @@
             Website: <span class="fill">https://terminmarktplatz.de</span>
           </p>
 
-    
           <h3>Verantwortlich i. S. d. § 18 Abs. 2 MStV</h3>
           <p>
             <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 &lt;Viereth-Trunstadt&gt;</span>
@@ -280,8 +279,6 @@
             <span class="fill">Links zu offiziellen Profilen – z. B. Instagram, Facebook, LinkedIn, X, YouTube</span><br>
             Es gelten die Nutzungs- und Datenschutzbestimmungen der jeweiligen Plattformbetreiber.
           </p>
-
-          
         </div>
       </div>
     </section>
@@ -326,7 +323,7 @@
     if (yEl) yEl.textContent = new Date().getFullYear();
   </script>
 
-  <!-- User-Menü Logik (mobil) – 1:1 wie in AGB -->
+  <!-- User-Menü Logik (mobil) inkl. Auth-Status -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -336,6 +333,35 @@
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
       if(!btn || !menu) return;
+
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls  = menu.querySelectorAll('.auth-in');
+
+      function setAuthVisible(isLoggedIn){
+        // nicht eingeloggt: nur auth-out sichtbar
+        authOutEls.forEach(el => {
+          el.style.display = isLoggedIn ? 'none' : '';
+        });
+        // eingeloggt: nur auth-in sichtbar
+        authInEls.forEach(el => {
+          el.style.display = isLoggedIn ? '' : 'none';
+        });
+        // Kontakt bleibt immer sichtbar (hat keine auth-*-Klasse)
+      }
+
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          if(res.ok){
+            setAuthVisible(true);
+          }else{
+            setAuthVisible(false);
+          }
+        }catch(e){
+          // Bei Fehler: wie "nicht eingeloggt" behandeln
+          setAuthVisible(false);
+        }
+      }
 
       function openMenu(open){
         menu.hidden = !open;
@@ -378,6 +404,9 @@
           }
         }
       });
+
+      // beim Laden Auth-Status prüfen und Menü anpassen
+      checkAuth();
     })();
   </script>
 </body>
