@@ -2,14 +2,13 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -31,13 +30,29 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
-    .fill{background:#fff3; border-bottom:2px dotted #cbd5e1}
-    .small{font-size:13px; color:var(--ab-text-dim)}
-    .impressum h3{margin:16px 0 6px}
-    .impressum p{margin:6px 0}
-    .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
+    .fill{
+      background:#fff3;
+      border-bottom:2px dotted #cbd5e1;
+    }
+    .small{
+      font-size:13px;
+      color:var(--ab-text-dim);
+    }
+    .impressum h3{
+      margin:16px 0 6px;
+    }
+    .impressum p{
+      margin:6px 0;
+    }
+    .callout{
+      border-left:4px solid var(--ab-primary);
+      padding:12px 14px;
+      background:#fff;
+      border:1px solid var(--ab-border);
+      border-radius:12px;
+    }
 
-    /* Menü-Button im User-Menü: weiß (wie AGB) */
+    /* Menü-Button im User-Menü: weiß (wie Datenschutz/AGB) */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -46,12 +61,12 @@
       background-image:none;
     }
 
-    /* Standard: Burger-Menü ausblenden, Desktop-Navi sichtbar */
+    /* Standard: Burger-Menü ausblenden */
     .user-menu {
       display:none;
     }
 
-    /* Mobile-Optimierung + Menü-Verhalten wie in AGB */
+    /* Mobile-Optimierung + Menü-Verhalten wie Datenschutzerklärung */
     @media (max-width: 768px) {
       .container.nav {
         flex-wrap: wrap;
@@ -68,40 +83,16 @@
         font-size: 1.05rem;
       }
 
-      .nav-links {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        text-align: center;
-      }
-
-      .nav-links a {
-        font-size: 0.9rem;
-        padding: 2px 6px;
-      }
-
-      /* falls irgendwo CTA-Buttons im Header wären */
-      .cta-group {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .cta-group .btn {
-        padding-inline: 10px;
-      }
-
-      /* Desktop-Nav & CTA auf Mobile ausblenden */
+      /* Desktop-Navigation & CTA auf Mobile ausblenden */
       .nav-links,
       .cta-group {
-        display: none !important;
+        display:none !important;
       }
 
-      /* Burger-Menü nur mobil anzeigen */
+      /* Burger-Menü nur mobil */
       .user-menu {
-        display: block;
-        margin-left: auto;
+        display:block;
+        margin-left:auto;
       }
 
       /* Hero kompakter */
@@ -152,8 +143,10 @@
     }
   </style>
 </head>
+
 <base href="/" />
 <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
 <body>
   <!-- Header -->
   <header>
@@ -317,14 +310,17 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
+  <!-- Jahreszahl & User-Menü-Logik -->
   <script>
     // Jahreszahl im Footer
-    const yEl = document.getElementById('y');
-    if (yEl) yEl.textContent = new Date().getFullYear();
+    (function(){
+      const yEl = document.getElementById('y');
+      if (yEl) yEl.textContent = new Date().getFullYear();
+    })();
   </script>
 
-  <!-- User-Menü Logik (mobil) inkl. Auth-Status -->
   <script>
+    // User-Menü (Burger) inkl. Login-Status – identisches Verhalten wie Datenschutz
     (function(){
       const API = (typeof window.API === 'string')
         ? window.API
@@ -333,35 +329,6 @@
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
       if(!btn || !menu) return;
-
-      const authOutEls = menu.querySelectorAll('.auth-out');
-      const authInEls  = menu.querySelectorAll('.auth-in');
-
-      function setAuthVisible(isLoggedIn){
-        // nicht eingeloggt: nur auth-out sichtbar
-        authOutEls.forEach(el => {
-          el.style.display = isLoggedIn ? 'none' : '';
-        });
-        // eingeloggt: nur auth-in sichtbar
-        authInEls.forEach(el => {
-          el.style.display = isLoggedIn ? '' : 'none';
-        });
-        // Kontakt bleibt immer sichtbar (hat keine auth-*-Klasse)
-      }
-
-      async function checkAuth(){
-        try{
-          const res = await fetch(`${API}/me`, { credentials:'include' });
-          if(res.ok){
-            setAuthVisible(true);
-          }else{
-            setAuthVisible(false);
-          }
-        }catch(e){
-          // Bei Fehler: wie "nicht eingeloggt" behandeln
-          setAuthVisible(false);
-        }
-      }
 
       function openMenu(open){
         menu.hidden = !open;
@@ -376,6 +343,24 @@
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
 
+      // Auth-abhängige Sichtbarkeit
+      async function initAuthState(){
+        const loggedEls = menu.querySelectorAll('.auth-in');
+        const outEls    = menu.querySelectorAll('.auth-out');
+        try{
+          const r = await fetch(`${API}/me`, { credentials:'include' });
+          const isLoggedIn = r.ok;
+          loggedEls.forEach(el => el.style.display = isLoggedIn ? '' : 'none');
+          outEls.forEach(el => el.style.display = isLoggedIn ? 'none' : '');
+        }catch(_){
+          // Bei Fehler: als "nicht eingeloggt" behandeln
+          loggedEls.forEach(el => el.style.display = 'none');
+          outEls.forEach(el => el.style.display = '');
+        }
+      }
+      initAuthState();
+
+      // Aktionen im Menü (Logout / Delete)
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
         if(!el) return;
@@ -404,10 +389,7 @@
           }
         }
       });
-
-      // beim Laden Auth-Status prüfen und Menü anpassen
-      checkAuth();
-    })();
+      })();
   </script>
 </body>
 </html>

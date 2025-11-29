@@ -1,14 +1,13 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,6 +21,9 @@
   <meta property="og:site_name" content="Terminmarktplatz" />
   <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
   <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Basis-URL für alle relativen Links -->
+  <base href="/" />
 
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,7 +74,7 @@
       }
     }
 
-    /* Mobile-Optimierung + Menü-Verhalten mobil */
+    /* Mobile-Optimierung + Menü-Verhalten mobil (wie index/impressum) */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -86,31 +88,8 @@
         font-size: 1.05rem;
       }
 
-      .nav-links {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        text-align: center;
-      }
-
-      .nav-links a {
-        font-size: 0.9rem;
-        padding: 2px 6px;
-      }
-
-      .cta-group {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .cta-group .btn {
-        padding-inline: 10px;
-      }
-
-      /* Desktop-Nav & CTA auf Mobile ausblenden,
-         statt dessen nur das weiße Burger-Menü */
+      /* Desktop-Navigation & CTA auf Mobile ausblenden,
+         nur Burger-Menü verwenden */
       .nav-links,
       .cta-group {
         display: none !important;
@@ -184,12 +163,12 @@
     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="/" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="{{ url_for('static', filename='terminmarktplatz-logo.png') }}" alt="Terminmarktplatz Logo" width="50" height="50">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- Mobile User-Dropdown (wie auf index/impressum) -->
+      <!-- Mobile User-Dropdown (wie auf index/impressum/datenschutz) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -210,9 +189,9 @@
       </div>
 
       <nav class="nav-links" id="nav-links">
-        <a href="/anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
-        <a href="/suchende.html" aria-label="Für Suchende">Für Suchende</a>
-        <a href="/preise.html" aria-label="Preise">Preise</a>
+        <a href="anbieter.html" aria-label="Für Anbieter">Für Anbieter</a>
+        <a href="suchende.html" aria-label="Für Suchende">Für Suchende</a>
+        <a href="preise.html" aria-label="Preise">Preise</a>
       </nav>
     </div>
   </header>
@@ -444,8 +423,8 @@
               <p class="muted" style="margin:0">Sag uns Bescheid – oder werde Anbieter:in und schlage neue Kategorien vor.</p>
             </div>
             <div>
-              <a class="btn" href="/kontakt">Kategorie vorschlagen</a>
-              <a class="btn primary" href="/login?tab=register">Anbieter:in werden</a>
+              <a class="btn" href="kontakt.html">Kategorie vorschlagen</a>
+              <a class="btn primary" href="login.html?tab=register">Anbieter:in werden</a>
             </div>
           </div>
         </div>
@@ -492,7 +471,7 @@
     if (yEl) yEl.textContent = new Date().getFullYear();
   </script>
 
-  <!-- User-Menü Logik (mobil) inkl. Auth-Status – wie index/impressum -->
+  <!-- User-Menü Logik (mobil) inkl. Auth-Status – wie index/impressum/datenschutz -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
