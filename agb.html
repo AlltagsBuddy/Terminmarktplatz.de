@@ -64,7 +64,7 @@
       display: none;
     }
 
-    /* Mobile-Optimierungen + Menü nur mobil */
+    /* Mobile-Optimierungen */
     @media (max-width: 768px){
       header .nav{
         flex-wrap:wrap;
@@ -75,16 +75,35 @@
         margin-bottom:4px;
       }
 
-      /* Desktop-Nav & CTA auf Mobile ausblenden */
-      .nav-links,
-      .cta-group {
-        display: none !important;
-      }
-
       /* Burger-Menü nur mobil anzeigen */
       .user-menu {
         display: block;
         margin-left: auto;
+      }
+
+      /* NAV-LINKS: auf Mobile sichtbar, unter dem Logo */
+      .nav-links {
+        display:flex;
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:8px;
+        text-align:center;
+        margin-top:4px;
+      }
+
+      .nav-links a {
+        font-size:0.9rem;
+        padding:6px 8px;
+      }
+
+      /* CTA-Gruppe auf Mobile: untereinander / Wrap */
+      .cta-group {
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        margin-left:0;
+        margin-top:4px;
       }
 
       .hero{
@@ -104,7 +123,7 @@
       }
     }
 
-    /* Ab 769px: sicherstellen, dass Desktop-Nav sichtbar und Menü weg ist */
+    /* Ab 769px: Desktop-Nav sichtbar, Menü weg */
     @media (min-width: 769px){
       .user-menu {
         display: none;
@@ -136,38 +155,38 @@
         </a>
 
         <!-- Weißer Mobile-Button NUR für Konto / Kontakt -->
-      <div class="user-menu">
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          ☰ Menü
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
-          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+        <div class="user-menu">
+          <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+            ☰ Menü
+          </button>
+          <div id="userMenu" class="menu" role="menu" hidden>
+            <!-- Nur sichtbar, wenn NICHT eingeloggt -->
+            <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
 
-          <!-- Nur sichtbar, wenn eingeloggt -->
-          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+            <!-- Nur sichtbar, wenn eingeloggt -->
+            <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+            <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+            <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+            <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
-          <!-- Immer sichtbar -->
-          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+            <!-- Immer sichtbar -->
+            <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          </div>
+        </div>
+
+        <!-- Hauptnavigation – immer sichtbar -->
+        <nav class="nav-links">
+          <a href="anbieter.html">Für Anbieter</a>
+          <a href="suchende.html">Für Suchende</a>
+          <a href="preise.html">Preise</a>
+        </nav>
+
+        <div class="cta-group">
+          <a class="btn" href="login.html?tab=login">Anmelden</a>
+          <a class="btn primary" href="login.html?tab=register">Registrieren</a>
         </div>
       </div>
-
-      <!-- Hauptnavigation – IMMER sichtbar, auch mobil (per CSS gestylt) -->
-      <nav class="nav-links">
-        <a href="anbieter.html">Für Anbieter</a>
-        <a href="suchende.html">Für Suchende</a>
-        <a href="preise.html">Preise</a>
-      </nav>
-
-      <div class="cta-group">
-        <a class="btn" href="login.html?tab=login">Anmelden</a>
-        <a class="btn primary" href="login.html?tab=register">Registrieren</a>
-      </div>
-    </div>
-  </header>
+    </header>
 
   <main>
     <!-- HERO -->
