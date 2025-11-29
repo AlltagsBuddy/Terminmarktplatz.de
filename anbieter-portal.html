@@ -52,11 +52,17 @@
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
     /* Formular */
-    .field{ display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.04);
-            border:1px solid var(--border); border-radius:12px; padding:10px; }
+    .field{
+      display:flex; flex-direction:column; gap:6px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px;
+    }
     .field input,.field select,.field textarea{
       background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
-      border-radius:12px; padding:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
+      border-radius:12px; padding:10px;
+      box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
     }
     .field input::placeholder,.field textarea::placeholder{ color:#64748b }
     .field input:focus,.field select:focus,.field textarea:focus{
@@ -80,7 +86,7 @@
     .st-pub{background:#ecfeff}
     .st-arch{background:#f1f5f9}
 
-    /* NEU: visuelle Hervorhebung für gebuchte / abgelaufene Slots */
+    /* Gebuchte / abgelaufene Slots */
     .table tr.slot-past td{
       background:#f9fafb;
       color:#94a3b8;
@@ -138,7 +144,7 @@
     .lock-hint { font-size: 14px; }
     fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
 
-    /* NEU: prominenter Hinweisbalken */
+    /* Hinweisbalken (aktuell nicht sichtbar, aber vorbereitet) */
     .alert{
       display:none;
       border:1px solid #f59e0b;
@@ -151,9 +157,7 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* --- Mobile-Optimierung Anbieter-Portal + Header-Navigation --- */
-
-    /* Standard (Desktop): Nav-Links sichtbar, User-Menü (Hamburger) ausgeblendet */
+    /* Desktop: Nav-Links sichtbar, User-Menü (Hamburger) ausgeblendet */
     @media (min-width: 769px) {
       .user-menu {
         display: none;
@@ -164,8 +168,13 @@
       }
     }
 
+    /* MOBILE-OPTIMIERUNG PORTAL */
     @media (max-width: 768px) {
-      /* Header / Navigation Layout */
+      /* Allgemein: etwas kleinere Grundschrift im Portal */
+      .page-portal {
+        font-size: 0.95rem;
+      }
+
       .container.nav {
         flex-wrap: wrap;
         gap: 8px;
@@ -177,7 +186,7 @@
         font-size: 1.05rem;
       }
 
-      /* WICHTIG: Hauptnavigation – auch mobil IMMER sichtbar */
+      /* Hauptnavigation – auch mobil sichtbar */
       .nav-links {
         display: flex !important;
         width: 100%;
@@ -199,33 +208,72 @@
         margin-left: auto;
       }
 
-      /* Hero-Abstand etwas kompakter */
+      /* Hero kompakter */
       .hero {
-        padding: 28px 0 14px !important;
+        padding: 24px 0 10px !important;
       }
 
       .hero h1 {
-        font-size: 1.6rem;
-        line-height: 1.25;
+        font-size: 1.5rem;
+        line-height: 1.2;
+        margin-bottom: 4px;
       }
 
       .hero .lead {
-        font-size: 0.95rem;
+        font-size: 0.93rem;
       }
 
-      /* Panels / Grid: einspaltig */
+      /* Panels / Grid einspaltig & kompakter */
       .grid-2 {
         grid-template-columns: 1fr !important;
       }
 
-      .panel {
-        margin-bottom: 12px;
+      .grid {
+        gap: 12px;
       }
 
-      /* Formular / Toolbar: stapeln statt quetschen */
+      .panel {
+        margin-bottom: 10px;
+        padding: 12px 10px;
+        border-radius: 18px;
+      }
+
+      .panel h2 {
+        font-size: 1.1rem;
+        margin-bottom: 4px;
+      }
+
+      /* Formulare kompakter */
+      #form-profile,
+      #form-slot {
+        gap: 10px;
+      }
+
+      .field {
+        padding: 8px;
+        gap: 4px;
+      }
+
+      .field label {
+        font-size: 0.9rem;
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        padding: 8px;
+        font-size: 0.9rem;
+      }
+
+      .req-text {
+        font-size: 11px;
+      }
+
+      /* Toolbars / Buttons: weniger wuchtig */
       .toolbar {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 6px;
       }
 
       .toolbar .btn {
@@ -233,20 +281,25 @@
         justify-content: center;
       }
 
-      /* Slot-Form: Buttons / Dauer-Buttons besser lesbar */
+      .toolbar .muted {
+        font-size: 0.85rem;
+      }
+
+      /* Shortcuts für Dauer: etwas kleiner und weniger breit */
       #form-slot .seg {
         gap: 6px;
       }
 
       #form-slot .seg .btn {
-        font-size: 0.85rem;
-        padding: 6px 10px;
+        font-size: 0.78rem;
+        padding: 5px 8px;
       }
 
       /* Slot-Filter + Bulk-Buttons */
       .slot-filter {
         flex-direction: column;
         align-items: stretch;
+        gap: 6px;
       }
 
       .slot-filter input {
@@ -262,11 +315,11 @@
       }
 
       .slot-filter .seg .btn {
-        font-size: 0.8rem;
-        padding: 6px 8px;
+        font-size: 0.78rem;
+        padding: 5px 8px;
       }
 
-      /* Tabelle mobil: horizontales Scrollen statt Mini-Schrift */
+      /* Tabelle: horizontal scrollen statt alles zusammenschieben */
       .table-wrap {
         width: 100%;
         overflow-x: auto;
@@ -278,8 +331,8 @@
 
       .table th,
       .table td {
-        font-size: 0.85rem;
-        padding: 8px 8px;
+        font-size: 0.83rem;
+        padding: 6px 8px;
       }
 
       /* Footer-Spalten untereinander */
@@ -301,53 +354,71 @@
       text-shadow:none;
       background-image:none;
     }
-
   </style>
 </head>
 
 <body class="page-portal">
 
  <!-- Header -->
-    <header>
-      <div class="container nav"
-          role="navigation"
-          aria-label="Hauptnavigation"
-          style="flex-wrap:wrap; gap:8px; align-items:flex-start;">
-        <a class="brand" href="index.html" aria-label="Startseite">
-          <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
-          </div>
-          <div class="brand-title">Terminmarktplatz</div>
-        </a>
-
-        <!-- Weißer Mobile-Button NUR für Konto / Kontakt -->
-        <div class="user-menu">
-          <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-            ☰ Menü
-          </button>
-          <div id="userMenu" class="menu" role="menu" hidden>
-            <!-- Nur sichtbar, wenn NICHT eingeloggt -->
-            <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-            <!-- Nur sichtbar, wenn eingeloggt -->
-            <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-            <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-            <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-            <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-            <!-- Immer sichtbar -->
-            <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-          </div>
+  <header>
+    <div class="container nav"
+        role="navigation"
+        aria-label="Hauptnavigation"
+        style="flex-wrap:wrap; gap:8px; align-items:flex-start;">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-        <!-- Hauptnavigation – immer sichtbar -->
-        <nav class="nav-links">
-          <a href="anbieter.html">Für Anbieter</a>
-          <a href="suchende.html">Für Suchende</a>
-          <a href="preise.html">Preise</a>
-        </nav>
+      <!-- Weißer Mobile-Button NUR für Konto / Kontakt -->
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- Nur sichtbar, wenn eingeloggt -->
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+          <!-- Immer sichtbar -->
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
       </div>
-    </header>
+
+      <!-- Hauptnavigation – immer sichtbar -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+         <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- Nur sichtbar, wenn eingeloggt -->
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+          <!-- Immer sichtbar -->
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
+      </div>
+
+    </div>
+  </header>
 
   <main>
     <!-- HERO -->
@@ -1010,7 +1081,7 @@
         let loggedIn = false;
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
-          loggedIn = res.ok; // 200 = eingeloggt
+          loggedIn = res.ok;
         }catch(e){
           loggedIn = false;
         }
@@ -1052,7 +1123,6 @@
         }
       });
 
-      // Beim Laden direkt setzen
       updateAuthUI();
     })();
   </script>
