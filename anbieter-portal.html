@@ -144,7 +144,6 @@
     .lock-hint { font-size: 14px; }
     fieldset[disabled] { filter: grayscale(0.1); opacity: .75; }
 
-    /* Hinweisbalken (aktuell nicht sichtbar, aber vorbereitet) */
     .alert{
       display:none;
       border:1px solid #f59e0b;
@@ -170,7 +169,6 @@
 
     /* MOBILE-OPTIMIERUNG PORTAL */
     @media (max-width: 768px) {
-      /* Allgemein: etwas kleinere Grundschrift im Portal */
       .page-portal {
         font-size: 0.95rem;
       }
@@ -208,7 +206,6 @@
         margin-left: auto;
       }
 
-      /* Hero kompakter */
       .hero {
         padding: 24px 0 10px !important;
       }
@@ -223,7 +220,6 @@
         font-size: 0.93rem;
       }
 
-      /* Panels / Grid einspaltig & kompakter */
       .grid-2 {
         grid-template-columns: 1fr !important;
       }
@@ -243,7 +239,6 @@
         margin-bottom: 4px;
       }
 
-      /* Formulare kompakter */
       #form-profile,
       #form-slot {
         gap: 10px;
@@ -269,7 +264,6 @@
         font-size: 11px;
       }
 
-      /* Toolbars / Buttons: weniger wuchtig */
       .toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -285,7 +279,6 @@
         font-size: 0.85rem;
       }
 
-      /* Shortcuts für Dauer: etwas kleiner und weniger breit */
       #form-slot .seg {
         gap: 6px;
       }
@@ -295,7 +288,6 @@
         padding: 5px 8px;
       }
 
-      /* Slot-Filter + Bulk-Buttons */
       .slot-filter {
         flex-direction: column;
         align-items: stretch;
@@ -319,7 +311,6 @@
         padding: 5px 8px;
       }
 
-      /* Tabelle: horizontal scrollen statt alles zusammenschieben */
       .table-wrap {
         width: 100%;
         overflow-x: auto;
@@ -335,7 +326,6 @@
         padding: 6px 8px;
       }
 
-      /* Footer-Spalten untereinander */
       .foot-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -398,25 +388,6 @@
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
       </nav>
-         <div class="user-menu">
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          ☰ Menü
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
-          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-          <!-- Nur sichtbar, wenn eingeloggt -->
-          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-          <!-- Immer sichtbar -->
-          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-        </div>
-      </div>
-
     </div>
   </header>
 
@@ -662,7 +633,6 @@
     }
 
     function pad(n){ return n.toString().padStart(2,'0'); }
-    function toLocalISO(dateLocal){ return new Date(dateLocal).toISOString(); }
     function joinDateTime(dateStr, timeStr){
       const [y,m,d] = dateStr.split('-').map(Number);
       const [hh,mm] = timeStr.split(':').map(Number);
@@ -814,6 +784,70 @@
       $('#sl-duration').value = b.dataset.hour;
       recalcEnd();
     }));
+
+    // ---------- Slot anlegen (POST /slots) ----------
+    document.getElementById('form-slot').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fs = document.getElementById('slot-fields');
+      if (fs && fs.disabled) {
+        showMsg('msg-slot', 'Profil zuerst vollständig ausfüllen.');
+        return;
+      }
+
+      const title    = $('#sl-title').value.trim();
+      const category = $('#sl-cat').value;
+      const date     = $('#sl-date').value;
+      const start    = $('#sl-start').value;
+      const location = $('#sl-location').value.trim();
+      const duration = totalMinutes();
+
+      if (!title || !category || !date || !start || !location || !duration) {
+        showMsg('msg-slot', 'Bitte alle Pflichtfelder für den Slot ausfüllen.');
+        return;
+      }
+
+      const startDt = joinDateTime(date, start);
+      const endDt   = new Date(startDt.getTime() + duration * 60000);
+
+      const capacity = parseInt($('#sl-cap').value || '1', 10);
+      const priceVal = $('#sl-price').value;
+      const notes    = $('#sl-notes').value.trim();
+
+      const payload = {
+        title,
+        category,
+        start_at: startDt.toISOString(),
+        end_at:   endDt.toISOString(),
+        location,
+        capacity: isNaN(capacity) ? 1 : capacity,
+        price:    priceVal === '' ? null : Number(priceVal),
+        notes:    notes || null
+      };
+
+      try {
+        const res = await fetch(`${API}/slots`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          showMsg('msg-slot', 'Slot angelegt.', true);
+          // Formular zurücksetzen, Standardwerte wiederherstellen
+          document.getElementById('form-slot').reset();
+          $('#sl-duration').value = 30;
+          $('#sl-unit').value = 'min';
+          recalcEnd();
+          await loadSlots();
+        } else {
+          showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
+        }
+      } catch (err) {
+        showMsg('msg-slot', 'Netzwerkfehler – Slot konnte nicht gespeichert werden.');
+      }
+    });
 
     // ---------- Slots laden & rendern + Freigabe-Workflow ----------
     let SELECTED = new Set();
