@@ -2,413 +2,6 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
-<head>
-  <!-- direkt nach <head> -->
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Datenschutzerklärung | Terminmarktplatz</title>
-  <meta name="description" content="Datenschutzerklärung für Terminmarktplatz: Verarbeitung personenbezogener Daten, Zwecke, Rechtsgrundlagen, Speicherdauern, Empfänger und Betroffenenrechte." />
-  <meta name="theme-color" content="#6f53ff" />
-
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Datenschutzerklärung | Terminmarktplatz" />
-  <meta property="og:description" content="Alles Wichtige zum Datenschutz bei Terminmarktplatz." />
-  <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
-  <meta name="twitter:card" content="summary_large_image" />
-
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-  <!-- Kleine Tabellenstyles nur für diese Seite + Mobile-Optimierung -->
-  <style>
-    .privacy-table{
-      width:50%;
-      border-collapse:collapse;
-      font-size:15px;
-      max-width:100%;
-    }
-    .privacy-table th,
-    .privacy-table td{
-      border:1px solid var(--ab-border);
-      padding:10px;
-      vertical-align:top;
-    }
-    .privacy-table th{
-      background:#475569;
-      text-align:left;
-    }
-    .toc a{color:#475569}
-    .callout{
-      border-left:4px solid var(--ab-primary);
-      padding:12px 14px;
-      background:#fff;
-      border:1px solid var(--ab-border);
-      border-radius:12px;
-    }
-    .pill{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:999px;
-      background:rgba(111,83,255,.12);
-      border:1px solid #d9ddff;
-      font-size:12px;
-      font-weight:600;
-    }
-    .fill{
-      background:#fff3;
-      border-bottom:2px dotted #cbd5e1;
-    }
-    .small{font-size:13px}
-
-    /* Mobile-Ansicht */
-    @media (max-width: 768px) {
-      /* Header / Navigation */
-      .container.nav {
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: flex-start;
-        padding-inline: 16px;
-      }
-
-      .brand-title {
-        font-size: 1.05rem;
-      }
-
-      .nav-links {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        text-align: center;
-      }
-
-      .nav-links a {
-        font-size: 0.9rem;
-        padding: 2px 6px;
-      }
-
-      .cta-group {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .cta-group .btn {
-        padding-inline: 10px;
-      }
-
-      /* Hero-Bereich kompakter */
-      .hero {
-        padding: 28px 0 14px !important;
-      }
-
-      .hero h1 {
-        font-size: 1.6rem;
-        line-height: 1.25;
-      }
-
-      .hero .lead {
-        font-size: 0.95rem;
-      }
-
-      /* Card / Textblock */
-      .card {
-        padding: 18px !important;
-      }
-
-      /* Tabelle mobil: vollbreit, etwas kleinere Schrift */
-      .privacy-table {
-        width: 100%;
-        font-size: 14px;
-      }
-
-      /* Footer-Spalten untereinander */
-      .foot-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .foot-col {
-        margin-top: 4px;
-      }
-    }
-  </style>
-</head>
-<base href="/" />
-<link rel="stylesheet" href="/static/style.css?v=20251010" />
-<body>
-  <!-- Header -->
-  <header>
-     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
-      <a class="brand" href="index.html" aria-label="Startseite">
-        <div class="brand-logo" aria-hidden="true">
-          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
-        </div>
-        <div class="brand-title">Terminmarktplatz</div>
-      </a>
-
-          <!-- Mobile User-Dropdown -->
-      <div class="user-menu">
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          ☰ Menü
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- Nur sichtbar, wenn NICHT eingeloggt -->
-          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-          <!-- Nur sichtbar, wenn eingeloggt -->
-          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-          <!-- Immer sichtbar -->
-          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-        </div>
-      </div>
-
-      <nav class="nav-links">
-          <a href="anbieter.html">Für Anbieter</a>
-          <a href="suchende.html">Für Suchende</a>
-          <a href="preise.html">Preise</a>
-        </nav>
-          </div>
-  </header>
-
-  <main>
-    <!-- HERO -->
-    <section class="hero" style="padding:40px 0 16px">
-      <div class="container">
-        <span class="badge">Transparenz & DSGVO</span>
-        <br>
-        <h1>Datenschutzerklärung</h1>
-        <br>
-        <p class="lead">Diese Erklärung erläutert, welche personenbezogenen Daten wir verarbeiten, zu welchen Zwecken, auf welcher Rechtsgrundlage, wie lange und welche Rechte du hast.</p>
-      </div>
-    </section>
-
-    <section>
-      <div class="container">
-        <div class="card" style="padding:22px">
-
-          <h2 id="verantwortlicher">1. Verantwortlicher</h2>
-          <p>
-            <strong>AlltagsBuddy</strong><br>
-            Steigerwaldstraße 35<br>
-            96191 Viereth-Trunstadt, Deutschland<br>
-            <br>
-            Telefon: folgt<br>
-            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a><br>
-            <br>
-            Weitere Angaben im <a href="/impressum.html">Impressum</a>.
-          </p>
-
-          <h2 id="beauftragter">2. Datenschutz-Ansprechpartner / -Beauftragter</h2>
-          <p>
-            Für Datenschutzanfragen erreichst du uns unter <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a>.<br>
-          
-          </p>
-
-          <h2 id="verarbeitungen">3. Verarbeitungen, Zwecke & Rechtsgrundlagen</h2>
-          <p>Wir verarbeiten personenbezogene Daten nur, soweit dies gesetzlich erlaubt ist. Die wichtigsten Verarbeitungen im Überblick:</p>
-          <div class="callout small">Hinweis: „Art.“ bezieht sich auf die Datenschutz-Grundverordnung (DSGVO).</div>
-          <table class="privacy-table" style="margin-top:10px">
-            <thead>
-              <tr>
-                <th>Vorgang</th>
-                <th>Zweck</th>
-                <th>Rechtsgrundlage</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Website-Bereitstellung & Server-Logs</td>
-                <td>Betrieb, Sicherheit, Fehleranalyse</td>
-                <td>Art. 6 Abs. 1 lit. f (berechtigtes Interesse)</td>
-              </tr>
-              <tr>
-                <td>Kontakt/Support</td>
-                <td>Bearbeitung von Anfragen</td>
-                <td>Art. 6 Abs. 1 lit. b (vorvertraglich) oder lit. f</td>
-              </tr>
-              <tr>
-                <td>Registrierung/Anmeldung (Anbieter)</td>
-                <td>Kontoführung, Authentifizierung (Passwort-Hash mit Argon2), Double-Opt-In</td>
-                <td>Art. 6 Abs. 1 lit. b</td>
-              </tr>
-              <tr>
-                <td>Terminbuchung (Kund:innen)</td>
-                <td>Vermittlung, Bestätigung, Kommunikation</td>
-                <td>Art. 6 Abs. 1 lit. b</td>
-              </tr>
-              <tr>
-                <td>E-Mail-Versand (z. B. Bestätigung)</td>
-                <td>Transaktionsmails (z. B. Double-Opt-In, Buchungsbestätigung)</td>
-                <td>Art. 6 Abs. 1 lit. b; ggf. lit. f</td>
-              </tr>
-              <tr>
-                <td>Zahlungsabwicklung <span class="pill">optional</span></td>
-                <td>Abrechnung, Betrugsprävention</td>
-                <td>Art. 6 Abs. 1 lit. b/c/f</td>
-              </tr>
-              <tr>
-                <td>Newsletter/Marketing <span class="pill">nur bei Einwilligung</span></td>
-                <td>Infos & Angebote</td>
-                <td>Art. 6 Abs. 1 lit. a (Einwilligung), Widerruf jederzeit</td>
-              </tr>
-              <tr>
-                <td>Erfüllung gesetzlicher Pflichten</td>
-                <td>Aufbewahrung, Auskunft an Behörden</td>
-                <td>Art. 6 Abs. 1 lit. c</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h2 id="kategorien">4. Kategorien personenbezogener Daten</h2>
-          <ul>
-            <li><strong>Nutzungs-/Serverdaten:</strong> IP-Adresse, Zeitpunkt, URL, Referrer, Statuscode, User-Agent.</li>
-            <li><strong>Kontodaten (Anbieter):</strong> E-Mail, Passwort-Hash (Argon2), Firmen-/Kontaktdaten, Verifizierungsstatus.</li>
-            <li><strong>Buchungsdaten (Kund:innen):</strong> Name, E-Mail, gebuchte Leistung/Slot, Bestätigungsstatus.</li>
-            <li><strong>Kommunikation:</strong> Inhalte aus Kontaktformular / E-Mail.</li>
-            <li><strong>Abrechnungsdaten <span class="pill">optional</span>:</strong> Zahlungsinfos (über Zahlungsdienstleister).</li>
-          </ul>
-          <p>Besondere Kategorien i. S. v. Art. 9 DSGVO werden nicht gezielt verarbeitet.</p>
-
-          <h2 id="empfaenger">5. Empfänger & Auftragsverarbeiter</h2>
-          <p>Wir setzen sorgfältig ausgewählte Dienstleister (Auftragsverarbeiter) ein. Kategorien von Empfängern:</p>
-          <ul>
-            <li>Hosting & Infrastruktur: <span class="fill">STRATO</span></li>
-            <li>E-Mail-Versand (Transaktionsmails): <span class="fill">Postmark</span></li>
-            <li>Zahlungsdienstleister <span class="pill">optional</span>: <span class="fill">PayPal</span></li>
-            <li>Support/Kommunikation <span class="pill">optional</span>: <span class="fill">per E-Mail</span></li>
-            <li>Beratung/IT-Wartung: vertraglich gebundene Dienstleister</li>
-          </ul>
-          <p>Mit allen Auftragsverarbeitern schließen wir Verträge gem. Art. 28 DSGVO.</p>
-
-          <h2 id="drittland">6. Drittlandübermittlungen</h2>
-          <p>Sofern Daten an Empfänger in Staaten außerhalb der EU/des EWR übermittelt werden (z. B. E-Mail-Dienst in den USA), stellen wir ein angemessenes Datenschutzniveau sicher, etwa durch <strong>EU-Standardvertragsklauseln (Art. 46 DSGVO)</strong> und zusätzliche Schutzmaßnahmen.</p>
-          
-          <h2 id="speicherdauer">7. Speicherdauern</h2>
-          <ul>
-            <li><strong>Server-Logs:</strong> i. d. R. 14–30 Tage.</li>
-            <li><strong>Kontodaten (Anbieter):</strong> bis zur Löschung des Kontos; handels-/steuerrechtliche Aufbewahrung (6/10 Jahre) bleibt unberührt.</li>
-            <li><strong>Buchungen:</strong> bis zur Abwicklung; gesetzliche Aufbewahrungspflichten können gelten.</li>
-            <li><strong>Kommunikation:</strong> bis zur abschließenden Bearbeitung und entsprechend gesetzlicher Pflichten.</li>
-          </ul>
-
-          <h2 id="cookies">8. Cookies & lokale Speicher</h2>
-          <p>Wir verwenden derzeit <strong>nur technisch notwendige</strong> Cookies/Storage-Einträge:</p>
-          <ul>
-            <li><code>access_token</code> (HTTP-only, Secure, SameSite=Lax) – Anmeldung/Sitzung</li>
-            <li><code>refresh_token</code> (HTTP-only, Secure, SameSite=Lax) – Sitzungsverlängerung</li>
-            <li><code>tm_cookie_consent_v1</code> (Local Storage) – speichert deine Banner-Auswahl</li>
-          </ul>
-          <p>Analyse/Marketing-Cookies setzen wir aktuell nicht ein. Falls dies künftig erfolgt, fragen wir zuvor deine Einwilligung und aktualisieren diese Seite.</p>
-
-          <h2 id="rechte">9. Deine Rechte</h2>
-          <ul>
-            <li>Auskunft, Berichtigung, Löschung, Einschränkung (Art. 15–18 DSGVO)</li>
-            <li>Datenübertragbarkeit (Art. 20 DSGVO)</li>
-            <li>Widerspruch gegen Verarbeitungen auf Basis berechtigter Interessen (Art. 21 DSGVO)</li>
-            <li>Widerruf erteilter Einwilligungen (Art. 7 Abs. 3 DSGVO)</li>
-            <li>Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO)
-          </ul>
-
-          <h2 id="pflicht">10. Pflicht zur Bereitstellung</h2>
-          <p>Für die Nutzung bestimmter Funktionen (z. B. Registrierung, Buchung) sind die entsprechenden Angaben erforderlich. Ohne diese Daten können wir den Dienst nicht bereitstellen.</p>
-
-          <h2 id="quellen">11. Datenquellen (Art. 14 DSGVO)</h2>
-          <p>Wenn wir Daten nicht direkt bei dir erheben (z. B. Anbieter hinterlegt Kontaktdaten für eine Buchung), informieren wir dich gem. Art. 14 DSGVO. Kategorien der Quellen: <span class="fill">z. B. angebundene Praxissysteme, Kalender-Integrationen</span>.</p>
-
-          <h2 id="automatisierung">12. Automatisierte Entscheidungen/Profiling</h2>
-          <p>Es findet keine automatisierte Entscheidungsfindung einschließlich Profiling i. S. v. Art. 22 DSGVO statt.</p>
-
-          <h2 id="sicherheit">13. Sicherheit</h2>
-          <p>Wir setzen angemessene technische und organisatorische Maßnahmen ein (u. a. TLS-Verschlüsselung, Passwörter als Argon2-Hash, rollenbasierte Zugriffe, Protokollierung, regelmäßige Updates, EU-Hosting <span class="fill"></span>).</p>
-
-          <h2 id="aenderungen">14. Änderungen & Stand</h2>
-          <p>Wir passen diese Datenschutzerklärung an, wenn sich unser Dienst oder rechtliche Vorgaben ändern. Die jeweils aktuelle Fassung ist hier abrufbar.</p>
-          <p class="muted">Stand: <span id="policy-date"></span></p>
-
-          <h2 id="kontakt">15. Kontakt für Datenschutz-Anfragen</h2>
-          <p>
-            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a><br>
-            
-          </p>
-
-        </div>
-      </div>
-    </section>
-  </main>
-
-      <!-- Footer -->
-  <footer>
-    <div class="container foot-grid">
-      <div>
-        <div class="brand" style="margin-bottom:10px">
-          <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
-          </div>
-          <div class="brand-title">Terminmarktplatz</div>
-        </div>
-        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
-      </div>
-      <div class="foot-col">
-        <h4>Produkt</h4>
-        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
-        <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
-      </div>
-      <div class="foot-col">
-        <h4>Rechtliches</h4>
-        <a class="foot-link" href="impressum.html">Impressum</a>
-        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
-        <a class="foot-link" href="agb.html">AGB</a>
-        <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
-      </div>
-      <div class="foot-col">
-        <h4>Kontakt</h4>
-        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
-        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
-      </div>
-    </div>
-    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
-  </footer>
-
-  <!-- Kein Cookie-Banner auf der Datenschutz-Seite nötig -->
-  <script>
-    // Mobile nav
-    const nav = document.querySelector('.nav');
-    const hb = document.getElementById('hamburger');
-    if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
-
-    // Jahreszahl & Stand
-    document.getElementById('y').textContent = new Date().getFullYear();
-    const d = new Date();
-    const pad = (n)=> String(n).padStart(2,'0');
-    document.getElementById('policy-date').textContent = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
-  </script>
-</body>
-</html>
-<!-- FILE: templates/datenschutz.html -->
-<!doctype html>
-<html lang="de">
-  <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -439,7 +32,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-  <!-- Kleine Tabellenstyles nur für diese Seite + Mobile-Optimierung -->
+  <!-- Kleine Tabellenstyles nur für diese Seite + Menü-/Mobile-Optimierung -->
   <style>
     .privacy-table{
       width:50%;
@@ -494,7 +87,19 @@
       display:none;
     }
 
-    /* Mobile-Ansicht */
+    /* Desktop: Nav sichtbar, Burger-Menü weg */
+    @media (min-width: 769px){
+      .user-menu {
+        display:none;
+      }
+      .nav-links {
+        display:flex;
+        gap:12px;
+        margin-left:auto;
+      }
+    }
+
+    /* Mobile-Ansicht: Nav-Links IMMER sichtbar + User-Menü */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -508,13 +113,23 @@
         font-size: 1.05rem;
       }
 
-      /* Desktop-Links auf Mobile ausblenden */
-      .nav-links,
-      .cta-group {
-        display:none !important;
+      /* Hauptnavigation – auch mobil sichtbar */
+      .nav-links {
+        display:flex !important;
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:8px;
+        text-align:center;
+        margin-top:4px;
       }
 
-      /* Nur auf Mobile: Burger-Menü rechts */
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+
+      /* User-Menü nur mobil */
       .user-menu {
         display:block;
         margin-left:auto;
@@ -556,29 +171,13 @@
         margin-top: 4px;
       }
     }
-
-    /* Desktop: Nav sichtbar, Burger-Menü weg */
-    @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-        gap:12px;
-      }
-      .cta-group {
-        display:flex;
-        gap:8px;
-        margin-left:auto;
-      }
-    }
   </style>
 </head>
 
 <body>
   <!-- Header -->
   <header>
-     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
@@ -811,9 +410,8 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <!-- Jahreszahl & Stand + User-Menü-Logik -->
+  <!-- Jahreszahl & Stand -->
   <script>
-    // Jahreszahl & Policy-Datum
     (function(){
       const yEl = document.getElementById('y');
       if (yEl) yEl.textContent = new Date().getFullYear();
@@ -824,8 +422,8 @@
     })();
   </script>
 
+  <!-- User-Menü Logik (mobil) -->
   <script>
-    // User-Menü (Burger) inkl. Login-Status
     (function(){
       const API = (typeof window.API === 'string')
         ? window.API
@@ -858,7 +456,6 @@
           loggedEls.forEach(el => el.style.display = isLoggedIn ? '' : 'none');
           outEls.forEach(el => el.style.display = isLoggedIn ? 'none' : '');
         }catch(_){
-          // Bei Fehler: als "nicht eingeloggt" behandeln
           loggedEls.forEach(el => el.style.display = 'none');
           outEls.forEach(el => el.style.display = '');
         }

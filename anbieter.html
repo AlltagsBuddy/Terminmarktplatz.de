@@ -30,21 +30,32 @@
 
   <!-- Page-spezifische Mobile-Optimierung + Menü-Logik -->
   <style>
+    .user-menu .btn {
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+      background-image:none;
+    }
 
-      .user-menu .btn {
-            background:#ffffff;
-            color:#0f172a;
-            border:1px solid #cbd5e1;
-            text-shadow:none;
-            background-image:none;
-          }
-
-
-    /* Standard: Burger-Menü ausblenden */
+    /* Standard: erst mal Burger aus, Nav übernimmt – Details dann über MQ */
     .user-menu {
       display: none;
     }
 
+    /* Desktop: Nav sichtbar, Burger-Menü weg */
+    @media (min-width: 769px) {
+      .user-menu {
+        display: none;
+      }
+      .nav-links {
+        display: flex;
+        gap: 12px;
+        margin-left: auto;
+      }
+    }
+
+    /* Mobile: Header-Layout + Nav-Links IMMER sichtbar + User-Menü */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -58,15 +69,15 @@
         font-size: 1.05rem;
       }
 
-      /* Desktop-Nav auf Mobile ausblenden, nur Burger-Menü */
+      /* Hauptnavigation – auch mobil sichtbar */
       .nav-links {
-        display: none !important;
-      }
-
-      /* Burger-Menü nur mobil */
-      .user-menu {
-        display: block;
-        margin-left: auto;
+        display: flex !important;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+        margin-top: 4px;
       }
 
       .nav-links a {
@@ -74,14 +85,10 @@
         padding: 2px 6px;
       }
 
-      .cta-group {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .cta-group .btn {
-        padding-inline: 10px;
+      /* User-Menü (Account) nur mobil */
+      .user-menu {
+        display: block;
+        margin-left: auto;
       }
 
       /* HERO */
@@ -98,7 +105,7 @@
         font-size: 0.96rem;
       }
 
-      /* Hero-Buttons: auf kleinen Screens vollbreit untereinander */
+      /* Hero-Buttons: vollbreit untereinander */
       .hero .btn {
         min-width: 0;
         flex: 1 1 100%;
@@ -158,18 +165,6 @@
 
       .foot-col {
         margin-top: 4px;
-      }
-    }
-
-    /* Desktop: Nav sichtbar, Burger-Menü weg */
-    @media (min-width: 769px) {
-      .user-menu {
-        display: none;
-      }
-      .nav-links {
-        display: flex;
-        gap: 12px;
-        margin-left: auto;
       }
     }
   </style>

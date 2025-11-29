@@ -2,14 +2,13 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,6 +23,8 @@
   <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
   <meta name="twitter:card" content="summary_large_image" />
 
+  <base href="/" />
+
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +38,7 @@
     .impressum p{margin:6px 0}
     .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
 
-    /* Menü-Button im User-Menü: weiß (wie AGB) */
+    /* Menü-Button im User-Menü: weiß (wie AGB/Datenschutz) */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -46,12 +47,24 @@
       background-image:none;
     }
 
-    /* Standard: Burger-Menü ausblenden, Desktop-Navi sichtbar */
+    /* Standard: Burger-Menü ausblenden */
     .user-menu {
       display:none;
     }
 
-    /* Mobile-Optimierung + Menü-Verhalten wie in AGB */
+    /* Desktop: Nav sichtbar, Burger-Menü weg */
+    @media (min-width: 769px){
+      .user-menu {
+        display:none;
+      }
+      .nav-links {
+        display:flex;
+        gap:12px;
+        margin-left:auto;
+      }
+    }
+
+    /* Mobile: Nav-Links sichtbar + Burger-Menü wie auf den anderen Seiten */
     @media (max-width: 768px) {
       .container.nav {
         flex-wrap: wrap;
@@ -68,12 +81,15 @@
         font-size: 1.05rem;
       }
 
+      /* Hauptnavigation – auch mobil sichtbar */
       .nav-links {
+        display:flex !important;
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
         gap: 8px;
         text-align: center;
+        margin-top:4px;
       }
 
       .nav-links a {
@@ -90,12 +106,6 @@
 
       .cta-group .btn {
         padding-inline: 10px;
-      }
-
-      /* Desktop-Nav & CTA auf Mobile ausblenden */
-      .nav-links,
-      .cta-group {
-        display: none !important;
       }
 
       /* Burger-Menü nur mobil anzeigen */
@@ -134,26 +144,9 @@
         margin-top: 4px;
       }
     }
-
-    /* Desktop: normale Nav, kein Burger-Menü */
-    @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-        gap:12px;
-      }
-      .cta-group {
-        display:flex;
-        gap:8px;
-        margin-left:auto;
-      }
-    }
   </style>
 </head>
-<base href="/" />
-<link rel="stylesheet" href="/static/style.css?v=20251010" />
+
 <body>
   <!-- Header -->
   <header>
@@ -209,7 +202,7 @@
           <p>
             <strong>AlltagsBuddy / Annett Hofmann</strong><br>
             Steigerwaldstraße 35<br>
-            96191 Vieret-Trunstadt, Deutschland
+            96191 Viereth-Trunstadt, Deutschland
           </p>
           <p>
             Telefon: <span class="fill">folgt</span><br>
@@ -219,7 +212,7 @@
 
           <h3>Verantwortlich i. S. d. § 18 Abs. 2 MStV</h3>
           <p>
-            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 &lt;Viereth-Trunstadt&gt;</span>
+            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 Viereth-Trunstadt</span>
           </p>
 
           <hr style="border:none; border-top:1px solid var(--ab-border); margin:18px 0">
@@ -232,7 +225,7 @@
 
           <h2>3. Verbraucherstreitbeilegung nach VSBG</h2>
           <p class="callout">
-            <span class="small"></span> Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.<br>
+            <span class="small">Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</span>
           </p>
 
           <h2>4. Haftung für Inhalte</h2>
@@ -338,27 +331,19 @@
       const authInEls  = menu.querySelectorAll('.auth-in');
 
       function setAuthVisible(isLoggedIn){
-        // nicht eingeloggt: nur auth-out sichtbar
         authOutEls.forEach(el => {
           el.style.display = isLoggedIn ? 'none' : '';
         });
-        // eingeloggt: nur auth-in sichtbar
         authInEls.forEach(el => {
           el.style.display = isLoggedIn ? '' : 'none';
         });
-        // Kontakt bleibt immer sichtbar (hat keine auth-*-Klasse)
       }
 
       async function checkAuth(){
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
-          if(res.ok){
-            setAuthVisible(true);
-          }else{
-            setAuthVisible(false);
-          }
+          setAuthVisible(res.ok);
         }catch(e){
-          // Bei Fehler: wie "nicht eingeloggt" behandeln
           setAuthVisible(false);
         }
       }
@@ -405,7 +390,7 @@
         }
       });
 
-      // beim Laden Auth-Status prüfen und Menü anpassen
+      // beim Laden Auth-Status prüfen
       checkAuth();
     })();
   </script>
