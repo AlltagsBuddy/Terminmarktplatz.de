@@ -74,7 +74,7 @@
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 
-    /* Tabelle */
+    /* Tabelle (Desktop) */
     .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
            border-radius:14px; overflow:hidden}
     .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
@@ -170,18 +170,18 @@
     /* MOBILE-OPTIMIERUNG PORTAL */
     @media (max-width: 768px) {
       .page-portal {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
       }
 
       .container.nav {
         flex-wrap: wrap;
-        gap: 8px;
-        padding-inline: 16px;
+        gap: 6px;
+        padding-inline: 12px;
         align-items: flex-start;
       }
 
       .brand-title {
-        font-size: 1.05rem;
+        font-size: 1.0rem;
       }
 
       /* Hauptnavigation – auch mobil sichtbar */
@@ -190,14 +190,14 @@
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
         text-align: center;
-        margin-top: 4px;
+        margin-top: 2px;
       }
 
       .nav-links a {
-        font-size: 0.9rem;
-        padding: 2px 6px;
+        font-size: 0.85rem;
+        padding: 2px 4px;
       }
 
       /* User-Menü (Konto / Profil / Logout / Kontakt) nur mobil anzeigen */
@@ -207,17 +207,17 @@
       }
 
       .hero {
-        padding: 24px 0 10px !important;
+        padding: 20px 0 8px !important;
       }
 
       .hero h1 {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         line-height: 1.2;
         margin-bottom: 4px;
       }
 
       .hero .lead {
-        font-size: 0.93rem;
+        font-size: 0.9rem;
       }
 
       .grid-2 {
@@ -225,49 +225,49 @@
       }
 
       .grid {
-        gap: 12px;
+        gap: 10px;
       }
 
       .panel {
-        margin-bottom: 10px;
-        padding: 12px 10px;
-        border-radius: 18px;
+        margin-bottom: 8px;
+        padding: 10px 8px;
+        border-radius: 16px;
       }
 
       .panel h2 {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         margin-bottom: 4px;
       }
 
       #form-profile,
       #form-slot {
-        gap: 10px;
+        gap: 8px;
       }
 
       .field {
-        padding: 8px;
-        gap: 4px;
+        padding: 6px;
+        gap: 3px;
       }
 
       .field label {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
       }
 
       .field input,
       .field select,
       .field textarea {
-        padding: 8px;
-        font-size: 0.9rem;
+        padding: 6px 8px;
+        font-size: 0.85rem;
       }
 
       .req-text {
-        font-size: 11px;
+        font-size: 10px;
       }
 
       .toolbar {
         flex-direction: column;
         align-items: stretch;
-        gap: 6px;
+        gap: 4px;
       }
 
       .toolbar .btn {
@@ -276,22 +276,22 @@
       }
 
       .toolbar .muted {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
       }
 
       #form-slot .seg {
-        gap: 6px;
+        gap: 4px;
       }
 
       #form-slot .seg .btn {
-        font-size: 0.78rem;
-        padding: 5px 8px;
+        font-size: 0.75rem;
+        padding: 4px 6px;
       }
 
       .slot-filter {
         flex-direction: column;
         align-items: stretch;
-        gap: 6px;
+        gap: 4px;
       }
 
       .slot-filter input {
@@ -303,27 +303,73 @@
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 4px;
       }
 
       .slot-filter .seg .btn {
-        font-size: 0.78rem;
-        padding: 5px 8px;
+        font-size: 0.75rem;
+        padding: 4px 6px;
       }
 
+      /* MOBILE TABLE -> CARD LAYOUT, KEIN ZOOM-NOTWENDIG */
       .table-wrap {
         width: 100%;
-        overflow-x: auto;
+        overflow-x: visible;
       }
 
       .table {
-        min-width: 720px;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
       }
 
-      .table th,
-      .table td {
-        font-size: 0.83rem;
+      .table thead {
+        display: none;
+      }
+
+      .table tbody tr {
+        display: block;
+        margin-bottom: 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .table tbody tr td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
         padding: 6px 8px;
+        font-size: 0.8rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .table tbody tr td:last-child {
+        border-bottom: none;
+      }
+
+      .table tbody tr td[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        margin-right: 6px;
+        color: #0f172a;
+        min-width: 80px;
+        flex-shrink: 0;
+      }
+
+      .table tbody tr td.nowrap {
+        white-space: normal;
+      }
+
+      /* Checkbox-Zelle etwas schmaler und ohne Labeltext */
+      .table tbody tr td[data-label="✓"]::before {
+        content: "";
+        min-width: 0;
+        margin-right: 0;
+      }
+
+      .slot-hint {
+        font-size: 0.75rem;
       }
 
       .foot-grid {
@@ -835,7 +881,6 @@
 
         if (res.ok) {
           showMsg('msg-slot', 'Slot angelegt.', true);
-          // Formular zurücksetzen, Standardwerte wiederherstellen
           document.getElementById('form-slot').reset();
           $('#sl-duration').value = 30;
           $('#sl-unit').value = 'min';
@@ -903,18 +948,18 @@
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
 
         tr.innerHTML = `
-          <td><input type="checkbox" class="row-check" data-id="${s.id}"></td>
-          <td>${fmtLocal(s.start_at)}</td>
-          <td>${fmtLocal(s.end_at)}</td>
-          <td>
+          <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
+          <td data-label="Start">${fmtLocal(s.start_at)}</td>
+          <td data-label="Ende">${fmtLocal(s.end_at)}</td>
+          <td data-label="Titel">
             ${s.title}
             ${hintText ? `<span class="slot-hint">${hintText}</span>` : ''}
           </td>
-          <td>${s.category||''}</td>
-          <td>${s.location||''}</td>
-          <td>${capacity}</td>
-          <td><span class="badge-st ${stClass}">${s.status}</span></td>
-          <td class="nowrap">
+          <td data-label="Kategorie">${s.category||''}</td>
+          <td data-label="Ort">${s.location||''}</td>
+          <td data-label="Kapazität">${capacity}</td>
+          <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
+          <td data-label="Aktionen" class="nowrap">
             ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
             ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
