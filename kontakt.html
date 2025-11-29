@@ -1,6 +1,14 @@
 <!-- FILE: kontakt.html -->
 <!doctype html>
 <html lang="de">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -14,14 +22,14 @@
   <meta property="og:description" content="Fragen, Feedback oder Partnerschaft – hier erreichst du uns.">
   <meta property="og:image" content="/static/og-cover.png">
 
-  <base href="/">
+  <base href="/" />
   <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Page-spezifische Mobile-Optimierung -->
+  <!-- Page-spezifische Mobile-Optimierung + Menü-Style wie index/impressum/kategorie -->
   <style>
     /* Weißer Menü-Button wie auf index/impressum/kategorie */
     .user-menu .btn {
@@ -32,10 +40,12 @@
       background-image:none;
     }
 
+    /* Standard: Burger-Menü ausblenden, Desktop-Navi sichtbar */
     .user-menu {
       display:none;
     }
 
+    /* Desktop */
     @media (min-width: 769px){
       .user-menu {
         display:none;
@@ -51,92 +61,71 @@
       }
     }
 
+    /* Mobile-Ansicht */
     @media (max-width: 768px) {
       /* Header / Navigation */
-      .page-contact .container.nav {
+      .container.nav {
         flex-wrap: wrap;
         gap: 8px;
         align-items: flex-start;
         padding-inline: 16px;
       }
 
-      .page-contact .brand-title {
+      .brand-title {
         font-size: 1.05rem;
       }
 
-      .page-contact .nav-links {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        text-align: center;
-      }
-
-      .page-contact .nav-links a {
-        font-size: 0.9rem;
-        padding: 2px 6px;
-      }
-
-      .page-contact .cta-group {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-
-      .page-contact .cta-group .btn {
-        padding-inline: 10px;
-      }
-
-      /* Desktop-Navigation auf Mobile ausblenden, nur weißer Menü-Button */
-      .page-contact .nav-links,
-      .page-contact .cta-group {
+      /* Desktop-Navigation & CTA auf Mobile ausblenden, nur Burger-Menü */
+      .nav-links,
+      .cta-group {
         display: none !important;
       }
 
-      .page-contact .user-menu {
+      .user-menu {
         display:block;
         margin-left:auto;
       }
 
       /* Hero-Bereich */
-      .page-contact .hero {
+      .hero {
         padding: 28px 0 14px !important;
       }
 
-      .page-contact .hero h1 {
+      .hero h1 {
         font-size: 1.7rem;
         line-height: 1.25;
       }
 
-      .page-contact .hero .lead {
+      .hero .lead {
         font-size: 0.96rem;
       }
 
       /* Formular-Layout: 1 Spalte statt 2 */
-      .page-contact .panel {
+      .panel {
         padding: 16px;
       }
 
-      .page-contact .panel .grid-2 {
+      .panel .grid-2 {
         display: grid;
         grid-template-columns: 1fr;
         gap: 12px;
       }
 
       /* Formular-Buttons auf Mobile besser klickbar */
-      .page-contact .form-actions {
+      .form-actions {
+        display:flex;
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
       }
 
-      .page-contact .form-actions .btn {
+      .form-actions .btn {
         width: 100%;
         justify-content: center;
         text-align: center;
       }
 
-      .page-contact .form-note {
+      .form-note {
         font-size: 0.9rem;
       }
 
@@ -152,18 +141,8 @@
       }
     }
   </style>
-
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-YNZ8GW523R');
-  </script>
 </head>
-<body class="page-contact">
+<body>
 
   <!-- Vollbild-Overlay -->
   <div id="loading-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
@@ -252,7 +231,7 @@
               <div class="control">
                 <textarea id="cf-message" name="message" placeholder="Schreibe uns dein Anliegen …" required></textarea>
               </div>
-              <span class="help">Bitte keine sensiblen Daten. Support braucht ggf. nur deine Registrierungs-E-Mail Adresse.</span>
+              <span class="help">Bitte keine sensiblen Daten. Support braucht ggf. nur deine Registrierungs-E-Mail-Adresse.</span>
             </div>
 
             <!-- DSGVO & Anti-Spam -->
@@ -275,89 +254,6 @@
       </div>
     </section>
   </main>
-
-  <script>
-    // Jahr
-    (document.getElementById('y')||{}).textContent = new Date().getFullYear();
-
-    // API-Basis
-    const API = (()=> {
-      const h = location.hostname;
-      if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
-      return 'https://api.terminmarktplatz.de';
-    })();
-
-    // Overlay
-    const backdrop    = document.getElementById('loading-backdrop');
-    const loadingText = document.getElementById('loading-text');
-    const loadingSub  = document.getElementById('loading-subtext');
-    function lockForm(form, lock = true){
-      [...form.elements].forEach(el => el.disabled = lock);
-      const btn = form.querySelector('button[type="submit"]');
-      if (btn) btn.classList.toggle('loading', lock);
-    }
-    function showLoading(msg='Einen Moment …'){
-      loadingText.textContent = msg; loadingSub.hidden = true; backdrop.hidden = false;
-      showLoading._t && clearTimeout(showLoading._t);
-      showLoading._t = setTimeout(()=>{ loadingSub.hidden = false; }, 5000);
-    }
-    function hideLoading(){ backdrop.hidden = true; showLoading._t && clearTimeout(showLoading._t); }
-
-    // Helpers
-    function setInfo(type, text){
-      const box = document.getElementById('form-info');
-      box.className = type === 'error' ? 'alert error' :
-                      type === 'success' ? 'alert success' : 'muted';
-      box.textContent = text || '';
-    }
-
-    // Submit
-    const form = document.getElementById('contact-form');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setInfo('', '');
-      const name    = document.getElementById('cf-name').value.trim();
-      const email   = document.getElementById('cf-email').value.trim();
-      const subject = document.getElementById('cf-subject').value.trim();
-      const message = document.getElementById('cf-message').value.trim();
-      const consent = document.getElementById('cf-consent').checked;
-      const honey   = document.getElementById('cf-honeypot').value;
-
-      if (honey) return; // Bot
-      if (!name || !email || !subject || !message || !consent){
-        setInfo('error','Bitte alle Pflichtfelder ausfüllen und der Verarbeitung zustimmen.');
-        return;
-      }
-
-      showLoading('Nachricht wird gesendet …'); lockForm(form, true);
-      try{
-        const r = await fetch(`${API}/public/contact`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ name, email, subject, message, consent })
-        });
-        const data = await r.json().catch(()=> ({}));
-        if (!r.ok || data.error){
-          hideLoading(); lockForm(form, false);
-          if (data.error === 'consent_required') {
-            setInfo('error','Bitte der Verarbeitung deiner Angaben zustimmen.');
-          } else if (data.error === 'invalid_email') {
-            setInfo('error','Bitte eine gültige E-Mail-Adresse eingeben.');
-          } else {
-            setInfo('error', 'Senden fehlgeschlagen. Bitte später erneut versuchen.');
-          }
-          return;
-        }
-        loadingText.textContent = 'Danke für deine Nachricht!';
-        loadingSub.textContent  = 'Wir melden uns in Kürze.';
-        loadingSub.hidden = false;
-        setTimeout(()=>{ hideLoading(); form.reset(); lockForm(form, false); setInfo('success','Erfolgreich gesendet.'); }, 1200);
-      } catch (err){
-        hideLoading(); lockForm(form, false);
-        setInfo('error','Netzwerkfehler – bitte später erneut versuchen.');
-      }
-    });
-  </script>
 
   <!-- Footer -->
   <footer>
@@ -392,7 +288,105 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <!-- User-Menü Logik (mobil) inkl. Auth-Status -->
+  <!-- Kontakt-Logik + Jahr -->
+  <script>
+    // Jahr im Footer
+    (function(){
+      const yEl = document.getElementById('y');
+      if (yEl) yEl.textContent = new Date().getFullYear();
+    })();
+
+    // API-Basis für Kontaktformular
+    const API = (()=> {
+      const h = location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    // Overlay-Helfer
+    const backdrop    = document.getElementById('loading-backdrop');
+    const loadingText = document.getElementById('loading-text');
+    const loadingSub  = document.getElementById('loading-subtext');
+
+    function lockForm(form, lock = true){
+      [...form.elements].forEach(el => el.disabled = lock);
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.classList.toggle('loading', lock);
+    }
+    function showLoading(msg='Einen Moment …'){
+      loadingText.textContent = msg;
+      loadingSub.hidden = true;
+      backdrop.hidden = false;
+      showLoading._t && clearTimeout(showLoading._t);
+      showLoading._t = setTimeout(()=>{ loadingSub.hidden = false; }, 5000);
+    }
+    function hideLoading(){
+      backdrop.hidden = true;
+      showLoading._t && clearTimeout(showLoading._t);
+    }
+
+    function setInfo(type, text){
+      const box = document.getElementById('form-info');
+      if (!box) return;
+      box.className = type === 'error' ? 'alert error'
+                    : type === 'success' ? 'alert success'
+                    : 'muted';
+      box.textContent = text || '';
+    }
+
+    const form = document.getElementById('contact-form');
+    if (form){
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setInfo('', '');
+        const name    = document.getElementById('cf-name').value.trim();
+        const email   = document.getElementById('cf-email').value.trim();
+        const subject = document.getElementById('cf-subject').value.trim();
+        const message = document.getElementById('cf-message').value.trim();
+        const consent = document.getElementById('cf-consent').checked;
+        const honey   = document.getElementById('cf-honeypot').value;
+
+        if (honey) return; // Bot
+        if (!name || !email || !subject || !message || !consent){
+          setInfo('error','Bitte alle Pflichtfelder ausfüllen und der Verarbeitung zustimmen.');
+          return;
+        }
+
+        showLoading('Nachricht wird gesendet …');
+        lockForm(form, true);
+        try{
+          const r = await fetch(`${API}/public/contact`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ name, email, subject, message, consent })
+          });
+          const data = await r.json().catch(()=> ({}));
+          if (!r.ok || data.error){
+            hideLoading();
+            lockForm(form, false);
+            if (data.error === 'consent_required') {
+              setInfo('error','Bitte der Verarbeitung deiner Angaben zustimmen.');
+            } else if (data.error === 'invalid_email') {
+              setInfo('error','Bitte eine gültige E-Mail-Adresse eingeben.');
+            } else {
+              setInfo('error', 'Senden fehlgeschlagen. Bitte später erneut versuchen.');
+            }
+            return;
+          }
+          loadingText.textContent = 'Danke für deine Nachricht!';
+          loadingSub.textContent  = 'Wir melden uns in Kürze.';
+          loadingSub.hidden = false;
+          setTimeout(()=>{ hideLoading(); form.reset(); lockForm(form, false); setInfo('success','Erfolgreich gesendet.'); }, 1200);
+        } catch (err){
+          hideLoading();
+          lockForm(form, false);
+          setInfo('error','Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      });
+    }
+  </script>
+
+  <!-- User-Menü Logik (mobil) inkl. Auth-Status – wie auf den anderen Seiten -->
   <script>
     (function(){
       const APIforMenu = (typeof window.API === 'string')
