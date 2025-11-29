@@ -38,7 +38,31 @@
       overflow-x: hidden;
     }
 
-    .hamburger{display:none;}
+    /* Menü-Styles, konsistent mit index/login/preise/registrieren */
+    .user-menu .btn {
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+      background-image:none;
+    }
+
+    .user-menu {
+      display:none;
+    }
+
+    .nav-links {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
+    }
+
+    .cta-group {
+      display:flex;
+      gap:8px;
+      margin-left:auto;
+    }
 
     /* Nur dieser Abbrechen-Button im Buchungsdialog */
     .booking-cancel-btn {
@@ -102,10 +126,8 @@
       .brand-title{
         font-size:1.05rem;
       }
-      .hamburger{
-        display:block;
-        margin-left:auto;
-      }
+
+      /* Drei Links auch mobil sichtbar */
       .nav-links{
         width:100%;
         justify-content:center;
@@ -118,11 +140,16 @@
         font-size:0.9rem;
         padding:2px 6px;
       }
+
+      /* CTA-Gruppe auf Mobile ausblenden (falls vorhanden) */
       .cta-group{
-        width:100%;
-        justify-content:center;
-        flex-wrap:wrap;
-        margin-top:4px;
+        display:none !important;
+      }
+
+      /* Burger/User-Menü-Button rechts neben Logo */
+      .user-menu{
+        display:block;
+        margin-left:auto;
       }
 
       .hero {
@@ -202,6 +229,18 @@
         margin-top:4px;
       }
     }
+
+    @media (min-width: 769px){
+      .user-menu {
+        display:none;
+      }
+      .nav-links {
+        display:flex;
+      }
+      .cta-group {
+        display:flex;
+      }
+    }
   </style>
 </head>
 <body>
@@ -214,7 +253,8 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-       <!-- Mobile User-Dropdown -->
+
+      <!-- Mobile User-Dropdown (wie auf den anderen Seiten) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -238,7 +278,7 @@
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
-        </nav>
+      </nav>
     </div>
   </header>
 
@@ -590,11 +630,77 @@
     // Start
     load();
 
-    // Mobile Nav
-    const nav = document.querySelector('.nav');
-    document.getElementById('hamburger')?.addEventListener('click', ()=>{
-      nav.classList.toggle('open');
-    });
+    // User-Menü Logik (mobil) inkl. Auth-Status
+    (function(){
+      const APIforMenu = (typeof window.API === 'string')
+        ? window.API
+        : API;
+
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if(!btn || !menu) return;
+
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls  = menu.querySelectorAll('.auth-in');
+
+      function setAuthVisible(isLoggedIn){
+        authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+        authInEls.forEach(el  => { el.style.display  = isLoggedIn ? '' : 'none'; });
+      }
+
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${APIforMenu}/me`, { credentials:'include' });
+          setAuthVisible(res.ok);
+        }catch(e){
+          setAuthVisible(false);
+        }
+      }
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if(!el) return;
+        const action = el.dataset.action;
+
+        if(action === 'logout'){
+          try{
+            await fetch(`${APIforMenu}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+
+        if(action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if(!ok) return;
+          try{
+            const res = await fetch(`${APIforMenu}/me`, { method:'DELETE', credentials:'include' });
+            if(res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=>({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          }
+        }
+      });
+
+      checkAuth();
+    })();
   </script>
 </body>
 </html>
