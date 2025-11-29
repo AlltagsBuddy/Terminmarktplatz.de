@@ -37,7 +37,21 @@
     .impressum p{margin:6px 0}
     .callout{border-left:4px solid var(--ab-primary); padding:12px 14px; background:#fff; border:1px solid var(--ab-border); border-radius:12px}
 
-    /* Mobile-Optimierung */
+    /* Menü-Button im User-Menü: weiß wie in AGB */
+    .user-menu .btn {
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+      background-image:none;
+    }
+
+    /* Standard: Burger-Menü ausblenden, Desktop-Navi sichtbar */
+    .user-menu {
+      display:none;
+    }
+
+    /* Mobile-Optimierung + Menü-Verhalten wie AGB */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -45,6 +59,10 @@
         gap: 8px;
         align-items: flex-start;
         padding-inline: 16px;
+      }
+
+      header .brand{
+        margin-bottom:4px;
       }
 
       .brand-title {
@@ -72,6 +90,18 @@
 
       .cta-group .btn {
         padding-inline: 10px;
+      }
+
+      /* Desktop-Nav & CTA auf Mobile ausblenden */
+      .nav-links,
+      .cta-group {
+        display: none !important;
+      }
+
+      /* Burger-Menü nur mobil anzeigen */
+      .user-menu {
+        display: block;
+        margin-left: auto;
       }
 
       /* Hero kompakter */
@@ -104,6 +134,22 @@
         margin-top: 4px;
       }
     }
+
+    /* Desktop: normale Nav, kein Burger-Menü */
+    @media (min-width: 769px){
+      .user-menu {
+        display:none;
+      }
+      .nav-links {
+        display:flex;
+        gap:12px;
+      }
+      .cta-group {
+        display:flex;
+        gap:8px;
+        margin-left:auto;
+      }
+    }
   </style>
 </head>
 <base href="/" />
@@ -111,7 +157,7 @@
 <body>
   <!-- Header -->
   <header>
-     <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
@@ -119,7 +165,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-          <!-- Mobile User-Dropdown -->
+      <!-- Mobile User-Dropdown (wie in AGB) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -140,13 +186,12 @@
       </div>
 
       <nav class="nav-links">
-          <a href="anbieter.html">Für Anbieter</a>
-          <a href="suchende.html">Für Suchende</a>
-          <a href="preise.html">Preise</a>
-        </nav>
-        </div>
-      </div>
-    </header>
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
   <main>
     <section class="hero" style="padding:40px 0 16px">
@@ -175,7 +220,7 @@
     
           <h3>Verantwortlich i. S. d. § 18 Abs. 2 MStV</h3>
           <p>
-            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 <Viereth-Trunstadt></Viereth-Trunstadt></span>
+            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 &lt;Viereth-Trunstadt&gt;</span>
           </p>
 
           <hr style="border:none; border-top:1px solid var(--ab-border); margin:18px 0">
@@ -242,7 +287,7 @@
     </section>
   </main>
 
-      <!-- Footer -->
+  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
@@ -258,7 +303,6 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-      
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -266,29 +310,75 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
-        
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
         <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
-    
       </div>
     </div>
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-    <script>
-      // Mobile Nav
-      const nav = document.querySelector('.nav');
-      const hb = document.getElementById('hamburger');
-      if (hb) hb.addEventListener('click', ()=>nav.classList.toggle('open'));
+  <script>
+    // Jahreszahl im Footer
+    const yEl = document.getElementById('y');
+    if (yEl) yEl.textContent = new Date().getFullYear();
+  </script>
 
-      // Jahreszahl & Datum
-      document.getElementById('y').textContent = new Date().getFullYear();
-      const d = new Date();
-      const pad = (n)=> String(n).padStart(2,'0');
-      document.getElementById('asof').textContent = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
-    </script>
+  <!-- User-Menü Logik (mobil) – 1:1 wie in AGB -->
+  <script>
+    (function(){
+      const API = (typeof window.API === 'string')
+        ? window.API
+        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
+
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if(!btn || !menu) return;
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if(!el) return;
+        const action = el.dataset.action;
+
+        if(action === 'logout'){
+          try{
+            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+
+        if(action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if(!ok) return;
+          try{
+            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+            if(res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=>({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
