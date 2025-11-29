@@ -151,9 +151,21 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* --- Mobile-Optimierung Anbieter-Portal --- */
+    /* --- Mobile-Optimierung Anbieter-Portal + Header-Navigation --- */
+
+    /* Standard (Desktop): Nav-Links sichtbar, User-Menü (Hamburger) ausgeblendet */
+    @media (min-width: 769px) {
+      .user-menu {
+        display: none;
+      }
+      .nav-links {
+        display: flex;
+        gap: 16px;
+      }
+    }
+
     @media (max-width: 768px) {
-      /* Header / Navigation */
+      /* Header / Navigation Layout */
       .container.nav {
         flex-wrap: wrap;
         gap: 8px;
@@ -165,12 +177,15 @@
         font-size: 1.05rem;
       }
 
+      /* WICHTIG: Hauptnavigation – auch mobil IMMER sichtbar */
       .nav-links {
+        display: flex !important;
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
         gap: 8px;
         text-align: center;
+        margin-top: 4px;
       }
 
       .nav-links a {
@@ -178,17 +193,9 @@
         padding: 2px 6px;
       }
 
-      .cta-group {
-        margin-left: 0;
-        width: auto;
-        gap: 8px;
-      }
-
-      .cta-group .btn {
-        padding-inline: 10px;
-      }
-
+      /* User-Menü (Konto / Profil / Logout / Kontakt) nur mobil anzeigen */
       .user-menu {
+        display: block;
         margin-left: auto;
       }
 
@@ -286,13 +293,14 @@
         margin-top: 4px;
       }
     }
-      .user-menu .btn {
-        background:#ffffff;
-        color:#0f172a;
-        border:1px solid #cbd5e1;
-        text-shadow:none;
-        background-image:none;
-      }
+
+    .user-menu .btn {
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+      background-image:none;
+    }
 
   </style>
 </head>
@@ -332,12 +340,12 @@
           </div>
         </div>
 
-          <!-- Hauptnavigation – immer sichtbar -->
-          <nav class="nav-links">
-            <a href="anbieter.html">Für Anbieter</a>
-            <a href="suchende.html">Für Suchende</a>
-            <a href="preise.html">Preise</a>
-          </nav>
+        <!-- Hauptnavigation – immer sichtbar -->
+        <nav class="nav-links">
+          <a href="anbieter.html">Für Anbieter</a>
+          <a href="suchende.html">Für Suchende</a>
+          <a href="preise.html">Preise</a>
+        </nav>
       </div>
     </header>
 
