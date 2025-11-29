@@ -2,14 +2,13 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YNZ8GW523R');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -37,7 +36,7 @@
   <!-- Main CSS (mit Cache-Buster) -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Seiten-spezifisches Styling inkl. Mobile -->
+  <!-- Seiten-spezifisches Styling inkl. Menü & Mobile -->
   <style>
     .price-hero-actions{
       display:flex;
@@ -60,6 +59,45 @@
       min-width:600px;
     }
 
+    /* Menü-Button im User-Menü: weiß wie auf index/login/kontakt */
+    .user-menu .btn {
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+      background-image:none;
+    }
+
+    /* Standard: Desktop-Nav sichtbar, Burger aus */
+    .user-menu {
+      display:none;
+    }
+
+    .nav-links {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
+    }
+
+    .cta-group {
+      display:flex;
+      gap:8px;
+      margin-left:auto;
+    }
+
+    @media (min-width: 769px){
+      .user-menu {
+        display:none;
+      }
+      .nav-links {
+        display:flex;
+      }
+      .cta-group {
+        display:flex;
+      }
+    }
+
     @media (max-width: 768px){
       /* Header-Layout für Mobile */
       .container.nav{
@@ -68,27 +106,35 @@
         align-items:flex-start;
         padding-inline:16px;
       }
+
       .brand-title{
         font-size:1.05rem;
       }
+
+      /* Drei Links auch auf Mobile sichtbar */
       .nav-links{
         width:100%;
         justify-content:center;
         flex-wrap:wrap;
         gap:8px;
         text-align:center;
+        margin-top:4px;
       }
+
       .nav-links a{
         font-size:0.9rem;
         padding:2px 6px;
       }
+
+      /* CTA-Gruppe (falls vorhanden) auf Mobile ausblenden */
       .cta-group{
-        width:100%;
-        justify-content:flex-end;
-        gap:8px;
+        display:none !important;
       }
-      .cta-group .btn{
-        padding-inline:10px;
+
+      /* Burger-Menü rechts neben dem Logo */
+      .user-menu{
+        display:block;
+        margin-left:auto;
       }
 
       /* Hero enger / kleinere Schrift */
@@ -146,7 +192,8 @@
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
-         <!-- Mobile User-Dropdown (gleiches Menü wie auf den anderen Seiten) -->
+
+      <!-- Mobile User-Dropdown (gleiches Menü wie auf den anderen Seiten) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -165,11 +212,12 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-          <nav class="nav-links">
-            <a href="anbieter.html">Für Anbieter</a>
-            <a href="suchende.html">Für Suchende</a>
-            <a href="preise.html">Preise</a>
-            </nav>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
     </div>
   </header>
 
@@ -215,8 +263,6 @@
             • Keine Premium-Platzierung, <em>keine</em> erweiterten Statistiken, <em>keine</em> Push-Benachrichtigungen
           </p>
           <div class="pill warn" style="margin-top:8px">Niedrige Einstiegshürde</div>
-          <p class="muted" style="margin-top:8px">
-          </p>
         </div>
 
         <div class="card">
@@ -226,8 +272,6 @@
             <br><strong>2&nbsp;€ pro gebuchtem Slot</strong>.
           </p>
           <div class="pill success" style="margin-top:8px">Fair: Pay-per-Success</div>
-          <p class="muted" style="margin-top:8px">
-          </p>
         </div>
 
         <div class="card">
@@ -235,8 +279,6 @@
           <p class="muted">
             Optionales Paket für Nutzer:innen, die verfügbare Slots aktiv verfolgen wollen:<br>
             <strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
-          </p>
-          <p class="muted" style="margin-top:8px">
           </p>
         </div>
       </div>
@@ -357,12 +399,87 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
+  <!-- Jahr + User-Menü-Logik -->
   <script>
     // Jahr im Footer
-    document.getElementById('y').textContent = new Date().getFullYear();
-    // Mobile Nav
-    const nav = document.querySelector('.nav');
-    document.getElementById('hamburger')?.addEventListener('click', ()=>nav.classList.toggle('open'));
+    (function(){
+      const yEl = document.getElementById('y');
+      if (yEl) yEl.textContent = new Date().getFullYear();
+    })();
+  </script>
+
+  <script>
+    // User-Menü Logik (mobil) inkl. Auth-Status – wie auf den anderen Seiten
+    (function(){
+      const APIforMenu = (typeof window.API === 'string')
+        ? window.API
+        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
+
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if(!btn || !menu) return;
+
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls  = menu.querySelectorAll('.auth-in');
+
+      function setAuthVisible(isLoggedIn){
+        authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+        authInEls.forEach(el  => { el.style.display  = isLoggedIn ? '' : 'none'; });
+      }
+
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${APIforMenu}/me`, { credentials:'include' });
+          setAuthVisible(res.ok);
+        }catch(e){
+          setAuthVisible(false);
+        }
+      }
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if(!el) return;
+        const action = el.dataset.action;
+
+        if(action === 'logout'){
+          try{
+            await fetch(`${APIforMenu}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+
+        if(action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if(!ok) return;
+          try{
+            const res = await fetch(`${APIforMenu}/me`, { method:'DELETE', credentials:'include' });
+            if(res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=>({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          }
+        }
+      });
+
+      checkAuth();
+    })();
   </script>
 </body>
 </html>
