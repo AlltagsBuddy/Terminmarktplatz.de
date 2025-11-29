@@ -754,7 +754,7 @@ footer{
 /* Desktop: Hamburger-Menü ausblenden (Navigation/CTA übernehmen das) */
 @media (min-width: 769px) {
   .user-menu {
-    display: none;
+    display: block;
   }
 }
 
