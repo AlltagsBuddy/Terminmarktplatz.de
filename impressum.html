@@ -23,6 +23,9 @@
   <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
   <meta name="twitter:card" content="summary_large_image" />
 
+  <!-- Pfade relativ zur Domainwurzel -->
+  <base href="/" />
+
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -61,9 +64,38 @@
       background-image:none;
     }
 
-    /* Standard: Burger-Menü ausblenden */
-    .user-menu {
-      display:none;
+    /* ===================================================
+       HEADER / USER-MENÜ – Menü direkt hinter Brand
+       (gleiches Muster wie datenschutz.html / anbieter.html)
+       =================================================== */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+    }
+
+    /* Desktop: Nav-Links nach rechts */
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start;
+      }
+      header .nav-links{
+        display:flex;
+        align-items:center;
+        gap:16px;
+        margin-left:auto;
+      }
     }
 
     /* Mobile-Optimierung + Menü-Verhalten wie Datenschutzerklärung */
@@ -83,16 +115,24 @@
         font-size: 1.05rem;
       }
 
-      /* Desktop-Navigation & CTA auf Mobile ausblenden */
-      .nav-links,
-      .cta-group {
-        display:none !important;
+      header .user-menu {
+        margin-left:auto;
       }
 
-      /* Burger-Menü nur mobil */
-      .user-menu {
-        display:block;
-        margin-left:auto;
+      /* Hauptnavigation – auch mobil sichtbar */
+      .nav-links {
+        display:flex !important;
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:8px;
+        text-align:center;
+        margin-top:4px;
+      }
+
+      .nav-links a {
+        font-size:0.9rem;
+        padding:2px 6px;
       }
 
       /* Hero kompakter */
@@ -125,130 +165,26 @@
         margin-top: 4px;
       }
     }
-
-    /* Desktop: normale Nav, kein Burger-Menü */
-    @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-        gap:12px;
-      }
-      .cta-group {
-        display:flex;
-        gap:8px;
-        margin-left:auto;
-      }
-    }
   </style>
-  <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
-
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
-
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    // Menü ein-/ausklappen
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    // Login-Status -> auth-in / auth-out steuern
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
-      }
-
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
-      });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
-
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
-    updateAuthUI();
-  })();
-</script>
-
 </head>
-
-<base href="/" />
-<link rel="stylesheet" href="/static/style.css?v=20251010" />
 
 <body>
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -267,10 +203,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
 
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
   <main>
     <section class="hero" style="padding:40px 0 16px">
@@ -475,7 +416,7 @@
           }
         }
       });
-      })();
+    })();
   </script>
 </body>
 </html>
