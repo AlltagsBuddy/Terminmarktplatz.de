@@ -1267,18 +1267,80 @@ fieldset[disabled]{
     padding:5px 8px;
   }
 
-  /* Tabellen im Portal: horizontal scrollen statt Zoom */
+  /* PORTAL: "Meine Slots" – mobile Layout
+     Ein Slot = eine Zeile
+     links: alle Infos, rechts: Buttons */
   .page-portal .table-wrap{
     width:100%;
-    overflow-x:auto;
+    overflow-x:visible;
   }
-  .page-portal .table{
-    min-width:720px;
+
+  .page-portal #tbl-slots{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    min-width:0;
   }
-  .page-portal .table th,
-  .page-portal .table td{
-    font-size:0.83rem;
-    padding:6px 8px;
+
+  .page-portal #tbl-slots thead{
+    display:none;
+  }
+
+  .page-portal #tbl-slots tbody tr{
+    display:grid;
+    grid-template-columns:minmax(0,1.7fr) auto;
+    align-items:flex-start;
+    gap:4px;
+    padding:6px 6px;
+    border-bottom:1px solid var(--border);
+    border-radius:10px;
+    background:#ffffff;
+    color:#0f172a;
+    margin-bottom:6px;
+  }
+
+  /* Past/booked Klassen sollen Hintergrund vom Row übernehmen */
+  .page-portal #tbl-slots tbody tr.slot-past td,
+  .page-portal #tbl-slots tbody tr.slot-booked td,
+  .page-portal #tbl-slots tbody tr.slot-booked.slot-past td{
+    background:transparent;
+  }
+
+  .page-portal #tbl-slots tbody tr td{
+    border:0;
+    padding:2px 4px;
+    font-size:0.82rem;
+    white-space:normal;
+  }
+
+  /* Alle Infos (Checkbox, Start, Ende, Titel, Kategorie, Ort, Kapazität, Status) links */
+  .page-portal #tbl-slots tbody tr td:nth-child(-n+8){
+    grid-column:1 / 2;
+    text-align:left;
+  }
+
+  /* Aktionen rechts */
+  .page-portal #tbl-slots tbody tr td:nth-child(9){
+    grid-column:2 / 3;
+    text-align:right;
+  }
+
+  .page-portal #tbl-slots tbody tr td:nth-child(9) .btn{
+    display:block;
+    width:100%;
+    margin:2px 0;
+    text-align:center;
+  }
+
+  /* Checkbox links kompakt */
+  .page-portal #tbl-slots tbody tr td:first-child{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+
+  .page-portal #tbl-slots .slot-hint{
+    font-size:0.78rem;
   }
 
   /* Footer-Spalten untereinander */
@@ -1290,3 +1352,5 @@ fieldset[disabled]{
     margin-top:4px;
   }
 }
+
+/* ---------- Accessibility / Motion already handled oben ---------- */
