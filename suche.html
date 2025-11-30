@@ -38,7 +38,12 @@
       overflow-x: hidden;
     }
 
-    /* Menü-Styles, konsistent mit index/login/preise/registrieren */
+    /* Standard: auth-in zunächst ausblenden – JS zeigt sie bei Login */
+    .auth-in {
+      display: none;
+    }
+
+    /* Weißer Menü-Button wie auf agb/preise */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -47,15 +52,28 @@
       background-image:none;
     }
 
-    .user-menu {
-      display:none;
-    }
-
-    .nav-links {
+    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts */
+    header .nav{
       display:flex;
-      gap:12px;
       align-items:center;
-      margin-left:auto;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;          /* immer sichtbar */
+      position:relative;
+      z-index:60;
+      margin-left:12px;       /* Abstand hinter „Terminmarktplatz“ */
+    }
+    header .nav-links{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin-left:auto;       /* schiebt Links nach rechts */
     }
 
     .cta-group {
@@ -116,27 +134,35 @@
 
     /* Mobile Optimierungen */
     @media (max-width: 768px) {
-      /* Header / Navigation */
-      .container.nav{
+      /* Header / Navigation – wie agb/preise */
+      header .nav{
         flex-wrap:wrap;
-        gap:8px;
         align-items:flex-start;
+        gap:8px;
         padding-inline:16px;
       }
-      .brand-title{
+
+      header .brand-title{
         font-size:1.05rem;
       }
 
-      /* Drei Links auch mobil sichtbar */
-      .nav-links{
+      /* Brand links, Menü rechts in der ersten Zeile */
+      header .user-menu{
+        margin-left:auto;
+      }
+
+      /* Links in Zeile 2, zentriert */
+      header .nav-links{
         width:100%;
         justify-content:center;
         flex-wrap:wrap;
         gap:8px;
-        margin-top:4px;
         text-align:center;
+        margin-left:0;
+        margin-top:4px;
       }
-      .nav-links a{
+
+      header .nav-links a{
         font-size:0.9rem;
         padding:2px 6px;
       }
@@ -144,12 +170,6 @@
       /* CTA-Gruppe auf Mobile ausblenden (falls vorhanden) */
       .cta-group{
         display:none !important;
-      }
-
-      /* Burger/User-Menü-Button rechts neben Logo */
-      .user-menu{
-        display:block;
-        margin-left:auto;
       }
 
       .hero {
@@ -231,18 +251,12 @@
     }
 
     @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-      }
       .cta-group {
         display:flex;
       }
     }
   </style>
-    <script>
+  <script>
   (function(){
     const API = (typeof window.API === 'string')
       ? window.API
@@ -286,65 +300,28 @@
       });
     }
 
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
     updateAuthUI();
   })();
-</script>
+  </script>
 
 </head>
 <body>
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -363,9 +340,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
+
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
 
   <main>

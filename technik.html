@@ -36,20 +36,59 @@
     gtag('config', 'G-YNZ8GW523R');
   </script>
 
-  <!-- Mobile-Optimierung für technik.html -->
+  <!-- Mobile-Optimierung & Menü-Styles -->
   <style>
     html, body {
       max-width: 100%;
       overflow-x: hidden;
     }
 
-    .hamburger {
+    /* auth-in zunächst ausblenden – JS zeigt sie bei Login */
+    .auth-in {
       display: none;
+    }
+
+    /* Weißer Menü-Button wie auf agb/preise/suche/suchende */
+    .user-menu .btn {
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+      background-image:none;
+    }
+
+    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    /* Menü-Button direkt hinter „Terminmarktplatz“ */
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* Abstand hinter Brand */
+    }
+
+    /* Hauptnavigation rechtsbündig */
+    header .nav-links{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
     }
 
     @media (max-width: 768px) {
       /* Header / Navigation */
-      .container.nav {
+      header .nav {
         flex-wrap: wrap;
         gap: 8px;
         padding-inline: 16px;
@@ -60,37 +99,25 @@
         font-size: 1.05rem;
       }
 
-      .hamburger {
-        display: block;
-        margin-left: auto;
+      /* Brand links, Menü rechts in der ersten Zeile */
+      header .user-menu{
+        margin-left:auto;
       }
 
-      .nav-links {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
+      /* Links zweite Zeile, zentriert */
+      header .nav-links {
         width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
         text-align: center;
+        margin-top: 4px;
+        margin-left: 0;
       }
 
-      .nav-links a {
+      header .nav-links a {
         font-size: 0.9rem;
         padding: 4px 8px;
-      }
-
-      .cta-group {
-        width: 100%;
-        justify-content: center;
-        gap: 8px;
-        margin-left: 0;
-        flex-wrap: wrap;
-      }
-
-      .cta-group .btn {
-        flex: 1 1 auto;
-        text-align: center;
-        max-width: 180px;
       }
 
       /* Hero / Intro */
@@ -130,109 +157,24 @@
       }
     }
   </style>
-  <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
-
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
-
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    // Menü ein-/ausklappen
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    // Login-Status -> auth-in / auth-out steuern
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
-      }
-
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
-      });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
-
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
-    updateAuthUI();
-  })();
-</script>
-
 </head>
 <body>
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -251,9 +193,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
+
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
 
   <main>
@@ -366,13 +314,88 @@
 
   <script>
     // Footer-Jahr
-    document.getElementById('y').textContent = new Date().getFullYear();
+    const yEl = document.getElementById('y');
+    if (yEl) yEl.textContent = new Date().getFullYear();
+  </script>
 
-    // Mobile Navigation Toggle
-    const nav = document.querySelector('.nav');
-    document.getElementById('hamburger')?.addEventListener('click', () => {
-      nav.classList.toggle('open');
-    });
+  <!-- User-Menü Logik (mobil + Auth-Status), analog zu den anderen Seiten -->
+  <script>
+    (function(){
+      const API = (typeof window.API === 'string')
+        ? window.API
+        : ((h) => (h === 'localhost' || h === '127.0.0.1')
+              ? 'http://127.0.0.1:5000'
+              : 'https://api.terminmarktplatz.de')(location.hostname);
+
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if (!btn || !menu) return;
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+
+      // Menü ein-/ausklappen
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
+
+      // Login-Status -> auth-in / auth-out steuern
+      async function updateAuthUI(){
+        let loggedIn = false;
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          loggedIn = res.ok;
+        }catch(e){
+          loggedIn = false;
+        }
+
+        document.querySelectorAll('.auth-in').forEach(el => {
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
+
+      // Aktionen im Menü
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if (!el) return;
+        const action = el.dataset.action;
+
+        if (action === 'logout'){
+          try{
+            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+
+        if (action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if (!ok) return;
+
+          try{
+            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+            if (res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=> ({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          }
+        }
+      });
+
+      updateAuthUI();
+    })();
   </script>
 </body>
 </html>

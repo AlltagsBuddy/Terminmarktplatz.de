@@ -46,7 +46,12 @@
     }
     .mf-grid textarea{min-height:110px; resize:vertical}
 
-    /* Menü-Styles wie auf den anderen Seiten */
+    /* auth-in zunächst ausblenden – JS zeigt sie bei Login */
+    .auth-in {
+      display: none;
+    }
+
+    /* Weißer Menü-Button wie auf AGB/Technik/Preise/Suche/Suchende */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -55,56 +60,65 @@
       background-image:none;
     }
 
-    .user-menu {
-      display:none;
+    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
     }
 
-    .nav-links {
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    /* Menü-Button direkt hinter „Terminmarktplatz“ */
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* Abstand hinter Brand */
+    }
+
+    /* Hauptnavigation rechtsbündig */
+    header .nav-links{
       display:flex;
       gap:12px;
       align-items:center;
       margin-left:auto;
     }
 
-    .cta-group {
-      display:flex;
-      gap:8px;
-      margin-left:auto;
-    }
-
     /* Mobile-Optimierung */
     @media (max-width: 768px){
-      .container.nav{
+      header .nav{
         flex-wrap:wrap;
         gap:8px;
         padding-inline:16px;
         align-items:flex-start;
       }
+
       .brand-title{font-size:1.05rem}
 
-      /* Drei Links auch mobil sichtbar */
-      .nav-links{
+      /* Brand links, Menü rechts in der ersten Zeile */
+      header .user-menu{
+        margin-left:auto;
+      }
+
+      /* Links zweite Zeile, zentriert */
+      header .nav-links{
         display:flex;
         flex-wrap:wrap;
         justify-content:center;
         gap:8px;
         width:100%;
         text-align:center;
+        margin-top:4px;
+        margin-left:0;
       }
-      .nav-links a{
+      header .nav-links a{
         font-size:0.9rem;
         padding:4px 8px;
-      }
-
-      /* CTA-Gruppe auf Mobile ausblenden (falls irgendwo genutzt) */
-      .cta-group{
-        display:none !important;
-      }
-
-      /* User-Menü-Button mobil sichtbar, rechts neben Logo */
-      .user-menu{
-        display:block;
-        margin-left:auto;
       }
 
       .hero{
@@ -136,20 +150,9 @@
         margin-top:4px;
       }
     }
-
-    @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-      }
-      .cta-group {
-        display:flex;
-      }
-    }
   </style>
-    <script>
+
+  <script>
   (function(){
     const API = (typeof window.API === 'string')
       ? window.API
@@ -226,32 +229,26 @@
 
     updateAuthUI();
   })();
-</script>
+  </script>
 
 </head>
 <body>
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -270,9 +267,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
+
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
 
   <main>

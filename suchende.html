@@ -45,7 +45,12 @@
       overflow-x: hidden;
     }
 
-    /* Menü-Styles wie auf den anderen Seiten */
+    /* Standard: auth-in zunächst ausblenden – JS zeigt sie bei Login */
+    .auth-in {
+      display: none;
+    }
+
+    /* Weißer Menü-Button wie auf agb/preise/suche */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -54,11 +59,29 @@
       background-image:none;
     }
 
-    .user-menu {
-      display:none;
+    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
     }
 
-    .nav-links {
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    /* Menü-Button direkt hinter „Terminmarktplatz“ */
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* Abstand hinter Brand */
+    }
+
+    /* Hauptnavigation rechtsbündig */
+    header .nav-links{
       display:flex;
       gap:12px;
       align-items:center;
@@ -73,7 +96,7 @@
 
     @media (max-width: 768px) {
       /* Header / Navigation */
-      .container.nav {
+      header .nav {
         flex-wrap: wrap;
         gap: 8px;
         padding-inline: 16px;
@@ -84,8 +107,13 @@
         font-size: 1.05rem;
       }
 
-      /* Drei Links auch mobil sichtbar */
-      .nav-links {
+      /* Brand links, Menü rechts in der ersten Zeile */
+      header .user-menu{
+        margin-left:auto;
+      }
+
+      /* Drei Links auch mobil sichtbar, zweite Zeile */
+      header .nav-links {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
@@ -93,9 +121,10 @@
         width: 100%;
         text-align: center;
         margin-top: 4px;
+        margin-left: 0;
       }
 
-      .nav-links a {
+      header .nav-links a {
         font-size: 0.9rem;
         padding: 4px 8px;
       }
@@ -103,12 +132,6 @@
       /* CTA-Gruppe auf Mobile ausblenden (falls vorhanden) */
       .cta-group {
         display:none !important;
-      }
-
-      /* User-Menü-Button rechts neben Logo */
-      .user-menu{
-        display:block;
-        margin-left:auto;
       }
 
       /* Hero / Intro */
@@ -194,12 +217,6 @@
     }
 
     @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-      }
       .cta-group {
         display:flex;
       }
@@ -301,31 +318,31 @@
       <div class="brand-title">Terminmarktplatz</div>
     </a>
 
-    <!-- Hauptnavigation + User-Menü -->
+    <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
+    <div class="user-menu">
+      <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+        ☰ Menü
+      </button>
+      <div id="userMenu" class="menu" role="menu" hidden>
+        <!-- nur sichtbar, wenn NICHT eingeloggt -->
+        <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+        <!-- nur sichtbar, wenn eingeloggt -->
+        <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+        <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+        <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+        <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+        <!-- immer sichtbar -->
+        <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+      </div>
+    </div>
+
+    <!-- Hauptnavigation rechts -->
     <nav class="nav-links">
       <a href="anbieter.html">Für Anbieter</a>
       <a href="suchende.html">Für Suchende</a>
       <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
-      <div class="user-menu">
-        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          ☰ Menü
-        </button>
-        <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- nur sichtbar, wenn NICHT eingeloggt -->
-          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-          <!-- nur sichtbar, wenn eingeloggt -->
-          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-          <!-- immer sichtbar -->
-          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-        </div>
-      </div>
     </nav>
   </div>
 </header>
