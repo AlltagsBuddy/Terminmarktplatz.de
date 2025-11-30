@@ -34,6 +34,32 @@
 
   <!-- Portal-spezifische Button-Overrides + Mobile-Optimierung -->
   <style>
+    /* WICHTIG: Kein horizontales Scrollen / Zoomen nötig */
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Container im Portal nie breiter als Viewport */
+    .page-portal .container {
+      max-width: 100%;
+    }
+
+    /* Formulare und Felder vollbreit */
+    .page-portal form,
+    .page-portal .panel,
+    .page-portal .field {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .page-portal .field input,
+    .page-portal .field select,
+    .page-portal .field textarea {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
     .page-portal .btn,
     .page-portal .btn.primary,
     .page-portal .seg .btn,
@@ -390,7 +416,6 @@
 
     /* ===================================================
        HEADER / USER-MENÜ FIX – Menü direkt hinter Brand
-       (Diesen Block kannst du auf JEDER Seite übernehmen)
        =================================================== */
     header .nav{
       display:flex;
@@ -452,7 +477,6 @@
 </head>
 
 <body class="page-portal">
-
   <!-- Header -->
   <header>
     <div class="container nav"
