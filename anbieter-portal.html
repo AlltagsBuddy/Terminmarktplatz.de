@@ -72,10 +72,13 @@
       background:#ffffff !important;
       border:1px solid #cbd5e1 !important;
       text-shadow:none !important;
-      background-image:none !Important;
+      background-image:none !important;
     }
 
-    .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
+    .page-portal .panel{
+      border-radius:var(--r-3xl);
+      box-shadow:var(--shadow-2);
+    }
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
@@ -281,6 +284,7 @@
         padding: 12px 10px;
         border-radius: 18px;
         max-width: 100%;
+        overflow: visible;
       }
 
       .panel h2 {
@@ -364,7 +368,8 @@
         padding: 4px 6px;
       }
 
-      /* MOBILE TABLE -> CARD LAYOUT, ALLES UNTEREINANDER */
+      /* MOBILE TABLE: Ein Slot = eine Zeile
+         links Daten, rechts Buttons */
       .table-wrap {
         width: 100%;
         overflow-x: hidden;
@@ -374,7 +379,6 @@
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
-        border: 0;
       }
 
       .table thead {
@@ -382,52 +386,53 @@
       }
 
       .table tbody tr {
-        display: block;
-        margin-bottom: 12px;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        overflow: hidden;
-        background:#ffffff;
+        display: grid;
+        grid-template-columns: minmax(0,1fr) auto;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 6px 4px;
+        border-bottom: 1px solid var(--border);
+        background: #ffffff;
+        border-radius: 10px;
+        margin-bottom: 8px;
       }
 
       .table tbody tr td {
-        display: block;
-        padding: 6px 10px;
-        font-size: 0.85rem;
-        border-bottom: 1px solid var(--border);
+        border: 0;
+        padding: 2px 4px;
+        font-size: 0.8rem;
         white-space: normal;
       }
 
-      .table tbody tr td:last-child {
-        border-bottom: none;
-      }
-
+      /* keine Labels voranstellen */
       .table tbody tr td[data-label]::before {
-        content: attr(data-label);
+        content: none;
+      }
+
+      /* alle Infos (Checkbox, Start, Ende, Titel, Kategorie, Ort, Kapazität, Status) links */
+      .table tbody tr td:nth-child(-n+8) {
+        grid-column: 1 / 2;
+        text-align: left;
+      }
+
+      /* Aktionen nach rechts */
+      .table tbody tr td:nth-child(9) {
+        grid-column: 2 / 3;
+        text-align: right;
+      }
+
+      .table tbody tr td:nth-child(9) .btn {
         display: block;
-        font-weight: 600;
-        margin-bottom: 2px;
-        color: #0f172a;
-        opacity: .9;
+        width: 100%;
+        margin: 2px 0;
+        text-align: center;
       }
 
-      /* Checkbox-Zeile kompakter, ohne Label-Text */
-      .table tbody tr td[data-label="✓"]{
-        display:flex;
-        align-items:center;
-        justify-content:flex-start;
-      }
-      .table tbody tr td[data-label="✓"]::before{
-        content:"";
-        display:none;
-      }
-
-      /* Aktionen-Buttons: untereinander, volle Breite */
-      .table tbody tr td[data-label="Aktionen"] .btn{
-        display:block;
-        width:100%;
-        margin:2px 0;
-        text-align:center;
+      /* Checkbox-Zeile kompakter */
+      .table tbody tr td:first-child {
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
 
       .slot-hint {
