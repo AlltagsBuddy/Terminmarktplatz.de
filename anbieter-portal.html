@@ -34,18 +34,20 @@
 
   <!-- Portal-spezifische Button-Overrides + Mobile-Optimierung -->
   <style>
-    /* WICHTIG: Kein horizontales Scrollen / Zoomen nötig */
+    /* Basis: Seite füllt den Viewport, nichts wird abgeschnitten */
     html, body {
-      max-width: 100%;
-      overflow-x: hidden;
+      width: 100%;
+      margin: 0;
+      padding: 0;
     }
 
-    /* Container im Portal nie breiter als Viewport */
+    /* Container im Portal maximal so breit wie das Layout */
     .page-portal .container {
       max-width: 100%;
+      box-sizing: border-box;
     }
 
-    /* Formulare und Felder vollbreit */
+    /* Formulare und Felder passen sich der Breite an */
     .page-portal form,
     .page-portal .panel,
     .page-portal .field {
@@ -99,6 +101,21 @@
 
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+    /* Dauer-Row: Input breit, Dropdown schmaler */
+    .duration-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .duration-row input{
+      flex:1 1 auto;   /* breiter */
+      width:100%;
+    }
+    .duration-row select{
+      flex:0 0 90px;   /* kleineres Dropdown */
+      max-width:90px;
+    }
 
     /* Tabelle (Desktop) */
     .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
@@ -198,6 +215,12 @@
         font-size: 0.9rem;
       }
 
+      /* Container: leicht eingerückt, nichts ragt raus */
+      .page-portal main .container {
+        padding-inline: 12px;
+        margin: 0 auto;
+      }
+
       .container.nav {
         flex-wrap: wrap;
         gap: 6px;
@@ -256,11 +279,13 @@
         margin-bottom: 8px;
         padding: 10px 8px;
         border-radius: 16px;
+        max-width: 100%;
       }
 
       .panel h2 {
         font-size: 1.05rem;
         margin-bottom: 4px;
+        text-align: left;
       }
 
       #form-profile,
@@ -275,6 +300,7 @@
 
       .field label {
         font-size: 0.85rem;
+        text-align: left;
       }
 
       .field input,
@@ -288,19 +314,21 @@
         font-size: 10px;
       }
 
+      /* Buttons + Texte linksbündig, nicht Vollbreite */
       .toolbar {
         flex-direction: column;
-        align-items: stretch;
-        gap: 4px;
+        align-items: flex-start;
+        gap: 6px;
       }
 
       .toolbar .btn {
-        width: 100%;
-        justify-content: center;
+        width: auto;
+        justify-content: flex-start;
       }
 
       .toolbar .muted {
         font-size: 0.8rem;
+        text-align: left;
       }
 
       #form-slot .seg {
@@ -338,7 +366,7 @@
       /* MOBILE TABLE -> CARD LAYOUT */
       .table-wrap {
         width: 100%;
-        overflow-x: visible;
+        overflow-x: auto; /* falls doch mal zu breit: Scrollbar statt Abschneiden */
       }
 
       .table {
@@ -379,6 +407,7 @@
         color: #0f172a;
         min-width: 80px;
         flex-shrink: 0;
+        text-align: left;
       }
 
       .table tbody tr td.nowrap {
@@ -403,6 +432,12 @@
 
       .foot-col {
         margin-top: 4px;
+      }
+
+      /* Dropdown in der Dauer-Zeile auf Mobile minimal kleiner */
+      .duration-row select{
+        flex:0 0 80px;
+        max-width:80px;
       }
     }
 
@@ -626,8 +661,8 @@
               <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
-                <div style="display:flex; gap:8px; align-items:center">
-                  <input id="sl-duration" type="number" min="1" step="1" value="30" required aria-required="true" style="flex:1"/>
+                <div class="duration-row">
+                  <input id="sl-duration" type="number" min="1" step="1" value="30" required aria-required="true"/>
                   <select id="sl-unit" aria-label="Einheit">
                     <option value="min">Minuten</option>
                     <option value="h">Stunden</option>
