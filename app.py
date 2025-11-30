@@ -920,76 +920,45 @@ def _status_transition_ok(current: str, new: str) -> bool:
         return new in {"published"}
     return False
 
-@app.get("/slots")
-@auth_required()
-def slots_list():
-    status = request.args.get("status")
-    with Session(engine) as s:
-        # Aggregat: Anzahl aktiver Buchungen pro Slot
-        bq = (
-            select(Booking.slot_id, func.count().label("booked"))
-            .where(Booking.status.in_(["hold", "confirmed"]))
-            .group_by(Booking.slot_id)
-            .subquery()
-        )
-
-        q = (
-            select(
-                Slot,
-                func.coalesce(bq.c.booked, 0).label("booked")
+    @app.get("/slots")
+    @auth_required()
+    def slots_list():
+        status = request.args.get("status")
+        with Session(engine) as s:
+            # Buchungs-Aggregat: alle "hold" + "confirmed" Buchungen pro Slot
+            bq = (
+                select(Booking.slot_id, func.count().label("booked"))
+                .where(Booking.status.in_(["hold", "confirmed"]))
+                .group_by(Booking.slot_id)
+                .subquery()
             )
-            .outerjoin(bq, bq.c.slot_id == Slot.id)
-            .where(Slot.provider_id == request.provider_id)
-        )
 
-        if status:
-            q = q.where(Slot.status == status)
-
-        rows = s.execute(q.order_by(Slot.start_at.desc())).all()
-
-        # NEU: alle relevanten Buchungen für diese Slots holen
-        slot_ids = [slot.id for slot, _ in rows]
-        bookings_by_slot: dict[str, list[Booking]] = {}
-
-        if slot_ids:
-            b_rows = s.scalars(
-                select(Booking).where(
-                    Booking.slot_id.in_(slot_ids),
-                    Booking.provider_id == request.provider_id,
-                    Booking.status.in_(["hold", "confirmed"]),
+            q = (
+                select(
+                    Slot,
+                    func.coalesce(bq.c.booked, 0).label("booked")
                 )
-            ).all()
+                .outerjoin(bq, bq.c.slot_id == Slot.id)
+                .where(Slot.provider_id == request.provider_id)
+            )
 
-            for b in b_rows:
-                bookings_by_slot.setdefault(b.slot_id, []).append(b)
+            if status:
+                q = q.where(Slot.status == status)
 
-        out = []
-        for slot, booked in rows:
-            cap = slot.capacity or 1
-            booked = int(booked or 0)
-            available = max(0, cap - booked)
+            rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
-            item = slot_to_json(slot)
-            item["booked"] = booked
-            item["available"] = available
+            out = []
+            for slot, booked in rows:
+                cap = slot.capacity or 1
+                booked = int(booked or 0)
+                available = max(0, cap - booked)
 
-            # NEU: Buchungen inkl. Name + E-Mail
-            b_list = bookings_by_slot.get(slot.id, [])
-            item["bookings"] = [
-                {
-                    "id": b.id,
-                    "customer_name": b.customer_name,
-                    "customer_email": b.customer_email,
-                    "status": b.status,
-                    "created_at": _from_db_as_iso_utc(b.created_at),
-                    "confirmed_at": _from_db_as_iso_utc(b.confirmed_at) if b.confirmed_at else None,
-                }
-                for b in b_list
-            ]
+                item = slot_to_json(slot)
+                item["booked"] = booked
+                item["available"] = available
+                out.append(item)
 
-            out.append(item)
-
-        return jsonify(out)
+            return jsonify(out)
 
 
 
