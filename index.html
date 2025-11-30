@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html> 
 <html lang="de">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
@@ -43,13 +43,16 @@
   <!-- Menü-Button & Anzeige-Logik wie Impressum/Datenschutz,
        aber Links auch auf Mobile sichtbar -->
   <style>
-    /* Menü-Button im User-Menü: weiß */
+    /* Menü-Button im User-Menü: explizit weiß + dunkler Text */
     .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
     }
 
     /* Grundlayout Header: Brand, dann Menü, dann Nav-Links rechts */
