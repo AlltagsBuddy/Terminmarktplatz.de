@@ -51,15 +51,6 @@
       border-radius:12px;
     }
 
-    /* Menü-Button im User-Menü: weiß (Override für globales Button-Design) */
-    .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
-    }
-
     /* auth-in initial verstecken – JS blendet bei Login ein */
     .auth-in {
       display:none;
@@ -95,7 +86,7 @@
       margin-left:auto;
     }
 
-    /* ===== Mobile-Optimierung – Impressum-Layout bleibt erhalten ===== */
+    /* Mobile-Optimierung – Impressum-Layout bleibt erhalten */
     @media (max-width: 768px) {
       .container.nav {
         flex-wrap: wrap;
@@ -117,7 +108,7 @@
         margin-left:auto;
       }
 
-      /* Nav-Links in Zeile 2, zentriert (wie AGB) */
+      /* Nav-Links in Zeile 2, zentriert */
       header .nav-links{
         width:100%;
         justify-content:center;
@@ -133,7 +124,6 @@
         padding:6px 8px;
       }
 
-      /* Hero & Inhalt wie vorher bei Impressum */
       .hero {
         padding: 28px 0 14px !important;
       }
@@ -151,7 +141,6 @@
         padding: 18px !important;
       }
 
-      /* Footer-Spalten untereinander */
       .foot-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -162,16 +151,22 @@
         margin-top: 4px;
       }
     }
-
-    /* Desktop: nichts weiter ändern, Header-Layout kommt von oben */
-    @media (min-width: 769px){
-      /* optionaler Platzhalter, falls du später noch was brauchst */
-    }
   </style>
 </head>
 
 <base href="/" />
 <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+<!-- Letzter Override: Menü-Button wirklich weiß erzwingen -->
+<style>
+  .user-menu .btn {
+    background:#ffffff !important;
+    color:#0f172a !important;
+    border:1px solid #cbd5e1 !important;
+    text-shadow:none !important;
+    background-image:none !important;
+  }
+</style>
 
 <body>
   <!-- Header -->
