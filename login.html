@@ -35,26 +35,38 @@
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/style.css?v=20251107" />
 
-  <!-- Seitenstil: Panels dunkel, Eingabefelder hell + Menü wie index/kontakt -->
+  <!-- Seitenstil: Panels dunkel, Eingabefelder hell + Menü wie anbieter.html -->
   <style>
-    /* Weißer Menü-Button wie auf index/kategorie/impressum/kontakt */
+    /* Weißer Menü-Button wie auf index/kategorie/impressum/kontakt/anbieter */
     .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
     }
 
-    /* Standard: Desktop-Nav sichtbar, Burger aus */
-    .user-menu {
-      display:none;
-    }
-
-    .nav-links {
+    /* HEADER / USER-MENÜ – Menü direkt hinter Brand (wie anbieter.html) */
+    header .nav{
       display:flex;
-      gap:12px;
       align-items:center;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+    }
+    header .nav-links{
+      display:flex;
+      align-items:center;
+      gap:16px;
       margin-left:auto;
     }
 
@@ -65,11 +77,8 @@
     }
 
     @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
+      header .nav{
+        justify-content:flex-start;
       }
       .cta-group {
         display:flex;
@@ -129,7 +138,7 @@
       .form-grid .col-2{grid-column:span 1}
     }
 
-    /* Mobile-Optimierung Login-Seite + Menü-Verhalten wie index/kontakt */
+    /* Mobile-Optimierung Login-Seite + Menü-Verhalten wie anbieter.html */
     @media (max-width: 768px) {
       /* Header / Navigation */
       .container.nav {
@@ -143,8 +152,13 @@
         font-size: 1.05rem;
       }
 
+      header .user-menu{
+        margin-left:auto;
+      }
+
       /* Drei Links auch auf Mobile sichtbar, unter dem Logo */
-      .nav-links {
+      header .nav-links {
+        display:flex !important;
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
@@ -161,12 +175,6 @@
       /* CTA-Gruppe (falls vorhanden) auf Mobile ausblenden */
       .cta-group {
         display: none !important;
-      }
-
-      /* Burger-Menü rechts neben dem Logo */
-      .user-menu {
-        display:block;
-        margin-left:auto;
       }
 
       /* Hero-Bereich kompakter */
@@ -226,7 +234,7 @@
       }
     }
   </style>
-    <script>
+  <script>
   (function(){
     const API = (typeof window.API === 'string')
       ? window.API
@@ -303,7 +311,7 @@
 
     updateAuthUI();
   })();
-</script>
+  </script>
 
 </head>
 
@@ -319,26 +327,20 @@
 
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -357,9 +359,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
+
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
 
   <main>

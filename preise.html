@@ -46,23 +46,33 @@
       margin-top:6px;
     }
 
-
-    
-      /* Menü-Button im User-Menü: weiß wie auf index/login/kontakt */
+    /* Weißer Menü-Button wie auf agb.html */
     .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
     }
 
-    /* Standard: Desktop-Nav sichtbar, Burger aus */
-    .user-menu {
-      display:none;
+    /* HEADER / USER-MENÜ – Menü direkt hinter Brand (wie agb.html) */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
     }
-
-    .nav-links {
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+    }
+    header .nav-links{
       display:flex;
       gap:12px;
       align-items:center;
@@ -76,11 +86,8 @@
     }
 
     @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
+      header .nav{
+        justify-content:flex-start;
       }
       .cta-group {
         display:flex;
@@ -89,19 +96,25 @@
 
     @media (max-width: 768px){
       /* Header-Layout für Mobile */
-      .container.nav{
+      header .nav{
         flex-wrap:wrap;
         gap:8px;
         align-items:flex-start;
         padding-inline:16px;
       }
 
-      .brand-title{
+      header .brand-title{
         font-size:1.05rem;
       }
 
+      /* Burger-Menü rechts neben dem Logo */
+      header .user-menu{
+        margin-left:auto;
+      }
+
       /* Drei Links auch auf Mobile sichtbar */
-      .nav-links{
+      header .nav-links{
+        display:flex !important;
         width:100%;
         justify-content:center;
         flex-wrap:wrap;
@@ -110,7 +123,7 @@
         margin-top:4px;
       }
 
-      .nav-links a{
+      header .nav-links a{
         font-size:0.9rem;
         padding:2px 6px;
       }
@@ -118,12 +131,6 @@
       /* CTA-Gruppe (falls vorhanden) auf Mobile ausblenden */
       .cta-group{
         display:none !important;
-      }
-
-      /* Burger-Menü rechts neben dem Logo */
-      .user-menu{
-        display:block;
-        margin-left:auto;
       }
 
       /* Hero enger / kleinere Schrift */
@@ -170,7 +177,7 @@
       }
     }
   </style>
-    <script>
+  <script>
   (function(){
     const API = (typeof window.API === 'string')
       ? window.API
@@ -247,32 +254,26 @@
 
     updateAuthUI();
   })();
-</script>
+  </script>
 
 </head>
 <body>
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -291,9 +292,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
+
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
 
   <main>
@@ -415,7 +422,7 @@
       </div>
     </section>
 
-
+  </main>
 
   <!-- Footer -->
   <footer>

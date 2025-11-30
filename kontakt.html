@@ -29,45 +29,45 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Menü-Style wie neue index.html: Burger + drei Links auch auf Mobile -->
+  <!-- Menü + Formular-Optik -->
   <style>
-    /* Weißer Menü-Button wie auf index/impressum/kategorie */
+    /* Weißer Menü-Button (hartes Override) */
     .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
     }
 
-    /* Standard: Desktop-Nav sichtbar, Burger nur für mobile */
-    .user-menu {
-      display:none;
-    }
-
-    .nav-links {
+    /* HEADER / USER-MENÜ – Menü direkt hinter Brand (wie anbieter.html) */
+    header .nav{
       display:flex;
-      gap:12px;
       align-items:center;
-      margin-left:auto;
+      gap:16px;
     }
-
-    .cta-group {
+    header .brand{
       display:flex;
-      gap:8px;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+    }
+    header .nav-links{
+      display:flex;
+      align-items:center;
+      gap:16px;
       margin-left:auto;
     }
 
     /* Desktop */
     @media (min-width: 769px){
-      .user-menu {
-        display:none;
-      }
-      .nav-links {
-        display:flex;
-      }
-      .cta-group {
-        display:flex;
+      header .nav{
+        justify-content:flex-start;
       }
     }
 
@@ -85,8 +85,13 @@
         font-size: 1.05rem;
       }
 
-      /* Links auch auf Mobile sichtbar, unter dem Logo */
-      .nav-links {
+      header .user-menu{
+        margin-left:auto;
+      }
+
+      /* Links auf Mobile sichtbar, unter dem Logo */
+      header .nav-links {
+        display:flex !important;
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
@@ -98,17 +103,6 @@
       .nav-links a {
         font-size: 0.9rem;
         padding: 2px 6px;
-      }
-
-      /* CTA-Gruppe (falls vorhanden) auf Mobile ausblenden */
-      .cta-group {
-        display: none !important;
-      }
-
-      /* Burger-Menü zusätzlich rechts vom Logo */
-      .user-menu {
-        display:block;
-        margin-left:auto;
       }
 
       /* Hero-Bereich */
@@ -165,8 +159,29 @@
         margin-top: 4px;
       }
     }
+
+    /* Eingabefelder klar umranden */
+    .form .control input,
+    .form .control textarea,
+    .form .control select {
+      border:1px solid #cbd5e1;
+      border-radius:8px;
+      padding:8px 10px;
+      background:#ffffff;
+      box-shadow:none;
+    }
+
+    .form .control input:focus,
+    .form .control textarea:focus,
+    .form .control select:focus {
+      outline:none;
+      border-color:#6f53ff;
+      box-shadow:0 0 0 1px rgba(111,83,255,0.15);
+    }
   </style>
-    <script>
+
+  <!-- (alter Menü-Snippet – ungefährlich, bricht bei fehlenden IDs direkt ab) -->
+  <script>
   (function(){
     const API = (typeof window.API === 'string')
       ? window.API
@@ -243,7 +258,7 @@
 
     updateAuthUI();
   })();
-</script>
+  </script>
 
 </head>
 <body>
@@ -259,26 +274,20 @@
 
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -297,10 +306,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
 
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
   <main>
     <!-- HERO -->
@@ -322,11 +336,15 @@
             <div class="grid-2">
               <div class="field">
                 <label class="label" for="cf-name">Dein Name</label>
-                <div class="control"><input id="cf-name" name="name" type="text" placeholder="Max Mustermann" required></div>
+                <div class="control">
+                  <input id="cf-name" name="name" type="text" placeholder="Max Mustermann" required>
+                </div>
               </div>
               <div class="field">
                 <label class="label" for="cf-email">E-Mail</label>
-                <div class="control"><input id="cf-email" name="email" type="email" placeholder="du@mail.de" required autocomplete="email"></div>
+                <div class="control">
+                  <input id="cf-email" name="email" type="email" placeholder="du@mail.de" required autocomplete="email">
+                </div>
               </div>
             </div>
 
