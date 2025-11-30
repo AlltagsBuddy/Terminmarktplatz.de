@@ -1,5 +1,4 @@
-<!-- FILE: templates/impressum.html -->
-<!doctype html>
+<!doctype html> 
 <html lang="de">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
@@ -12,47 +11,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Impressum | Terminmarktplatz</title>
-  <meta name="description" content="Impressum und gesetzliche Anbieterkennzeichnung für Terminmarktplatz gemäß § 5 TMG / § 18 Abs. 2 MStV." />
-  <meta name="theme-color" content="#6f53ff" />
+  <title>Terminmarktplatz – Freie Termine in deiner Nähe</title>
+  <meta name="description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe – Friseur, Kosmetik, Therapie, Handwerk & mehr. Anbieter können freie Slots sofort veröffentlichen und füllen.">
+  <meta name="theme-color" content="#6f53ff">
 
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Impressum | Terminmarktplatz" />
-  <meta property="og:description" content="Gesetzliche Anbieterkennzeichnung und Pflichtangaben." />
-  <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
+  <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
+  <meta property="og:site_name" content="Terminmarktplatz">
+  <meta property="og:url" content="http://terminmarktplatz.de/">
+  <meta property="og:image" content="http://terminmarktplatz.de/static/og-cover.png">
 
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Wichtig: relative Pfade von Domainwurzel auflösen -->
+  <base href="/" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="/static/favicon.png">
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/style.css?v=8">
+
+  <!-- Menü-Button & Anzeige-Logik wie Impressum/Datenschutz,
+       restliches Layout bleibt wie gehabt -->
   <style>
-    .fill{
-      background:#fff3;
-      border-bottom:2px dotted #cbd5e1;
-    }
-    .small{
-      font-size:13px;
-      color:var(--ab-text-dim);
-    }
-    .impressum h3{
-      margin:16px 0 6px;
-    }
-    .impressum p{
-      margin:6px 0;
-    }
-    .callout{
-      border-left:4px solid var(--ab-primary);
-      padding:12px 14px;
-      background:#fff;
-      border:1px solid var(--ab-border);
-      border-radius:12px;
-    }
-
-    /* Menü-Button im User-Menü: weiß (wie Datenschutz/AGB) */
+    /* Menü-Button im User-Menü: weiß */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -61,13 +52,48 @@
       background-image:none;
     }
 
-    /* Standard: Burger-Menü ausblenden */
+    /* Standard: Burger-Menü ausblenden, nur Desktop-Nav sichtbar */
     .user-menu {
       display:none;
     }
 
-    /* Mobile-Optimierung + Menü-Verhalten wie Datenschutzerklärung */
+    /* Grundlayout Header: Brand, dann Menü-Bereich, dann Nav-Links rechts */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    /* Desktop: Nav rechts, kein Burger-Menü */
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start;
+      }
+      .nav-links {
+        display:flex;
+        gap:12px;
+        align-items:center;
+        margin-left:auto;
+      }
+      .cta-group {
+        display:flex;
+        gap:8px;
+        margin-left:auto;
+      }
+      .user-menu {
+        display:none;
+      }
+    }
+
+    /* Mobile-Optimierung + Menü-Verhalten mobil wie Impressum:
+       Nav-Links ausblenden, dafür Burger-Menü anzeigen */
     @media (max-width: 768px) {
+      /* Header / Navigation */
       .container.nav {
         flex-wrap: wrap;
         gap: 8px;
@@ -89,29 +115,84 @@
         display:none !important;
       }
 
-      /* Burger-Menü nur mobil */
+      /* Burger-Menü nur mobil sichtbar, rechts vom Logo */
       .user-menu {
         display:block;
         margin-left:auto;
+        position:relative;
+        z-index:60;
       }
 
-      /* Hero kompakter */
+      /* HERO */
       .hero {
-        padding: 28px 0 14px !important;
+        padding: 32px 0 18px !important;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
       }
 
       .hero h1 {
-        font-size: 1.6rem;
+        font-size: 1.7rem;
         line-height: 1.25;
       }
 
       .hero .lead {
-        font-size: 0.95rem;
+        font-size: 0.96rem;
       }
 
-      /* Card / Inhalt */
-      .card.impressum {
-        padding: 18px !important;
+      /* Suchkarte / Formular mobil stapeln */
+      .search-card {
+        margin-top: 14px;
+      }
+
+      .searchbar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .searchbar .input {
+        width: 100%;
+      }
+
+      .searchbar input,
+      .searchbar select {
+        width: 100%;
+      }
+
+      .searchbar .btn,
+      .searchbar button {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .trust {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+
+      /* Kategorien – Chips enger und besser umbrechend */
+      .categories {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .categories .chip {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+      }
+
+      /* Feature-Karten untereinander */
+      .features {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
       }
 
       /* Footer-Spalten untereinander */
@@ -124,131 +205,61 @@
       .foot-col {
         margin-top: 4px;
       }
-    }
 
-    /* Desktop: normale Nav, kein Burger-Menü */
-    @media (min-width: 769px){
-      .user-menu {
-        display:none;
+      /* Cookie-Banner auf kleinen Screens */
+      .cookie .wrap {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
       }
-      .nav-links {
-        display:flex;
-        gap:12px;
+
+      .cookie .btns {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-start;
       }
-      .cta-group {
-        display:flex;
-        gap:8px;
-        margin-left:auto;
+
+      .cookie .btns .btn {
+        flex: 1 1 48%;
+        text-align: center;
       }
     }
   </style>
-  <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
 
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
-
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    // Menü ein-/ausklappen
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    // Login-Status -> auth-in / auth-out steuern
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
-      }
-
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
-      });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
-
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
-    updateAuthUI();
-  })();
-</script>
-
+  <!-- Structured Data (mit http-URLs) -->
+  <script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"WebSite",
+  "name":"Terminmarktplatz",
+  "url":"http://terminmarktplatz.de/",
+  "potentialAction":{
+    "@type":"SearchAction",
+    "target":"http://terminmarktplatz.de/suche.html?q={q}",
+    "query-input":"required name=q"
+  }
+}
+  </script>
 </head>
-
-<base href="/" />
-<link rel="stylesheet" href="/static/style.css?v=20251010" />
-
 <body>
-  <!-- Header -->
+  <!-- Header / Navigation -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ (wie Impressum) -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -267,97 +278,111 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
 
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
   <main>
-    <section class="hero" style="padding:40px 0 16px">
-      <div class="container">
-        <span class="badge">Pflichtangaben</span>
-        <h1>Impressum</h1>
-        <p class="lead">Gesetzliche Anbieterkennzeichnung gemäß § 5 TMG und Informationen nach § 18 Abs. 2 MStV.</p>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <span class="badge">Termin-Sofortbörse · Terminlücken reduzieren</span>
+          <br>
+          <h1>Freie Termine in Minuten bereitstellen, füllen – oder finden.</h1>
+          <br>
+          <p class="lead">
+            Dein Marktplatz für kurzfristig freigewordene Slots bei Friseur:innen, Kosmetik, Therapie, Handwerk, Fitness, Behörden & mehr. 
+          </p>
+          <div class="search-card" role="search" aria-label="Terminsuche">
+            <form class="searchbar" id="search-form" action="/suche.html" method="get">
+              <label class="input" aria-label="Leistung">
+                🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt">
+              </label>
+              <label class="input" aria-label="Ort">
+                📍 <input type="text" name="ort" placeholder="PLZ / Stadt">
+              </label>
+              <label class="input" aria-label="Umkreis">
+                <select name="radius" id="f-radius" title="Umkreis um PLZ">
+                    <option value="">Umkreis</option>
+                    <option value="5">5 km</option>
+                    <option value="10">10 km</option>
+                    <option value="25">25 km</option>
+                    <option value="50">50 km</option>
+                    <option value="75">75 km</option>
+                    <option value="100">100 km</option>
+                </select>
+              </label>
+
+              <label class="input" aria-label="Datum">
+                📅 <input type="date" name="datum">
+              </label>
+              <label class="input" aria-label="Zeitfenster">
+                ⏰
+                <select name="zeit">
+                  <option value="">Beliebig</option>
+                  <option value="vormittag">Vormittag</option>
+                  <option value="nachmittag">Nachmittag</option>
+                  <option value="abend">Abend</option>
+                </select>
+              </label>
+              <button class="btn primary" type="submit">Freie Slots finden</button>
+            </form>
+
+            <div class="trust">
+              <span></span>
+              <span>DSGVO-konform · Keine Abo-Pflicht</span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
+    <!-- CATEGORIES -->
     <section>
       <div class="container">
-        <div class="card impressum" style="padding:22px">
-          <h2>1. Angaben gemäß § 5 TMG</h2>
-          <p>
-            <strong>AlltagsBuddy / Annett Hofmann</strong><br>
-            Steigerwaldstraße 35<br>
-            96191 Vieret-Trunstadt, Deutschland
-          </p>
-          <p>
-            Telefon: <span class="fill">folgt</span><br>
-            E-Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a><br>
-            Website: <span class="fill">https://terminmarktplatz.de</span>
-          </p>
+        <h2>Beliebte Kategorien</h2>
+        <p class="sub">Was brauchst du heute? Beispiele für häufige Suchanfragen:</p>
+        <div class="categories">
+          <span class="chip">Friseur</span>
+          <span class="chip">Kosmetik</span>
+          <span class="chip">Physiotherapie</span>
+          <span class="chip">Nagelstudio</span>
+          <span class="chip">Zahnarzt</span>
+          <span class="chip">Handwerk</span>
+          <span class="chip">KFZ-Service</span>
+          <span class="chip">Fitness</span>
+          <span class="chip">Coaching</span>
+          <span class="chip">Behörden</span>
+          <span class="chip">Tierarzt</span>
+        </div>
+      </div>
+    </section>
 
-          <h3>Verantwortlich i. S. d. § 18 Abs. 2 MStV</h3>
-          <p>
-            <span class="fill">Annett Hofmann, Steigerwaldstraße 35, 96191 &lt;Viereth-Trunstadt&gt;</span>
-          </p>
-
-          <hr style="border:none; border-top:1px solid var(--ab-border); margin:18px 0">
-
-          <h2>2. EU-Streitschlichtung</h2>
-          <p>
-            Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
-            <a href="https://ec.europa.eu/consumers/odr/" rel="nofollow noopener" target="_blank">https://ec.europa.eu/consumers/odr/</a>.
-          </p>
-
-          <h2>3. Verbraucherstreitbeilegung nach VSBG</h2>
-          <p class="callout">
-            <span class="small"></span> Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.<br>
-          </p>
-
-          <h2>4. Haftung für Inhalte</h2>
-          <p>
-            Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen
-            Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet,
-            übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen,
-            die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung
-            von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist
-            jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von
-            entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.
-          </p>
-
-          <h2>5. Haftung für Links</h2>
-          <p>
-            Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben.
-            Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten
-            Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die verlinkten Seiten
-            wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte waren
-            zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente inhaltliche Kontrolle der verlinkten
-            Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden
-            von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
-          </p>
-
-          <h2>6. Urheberrecht</h2>
-          <p>
-            Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen
-            Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der
-            Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
-            Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet,
-            soweit nicht ausdrücklich anders gekennzeichnet. Soweit die Inhalte auf dieser Seite nicht vom Betreiber
-            erstellt wurden, werden die Urheberrechte Dritter beachtet und entsprechende Inhalte gekennzeichnet.
-            Solltest du trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen Hinweis.
-            Bei Bekanntwerden von Rechtsverletzungen entfernen wir derartige Inhalte umgehend.
-          </p>
-
-          <h2>7. Bild-, Icon- & Schrift-Nachweise</h2>
-          <p>
-            <span class="fill">Quelle/n für Bilder/Illustrationen/Icons/Fonts – z. B. eigenes Material, Lizenz, Stock-Plattform, Autoren</span>
-          </p>
-
-          <h2>8. Social-Media-Profile</h2>
-          <p>
-            <span class="fill">Links zu offiziellen Profilen – z. B. Instagram, Facebook, LinkedIn, X, YouTube</span><br>
-            Es gelten die Nutzungs- und Datenschutzbestimmungen der jeweiligen Plattformbetreiber.
-          </p>
+    <!-- FEATURES -->
+    <section>
+      <div class="container">
+        <h2>Warum Terminmarktplatz?</h2>
+        <p class="sub">Mehr Umsatz für Anbieter. Mehr Spontanität für Kund:innen. Weniger Terminlücken für alle.</p>
+        <div class="features">
+          <div class="card">
+            <h3>Freie Slots sofort füllen</h3>
+            <p>Storniert ein Kunde, wird der Slot publik – optional mit Smart-Rabatten. Kund:innen buchen mit 1-Klick.</p>
+          </div>
+          <div class="card">
+            <h3>Terminlücken minimieren</h3>
+            <p>Bestätigung per E-Mail und Erinnerungen senken Ausfälle deutlich.</p>
+          </div>
+          <div class="card">
+            <h3>Einfache Integration</h3>
+            <p>Kalender-Sync via iCal/Google/Outlook. Deine bestehende Praxis- oder Salonsoftware bleibt.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -396,17 +421,51 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <!-- Jahreszahl & User-Menü-Logik -->
+  <!-- Cookie Banner -->
+  <div class="cookie" id="cookie">
+    <div class="wrap">
+      <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="/datenschutz.html">Mehr erfahren</a></p>
+      <div class="btns">
+        <button class="btn" id="cookie-decline">Ablehnen</button>
+        <button class="btn primary" id="cookie-accept">Akzeptieren</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Jahreszahl im Footer
+    // Copyright-Jahr
     (function(){
       const yEl = document.getElementById('y');
       if (yEl) yEl.textContent = new Date().getFullYear();
     })();
+
+    // Cookie consent
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      const $cookie = document.getElementById('cookie');
+      if(!$cookie) return;
+      if(!localStorage.getItem(cookieKey)) {
+        $cookie.style.display = 'block';
+      }
+      const acceptBtn  = document.getElementById('cookie-accept');
+      const declineBtn = document.getElementById('cookie-decline');
+      if (acceptBtn) {
+        acceptBtn.onclick = ()=>{
+          localStorage.setItem(cookieKey,'accepted');
+          $cookie.remove();
+        };
+      }
+      if (declineBtn) {
+        declineBtn.onclick = ()=>{
+          localStorage.setItem(cookieKey,'declined');
+          $cookie.remove();
+        };
+      }
+    })();
   </script>
 
+  <!-- User-Menü Logik inkl. Auth-Status -->
   <script>
-    // User-Menü (Burger) inkl. Login-Status – identisches Verhalten wie Datenschutz
     (function(){
       const API = (typeof window.API === 'string')
         ? window.API
@@ -415,6 +474,32 @@
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
       if(!btn || !menu) return;
+
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls  = menu.querySelectorAll('.auth-in');
+
+      function setAuthVisible(isLoggedIn){
+        authOutEls.forEach(el => {
+          el.style.display = isLoggedIn ? 'none' : '';
+        });
+        authInEls.forEach(el => {
+          el.style.display = isLoggedIn ? '' : 'none';
+        });
+        // Kontakt bleibt immer sichtbar
+      }
+
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          if(res.ok){
+            setAuthVisible(true);
+          }else{
+            setAuthVisible(false);
+          }
+        }catch(e){
+          setAuthVisible(false);
+        }
+      }
 
       function openMenu(open){
         menu.hidden = !open;
@@ -429,24 +514,6 @@
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
 
-      // Auth-abhängige Sichtbarkeit
-      async function initAuthState(){
-        const loggedEls = menu.querySelectorAll('.auth-in');
-        const outEls    = menu.querySelectorAll('.auth-out');
-        try{
-          const r = await fetch(`${API}/me`, { credentials:'include' });
-          const isLoggedIn = r.ok;
-          loggedEls.forEach(el => el.style.display = isLoggedIn ? '' : 'none');
-          outEls.forEach(el => el.style.display = isLoggedIn ? 'none' : '');
-        }catch(_){
-          // Bei Fehler: als "nicht eingeloggt" behandeln
-          loggedEls.forEach(el => el.style.display = 'none');
-          outEls.forEach(el => el.style.display = '');
-        }
-      }
-      initAuthState();
-
-      // Aktionen im Menü (Logout / Delete)
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
         if(!el) return;
@@ -475,7 +542,10 @@
           }
         }
       });
-      })();
+
+      // beim Laden Auth-Status prüfen und Menü anpassen
+      checkAuth();
+    })();
   </script>
 </body>
 </html>
