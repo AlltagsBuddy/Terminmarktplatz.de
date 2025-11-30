@@ -143,45 +143,47 @@
 <body>
     <!-- Header -->
     <header>
-      <div class="container nav"
-          role="navigation"
-          aria-label="Hauptnavigation"
-          style="flex-wrap:wrap; gap:8px; align-items:flex-start;">
-        <a class="brand" href="index.html" aria-label="Startseite">
-          <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
-          </div>
-          <div class="brand-title">Terminmarktplatz</div>
-        </a>
-
-        <!-- Weißer Mobile-Button NUR für Konto / Kontakt -->
-        <div class="user-menu">
-          <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-            ☰ Menü
-          </button>
-          <div id="userMenu" class="menu" role="menu" hidden>
-            <!-- Nur sichtbar, wenn NICHT eingeloggt -->
-            <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-            <!-- Nur sichtbar, wenn eingeloggt -->
-            <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-            <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-            <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-            <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-            <!-- Immer sichtbar -->
-            <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-          </div>
-        </div>
-
-          <!-- Hauptnavigation – immer sichtbar -->
-          <nav class="nav-links">
-            <a href="anbieter.html">Für Anbieter</a>
-            <a href="suchende.html">Für Suchende</a>
-            <a href="preise.html">Preise</a>
-          </nav>
+  <div class="container nav"
+       role="navigation"
+       aria-label="Hauptnavigation">
+    <!-- Logo / Brand -->
+    <a class="brand" href="index.html" aria-label="Startseite">
+      <div class="brand-logo" aria-hidden="true">
+        <img src="/static/terminmarktplatz-logo.png"
+             alt="Terminmarktplatz Logo"
+             width="50" height="50">
       </div>
-    </header>
+      <div class="brand-title">Terminmarktplatz</div>
+    </a>
+
+    <!-- Hauptnavigation + User-Menü -->
+    <nav class="nav-links">
+      <a href="anbieter.html">Für Anbieter</a>
+      <a href="suchende.html">Für Suchende</a>
+      <a href="preise.html">Preise</a>
+
+      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- nur sichtbar, wenn NICHT eingeloggt -->
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- nur sichtbar, wenn eingeloggt -->
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+          <!-- immer sichtbar -->
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
 
   <main>
     <!-- HERO -->
