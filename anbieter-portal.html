@@ -34,16 +34,16 @@
 
   <!-- Portal-spezifische Button-Overrides + Mobile-Optimierung -->
   <style>
-    /* Basis: Seite füllt den Viewport, nichts wird abgeschnitten */
+    /* Basis: Seite füllt den Viewport */
     html, body {
       width: 100%;
       margin: 0;
       padding: 0;
     }
 
-    /* Container im Portal maximal so breit wie das Layout */
+    /* Container im Portal */
     .page-portal .container {
-      max-width: 100%;
+      max-width: 1120px;
       box-sizing: border-box;
     }
 
@@ -72,7 +72,7 @@
       background:#ffffff !important;
       border:1px solid #cbd5e1 !important;
       text-shadow:none !important;
-      background-image:none !important;
+      background-image:none !Important;
     }
 
     .page-portal .panel{border-radius:var(--r-3xl); box-shadow:var(--shadow-2)}
@@ -109,11 +109,11 @@
       align-items:center;
     }
     .duration-row input{
-      flex:1 1 auto;   /* breiter */
+      flex:1 1 auto;
       width:100%;
     }
     .duration-row select{
-      flex:0 0 90px;   /* kleineres Dropdown */
+      flex:0 0 90px;
       max-width:90px;
     }
 
@@ -215,16 +215,17 @@
         font-size: 0.9rem;
       }
 
-      /* Container: leicht eingerückt, nichts ragt raus */
+      /* Header-Container und Content-Container: gleiche Breite */
+      header .container.nav,
       .page-portal main .container {
-        padding-inline: 12px;
+        max-width: 720px;
         margin: 0 auto;
+        padding-inline: 12px;
       }
 
       .container.nav {
         flex-wrap: wrap;
         gap: 6px;
-        padding-inline: 12px;
         align-items: flex-start;
       }
 
@@ -276,9 +277,9 @@
       }
 
       .panel {
-        margin-bottom: 8px;
-        padding: 10px 8px;
-        border-radius: 16px;
+        margin-bottom: 10px;
+        padding: 12px 10px;
+        border-radius: 18px;
         max-width: 100%;
       }
 
@@ -314,7 +315,7 @@
         font-size: 10px;
       }
 
-      /* Buttons + Texte linksbündig, nicht Vollbreite */
+      /* Buttons + Texte linksbündig */
       .toolbar {
         flex-direction: column;
         align-items: flex-start;
@@ -363,16 +364,17 @@
         padding: 4px 6px;
       }
 
-      /* MOBILE TABLE -> CARD LAYOUT */
+      /* MOBILE TABLE -> CARD LAYOUT, ALLES UNTEREINANDER */
       .table-wrap {
         width: 100%;
-        overflow-x: auto; /* falls doch mal zu breit: Scrollbar statt Abschneiden */
+        overflow-x: hidden;
       }
 
       .table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
+        border: 0;
       }
 
       .table thead {
@@ -381,19 +383,19 @@
 
       .table tbody tr {
         display: block;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 14px;
         overflow: hidden;
+        background:#ffffff;
       }
 
       .table tbody tr td {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 6px 8px;
-        font-size: 0.8rem;
+        display: block;
+        padding: 6px 10px;
+        font-size: 0.85rem;
         border-bottom: 1px solid var(--border);
+        white-space: normal;
       }
 
       .table tbody tr td:last-child {
@@ -402,26 +404,34 @@
 
       .table tbody tr td[data-label]::before {
         content: attr(data-label);
+        display: block;
         font-weight: 600;
-        margin-right: 6px;
+        margin-bottom: 2px;
         color: #0f172a;
-        min-width: 80px;
-        flex-shrink: 0;
-        text-align: left;
+        opacity: .9;
       }
 
-      .table tbody tr td.nowrap {
-        white-space: normal;
+      /* Checkbox-Zeile kompakter, ohne Label-Text */
+      .table tbody tr td[data-label="✓"]{
+        display:flex;
+        align-items:center;
+        justify-content:flex-start;
+      }
+      .table tbody tr td[data-label="✓"]::before{
+        content:"";
+        display:none;
       }
 
-      .table tbody tr td[data-label="✓"]::before {
-        content: "";
-        min-width: 0;
-        margin-right: 0;
+      /* Aktionen-Buttons: untereinander, volle Breite */
+      .table tbody tr td[data-label="Aktionen"] .btn{
+        display:block;
+        width:100%;
+        margin:2px 0;
+        text-align:center;
       }
 
       .slot-hint {
-        font-size: 0.75rem;
+        font-size: 0.78rem;
       }
 
       .foot-grid {
@@ -434,7 +444,7 @@
         margin-top: 4px;
       }
 
-      /* Dropdown in der Dauer-Zeile auf Mobile minimal kleiner */
+      /* Dropdown in der Dauer-Zeile auf Mobile etwas kleiner */
       .duration-row select{
         flex:0 0 80px;
         max-width:80px;
