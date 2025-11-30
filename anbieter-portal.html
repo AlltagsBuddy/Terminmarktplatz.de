@@ -156,52 +156,13 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* === DESKTOP NAV: Brand links, dann Links, dann Menü-Button direkt hinter "Preise" === */
+    /* === DESKTOP NAV (wird gleich noch genauer überschrieben) === */
     @media (min-width: 769px) {
       .container.nav {
         display:flex;
         align-items:center;
         justify-content:flex-start;
         gap:16px;
-      }
-
-      .container.nav .brand {
-        margin-right:24px;
-      }
-
-      .container.nav .nav-links {
-        display:flex;
-        align-items:center;
-        gap:16px;
-        margin-left:auto;  /* schiebt die Links nach rechts */
-      }
-
-      .nav-links .user-menu {
-        position:relative;
-        margin-left:16px;  /* Abstand hinter "Preise" */
-      }
-
-      /* Button optisch auf Höhe der Links */
-      #userMenuBtn {
-        padding:8px 12px;
-        border-radius:999px;
-        border:1px solid #cbd5e1;
-        background:#ffffff;
-        color:#0f172a;
-        font-family:inherit;
-        font-weight:700;
-        cursor:pointer;
-        line-height:1.2;
-      }
-
-      #userMenuBtn:hover {
-        background:#e5e7eb;
-      }
-
-      /* Dropdown-Position auf Desktop */
-      .user-menu .menu {
-        top:calc(100% + 8px);
-        right:0;
       }
     }
 
@@ -238,7 +199,7 @@
         padding: 2px 4px;
       }
 
-      /* User-Menü auf Mobil sichtbar, hängt innerhalb der Nav mit drin */
+      /* User-Menü auf Mobil sichtbar */
       .user-menu {
         display: block;
       }
@@ -426,6 +387,67 @@
       text-shadow:none;
       background-image:none;
     }
+
+    /* ===================================================
+       HEADER / USER-MENÜ FIX – Menü direkt hinter Brand
+       (Diesen Block kannst du auf JEDER Seite übernehmen)
+       =================================================== */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+    }
+
+    /* Desktop: Links nach rechts schieben */
+    @media (min-width:769px){
+      header .nav{
+        justify-content:flex-start;
+      }
+      header .nav-links{
+        display:flex;
+        align-items:center;
+        gap:16px;
+        margin-left:auto;
+      }
+    }
+
+    /* Mobile: Brand links, Menü rechts, Links darunter */
+    @media (max-width:768px){
+      header .nav{
+        flex-wrap:wrap;
+        align-items:flex-start;
+        gap:8px;
+      }
+      header .brand{
+        margin-right:0;
+      }
+      header .user-menu{
+        margin-left:auto;
+      }
+      header .nav-links{
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:8px;
+        text-align:center;
+        margin-top:4px;
+      }
+      header .nav-links a{
+        font-size:0.9rem;
+        padding:6px 8px;
+      }
+    }
   </style>
 </head>
 
@@ -433,26 +455,20 @@
 
   <!-- Header -->
   <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
-      </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
 
-    <!-- Hauptnavigation + User-Menü -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-
-      <!-- User-Menü – bleibt in allen Seiten identisch -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -471,10 +487,15 @@
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
-    </nav>
-  </div>
-</header>
 
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
 
   <main>
     <!-- HERO -->
@@ -1172,84 +1193,84 @@
   </script>
 
   <!-- User-Menü Logik inkl. auth-in / auth-out -->
- <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
+  <script>
+    (function(){
+      const API = (typeof window.API === 'string')
+        ? window.API
+        : ((h) => (h === 'localhost' || h === '127.0.0.1')
+              ? 'http://127.0.0.1:5000'
+              : 'https://api.terminmarktplatz.de')(location.hostname);
 
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if (!btn || !menu) return;
 
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    // Menü ein-/ausklappen
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    // Login-Status -> auth-in / auth-out steuern
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
       }
 
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
+      // Menü ein-/ausklappen
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
       });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
 
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
 
-      if (action === 'logout'){
+      // Login-Status -> auth-in / auth-out steuern
+      async function updateAuthUI(){
+        let loggedIn = false;
         try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          loggedIn = res.ok;
+        }catch(e){
+          loggedIn = false;
         }
-      }
-    });
 
-    updateAuthUI();
-  })();
-</script>
+        document.querySelectorAll('.auth-in').forEach(el => {
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
+
+      // Aktionen im Menü
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if (!el) return;
+        const action = el.dataset.action;
+
+        if (action === 'logout'){
+          try{
+            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+
+        if (action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if (!ok) return;
+
+          try{
+            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+            if (res.ok){
+              location.href = '/login.html?deleted=1';
+            }else{
+              const data = await res.json().catch(()=> ({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          }
+        }
+      });
+
+      updateAuthUI();
+    })();
+  </script>
 
   <!-- Footer -->
   <footer>
