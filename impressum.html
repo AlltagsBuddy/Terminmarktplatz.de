@@ -51,7 +51,7 @@
       border-radius:12px;
     }
 
-    /* Menü-Button im User-Menü: weiß (wie Datenschutz/AGB) */
+    /* Menü-Button im User-Menü: weiß (Override für globales Button-Design) */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -65,7 +65,7 @@
       display:none;
     }
 
-    /* ===== Header + Menü wie AGB: Brand – Menü – Nav rechts ===== */
+    /* ===== Header + Menü wie in agb.html: Brand – Menü – Nav rechts ===== */
 
     header .nav{
       display:flex;
@@ -162,6 +162,11 @@
         margin-top: 4px;
       }
     }
+
+    /* Desktop: nichts weiter ändern, Header-Layout kommt von oben */
+    @media (min-width: 769px){
+      /* optionaler Platzhalter, falls du später noch was brauchst */
+    }
   </style>
 </head>
 
@@ -184,7 +189,7 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- User-Menü direkt hinter „Terminmarktplatz“ (wie AGB) -->
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
@@ -212,6 +217,7 @@
       </nav>
     </div>
   </header>
+
 
   <main>
     <section class="hero" style="padding:40px 0 16px">
