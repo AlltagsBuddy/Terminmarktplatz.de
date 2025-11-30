@@ -1351,6 +1351,119 @@ fieldset[disabled]{
   .foot-col{
     margin-top:4px;
   }
+  /* page-portal: "Meine Slots" – kompakt auf Mobile */
+@media (max-width:768px){
+
+  /* Kopfzeile ausblenden */
+  .page-portal #tbl-slots thead{
+    display:none;
+  }
+
+  /* Jede Slot-Zeile als Card */
+  .page-portal #tbl-slots tbody tr{
+    display:block;
+    padding:8px 10px;
+    margin-bottom:8px;
+    border-radius:12px;
+    background:#ffffff;
+    color:#0f172a;
+    border:1px solid #e5e7eb;
+  }
+
+  .page-portal #tbl-slots tbody tr td{
+    display:inline;
+    border:0;
+    padding:0;
+    font-size:0.82rem;
+    white-space:normal;
+  }
+
+  /* kleine Abstände zwischen Inline-Zellen */
+  .page-portal #tbl-slots tbody tr td + td::before{
+    content:" ";
+  }
+
+  /* Checkbox links ganz vorne */
+  .page-portal #tbl-slots tbody tr td[data-label="✓"]{
+    margin-right:6px;
+  }
+
+  /* Zeitbereich: Start – Ende */
+  .page-portal #tbl-slots tbody tr td[data-label="Start"]::after{
+    content:" –";
+  }
+  .page-portal #tbl-slots tbody tr td[data-label="Ende"]{
+    margin-right:6px;
+  }
+
+  /* Titel etwas hervorgehoben */
+  .page-portal #tbl-slots tbody tr td[data-label="Titel"]{
+    font-weight:600;
+  }
+
+  /* Slot-Hinweis (gebucht/abgelaufen) kleiner */
+  .page-portal #tbl-slots .slot-hint{
+    display:inline-block;
+    margin-left:4px;
+    font-size:0.75rem;
+  }
+
+  /* --- 2. Zeile: Meta-Infos --- */
+
+  /* Zeilenumbruch vor Kategorie erzwingen */
+  .page-portal #tbl-slots tbody tr td[data-label="Kategorie"]::before{
+    content:"\A";
+    white-space:pre;
+  }
+
+  .page-portal #tbl-slots tbody tr td[data-label="Kategorie"],
+  .page-portal #tbl-slots tbody tr td[data-label="Ort"],
+  .page-portal #tbl-slots tbody tr td[data-label="Kapazität"],
+  .page-portal #tbl-slots tbody tr td[data-label="Status"]{
+    font-size:0.78rem;
+    color:#64748b;
+  }
+
+  .page-portal #tbl-slots tbody tr td[data-label="Kapazität"]::before{
+    content:" · Kap. ";
+  }
+  .page-portal #tbl-slots tbody tr td[data-label="Kapazität"]{
+    /* Zahl alleine, Label kommt aus ::before */
+  }
+
+  .page-portal #tbl-slots tbody tr td[data-label="Status"] .badge-st{
+    margin-left:4px;
+  }
+
+  /* --- Aktionen: eigene Zeile unten rechts --- */
+
+  .page-portal #tbl-slots tbody tr td[data-label="Aktionen"]{
+    display:block;
+    margin-top:6px;
+    text-align:right;
+  }
+
+  .page-portal #tbl-slots tbody tr td[data-label="Aktionen"] .btn{
+    display:inline-block;
+    width:auto;
+    margin-left:4px;
+    padding:4px 8px;
+    font-size:0.75rem;
+  }
+
+  /* Past/Booked Hintergründe nicht mehr jede Zelle anfärben,
+     sondern die Card leicht tönen, wenn du willst: */
+  .page-portal #tbl-slots tbody tr.slot-past{
+    background:#f9fafb;
+  }
+  .page-portal #tbl-slots tbody tr.slot-booked{
+    background:#ecfdf5;
+  }
+  .page-portal #tbl-slots tbody tr.slot-booked.slot-past{
+    background:#e5e7eb;
+  }
+}
+
 }
 
 /* ---------- Accessibility / Motion already handled oben ---------- */
