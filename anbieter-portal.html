@@ -701,6 +701,14 @@
 
               <!-- ORT / PLZ – PFLICHT -->
               <div class="field">
+                <label for="sl-location">Strasse und Hausnummer <span class="req">*</span></label>
+                <input id="sl-location" name="location"
+                       placeholder="z. B. Hauptstrasse / 27"
+                       required aria-required="true" pattern="(\d{5}|.{3,})"
+                       title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
+              </div>
+
+              <div class="field">
                 <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
                 <input id="sl-location" name="location"
                        placeholder="z. B. 96191 Viereth / Filiale Zentrum"
@@ -1044,93 +1052,125 @@
     }
 
     function renderTable(items){
-      const tbody = $('#tbl-slots tbody');
-      if(!items.length){
-        tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = '';
-      const now = new Date();
+  const tbody = $('#tbl-slots tbody');
+  if(!items.length){
+    tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = '';
+  const now = new Date();
 
-      for(const s of items){
-        const tr = document.createElement('tr');
-        const theStatus = s.status;
-        const isArchived  = theStatus === 'archived';
-        const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+  for(const s of items){
+    const tr = document.createElement('tr');
+    const theStatus = s.status;
+    const isArchived  = theStatus === 'archived';
+    const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
 
-        const endDate = s.end_at ? new Date(s.end_at) : null;
-        const isPast = !!(endDate && endDate < now);
+    const endDate = s.end_at ? new Date(s.end_at) : null;
+    const isPast = !!(endDate && endDate < now);
 
-        const capacity = s.capacity || 1;
-        const bookedCount = typeof s.booked === 'number' ? s.booked : 0;
-        const available = typeof s.available === 'number'
-          ? s.available
-          : Math.max(0, capacity - bookedCount);
+    const capacity = s.capacity || 1;
+    const bookedCount = typeof s.booked === 'number' ? s.booked : 0;
+    const available = typeof s.available === 'number'
+      ? s.available
+      : Math.max(0, capacity - bookedCount);
 
-        const isBooked = bookedCount > 0;
+    const isBooked = bookedCount > 0;
 
-        let rowClass = '';
-        if (isPast) rowClass += ' slot-past';
-        if (isBooked) rowClass += ' slot-booked';
-        tr.className = rowClass.trim();
+    let rowClass = '';
+    if (isPast) rowClass += ' slot-past';
+    if (isBooked) rowClass += ' slot-booked';
+    tr.className = rowClass.trim();
 
-        const hintParts = [];
-        if (isBooked) {
-          hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
-        }
-        if (isPast) hintParts.push('Abgelaufen');
-        const hintText = hintParts.length ? hintParts.join(' • ') : '';
-
-        tr.innerHTML = `
-          <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
-          <td data-label="Start">${fmtLocal(s.start_at)}</td>
-          <td data-label="Ende">${fmtLocal(s.end_at)}</td>
-          <td data-label="Titel">
-            ${s.title}
-            ${hintText ? `<span class="slot-hint">${hintText}</span>` : ''}
-          </td>
-          <td data-label="Kategorie">${s.category||''}</td>
-          <td data-label="Ort">${s.location||''}</td>
-          <td data-label="Kapazität">${capacity}</td>
-          <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
-          <td data-label="Aktionen" class="nowrap">
-            ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
-            <button class="btn danger" data-del="${s.id}">Löschen</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-
-      $$('#tbl-slots .row-check').forEach(cb => {
-        cb.addEventListener('change', ()=>{
-          const id = cb.dataset.id;
-          if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
-          updateBulkButtons(items);
-        });
-      });
-
-      $$('#tbl-slots [data-del]').forEach(b =>
-        b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
-      );
-      $$('#tbl-slots [data-arch]').forEach(b =>
-        b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
-      );
-
-      const chkAll = $('#chk-all');
-      if (chkAll) {
-        chkAll.onchange = (e) => {
-          SELECTED.clear();
-          $$('#tbl-slots .row-check').forEach(cb => {
-            cb.checked = e.target.checked;
-            if(cb.checked) SELECTED.add(cb.dataset.id);
-          });
-          updateBulkButtons(items);
-        };
-      }
-
-      updateBulkButtons(items);
+    // 1) bisheriger Hinweis (gebucht / abgelaufen)
+    const hintParts = [];
+    if (isBooked) {
+      hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
     }
+    if (isPast) hintParts.push('Abgelaufen');
+    const hintText = hintParts.length ? hintParts.join(' • ') : '';
+
+    // 2) NEU: Buchungsdetails (Name + E-Mail der Kund:innen)
+    // Erwartet: s.bookings = [{customer_name, customer_email}, ...]
+    const bookings = Array.isArray(s.bookings) ? s.bookings : [];
+    let bookingHint = '';
+
+    if (bookings.length === 1){
+      const b = bookings[0];
+      bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
+    } else if (bookings.length > 1){
+      const maxVisible = 3;
+      // max. 3 Einträge direkt anzeigen, Rest zusammenfassen
+      const visible = bookings.slice(0, maxVisible);
+      const listStr = visible
+        .map(b => `${b.customer_name} (${b.customer_email})`)
+        .join('; ');
+      const hiddenCount = bookings.length - visible.length;
+
+      if (hiddenCount > 0){
+        bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
+      } else {
+        bookingHint = `Gebucht von: ${listStr}`;
+      }
+    }
+
+    // 3) Hinweise unter dem Titel zusammenbauen (max. 1–2 Zeilen)
+    const hintHtml = [];
+    if (hintText)    hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
+    if (bookingHint) hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
+
+    tr.innerHTML = `
+      <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
+      <td data-label="Start">${fmtLocal(s.start_at)}</td>
+      <td data-label="Ende">${fmtLocal(s.end_at)}</td>
+      <td data-label="Titel">
+        ${s.title}
+        ${hintHtml.join('')}
+      </td>
+      <td data-label="Kategorie">${s.category||''}</td>
+      <td data-label="Ort">${s.location||''}</td>
+      <td data-label="Kapazität">${capacity}</td>
+      <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
+      <td data-label="Aktionen" class="nowrap">
+        ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+        ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+        <button class="btn danger" data-del="${s.id}">Löschen</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  $$('#tbl-slots .row-check').forEach(cb => {
+    cb.addEventListener('change', ()=>{
+      const id = cb.dataset.id;
+      if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+      updateBulkButtons(items);
+    });
+  });
+
+  $$('#tbl-slots [data-del]').forEach(b =>
+    b.addEventListener('click', async ()=>{ await delSlot(b.dataset.del); await loadSlots(); })
+  );
+  $$('#tbl-slots [data-arch]').forEach(b =>
+    b.addEventListener('click', async ()=>{ await setStatus(b.dataset.arch, b.dataset.status); await loadSlots(); })
+  );
+
+  const chkAll = $('#chk-all');
+  if (chkAll) {
+    chkAll.onchange = (e) => {
+      SELECTED.clear();
+      $$('#tbl-slots .row-check').forEach(cb => {
+        cb.checked = e.target.checked;
+        if(cb.checked) SELECTED.add(cb.dataset.id);
+      });
+      updateBulkButtons(items);
+    };
+  }
+
+  updateBulkButtons(items);
+}
+
+
 
     async function loadSlots(){
       const tbody = $('#tbl-slots tbody');

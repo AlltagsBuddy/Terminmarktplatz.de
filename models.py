@@ -21,7 +21,7 @@ class Provider(Base):
     """Dienstleister (Arzt, Amt, Handwerker …)."""
     __tablename__ = "provider"  # <- entspricht deiner DB
 
-    # UUIDs werden als Text/uuid gespeichert; as_uuid=False -> Python-Strings
+    # UUIDs als String
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
         primary_key=True,
@@ -48,14 +48,14 @@ class Provider(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
-    # NEU: Limit freie Slots pro Monat (z.B. 3)
+    # Limit freie Slots pro Monat (z.B. 3)
     free_slots_per_month: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=3,
     )
 
-    # NEU: Gebühr pro gebuchtem Slot (z.B. 2,00 €)
+    # Gebühr pro gebuchtem Slot (in EUR)
     booking_fee_eur: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
@@ -70,7 +70,7 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    # NEU: direkte Beziehung zu Buchungen (praktisch für Abrechnung)
+    # direkte Beziehung zu Buchungen (praktisch für Abrechnung)
     bookings: Mapped[list["Booking"]] = relationship(
         "Booking",
         back_populates="provider",
@@ -106,11 +106,17 @@ class Slot(Base):
 
     location: Mapped[str | None] = mapped_column(Text)
     capacity: Mapped[int] = mapped_column(Integer, default=1)
+
+    # aktuell noch nicht im Frontend genutzt, aber vorhanden
     contact_method: Mapped[str] = mapped_column(Text, default="mail")
     booking_link: Mapped[str | None] = mapped_column(Text)
+
+    # Preis in Cent (optional)
     price_cents: Mapped[int | None] = mapped_column(Integer)
+
     notes: Mapped[str | None] = mapped_column(Text)
 
+    # pending_review | published | archived
     status: Mapped[str] = mapped_column(Text, default="pending_review")
 
     created_at: Mapped[datetime] = mapped_column(
@@ -120,6 +126,8 @@ class Slot(Base):
 
     # Beziehungen
     provider: Mapped[Provider] = relationship("Provider", back_populates="slots")
+
+    # alle Buchungen zu diesem Slot – hier holst du später Name + E-Mail
     bookings: Mapped[list["Booking"]] = relationship(
         "Booking",
         back_populates="slot",
@@ -147,17 +155,18 @@ class Booking(Base):
         nullable=False,
     )
 
-    # NEU: direkte Referenz zum Provider (vereinfacht Abrechnung)
+    # direkte Referenz zum Provider (vereinfacht Abrechnung / Filter)
     provider_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
     )
 
+    # Kunde
     customer_name: Mapped[str] = mapped_column(Text, nullable=False)
     customer_email: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # hold | confirmed | canceled
+    # hold | confirmed | canceled (o.ä.)
     status: Mapped[str] = mapped_column(Text, default="hold")
 
     created_at: Mapped[datetime] = mapped_column(
@@ -166,14 +175,14 @@ class Booking(Base):
     )
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # NEU: Gebühr für diese Buchung (in EUR)
+    # Gebühr für diese Buchung in EUR (z. B. Snapshot aus Provider.booking_fee_eur)
     provider_fee_eur: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
         default=Decimal("2.00"),
     )
 
-    # NEU: schon in einer Rechnung / Abrechnung enthalten?
+    # schon in einer Abrechnung berücksichtigt?
     is_billed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Beziehungen

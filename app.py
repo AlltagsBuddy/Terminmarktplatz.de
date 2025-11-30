@@ -925,7 +925,7 @@ def _status_transition_ok(current: str, new: str) -> bool:
 def slots_list():
     status = request.args.get("status")
     with Session(engine) as s:
-        # Buchungs-Aggregat: alle "hold" + "confirmed" Buchungen pro Slot
+        # Aggregat: Anzahl aktiver Buchungen pro Slot
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -947,6 +947,22 @@ def slots_list():
 
         rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
+        # NEU: alle relevanten Buchungen für diese Slots holen
+        slot_ids = [slot.id for slot, _ in rows]
+        bookings_by_slot: dict[str, list[Booking]] = {}
+
+        if slot_ids:
+            b_rows = s.scalars(
+                select(Booking).where(
+                    Booking.slot_id.in_(slot_ids),
+                    Booking.provider_id == request.provider_id,
+                    Booking.status.in_(["hold", "confirmed"]),
+                )
+            ).all()
+
+            for b in b_rows:
+                bookings_by_slot.setdefault(b.slot_id, []).append(b)
+
         out = []
         for slot, booked in rows:
             cap = slot.capacity or 1
@@ -956,9 +972,25 @@ def slots_list():
             item = slot_to_json(slot)
             item["booked"] = booked
             item["available"] = available
+
+            # NEU: Buchungen inkl. Name + E-Mail
+            b_list = bookings_by_slot.get(slot.id, [])
+            item["bookings"] = [
+                {
+                    "id": b.id,
+                    "customer_name": b.customer_name,
+                    "customer_email": b.customer_email,
+                    "status": b.status,
+                    "created_at": _from_db_as_iso_utc(b.created_at),
+                    "confirmed_at": _from_db_as_iso_utc(b.confirmed_at) if b.confirmed_at else None,
+                }
+                for b in b_list
+            ]
+
             out.append(item)
 
         return jsonify(out)
+
 
 
 @app.post("/slots")
