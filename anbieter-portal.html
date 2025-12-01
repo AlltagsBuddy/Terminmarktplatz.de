@@ -131,6 +131,7 @@
     .st-pending{background:#fff7ed}
     .st-pub{background:#ecfeff}
     .st-arch{background:#f1f5f9}
+    .st-canceled{background:#fee2e2}
 
     /* Gebuchte / abgelaufene Slots / Status-Farben */
     .table tr.slot-past td{
@@ -1129,10 +1130,17 @@
       for(const s of items){
         const tr = document.createElement('tr');
         const theStatus = s.status;
-        const isArchived  = theStatus === 'archived';
+        const isArchived       = theStatus === 'archived';
         const isCanceledStatus = theStatus === 'canceled';
-        const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+
+        const stClass =
+          theStatus === 'published' ? 'st-pub'
+          : theStatus === 'archived' ? 'st-arch'
+          : theStatus === 'canceled' ? 'st-canceled'
+          : 'st-pending';
+
         const canPublish = (theStatus === 'pending_review' || isArchived || isCanceledStatus);
+
 
         const endDate = s.end_at ? new Date(s.end_at) : null;
         const isPast = !!(endDate && endDate < now);
@@ -1145,38 +1153,39 @@
 
         const isBooked = bookedCount > 0;
 
-        // Canceled-Infos aus Backend
+       // Canceled-Infos aus Backend
         const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
         const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
         const canceledBookings = allBookings.filter(b => b.status === 'canceled');
         const hasCanceledFlag  = !!s.has_canceled || canceledBookings.length > 0;
-        const canceledCount    =
-          typeof s.canceled_count === 'number'
-            ? s.canceled_count
-            : canceledBookings.length;
 
-        // Zeitstempel für Veröffentlichung / Storno
-        const publishedAt = s.published_at || s.first_published_at || null;
-        const canceledAtSlot = s.canceled_at || null;
-        const firstCanceledBookingWithTime =
-          canceledBookings.find(b => b.canceled_at || b.cancelled_at || b.updated_at) || null;
+        // ...
 
-        // Klassen für Zeile: Status / Buchung / Storno / Past
         let rowClass = '';
-        if (isPast) rowClass += ' slot-past';
 
-        if (theStatus === 'pending_review') {
+        if (isPast) {
+          rowClass += ' slot-past';
+        }
+
+        if (theStatus === 'canceled') {
+          // Slot IST storniert -> rot
+          rowClass += ' slot-canceled';
+        } else if (theStatus === 'pending_review') {
+          // Gelb
           rowClass += ' slot-pending';
         } else if (theStatus === 'published') {
+          // Veröffentlicht:
+          // - mit Buchung(en): grün
+          // - ohne Buchung: blau (frei), egal ob es irgendwann Stornos gab
           if (isBooked) {
             rowClass += ' slot-booked';
-          } else if (!hasCanceledFlag) {
+          } else {
             rowClass += ' slot-free';
           }
         }
+        // archived bekommt keine eigene Hintergrundfarbe (nur Badge), kannst du bei Bedarf ergänzen
+      tr.className = rowClass.trim();
 
-        if (hasCanceledFlag) rowClass += ' slot-canceled';
-        tr.className = rowClass.trim();
 
         // 1) Hinweis (gebucht / frei / abgelaufen)
         const hintParts = [];
