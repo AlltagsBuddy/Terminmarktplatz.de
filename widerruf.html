@@ -1,4 +1,4 @@
-<!-- FILE: widerruf.html -->
+<!-- FILE: widerruf.html --> 
 <!doctype html>
 <html lang="de">
 <head>
@@ -151,86 +151,6 @@
       }
     }
   </style>
-
-  <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
-
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
-
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    // Menü ein-/ausklappen
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    // Login-Status -> auth-in / auth-out steuern
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
-      }
-
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
-      });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
-
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
-    updateAuthUI();
-  })();
-  </script>
-
 </head>
 <body>
   <!-- Header -->
@@ -302,9 +222,16 @@
             der unter Verwendung von Fernkommunikationsmitteln abgeschlossen wurde (Fernabsatzvertrag).
           </p>
           <p>
-            Die Widerrufsfrist beträgt 14 Tage ab dem Tag des Vertragsschlusses. Bei der Buchung eines Termins 
-            über Terminmarktplatz kommt der Vertrag <strong>zwischen dir und dem jeweiligen Anbieter</strong> zustande.
+            Die Widerrufsfrist beträgt 14 Tage ab dem Tag des Vertragsschlusses. 
+            Bei der Buchung eines Termins über Terminmarktplatz kommt der Vertrag 
+            <strong>zwischen dir und dem jeweiligen Anbieter</strong> zustande.
             Terminmarktplatz selbst wird nicht Vertragspartner der Behandlungs- bzw. Dienstleistungsverträge.
+          </p>
+          <p>
+            Schließt du als Verbraucher:in einen <strong>entgeltlichen Vertrag direkt mit Terminmarktplatz</strong> 
+            (z. B. ein kostenpflichtiges Anbieter-Paket), steht dir ebenfalls in der Regel ein Widerrufsrecht 
+            von 14 Tagen ab Vertragsschluss zu. In diesem Fall richtet sich der Widerruf unmittelbar an 
+            Terminmarktplatz (Kontaktdaten siehe unten).
           </p>
 
           <h3>2. Ausnahmen vom Widerrufsrecht</h3>
@@ -328,12 +255,23 @@
             in der Terminbestätigung bzw. in den Angaben zum Slot.
           </p>
 
+          <p>
+            Bezieht sich dein Widerruf auf ein <strong>direktes Vertragsverhältnis mit Terminmarktplatz</strong> 
+            (z. B. ein kostenpflichtiges Anbieter-Paket) und handelst du dabei als Verbraucher:in, richte deinen 
+            Widerruf bitte an:
+          </p>
+          <p>
+            <strong>AlltagsBuddy – Inh. Annett Hofmann</strong><br>
+            Steigerwaldstraße 35<br>
+            96191 Viereth<br>
+            Deutschland<br>
+            E-Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+          </p>
+
           <p class="note">
-            Terminmarktplatz (AlltagsBuddy / Annett Hofmann, Steigerwaldstraße 35, 96191 Viereth, 
-            E-Mail: info@terminmarktplatz.de) ist Vermittlerin der Plattform. Ein Widerruf gegenüber 
-            Terminmarktplatz kann ggf. nur Verpflichtungen aus einem direkten Vertragsverhältnis mit 
-            Terminmarktplatz betreffen (z. B. kostenpflichtige Anbieter-Pakete), nicht jedoch automatisch 
-            die Verträge mit den einzelnen Anbietern.
+            Ein Widerruf gegenüber Terminmarktplatz kann nur Verpflichtungen aus einem direkten Vertragsverhältnis 
+            mit Terminmarktplatz betreffen (z. B. kostenpflichtige Anbieter-Pakete), nicht jedoch automatisch die 
+            Verträge mit den einzelnen Anbietern.
           </p>
 
           <h3>4. Folgen des Widerrufs</h3>
@@ -343,33 +281,41 @@
             während der Widerrufsfrist beginnen soll, kann eine angemessene Vergütung für die bereits 
             erbrachte Leistung geschuldet sein.
           </p>
+          <p>
+            Dies gilt entsprechend auch für entgeltliche Leistungen von Terminmarktplatz: 
+            Hast du ausdrücklich verlangt, dass wir vor Ablauf der Widerrufsfrist mit der Ausführung 
+            beginnen, und widerrufst du später, kann ein angemessener Betrag für den bereits 
+            erbrachten Teil der Leistung geschuldet sein.
+          </p>
 
           <h3>5. Muster-Widerrufsformular</h3>
           <p>
             Nachfolgend findest du ein unverbindliches Muster-Widerrufsformular, das du für deinen Widerruf 
-            gegenüber dem jeweiligen Anbieter verwenden kannst. Du bist nicht verpflichtet, dieses Formular zu verwenden.
+            verwenden kannst. Du bist nicht verpflichtet, dieses Formular zu verwenden.
+            Trage bei „Empfänger“ entweder den jeweiligen Anbieter oder – bei Verträgen mit Terminmarktplatz – 
+            die Kontaktdaten von Terminmarktplatz ein.
           </p>
 
           <div class="print-area">
             <h3>Muster-Widerrufsformular</h3>
             <p class="note">
-              Bitte an den jeweiligen Anbieter senden. Die Kontaktdaten findest du in der Terminbestätigung.
+              Bitte an den jeweiligen Anbieter oder – bei Verträgen mit Terminmarktplatz – an Terminmarktplatz senden.
             </p>
             <form class="mf-grid">
               <div class="full">
-                <label>Empfänger (Anbieter)</label>
-                <input type="text" placeholder="Name und Anschrift des Anbieters">
+                <label>Empfänger (Anbieter oder Terminmarktplatz)</label>
+                <input type="text" placeholder="Name und Anschrift des Empfängers">
               </div>
               <div class="full">
                 <label>Ich widerrufe den von mir geschlossenen Vertrag über folgende Leistung</label>
-                <textarea placeholder="Art der Leistung, ggf. Bezeichnung des Termins"></textarea>
+                <textarea placeholder="Art der Leistung, ggf. Bezeichnung des Termins oder Pakets"></textarea>
               </div>
               <div>
                 <label>Gebucht am (Datum)</label>
                 <input type="date">
               </div>
               <div>
-                <label>Vereinbarter Termin</label>
+                <label>Vereinbarter Termin (falls vorhanden)</label>
                 <input type="date">
               </div>
               <div class="full">
