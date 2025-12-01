@@ -1,4 +1,4 @@
-<!-- FILE: templates/datenschutz.html -->
+<!-- FILE: datenschutz.html -->
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
@@ -16,48 +16,28 @@
   <meta name="description" content="Datenschutzerklärung für Terminmarktplatz: Verarbeitung personenbezogener Daten, Zwecke, Rechtsgrundlagen, Speicherdauern, Empfänger und Betroffenenrechte." />
   <meta name="theme-color" content="#6f53ff" />
 
+  <!-- OG -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Datenschutzerklärung | Terminmarktplatz" />
   <meta property="og:description" content="Alles Wichtige zum Datenschutz bei Terminmarktplatz." />
   <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta property="og:image" content="/static/og-cover.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <!-- Pfade relativ zur Domainwurzel -->
   <base href="/" />
-
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Kleine Tabellenstyles nur für diese Seite + HEADER / USER-MENÜ + Mobile -->
   <style>
-    .privacy-table{
-      width:50%;
-      border-collapse:collapse;
-      font-size:15px;
-      max-width:100%;
-    }
-    .privacy-table th,
-    .privacy-table td{
-      border:1px solid var(--ab-border);
-      padding:10px;
-      vertical-align:top;
-    }
-    .privacy-table th{
-      background:#475569;
-      text-align:left;
-    }
-    .toc a{color:#475569}
-    .callout{
-      border-left:4px solid var(--ab-primary);
-      padding:12px 14px;
-      background:#fff;
-      border:1px solid var(--ab-border);
-      border-radius:12px;
-    }
+    .legal h2{margin-top:8px}
+    .legal h3{margin:14px 0 8px}
+    .legal p{margin:8px 0}
+    .legal ul{margin:6px 0 12px 18px}
+    .legal li{margin:4px 0}
+    .note{font-size:14px; color:var(--ink-dim)}
     .pill{
       display:inline-block;
       padding:2px 8px;
@@ -67,13 +47,30 @@
       font-size:12px;
       font-weight:600;
     }
-    .fill{
-      background:#fff3;
-      border-bottom:2px dotted #cbd5e1;
+    .privacy-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+      margin:10px 0 14px;
     }
-    .small{font-size:13px}
+    .privacy-table th,
+    .privacy-table td{
+      border:1px solid var(--border);
+      padding:8px 10px;
+      vertical-align:top;
+    }
+    .privacy-table th{
+      background:#0f172a;
+      color:#f8fafc;
+      text-align:left;
+    }
 
-    /* Menü-Button im User-Menü: weiß */
+    /* auth-in zunächst ausblenden – JS zeigt sie bei Login */
+    .auth-in {
+      display: none;
+    }
+
+    /* Weißer Menü-Button wie auf AGB/Widerruf/Preise */
     .user-menu .btn {
       background:#ffffff;
       color:#0f172a;
@@ -82,111 +79,98 @@
       background-image:none;
     }
 
-    /* ===================================================
-       HEADER / USER-MENÜ – Menü direkt hinter Brand
-       (gleiches Muster wie anbieter.html / anbieter-portal.html)
-       =================================================== */
+    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts (wie AGB) */
     header .nav{
       display:flex;
       align-items:center;
       gap:16px;
     }
+
     header .brand{
       display:flex;
       align-items:center;
       gap:12px;
     }
+
+    /* Menü-Button direkt hinter „Terminmarktplatz“ */
     header .user-menu{
       display:block;
       position:relative;
       z-index:60;
-      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+      margin-left:12px; /* Abstand hinter Brand */
     }
 
-    /* Desktop: Nav-Links nach rechts */
-    @media (min-width: 769px){
-      header .nav{
-        justify-content:flex-start;
-      }
-      header .nav-links{
-        display:flex;
-        align-items:center;
-        gap:16px;
-        margin-left:auto;
-      }
+    /* Hauptnavigation rechtsbündig */
+    header .nav-links{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
     }
 
-    /* Mobile: Brand links, Menü rechts, Links darunter */
+    /* Mobile-Optimierung */
     @media (max-width: 768px){
-      .container.nav {
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: flex-start;
-        padding-inline: 16px;
+      header .nav{
+        flex-wrap:wrap;
+        gap:8px;
+        padding-inline:16px;
+        align-items:flex-start;
       }
 
       header .brand{
         margin-bottom:4px;
       }
 
-      .brand-title {
-        font-size: 1.05rem;
-      }
+      .brand-title{font-size:1.05rem}
 
-      header .user-menu {
+      /* Brand links, Menü rechts in der ersten Zeile */
+      header .user-menu{
         margin-left:auto;
       }
 
-      /* Hauptnavigation – auch mobil sichtbar */
-      .nav-links {
-        display:flex !important;
-        width:100%;
-        justify-content:center;
+      /* Links zweite Zeile, zentriert */
+      header .nav-links{
+        display:flex;
         flex-wrap:wrap;
+        justify-content:center;
         gap:8px;
+        width:100%;
         text-align:center;
         margin-top:4px;
+        margin-left:0;
       }
-
-      .nav-links a {
+      header .nav-links a{
         font-size:0.9rem;
-        padding:2px 6px;
+        padding:4px 8px;
       }
 
-      /* Hero-Bereich kompakter */
-      .hero {
-        padding: 28px 0 14px !important;
+      .hero{
+        padding:28px 0 14px !important;
+      }
+      .hero h1{
+        font-size:1.6rem;
+        line-height:1.25;
+      }
+      .hero .lead{
+        font-size:0.95rem;
       }
 
-      .hero h1 {
-        font-size: 1.6rem;
-        line-height: 1.25;
+      .panel{
+        padding:14px;
+        border-radius:16px;
       }
 
-      .hero .lead {
-        font-size: 0.95rem;
+      .privacy-table{
+        font-size:13px;
       }
 
-      /* Card / Textblock */
-      .card {
-        padding: 18px !important;
+      .foot-grid{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:16px;
       }
-
-      /* Tabelle mobil: vollbreit, etwas kleinere Schrift */
-      .privacy-table {
-        width: 100%;
-        font-size: 14px;
-      }
-
-      /* Footer-Spalten untereinander */
-      .foot-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .foot-col {
-        margin-top: 4px;
+      .foot-col{
+        margin-top:4px;
       }
     }
   </style>
@@ -239,41 +223,48 @@
 
   <main>
     <!-- HERO -->
-    <section class="hero" style="padding:40px 0 16px">
+    <section class="hero" style="padding:40px 0 18px">
       <div class="container">
-        <span class="badge">Transparenz & DSGVO</span>
-        <br>
+        <span class="badge">Rechtliches</span>
         <h1>Datenschutzerklärung</h1>
-        <br>
-        <p class="lead">Diese Erklärung erläutert, welche personenbezogenen Daten wir verarbeiten, zu welchen Zwecken, auf welcher Rechtsgrundlage, wie lange und welche Rechte du hast.</p>
+        <p class="lead">
+          Hier erfährst du, welche personenbezogenen Daten wir auf Terminmarktplatz verarbeiten, zu welchen Zwecken,
+          auf welcher Rechtsgrundlage, wie lange und welche Rechte du nach der DSGVO hast.
+        </p>
+        <p class="note">Stand: <span id="policy-date"></span></p>
       </div>
     </section>
 
     <section>
-      <div class="container">
-        <div class="card" style="padding:22px">
+      <div class="container legal">
+        <div class="panel">
 
-          <h2 id="verantwortlicher">1. Verantwortlicher</h2>
+          <h2>1. Verantwortliche Stelle</h2>
           <p>
-            <strong>AlltagsBuddy</strong><br>
+            Verantwortlich für die Datenverarbeitung im Zusammenhang mit dieser Website und der Plattform „Terminmarktplatz“ ist:
+          </p>
+          <p>
+            <strong>AlltagsBuddy – Inh. Annett Hofmann</strong><br>
+            Einzelunternehmen<br>
             Steigerwaldstraße 35<br>
-            96191 Viereth-Trunstadt, Deutschland<br>
-            <br>
-            Telefon: folgt<br>
-            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a><br>
-            <br>
-            Weitere Angaben im <a href="/impressum.html">Impressum</a>.
+            96191 Viereth<br>
+            Deutschland
           </p>
-
-          <h2 id="beauftragter">2. Datenschutz-Ansprechpartner / -Beauftragter</h2>
           <p>
-            Für Datenschutzanfragen erreichst du uns unter <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a>.<br>
+            E-Mail: <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a><br>
+            Weitere Angaben findest du im <a href="impressum.html">Impressum</a>.
           </p>
 
-          <h2 id="verarbeitungen">3. Verarbeitungen, Zwecke & Rechtsgrundlagen</h2>
-          <p>Wir verarbeiten personenbezogene Daten nur, soweit dies gesetzlich erlaubt ist. Die wichtigsten Verarbeitungen im Überblick:</p>
-          <div class="callout small">Hinweis: „Art.“ bezieht sich auf die Datenschutz-Grundverordnung (DSGVO).</div>
-          <table class="privacy-table" style="margin-top:10px">
+          <h2>2. Datenschutzkontakt</h2>
+          <p>
+            Für Datenschutzanfragen kannst du dich jederzeit an
+            <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a> wenden.
+            Eine gesetzliche Pflicht zur Benennung eines/einer externen Datenschutzbeauftragten besteht derzeit nicht.
+          </p>
+
+          <h2>3. Datenverarbeitung im Überblick</h2>
+          <p>Wir verarbeiten personenbezogene Daten nur, soweit dies gesetzlich erlaubt ist. Die wichtigsten Vorgänge im Überblick:</p>
+          <table class="privacy-table">
             <thead>
               <tr>
                 <th>Vorgang</th>
@@ -283,117 +274,241 @@
             </thead>
             <tbody>
               <tr>
-                <td>Website-Bereitstellung & Server-Logs</td>
-                <td>Betrieb, Sicherheit, Fehleranalyse</td>
-                <td>Art. 6 Abs. 1 lit. f (berechtigtes Interesse)</td>
+                <td>Aufruf der Website / Server-Logs</td>
+                <td>Betrieb, Stabilität und Sicherheit der Website (Fehleranalyse, Abwehr von Angriffen)</td>
+                <td>Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse)</td>
               </tr>
               <tr>
-                <td>Kontakt/Support</td>
-                <td>Bearbeitung von Anfragen</td>
-                <td>Art. 6 Abs. 1 lit. b (vorvertraglich) oder lit. f</td>
+                <td>Kontaktanfragen (Formular / E-Mail)</td>
+                <td>Bearbeitung deiner Anfrage, Kommunikation</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO (vorvertraglich) oder lit. f DSGVO</td>
               </tr>
               <tr>
-                <td>Registrierung/Anmeldung (Anbieter)</td>
-                <td>Kontoführung, Authentifizierung (Passwort-Hash mit Argon2), Double-Opt-In</td>
-                <td>Art. 6 Abs. 1 lit. b</td>
+                <td>Registrierung und Login (Anbieter)</td>
+                <td>Anlegen und Verwaltung deines Anbieter-Kontos, Authentifizierung, Double-Opt-In</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO</td>
               </tr>
               <tr>
-                <td>Terminbuchung (Kund:innen)</td>
-                <td>Vermittlung, Bestätigung, Kommunikation</td>
-                <td>Art. 6 Abs. 1 lit. b</td>
+                <td>Veröffentlichung von Slots (Anbieter)</td>
+                <td>Darstellung deiner Leistungen und freien Termine</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO</td>
               </tr>
               <tr>
-                <td>E-Mail-Versand (z. B. Bestätigung)</td>
-                <td>Transaktionsmails (z. B. Double-Opt-In, Buchungsbestätigung)</td>
-                <td>Art. 6 Abs. 1 lit. b; ggf. lit. f</td>
+                <td>Terminbuchungen (Suchende)</td>
+                <td>Vermittlung zwischen dir und dem Anbieter, Buchungsbestätigung, Storno-Funktion</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO</td>
               </tr>
               <tr>
-                <td>Zahlungsabwicklung <span class="pill">optional</span></td>
-                <td>Abrechnung, Betrugsprävention</td>
-                <td>Art. 6 Abs. 1 lit. b/c/f</td>
+                <td>Transaktionsmails (z. B. Bestätigung, Erinnerungen)</td>
+                <td>Information über Status von Konto, Buchungen, Stornierungen</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO; teilweise lit. f DSGVO</td>
               </tr>
               <tr>
-                <td>Newsletter/Marketing <span class="pill">nur bei Einwilligung</span></td>
-                <td>Infos & Angebote</td>
-                <td>Art. 6 Abs. 1 lit. a (Einwilligung), Widerruf jederzeit</td>
+                <td>Konto- und Abrechnungsverwaltung (Anbieter)</td>
+                <td>Verwaltung von Plänen/Paketen, Abrechnung, ggf. Mahnwesen</td>
+                <td>Art. 6 Abs. 1 lit. b und lit. c DSGVO; teilweise lit. f DSGVO</td>
               </tr>
               <tr>
-                <td>Erfüllung gesetzlicher Pflichten</td>
-                <td>Aufbewahrung, Auskunft an Behörden</td>
-                <td>Art. 6 Abs. 1 lit. c</td>
+                <td>Cookies / Sessions (technisch erforderlich)</td>
+                <td>Login-Status, Sicherheit, Consent-Speicherung</td>
+                <td>Art. 6 Abs. 1 lit. f DSGVO; ggf. § 25 Abs. 2 TTDSG</td>
+              </tr>
+              <tr>
+                <td>Newsletter / Marketing <span class="pill">nur mit Einwilligung</span></td>
+                <td>Information über neue Funktionen, Angebote und Inhalte</td>
+                <td>Art. 6 Abs. 1 lit. a DSGVO (Einwilligung), Widerruf jederzeit möglich</td>
               </tr>
             </tbody>
           </table>
 
-          <h2 id="kategorien">4. Kategorien personenbezogener Daten</h2>
+          <h2>4. Kategorien verarbeiteter Daten</h2>
           <ul>
-            <li><strong>Nutzungs-/Serverdaten:</strong> IP-Adresse, Zeitpunkt, URL, Referrer, Statuscode, User-Agent.</li>
-            <li><strong>Kontodaten (Anbieter):</strong> E-Mail, Passwort-Hash (Argon2), Firmen-/Kontaktdaten, Verifizierungsstatus.</li>
-            <li><strong>Buchungsdaten (Kund:innen):</strong> Name, E-Mail, gebuchte Leistung/Slot, Bestätigungsstatus.</li>
-            <li><strong>Kommunikation:</strong> Inhalte aus Kontaktformular / E-Mail.</li>
-            <li><strong>Abrechnungsdaten <span class="pill">optional</span>:</strong> Zahlungsinfos (über Zahlungsdienstleister).</li>
+            <li><strong>Stammdaten:</strong> Name, Vorname, ggf. Firmenname, Kontaktdaten (E-Mail, Anschrift).</li>
+            <li><strong>Zugangsdaten (Anbieter):</strong> E-Mail-Adresse, Passwort-Hash (Argon2), Verifizierungsstatus.</li>
+            <li><strong>Buchungsdaten:</strong> gebuchte Slots, Datum/Uhrzeit, Anbieter, Status (z. B. bestätigt, storniert).</li>
+            <li><strong>Nutzungsdaten:</strong> Logfiles (IP-Adresse, Zeitpunkt, aufgerufene URL, HTTP-Status, User-Agent, Referrer).</li>
+            <li><strong>Kommunikationsdaten:</strong> Inhalte von Nachrichten über das Kontaktformular oder per E-Mail.</li>
+            <li><strong>Abrechnungs-/Vertragsdaten (Anbieter):</strong> gewähltes Paket, Laufzeiten, Rechnungsdaten.</li>
           </ul>
-          <p>Besondere Kategorien i. S. v. Art. 9 DSGVO werden nicht gezielt verarbeitet.</p>
-
-          <h2 id="empfaenger">5. Empfänger & Auftragsverarbeiter</h2>
-          <p>Wir setzen sorgfältig ausgewählte Dienstleister (Auftragsverarbeiter) ein. Kategorien von Empfängern:</p>
-          <ul>
-            <li>Hosting & Infrastruktur: <span class="fill">STRATO</span></li>
-            <li>E-Mail-Versand (Transaktionsmails): <span class="fill">Postmark</span></li>
-            <li>Zahlungsdienstleister <span class="pill">optional</span>: <span class="fill">PayPal</span></li>
-            <li>Support/Kommunikation <span class="pill">optional</span>: <span class="fill">per E-Mail</span></li>
-            <li>Beratung/IT-Wartung: vertraglich gebundene Dienstleister</li>
-          </ul>
-          <p>Mit allen Auftragsverarbeitern schließen wir Verträge gem. Art. 28 DSGVO.</p>
-
-          <h2 id="drittland">6. Drittlandübermittlungen</h2>
-          <p>Sofern Daten an Empfänger in Staaten außerhalb der EU/des EWR übermittelt werden (z. B. E-Mail-Dienst in den USA), stellen wir ein angemessenes Datenschutzniveau sicher, etwa durch <strong>EU-Standardvertragsklauseln (Art. 46 DSGVO)</strong> und zusätzliche Schutzmaßnahmen.</p>
-          
-          <h2 id="speicherdauer">7. Speicherdauern</h2>
-          <ul>
-            <li><strong>Server-Logs:</strong> i. d. R. 14–30 Tage.</li>
-            <li><strong>Kontodaten (Anbieter):</strong> bis zur Löschung des Kontos; handels-/steuerrechtliche Aufbewahrung (6/10 Jahre) bleibt unberührt.</li>
-            <li><strong>Buchungen:</strong> bis zur Abwicklung; gesetzliche Aufbewahrungspflichten können gelten.</li>
-            <li><strong>Kommunikation:</strong> bis zur abschließenden Bearbeitung und entsprechend gesetzlicher Pflichten.</li>
-          </ul>
-
-          <h2 id="cookies">8. Cookies & lokale Speicher</h2>
-          <p>Wir verwenden derzeit <strong>nur technisch notwendige</strong> Cookies/Storage-Einträge:</p>
-          <ul>
-            <li><code>access_token</code> (HTTP-only, Secure, SameSite=Lax) – Anmeldung/Sitzung</li>
-            <li><code>refresh_token</code> (HTTP-only, Secure, SameSite=Lax) – Sitzungsverlängerung</li>
-            <li><code>tm_cookie_consent_v1</code> (Local Storage) – speichert deine Banner-Auswahl</li>
-          </ul>
-          <p>Analyse/Marketing-Cookies setzen wir aktuell nicht ein. Falls dies künftig erfolgt, fragen wir zuvor deine Einwilligung und aktualisieren diese Seite.</p>
-
-          <h2 id="rechte">9. Deine Rechte</h2>
-          <ul>
-            <li>Auskunft, Berichtigung, Löschung, Einschränkung (Art. 15–18 DSGVO)</li>
-            <li>Datenübertragbarkeit (Art. 20 DSGVO)</li>
-            <li>Widerspruch gegen Verarbeitungen auf Basis berechtigter Interessen (Art. 21 DSGVO)</li>
-            <li>Widerruf erteilter Einwilligungen (Art. 7 Abs. 3 DSGVO)</li>
-            <li>Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO)</li>
-          </ul>
-
-          <h2 id="pflicht">10. Pflicht zur Bereitstellung</h2>
-          <p>Für die Nutzung bestimmter Funktionen (z. B. Registrierung, Buchung) sind die entsprechenden Angaben erforderlich. Ohne diese Daten können wir den Dienst nicht bereitstellen.</p>
-
-          <h2 id="quellen">11. Datenquellen (Art. 14 DSGVO)</h2>
-          <p>Wenn wir Daten nicht direkt bei dir erheben (z. B. Anbieter hinterlegt Kontaktdaten für eine Buchung), informieren wir dich gem. Art. 14 DSGVO. Kategorien der Quellen: <span class="fill">z. B. angebundene Praxissysteme, Kalender-Integrationen</span>.</p>
-
-          <h2 id="automatisierung">12. Automatisierte Entscheidungen/Profiling</h2>
-          <p>Es findet keine automatisierte Entscheidungsfindung einschließlich Profiling i. S. v. Art. 22 DSGVO statt.</p>
-
-          <h2 id="sicherheit">13. Sicherheit</h2>
-          <p>Wir setzen angemessene technische und organisatorische Maßnahmen ein (u. a. TLS-Verschlüsselung, Passwörter als Argon2-Hash, rollenbasierte Zugriffe, Protokollierung, regelmäßige Updates, EU-Hosting <span class="fill"></span>).</p>
-
-          <h2 id="aenderungen">14. Änderungen & Stand</h2>
-          <p>Wir passen diese Datenschutzerklärung an, wenn sich unser Dienst oder rechtliche Vorgaben ändern. Die jeweils aktuelle Fassung ist hier abrufbar.</p>
-          <p class="muted">Stand: <span id="policy-date"></span></p>
-
-          <h2 id="kontakt">15. Kontakt für Datenschutz-Anfragen</h2>
           <p>
-            E-Mail: <a href="mailto:[info@terminmarktplatz.de]">info@terminmarktplatz.de</a><br>
+            Besondere Kategorien personenbezogener Daten im Sinne des Art. 9 DSGVO (z. B. Gesundheitsdaten) werden durch
+            Terminmarktplatz <strong>nicht aktiv abgefragt</strong>. Anbieter sind für die Verarbeitung solcher Daten
+            in ihrem eigenen Verantwortungsbereich selbst datenschutzrechtlich verantwortlich.
+          </p>
+
+          <h2>5. Zwecke und Rechtsgrundlagen im Detail</h2>
+          <h3>5.1 Nutzung der Website / Server-Logfiles</h3>
+          <p>
+            Beim Aufruf unserer Website werden automatisch Daten durch deinen Browser an unseren Server übermittelt und
+            in Logfiles gespeichert. Dies sind z. B. IP-Adresse, Datum und Uhrzeit des Abrufs, Name der angeforderten Datei,
+            Referrer-URL und Browsertyp.
+          </p>
+          <p>
+            Die Verarbeitung ist erforderlich, um die Website anzuzeigen, Stabilität und Sicherheit zu gewährleisten und
+            Angriffe oder Missbrauch zu erkennen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
+            Logdaten werden in der Regel nach kurzer Zeit (z. B. 14–30 Tagen) gelöscht, sofern keine längere Aufbewahrung
+            zur Aufklärung von Sicherheitsvorfällen erforderlich ist.
+          </p>
+
+          <h3>5.2 Kontaktanfragen</h3>
+          <p>
+            Nimmst du Kontakt mit uns auf (z. B. per Kontaktformular oder E-Mail), verarbeiten wir deine Angaben, um die
+            Anfrage zu bearbeiten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (vorvertragliche bzw. vertragliche Maßnahmen)
+            oder Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung von Anfragen).
+          </p>
+
+          <h3>5.3 Registrierung und Nutzung des Anbieter-Portals</h3>
+          <p>
+            Als Anbieter kannst du ein Konto anlegen, um dein Profil zu pflegen und Slots zu veröffentlichen. Wir verarbeiten
+            hierfür insbesondere deine E-Mail-Adresse, dein Passwort (in Form eines Argon2-Hashes) und die von dir hinterlegten
+            Profil-/Firmendaten. Die Verarbeitung ist erforderlich, um dir das Konto bereitzustellen und das Vertragsverhältnis
+            zu erfüllen (Art. 6 Abs. 1 lit. b DSGVO).
+          </p>
+
+          <h3>5.4 Terminbuchungen (Suchende)</h3>
+          <p>
+            Suchende können Slots von Anbietern über die Plattform anfragen oder buchen. Hierbei verarbeiten wir insbesondere
+            Name, E-Mail-Adresse, gewählten Slot und Buchungsstatus. Wir übermitteln die für die Durchführung des Termins
+            erforderlichen Daten an den jeweiligen Anbieter.
+          </p>
+          <p>
+            Die Verarbeitung ist zur Anbahnung und Durchführung des Vertrags zwischen dir und dem Anbieter erforderlich
+            (Art. 6 Abs. 1 lit. b DSGVO). Vertragspartner der Leistung ist ausschließlich der jeweilige Anbieter, nicht
+            Terminmarktplatz.
+          </p>
+
+          <h3>5.5 Transaktionsmails (z. B. Bestätigung, Storno, Konto-Infos)</h3>
+          <p>
+            Wir versenden systemische E-Mails, etwa zur Bestätigung deiner Registrierung (Double-Opt-In), zur Buchungsbestätigung,
+            zu Stornierungen oder wichtigen Informationen zu deinem Konto. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO,
+            teilweise lit. f DSGVO (berechtigtes Interesse an einer sicheren und nachvollziehbaren Kommunikation).
+          </p>
+
+          <h3>5.6 Newsletter / Informationen per E-Mail</h3>
+          <p>
+            Sofern wir dir einen Newsletter oder vergleichbare Informationen anbieten, geschieht dies nur auf Grundlage
+            deiner Einwilligung nach Art. 6 Abs. 1 lit. a DSGVO. Du kannst deine Einwilligung jederzeit mit Wirkung für
+            die Zukunft widerrufen, z. B. über einen Abmeldelink in der E-Mail oder durch Nachricht an uns.
+          </p>
+
+          <h2>6. Cookies, Token & ähnliche Technologien</h2>
+          <p>
+            Wir verwenden auf Terminmarktplatz derzeit lediglich technisch erforderliche Cookies bzw. Token, um
+            die Anmeldung zu ermöglichen, Sessions zu sichern und deine Cookie-Einstellungen zu speichern.
+          </p>
+          <ul>
+            <li>
+              <strong>Session-/Auth-Cookies</strong> (z. B. Zugriffstoken/Refresh-Token, HTTP-only, Secure, SameSite=Lax):
+              notwendig für Login und Authentifizierung im Anbieter-Portal.
+            </li>
+            <li>
+              <strong>Cookie-/Consent-Speicher</strong> (z. B. localStorage-Eintrag für deinen Consent-Status):
+              damit wir deine Auswahl im Cookie-Banner berücksichtigen können.
+            </li>
+          </ul>
+          <p>
+            Rechtsgrundlage für technisch notwendige Cookies ist Art. 6 Abs. 1 lit. f DSGVO i. V. m. § 25 Abs. 2 TTDSG.
+          </p>
+          <p class="note">
+            Analyse- oder Marketing-Cookies setzen wir aktuell nicht ein. Sollte sich dies ändern, informieren wir dich
+            vorab und holen ggf. eine Einwilligung über ein entsprechendes Consent-Banner ein.
+          </p>
+
+          <h2>7. Drittanbieter, Auftragsverarbeiter & Hosting</h2>
+          <p>
+            Wir setzen Dienstleister ein, die uns bei der Bereitstellung der Plattform unterstützen. Mit diesen
+            schließen wir Verträge zur Auftragsverarbeitung nach Art. 28 DSGVO, soweit sie personenbezogene Daten
+            in unserem Auftrag verarbeiten.
+          </p>
+          <ul>
+            <li>
+              <strong>Hosting & Infrastruktur</strong> (z. B. Webserver, Datenbanken): EU-basierte Anbieter für
+              Hosting der Website und der Backend-Services.
+            </li>
+            <li>
+              <strong>E-Mail-Versand (Transaktionsmails)</strong>: externer E-Mail-Dienstleister (z. B. Postmark),
+              der E-Mails im Auftrag versendet.
+            </li>
+            <li>
+              <strong>Optional: Zahlungsdienstleister</strong>, falls du eine kostenpflichtige Leistung buchst
+              (z. B. für Anbieter-Pakete). In diesem Fall werden Zahlungsdaten direkt vom Zahlungsdienstleister
+              verarbeitet; wir erhalten in der Regel keine vollständigen Zahlungsdetails.
+            </li>
+          </ul>
+
+          <h2>8. Datenübermittlung in Drittländer</h2>
+          <p>
+            Sofern Dienstleister ihre Datenverarbeitung teilweise in Staaten außerhalb der EU/des EWR (Drittstaaten)
+            erbringen, achten wir auf ein angemessenes Datenschutzniveau. Dies kann sich aus einem Angemessenheitsbeschluss
+            der EU-Kommission ergeben oder aus der Verwendung von Standardvertragsklauseln nach Art. 46 DSGVO
+            sowie zusätzlichen technischen und organisatorischen Maßnahmen.
+          </p>
+
+          <h2>9. Speicherdauer</h2>
+          <p>
+            Wir speichern personenbezogene Daten nur so lange, wie es für die genannten Zwecke erforderlich ist
+            oder wie wir gesetzlich dazu verpflichtet sind.
+          </p>
+          <ul>
+            <li><strong>Logdaten:</strong> in der Regel 14–30 Tage, sofern keine sicherheitsrelevante Auswertung nötig ist.</li>
+            <li><strong>Konto- und Vertragsdaten (Anbieter):</strong> für die Dauer des Vertragsverhältnisses; darüber hinaus solange gesetzliche Aufbewahrungspflichten bestehen (z. B. 6 bzw. 10 Jahre nach HGB/AO).</li>
+            <li><strong>Buchungsdaten:</strong> solange dies zur Abwicklung des Termins erforderlich ist; im Übrigen im Rahmen gesetzlicher Aufbewahrungspflichten.</li>
+            <li><strong>Kontaktanfragen:</strong> bis zur abschließenden Bearbeitung und ggf. längere Aufbewahrung, wenn sich ein Vertragsverhältnis anschließt oder rechtliche Ansprüche geltend gemacht werden.</li>
+          </ul>
+
+          <h2>10. Gemeinsame und getrennte Verantwortlichkeit</h2>
+          <p>
+            Terminmarktplatz stellt die technische Plattform bereit und ist Verantwortliche für die hier beschriebenen
+            Verarbeitungen im eigenen Verantwortungsbereich (z. B. Betrieb der Website, Nutzerkonten, Vermittlung, E-Mail-Versand).
+          </p>
+          <p>
+            Anbieter sind datenschutzrechtlich eigenständig Verantwortliche für die Verarbeitung personenbezogener Daten,
+            die sie im Rahmen ihrer eigenen Tätigkeit verarbeiten (z. B. Patienten-/Kundendaten, Terminverwaltung außerhalb
+            der Plattform, eigene Newsletter). Für diese Verarbeitungen gelten die Datenschutzhinweise der jeweiligen Anbieter.
+          </p>
+
+          <h2>11. Deine Rechte nach der DSGVO</h2>
+          <p>Dir stehen – abhängig von den gesetzlichen Voraussetzungen – insbesondere folgende Rechte zu:</p>
+          <ul>
+            <li><strong>Auskunft</strong> (Art. 15 DSGVO) über die verarbeiteten Daten.</li>
+            <li><strong>Berichtigung</strong> (Art. 16 DSGVO), falls Daten unrichtig oder unvollständig sind.</li>
+            <li><strong>Löschung</strong> (Art. 17 DSGVO), soweit keine Aufbewahrungspflichten entgegenstehen.</li>
+            <li><strong>Einschränkung der Verarbeitung</strong> (Art. 18 DSGVO).</li>
+            <li><strong>Datenübertragbarkeit</strong> (Art. 20 DSGVO) für Daten, die du uns bereitgestellt hast.</li>
+            <li>
+              <strong>Widerspruch</strong> (Art. 21 DSGVO) gegen Verarbeitungen, die wir auf ein berechtigtes Interesse stützen.
+              In diesem Fall verarbeiten wir die Daten nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe nachweisen.
+            </li>
+            <li><strong>Widerruf einer Einwilligung</strong> (Art. 7 Abs. 3 DSGVO) mit Wirkung für die Zukunft.</li>
+          </ul>
+          <p>
+            Zur Ausübung deiner Rechte kannst du dich jederzeit an
+            <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a> wenden.
+          </p>
+
+          <h2>12. Beschwerderecht bei einer Aufsichtsbehörde</h2>
+          <p>
+            Du hast das Recht, dich bei einer Datenschutzaufsichtsbehörde zu beschweren, wenn du der Ansicht bist,
+            dass die Verarbeitung deiner personenbezogenen Daten gegen die DSGVO verstößt (Art. 77 DSGVO).
+            Zuständig ist z. B. die Aufsichtsbehörde deines üblichen Aufenthaltsortes oder unseres Unternehmenssitzes.
+          </p>
+
+          <h2>13. Pflicht zur Bereitstellung von Daten</h2>
+          <p>
+            Für die Nutzung bestimmter Funktionen (z. B. Registrierung als Anbieter, Buchung eines Termins) ist die Angabe
+            bestimmter personenbezogener Daten erforderlich. Ohne diese Daten können wir dir die entsprechenden Funktionen
+            nicht oder nur eingeschränkt bereitstellen.
+          </p>
+
+          <h2>14. Keine automatisierte Entscheidungsfindung</h2>
+          <p>
+            Es findet keine automatisierte Entscheidungsfindung einschließlich Profiling im Sinne von Art. 22 DSGVO statt.
+          </p>
+
+          <h2>15. Änderungen dieser Datenschutzerklärung</h2>
+          <p>
+            Wir passen diese Datenschutzerklärung an, wenn sich unser Angebot oder die Rechtslage ändern.
+            Die jeweils aktuelle Fassung ist jederzeit unter <a href="datenschutz.html">datenschutz.html</a> abrufbar.
           </p>
 
         </div>
@@ -431,7 +546,9 @@
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
-    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+    <div class="container copyright">
+      © <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.
+    </div>
   </footer>
 
   <!-- Jahreszahl & Stand -->
@@ -446,7 +563,7 @@
     })();
   </script>
 
-  <!-- User-Menü Logik (gleiches Verhalten wie anbieter / portal) -->
+  <!-- User-Menü Logik (wie auf AGB/Widerruf) -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -470,23 +587,23 @@
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
 
-      // Auth-abhängige Sichtbarkeit
-      async function initAuthState(){
-        const loggedEls = menu.querySelectorAll('.auth-in');
-        const outEls    = menu.querySelectorAll('.auth-out');
+      async function updateAuthUI(){
+        let loggedIn = false;
         try{
-          const r = await fetch(`${API}/me`, { credentials:'include' });
-          const isLoggedIn = r.ok;
-          loggedEls.forEach(el => el.style.display = isLoggedIn ? '' : 'none');
-          outEls.forEach(el => el.style.display = isLoggedIn ? 'none' : '');
-        }catch(_){
-          loggedEls.forEach(el => el.style.display = 'none');
-          outEls.forEach(el => el.style.display = '');
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          loggedIn = res.ok;
+        }catch(e){
+          loggedIn = false;
         }
-      }
-      initAuthState();
 
-      // Aktionen im Menü (Logout / Delete)
+        document.querySelectorAll('.auth-in').forEach(el => {
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
+
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
         if(!el) return;
@@ -515,6 +632,8 @@
           }
         }
       });
+
+      updateAuthUI();
     })();
   </script>
 </body>
