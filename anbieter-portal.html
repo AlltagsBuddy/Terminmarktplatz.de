@@ -744,8 +744,8 @@
               </div>
 
               <div class="field">
-                <label for="sl-location">Ort / PLZ <span class="req">*</span></label>
-                <input id="sl-location" name="location"
+                <label for="sl-location2">Ort / PLZ <span class="req">*</span></label>
+                <input id="sl-location2" name="location2"
                        placeholder="z. B. 96191 Viereth / Filiale Zentrum"
                        required aria-required="true" pattern="(\d{5}|.{3,})"
                        title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
@@ -1141,7 +1141,6 @@
 
         const canPublish = (theStatus === 'pending_review' || isArchived || isCanceledStatus);
 
-
         const endDate = s.end_at ? new Date(s.end_at) : null;
         const isPast = !!(endDate && endDate < now);
 
@@ -1153,14 +1152,23 @@
 
         const isBooked = bookedCount > 0;
 
-       // Canceled-Infos aus Backend
+        // Canceled-Infos aus Backend
         const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
         const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
         const canceledBookings = allBookings.filter(b => b.status === 'canceled');
         const hasCanceledFlag  = !!s.has_canceled || canceledBookings.length > 0;
 
-        // ...
+        const canceledCount =
+          typeof s.canceled_count === 'number'
+            ? s.canceled_count
+            : canceledBookings.length;
 
+        const publishedAt = s.published_at || s.first_published_at || null;
+        const canceledAtSlot = s.canceled_at || null;
+        const firstCanceledBookingWithTime =
+          canceledBookings.find(b => b.canceled_at || b.cancelled_at || b.updated_at) || null;
+
+        // Zeilenklassen
         let rowClass = '';
 
         if (isPast) {
@@ -1183,9 +1191,7 @@
             rowClass += ' slot-free';
           }
         }
-        // archived bekommt keine eigene Hintergrundfarbe (nur Badge), kannst du bei Bedarf ergänzen
-      tr.className = rowClass.trim();
-
+        tr.className = rowClass.trim();
 
         // 1) Hinweis (gebucht / frei / abgelaufen)
         const hintParts = [];
@@ -1228,7 +1234,7 @@
           }
         }
 
-        // 4) Hinweise unter dem Titel zusammenbauen (inkl. Stornos, Veröffentlichung & Storno-Datum)
+        // 4) Hinweise unter dem Titel (inkl. Stornos, Veröffentlichung & Storno-Datum)
         const hintHtml = [];
         if (hintText)    hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
         if (bookingHint) hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
