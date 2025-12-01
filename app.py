@@ -1101,13 +1101,16 @@ def _status_transition_ok(current: str, new: str) -> bool:
 def slots_list():
     """
     Liefert alle Slots des eingeloggeten Providers inkl.
-    - booked     : Anzahl aktiver Buchungen (hold + confirmed)
-    - available  : freie Plätze
-    - bookings[] : Liste der Buchungen mit id, Name, E-Mail, Status
+    - booked         : Anzahl aktiver Buchungen (hold + confirmed)
+    - available      : freie Plätze
+    - bookings[]     : Liste der Buchungen mit id, Name, E-Mail, Status
+                       (inkl. 'canceled' für abgesagte Termine)
+    - has_canceled   : True, wenn es mindestens eine stornierte Buchung gibt
+    - canceled_count : Anzahl stornierter Buchungen
     """
     status = request.args.get("status")
     with Session(engine) as s:
-        # 1) Aggregat: Anzahl Buchungen pro Slot (hold + confirmed)
+        # 1) Aggregat: Anzahl aktiver Buchungen pro Slot (hold + confirmed)
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1133,6 +1136,7 @@ def slots_list():
         # 3) Slot-IDs sammeln und dazu passende Buchungen laden
         slot_ids = [slot.id for slot, _ in rows]
         bookings_by_slot: dict[str, list[dict]] = {}
+        canceled_counts: dict[str, int] = {}
 
         if slot_ids:
             booking_rows = (
@@ -1140,7 +1144,7 @@ def slots_list():
                     select(Booking)
                     .where(
                         Booking.slot_id.in_(slot_ids),
-                        Booking.status.in_(["hold", "confirmed"]),
+                        Booking.status.in_(["hold", "confirmed", "canceled"]),
                     )
                     .order_by(Booking.created_at.asc())
                 )
@@ -1149,7 +1153,8 @@ def slots_list():
             )
 
             for b in booking_rows:
-                bookings_by_slot.setdefault(b.slot_id, []).append(
+                slot_id = b.slot_id
+                bookings_by_slot.setdefault(slot_id, []).append(
                     {
                         "id": b.id,
                         "customer_name": b.customer_name,
@@ -1157,6 +1162,8 @@ def slots_list():
                         "status": b.status,
                     }
                 )
+                if b.status == "canceled":
+                    canceled_counts[slot_id] = canceled_counts.get(slot_id, 0) + 1
 
         # 4) Response-Objekte bauen
         out = []
@@ -1169,10 +1176,11 @@ def slots_list():
             item["booked"] = booked_int
             item["available"] = available
             item["bookings"] = bookings_by_slot.get(slot.id, [])
+            item["has_canceled"] = canceled_counts.get(slot.id, 0) > 0
+            item["canceled_count"] = canceled_counts.get(slot.id, 0)
             out.append(item)
 
         return jsonify(out)
-
 
 
 @app.post("/slots")
@@ -1309,6 +1317,7 @@ def slots_update(slot_id):
             if "end_at" in data:
                 try:
                     slot.end_at = _to_db_utc_naive(parse_iso_utc(data["end_at"]))
+
                 except Exception:
                     return _json_error("bad_datetime", 400)
             if slot.end_at <= slot.start_at:
@@ -1447,7 +1456,6 @@ def provider_cancel_booking(booking_id):
         try:
             if b.customer_email:
                 slot_title = slot.title if slot else "dein Termin"
-                # Rohes UTC-Datum reicht erstmal – später kannst du das schöner formatieren
                 slot_time = _from_db_as_iso_utc(slot.start_at) if slot else ""
                 provider_name = (
                     (provider.company_name or provider.email)
@@ -1480,7 +1488,6 @@ def provider_cancel_booking(booking_id):
     except Exception as e:
         app.logger.exception("provider_cancel_booking failed")
         return jsonify({"error": "server_error"}), 500
-
 
 
 # --------------------------------------------------------
@@ -1666,7 +1673,6 @@ def public_slots():
             zip_filter = location_raw
         else:
             city_q = location_raw
-
 
     # Wenn q exakt eine bekannte Branche ist, als Kategorie nutzen
     search_term = q_text
@@ -2024,11 +2030,23 @@ def public_cancel():
     """
     Storniert eine Buchung über den Token aus der E-Mail
     und zeigt danach die HTML-Storno-Seite an.
+    Zusätzlich:
+    - schickt eine Mail an die Kund:in („Termin storniert“)
+    - optional eine Mail an den Anbieter („Buchung storniert“)
+    - liefert in /slots die Info 'has_canceled', damit im Portal rot markiert werden kann
     """
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
         return _json_error("invalid_token", 400)
+
+    just_canceled = False
+    customer_email = None
+    customer_name = None
+    slot_title = "dein Termin"
+    slot_time_iso = ""
+    provider_email = None
+    provider_name = "der Anbieter"
 
     try:
         with Session(engine) as s:
@@ -2042,10 +2060,21 @@ def public_cancel():
 
             already_canceled = b.status == "canceled"
 
+            # Mail-Infos vorbereiten
+            customer_email = b.customer_email
+            customer_name = b.customer_name
+            if slot_obj is not None:
+                slot_title = slot_obj.title or "dein Termin"
+                slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at)
+            if provider_obj is not None:
+                provider_email = provider_obj.email
+                provider_name = (provider_obj.company_name or provider_obj.email) or provider_name
+
             # Nur wenn noch nicht storniert, jetzt stornieren
             if b.status in ("hold", "confirmed"):
                 b.status = "canceled"
                 s.commit()
+                just_canceled = True
 
             # ==== ORM-Objekte in Dicts umwandeln ====
             booking = {
@@ -2074,6 +2103,48 @@ def public_cancel():
                     "zip": provider_obj.zip,
                     "city": provider_obj.city,
                 }
+
+        # --- Mails nach erfolgreicher Stornierung ---
+        if just_canceled:
+            # Mail an Kund:in
+            try:
+                if customer_email:
+                    body_cust = (
+                        f"Hallo {customer_name},\n\n"
+                        f"deine Buchung für '{slot_title}' am {slot_time_iso} wurde storniert.\n\n"
+                        "Wenn du möchtest, kannst du einen neuen Termin buchen.\n\n"
+                        "Viele Grüße\n"
+                        "Terminmarktplatz"
+                    )
+                    send_mail(
+                        customer_email,
+                        "Termin storniert",
+                        text=body_cust,
+                        tag="booking_canceled_by_customer",
+                        metadata={"booking_id": str(booking["id"]), "slot_id": str(slot["id"]) if slot else None},
+                    )
+            except Exception as e:
+                print("[public_cancel][mail_customer_error]", repr(e), flush=True)
+
+            # Mail an Anbieter (Info über Storno)
+            try:
+                if provider_email:
+                    body_prov = (
+                        f"Hallo {provider_name},\n\n"
+                        f"die Buchung von {customer_name} für '{slot_title}' am {slot_time_iso} "
+                        "wurde von der Kundin / dem Kunden storniert.\n\n"
+                        "Viele Grüße\n"
+                        "Terminmarktplatz"
+                    )
+                    send_mail(
+                        provider_email,
+                        "Buchung storniert",
+                        text=body_prov,
+                        tag="booking_canceled_notify_provider",
+                        metadata={"booking_id": str(booking["id"]), "slot_id": str(slot["id"]) if slot else None},
+                    )
+            except Exception as e:
+                print("[public_cancel][mail_provider_error]", repr(e), flush=True)
 
         return render_template(
             "buchung_storniert.html",

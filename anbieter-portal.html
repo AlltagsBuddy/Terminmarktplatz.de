@@ -143,6 +143,7 @@
     .table tr.slot-booked.slot-past td{
       background:#e5e7eb;
     }
+
     .slot-hint{
       display:block;
       font-size:12px;
@@ -155,6 +156,18 @@
     .slot-booked .slot-hint{
       color:#15803d;
       font-weight:500;
+    }
+
+    /* NEU: Storno-Markierung */
+    .table tr.slot-canceled td{
+      background:#fef2f2;
+    }
+    .table tr.slot-booked.slot-canceled td{
+      background:#fee2e2;
+    }
+    .slot-hint-canceled{
+      color:#b91c1c;
+      font-weight:600;
     }
 
     .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
@@ -1119,9 +1132,20 @@
 
         const isBooked = bookedCount > 0;
 
+        // NEU: Canceled-Infos aus Backend
+        const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
+        const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
+        const canceledBookings = allBookings.filter(b => b.status === 'canceled');
+        const hasCanceledFlag  = !!s.has_canceled || canceledBookings.length > 0;
+        const canceledCount    =
+          typeof s.canceled_count === 'number'
+            ? s.canceled_count
+            : canceledBookings.length;
+
         let rowClass = '';
         if (isPast) rowClass += ' slot-past';
         if (isBooked) rowClass += ' slot-booked';
+        if (hasCanceledFlag) rowClass += ' slot-canceled';
         tr.className = rowClass.trim();
 
         // 1) bisheriger Hinweis (gebucht / abgelaufen)
@@ -1132,20 +1156,18 @@
         if (isPast) hintParts.push('Abgelaufen');
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
 
-        // 2) Buchungsdetails (Name + E-Mail der Kund:innen)
-        const bookings = Array.isArray(s.bookings) ? s.bookings : [];
+        // 2) Buchungsdetails (Name + E-Mail der Kund:innen, nur aktive)
         let bookingHint = '';
-
-        if (bookings.length === 1){
-          const b = bookings[0];
+        if (activeBookings.length === 1){
+          const b = activeBookings[0];
           bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
-        } else if (bookings.length > 1){
+        } else if (activeBookings.length > 1){
           const maxVisible = 3;
-          const visible = bookings.slice(0, maxVisible);
+          const visible = activeBookings.slice(0, maxVisible);
           const listStr = visible
             .map(b => `${b.customer_name} (${b.customer_email})`)
             .join('; ');
-          const hiddenCount = bookings.length - visible.length;
+          const hiddenCount = activeBookings.length - visible.length;
 
           if (hiddenCount > 0){
             bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
@@ -1154,15 +1176,19 @@
           }
         }
 
-        // 3) Hinweise unter dem Titel zusammenbauen
+        // 3) Hinweise unter dem Titel zusammenbauen (inkl. Stornos)
         const hintHtml = [];
         if (hintText)    hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
         if (bookingHint) hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
+        if (hasCanceledFlag && canceledCount > 0) {
+          const label = canceledCount === 1 ? '1 Storno' : `${canceledCount} Stornos`;
+          hintHtml.push(`<span class="slot-hint slot-hint-canceled">${label}</span>`);
+        }
 
-        // 4) UI zum Absagen von Buchungen
+        // 4) UI zum Absagen von Buchungen (nur aktive Buchungen stornierbar)
         let cancelHtml = '';
-        if (bookings.length === 1){
-          const b = bookings[0];
+        if (activeBookings.length === 1){
+          const b = activeBookings[0];
           const label = `${b.customer_name} (${b.customer_email})`;
           cancelHtml = `
             <button
@@ -1172,8 +1198,8 @@
               Buchung absagen
             </button>
           `;
-        } else if (bookings.length > 1){
-          const options = bookings
+        } else if (activeBookings.length > 1){
+          const options = activeBookings
             .map(b => `<option value="${b.id}">${b.customer_name} (${b.customer_email})</option>`)
             .join('');
           cancelHtml = `
