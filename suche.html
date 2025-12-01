@@ -617,15 +617,28 @@
 
       const frag = document.createDocumentFragment();
       items.forEach((x) => {
-        // Ort aus dem SLOT bevorzugen, erst dann Provider-Profil
-        const cityShow = x.location || x.provider_city || '';
+        // Provider-Infos aus Backend
+        const p = x.provider || {};
+        const providerName = p.name || p.company_name || p.email || 'Anbieter';
+        const providerAddress =
+          p.address
+          || [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+          || '';
+
+        // Adresse, wo der Termin stattfindet:
+        // 1. Slot.location (Termin-Ort)
+        // 2. Fallback: Provider-Adresse
+        const terminAddress = x.location || providerAddress || '';
+        const cityShow = x.provider_city || (p.city || '');
+
         const availableBadge = (typeof x.available === 'number')
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
           : '';
+
         const el = document.createElement('div');
         el.className = 'card';
         el.innerHTML = `
-          <div style="display:flex; justify-content:space-between; gap:10px; align-items:start">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start">
             <div>
               <h3>${x.title || 'Termin'} ${availableBadge}</h3>
               <p class="muted">
@@ -633,6 +646,13 @@
                 · Kategorie: ${x.category || '—'}
                 ${cityShow ? ` · Ort: ${cityShow}` : ''}
               </p>
+              <p class="muted" style="margin:4px 0 0;">
+                <strong>Anbieter:</strong> ${providerName}
+              </p>
+              ${terminAddress ? `
+                <p class="muted" style="margin:2px 0 0;">
+                  <strong>Adresse:</strong> ${terminAddress}
+                </p>` : ''}
             </div>
             <div>
               <button class="btn primary" data-book="${x.id}">Buchen</button>

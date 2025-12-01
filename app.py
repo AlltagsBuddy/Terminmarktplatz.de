@@ -1554,6 +1554,12 @@ def public_slots():
     Abwärtskompatibel:
       - ort       : wird wie location behandelt
       - city, zip : werden weiterhin für Geocoding/Radius akzeptiert
+
+    NEU in der Antwort:
+      - provider : kompletter Anbieter-Block inkl. Name + Adresse
+                   (id, name, street, zip, city, address, branch, phone, whatsapp)
+      - provider_zip / provider_city bleiben zur Kompatibilität erhalten
+      - available : freie Plätze
     """
     # neue Parameter
     q_text = (request.args.get("q") or "").strip()
@@ -1639,12 +1645,11 @@ def public_slots():
             .subquery()
         )
 
-        # Basis-Query
+        # Basis-Query: Slot + Provider + booked
         sq = (
             select(
                 Slot,
-                Provider.zip.label("p_zip"),
-                Provider.city.label("p_city"),
+                Provider,
                 func.coalesce(bq.c.booked, 0).label("booked"),
             )
             .join(Provider, Provider.id == Slot.provider_id)
@@ -1690,13 +1695,16 @@ def public_slots():
         rows = s.execute(sq).all()
 
         out = []
-        for slot, p_zip, p_city, booked in rows:
+        for slot, provider, booked in rows:
             cap = slot.capacity or 1
             available = max(0, cap - int(booked or 0))
             if not include_full and available <= 0:
                 continue
 
             # Radiusfilter (weiterhin über Provider-Standort, da Slot.location nur Text ist)
+            p_zip = provider.zip
+            p_city = provider.city
+
             if radius_km is not None:
                 if origin_lat is None or origin_lon is None:
                     # ohne Mittelpunkt macht Umkreissuche keinen Sinn
@@ -1707,20 +1715,33 @@ def public_slots():
                 if _haversine_km(origin_lat, origin_lon, plat, plon) > radius_km:
                     continue
 
-            out.append(
-                {
-                    "id": slot.id,
-                    "title": slot.title,
-                    "category": slot.category,
-                    "start_at": _from_db_as_iso_utc(slot.start_at),
-                    "end_at": _from_db_as_iso_utc(slot.end_at),
-                    "location": slot.location,
-                    "provider_id": slot.provider_id,
-                    "provider_zip": p_zip,
-                    "provider_city": p_city,
-                    "available": available,
+            item = slot_to_json(slot)
+            item["available"] = available
+
+            # Kompletter Anbieter-Block
+            try:
+                # nutzt die Hilfs-Methoden aus models.Provider
+                provider_dict = provider.to_public_dict()
+            except Exception:
+                # Fallback, falls Modelle mal anders sind
+                provider_dict = {
+                    "id": provider.id,
+                    "name": getattr(provider, "public_name", None) or provider.company_name or provider.email,
+                    "street": provider.street,
+                    "zip": provider.zip,
+                    "city": provider.city,
+                    "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(", "),
+                    "branch": provider.branch,
+                    "phone": provider.phone,
+                    "whatsapp": provider.whatsapp,
                 }
-            )
+
+            item["provider"] = provider_dict
+            # alte Felder zur Kompatibilität behalten
+            item["provider_zip"] = p_zip
+            item["provider_city"] = p_city
+
+            out.append(item)
 
         return jsonify(out)
 
