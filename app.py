@@ -1,4 +1,3 @@
-# app.py — API + HTML (Root-Templates; Render & Local)
 import os
 import traceback
 from datetime import datetime, timedelta, timezone
@@ -315,6 +314,7 @@ def _json_error(msg, code=400):
 def _cookie_flags():
     if IS_RENDER:
         return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
+
     return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
 
 
@@ -1103,7 +1103,7 @@ def slots_list():
     Liefert alle Slots des eingeloggeten Providers inkl.
     - booked     : Anzahl aktiver Buchungen (hold + confirmed)
     - available  : freie Plätze
-    - bookings[] : Liste der Buchungen mit Name + E-Mail
+    - bookings[] : Liste der Buchungen mit Name + E-Mail + ID
     """
     status = request.args.get("status")
     with Session(engine) as s:
@@ -1151,6 +1151,7 @@ def slots_list():
             for b in booking_rows:
                 bookings_by_slot.setdefault(b.slot_id, []).append(
                     {
+                        "id": b.id,  # NEU: für gezielte Stornos im Frontend
                         "customer_name": b.customer_name,
                         "customer_email": b.customer_email,
                         "status": b.status,
@@ -1301,6 +1302,7 @@ def slots_update(slot_id):
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
+
                 except Exception:
                     return _json_error("bad_datetime", 400)
             if "end_at" in data:
@@ -1401,6 +1403,88 @@ def slots_delete(slot_id):
         s.delete(slot)
         s.commit()
         return jsonify({"ok": True})
+
+
+# --------------------------------------------------------
+# Provider: Buchung aktiv stornieren (+ Mail an Kund:in)
+# --------------------------------------------------------
+@app.post("/bookings/<booking_id>/cancel-by-provider")
+@auth_required()
+def provider_cancel_booking(booking_id):
+    """
+    Provider sagt eine Buchung aktiv ab.
+    - Nur der Provider, dem der Slot gehört, darf das tun.
+    - Nur Buchungen in Status 'hold' oder 'confirmed'.
+    - Kunde bekommt eine E-Mail mit Info und optionalem Grund.
+    """
+    data = request.get_json(silent=True) or {}
+    reason = (data.get("reason") or "").strip()
+
+    try:
+        with Session(engine) as s:
+            b = s.get(Booking, booking_id, with_for_update=True)
+            if not b:
+                return _json_error("not_found", 404)
+
+            slot = s.get(Slot, b.slot_id) if b.slot_id else None
+            if not slot:
+                return _json_error("slot_missing", 404)
+
+            # Sicherheitscheck: gehört der Slot zum aktuell eingeloggten Provider?
+            if slot.provider_id != request.provider_id:
+                return _json_error("forbidden", 403)
+
+            # Nur hold/confirmed stornierbar
+            if b.status not in ("hold", "confirmed"):
+                return _json_error("not_cancelable", 409)
+
+            # Status setzen
+            b.status = "canceled"
+            # Falls du ein Feld canceled_at in Booking hast, könntest du hier:
+            # b.canceled_at = _now()
+            s.commit()
+
+            # --- Mail an Kund:in -------------------------------------------------
+            try:
+                start_local = slot.start_at.replace(tzinfo=timezone.utc).astimezone(BERLIN)
+                datum = start_local.strftime("%d.%m.%Y")
+                uhrzeit = start_local.strftime("%H:%M")
+
+                msg_lines = [
+                    f"Hallo {b.customer_name},",
+                    "",
+                    "leider musste dein Termin abgesagt werden.",
+                    "",
+                    f"Termin: {slot.title}",
+                    f"Datum: {datum}",
+                    f"Uhrzeit: {uhrzeit}",
+                    f"Ort: {slot.location or '–'}",
+                ]
+                if reason:
+                    msg_lines.append("")
+                    msg_lines.append("Begründung der Absage:")
+                    msg_lines.append(reason)
+
+                msg_lines.append("")
+                msg_lines.append("Falls du Rückfragen hast, melde dich bitte direkt beim Anbieter.")
+                msg_lines.append("")
+                msg_lines.append("Liebe Grüße")
+                msg_lines.append("Terminmarktplatz")
+
+                send_mail(
+                    b.customer_email,
+                    "Dein Termin wurde abgesagt",
+                    text="\n".join(msg_lines),
+                    tag="booking_canceled_by_provider",
+                    metadata={"slot_id": str(slot.id), "booking_id": str(b.id)},
+                )
+            except Exception:
+                app.logger.exception("send_cancel_mail_failed")
+
+        return jsonify({"ok": True})
+    except Exception:
+        app.logger.exception("provider_cancel_booking failed")
+        return jsonify({"error": "server_error"}), 500
 
 
 # --------------------------------------------------------
@@ -1581,7 +1665,7 @@ def public_slots():
     include_full = request.args.get("include_full") == "1"
 
     # Falls city/zip nicht explizit gesetzt sind, aus location_raw ableiten
-    if location_raw and not zip_filter and not city_q:
+       if location_raw and not zip_filter and not city_q:
         if location_raw.isdigit() and len(location_raw) == 5:
             zip_filter = location_raw
         else:
