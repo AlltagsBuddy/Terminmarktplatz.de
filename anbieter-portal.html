@@ -1088,182 +1088,257 @@
       $('#btn-delete').disabled  = !any;
     }
 
-    function renderTable(items){
-      const tbody = $('#tbl-slots tbody');
-      if(!items.length){
-        tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = '';
-      const now = new Date();
-
-      for(const s of items){
-        const tr = document.createElement('tr');
-        const theStatus = s.status;
-
-        const endDate = s.end_at ? new Date(s.end_at) : null;
-        const isPast  = !!(endDate && endDate < now);
-
-        const allBookings = Array.isArray(s.bookings) ? s.bookings : [];
-        const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
-        const canceledBookings = allBookings.filter(b => b.status === 'canceled');
-
-        const capacity    = s.capacity || 1;
-        const bookedCount = activeBookings.length;
-        const available   = Math.max(0, capacity - bookedCount);
-        const isBooked    = bookedCount > 0;
-
-        // Status-Badge-Klasse
-        const stClass =
-          theStatus === 'published' ? 'st-pub'
-          : theStatus === 'archived' ? 'st-arch'
-          : theStatus === 'canceled' ? 'st-canceled'
-          : 'st-pending';
-
-        const canPublish = (theStatus === 'pending_review' || theStatus === 'archived' || theStatus === 'canceled');
-
-        // Zeilenklasssen
-        let rowClass = '';
-        if (isPast) {
-          rowClass += ' slot-past';
+          function pickTimestamp(candidates) {
+        for (const v of candidates) {
+          if (v) return v;
         }
-        if (theStatus === 'canceled') {
-          rowClass += ' slot-canceled';
-        } else if (theStatus === 'pending_review') {
-          rowClass += ' slot-pending';
-        } else if (theStatus === 'published') {
-          if (isBooked) {
-            rowClass += ' slot-booked';
-          } else {
-            rowClass += ' slot-free';
-          }
-        }
-        tr.className = rowClass.trim();
-
-        // 1) Kurz-Hinweis (frei/gebucht/abgelaufen) – keine Storno-Zähler
-        const hintParts = [];
-        if (theStatus !== 'canceled') {
-          if (isBooked) {
-            hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
-          } else if (theStatus === 'published' && !isPast) {
-            hintParts.push(`Frei (${available}/${capacity})`);
-          }
-        }
-        if (isPast) hintParts.push('Abgelaufen');
-        const hintText = hintParts.length ? hintParts.join(' • ') : '';
-
-        // 2) Buchungsdetails (Name + E-Mail – nur aktive)
-        let bookingHint = '';
-        if (activeBookings.length === 1){
-          const b = activeBookings[0];
-          bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
-        } else if (activeBookings.length > 1){
-          const maxVisible = 3;
-          const visible = activeBookings.slice(0, maxVisible);
-          const listStr = visible
-            .map(b => `${b.customer_name} (${b.customer_email})`)
-            .join('; ');
-          const hiddenCount = activeBookings.length - visible.length;
-
-          if (hiddenCount > 0){
-            bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
-          } else {
-            bookingHint = `Gebucht von: ${listStr}`;
-          }
-        }
-
-        // 3) Gebucht am: Datum/Zeit der Buchung (erste aktive mit Timestamp)
-        let bookingTimeHint = '';
-        if (activeBookings.length > 0){
-          const bWithTime =
-            activeBookings.find(b => b.booked_at || b.created_at || b.created) || activeBookings[0];
-          const ts = bWithTime.booked_at || bWithTime.created_at || bWithTime.created;
-          if (ts){
-            bookingTimeHint = `Gebucht am: ${fmtLocal(ts)}`;
-          }
-        }
-
-        // 4) Storniert am: nur wenn Slot-Status = canceled
-        let canceledTimeHint = '';
-        if (theStatus === 'canceled') {
-          let ts = s.canceled_at || null;
-          if (!ts && canceledBookings.length > 0) {
-            const b = canceledBookings.find(b => b.canceled_at || b.cancelled_at || b.updated_at) || canceledBookings[0];
-            if (b) {
-              ts = b.canceled_at || b.cancelled_at || b.updated_at;
-            }
-          }
-          if (ts) {
-            canceledTimeHint = `Storniert am: ${fmtLocal(ts)}`;
-          }
-        }
-
-        // Hints zusammenbauen – NUR aktueller Status (keine Zähler)
-        const hintHtml = [];
-        if (hintText)          hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
-        if (bookingHint)       hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
-        if (bookingTimeHint)   hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
-        if (canceledTimeHint)  hintHtml.push(`<span class="slot-hint slot-hint-canceled">${canceledTimeHint}</span>`);
-
-        // UI zum Absagen von aktiven Buchungen
-        let cancelHtml = '';
-        if (activeBookings.length === 1){
-          const b = activeBookings[0];
-          const label = `${b.customer_name} (${b.customer_email})`;
-          cancelHtml = `
-            <button
-              class="btn danger"
-              data-cancel-booking="${b.id}"
-              data-cancel-label="${label}">
-              Buchung absagen
-            </button>
-          `;
-        } else if (activeBookings.length > 1){
-          const options = activeBookings
-            .map(b => `<option value="${b.id}">${b.customer_name} (${b.customer_email})</option>`)
-            .join('');
-          cancelHtml = `
-            <div class="booking-cancel">
-              <select class="booking-select">
-                ${options}
-              </select>
-              <button type="button" class="btn danger booking-cancel-btn">
-                Buchung absagen
-              </button>
-            </div>
-          `;
-        }
-
-        tr.innerHTML = `
-          <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
-          <td data-label="Start">${fmtLocal(s.start_at)}</td>
-          <td data-label="Ende">${fmtLocal(s.end_at)}</td>
-          <td data-label="Titel">
-            ${s.title}
-            ${hintHtml.join('')}
-          </td>
-          <td data-label="Kategorie">${s.category||''}</td>
-          <td data-label="Ort">${s.location||''}</td>
-          <td data-label="Kapazität">${capacity}</td>
-          <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
-          <td data-label="Aktionen" class="nowrap">
-            ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
-            <button class="btn danger" data-del="${s.id}">Löschen</button>
-            ${cancelHtml}
-          </td>
-        `;
-        tbody.appendChild(tr);
+        return null;
       }
 
-      // Checkboxen
+
+   function renderTable(items){
+  const tbody = $('#tbl-slots tbody');
+  if(!items.length){
+    tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = '';
+  const now = new Date();
+
+  for(const s of items){
+    const tr = document.createElement('tr');
+    const theStatus = s.status;
+
+    const endDate = s.end_at ? new Date(s.end_at) : null;
+    const isPast  = !!(endDate && endDate < now);
+
+    const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
+    const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
+    const canceledBookings = allBookings.filter(b => b.status === 'canceled');
+
+    const capacity    = s.capacity || 1;
+    const bookedCount = activeBookings.length;
+    const available   = Math.max(0, capacity - bookedCount);
+    const isBooked    = bookedCount > 0;
+
+    // Status-Badge-Klasse
+    const stClass =
+      theStatus === 'published' ? 'st-pub'
+      : theStatus === 'archived' ? 'st-arch'
+      : theStatus === 'canceled' ? 'st-canceled'
+      : 'st-pending';
+
+    const canPublish = (theStatus === 'pending_review' ||
+                        theStatus === 'archived' ||
+                        theStatus === 'canceled');
+
+    // Zeilenklassen / Hintergründe
+    let rowClass = '';
+    if (isPast) {
+      rowClass += ' slot-past';
+    }
+    if (theStatus === 'canceled') {
+      rowClass += ' slot-canceled';
+    } else if (theStatus === 'pending_review') {
+      rowClass += ' slot-pending';
+    } else if (theStatus === 'published') {
+      if (isBooked) {
+        rowClass += ' slot-booked';
+      } else {
+        rowClass += ' slot-free';
+      }
+    }
+    tr.className = rowClass.trim();
+
+    // 1) Kurz-Hinweis (frei/gebucht/abgelaufen)
+    const hintParts = [];
+    if (theStatus !== 'canceled') {
+      if (isBooked) {
+        hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
+      } else if (theStatus === 'published' && !isPast) {
+        hintParts.push(`Frei (${available}/${capacity})`);
+      }
+    }
+    if (isPast) hintParts.push('Abgelaufen');
+    const hintText = hintParts.length ? hintParts.join(' • ') : '';
+
+    // 2) Buchungsdetails (Name + E-Mail – nur aktive)
+    let bookingHint = '';
+    if (activeBookings.length === 1){
+      const b = activeBookings[0];
+      bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
+    } else if (activeBookings.length > 1){
+      const maxVisible = 3;
+      const visible = activeBookings.slice(0, maxVisible);
+      const listStr = visible
+        .map(b => `${b.customer_name} (${b.customer_email})`)
+        .join('; ');
+      const hiddenCount = activeBookings.length - visible.length;
+
+      if (hiddenCount > 0){
+        bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
+      } else {
+        bookingHint = `Gebucht von: ${listStr}`;
+      }
+    }
+
+    // 3) Gebucht am: robusten Timestamp suchen
+    let bookingTimeHint = '';
+    if (activeBookings.length > 0){
+      const ts = pickTimestamp([
+        // zuerst direkte Felder an den Buchungen
+        ...activeBookings.map(b => b.booked_at),
+        ...activeBookings.map(b => b.created_at),
+        ...activeBookings.map(b => b.created),
+        // Fallback: Slot-Felder (falls Buchung keine eigene Zeit hat)
+        s.booked_at,
+        s.created_at,
+        s.created,
+        s.updated_at,
+        s.updated
+      ]);
+      if (ts){
+        bookingTimeHint = `Gebucht am: ${fmtLocal(ts)}`;
+      }
+    }
+
+    // 4) Storniert am: nur wenn Slot-Status = canceled
+    let canceledTimeHint = '';
+    if (theStatus === 'canceled') {
+      const ts = pickTimestamp([
+        // direkte Slot-Felder
+        s.canceled_at,
+        s.cancelled_at,
+        s.updated_at,
+        // Zeit an stornierten Buchungen (falls der Slot nichts eigenes hat)
+        ...canceledBookings.map(b => b.canceled_at),
+        ...canceledBookings.map(b => b.cancelled_at),
+        ...canceledBookings.map(b => b.updated_at)
+      ]);
+      if (ts) {
+        canceledTimeHint = `Storniert am: ${fmtLocal(ts)}`;
+      }
+    }
+
+    // Hinweise zusammensetzen – nur aktueller Status
+    const hintHtml = [];
+    if (hintText)         hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
+    if (bookingHint)      hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
+    if (bookingTimeHint)  hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
+    if (canceledTimeHint) hintHtml.push(`<span class="slot-hint slot-hint-canceled">${canceledTimeHint}</span>`);
+
+    // UI zum Absagen von aktiven Buchungen
+    let cancelHtml = '';
+    if (activeBookings.length === 1){
+      const b = activeBookings[0];
+      const label = `${b.customer_name} (${b.customer_email})`;
+      cancelHtml = `
+        <button
+          class="btn danger"
+          data-cancel-booking="${b.id}"
+          data-cancel-label="${label}">
+          Buchung absagen
+        </button>
+      `;
+    } else if (activeBookings.length > 1){
+      const options = activeBookings
+        .map(b => `<option value="${b.id}">${b.customer_name} (${b.customer_email})</option>`)
+        .join('');
+      cancelHtml = `
+        <div class="booking-cancel">
+          <select class="booking-select">
+            ${options}
+          </select>
+          <button type="button" class="btn danger booking-cancel-btn">
+            Buchung absagen
+          </button>
+        </div>
+      `;
+    }
+
+    tr.innerHTML = `
+      <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
+      <td data-label="Start">${fmtLocal(s.start_at)}</td>
+      <td data-label="Ende">${fmtLocal(s.end_at)}</td>
+      <td data-label="Titel">
+        ${s.title}
+        ${hintHtml.join('')}
+      </td>
+      <td data-label="Kategorie">${s.category||''}</td>
+      <td data-label="Ort">${s.location||''}</td>
+      <td data-label="Kapazität">${capacity}</td>
+      <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
+      <td data-label="Aktionen" class="nowrap">
+        ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+        ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+        <button class="btn danger" data-del="${s.id}">Löschen</button>
+        ${cancelHtml}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Checkboxen
+  $$('#tbl-slots .row-check').forEach(cb => {
+    cb.addEventListener('change', ()=>{
+      const id = cb.dataset.id;
+      if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+      updateBulkButtons(items);
+    });
+  });
+
+  // Slot löschen
+  $$('#tbl-slots [data-del]').forEach(b =>
+    b.addEventListener('click', async ()=>{
+      await delSlot(b.dataset.del);
+      await loadSlots();
+    })
+  );
+
+  // Status ändern (inkl. wieder veröffentlichen nach Storno)
+  $$('#tbl-slots [data-arch]').forEach(b =>
+    b.addEventListener('click', async ()=>{
+      await setStatus(b.dataset.arch, b.dataset.status);
+      await loadSlots();
+    })
+  );
+
+  // Einzel-Buchung absagen
+  $$('#tbl-slots [data-cancel-booking]').forEach(btn => {
+    btn.addEventListener('click', async ()=>{
+      const bookingId = btn.dataset.cancelBooking;
+      const label = btn.dataset.cancelLabel || '';
+      await cancelBooking(bookingId, label);
+    });
+  });
+
+  // Mehrere Buchungen: Auswahl + Absage
+  $$('#tbl-slots .booking-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', async ()=>{
+      const wrap = btn.closest('.booking-cancel');
+      if (!wrap) return;
+      const sel = wrap.querySelector('.booking-select');
+      if (!sel || !sel.value) return;
+      const bookingId = sel.value;
+      const label = sel.options[sel.selectedIndex].textContent;
+      await cancelBooking(bookingId, label);
+    });
+  });
+
+  const chkAll = $('#chk-all');
+  if (chkAll) {
+    chkAll.onchange = (e) => {
+      SELECTED.clear();
       $$('#tbl-slots .row-check').forEach(cb => {
-        cb.addEventListener('change', ()=>{
-          const id = cb.dataset.id;
-          if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
-          updateBulkButtons(items);
-        });
+        cb.checked = e.target.checked;
+        if(cb.checked) SELECTED.add(cb.dataset.id);
       });
+      updateBulkButtons(items);
+    };
+  }
+
+  updateBulkButtons(items);
+};
 
       // Slot löschen
       $$('#tbl-slots [data-del]').forEach(b =>

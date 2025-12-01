@@ -1069,6 +1069,25 @@ fieldset[disabled]{
 /* Checkbox-Label „Alle auswählen“ im Portal sichtbar */
 .page-portal .check{ color:#0f172a !important; }
 
+/* Portal: Slot-Hinweise deutlich einfärben */
+.page-portal .slot-hint {
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+  color: #0f172a;      /* dunkler Text, gut lesbar auf weiß */
+}
+
+.page-portal .slot-hint.slot-hint-canceled {
+  color: #b91c1c;      /* rot für Storniert am */
+  font-weight: 600;
+}
+
+/* Stornierte Slots rot hinterlegt */
+.page-portal .table tr.slot-canceled td {
+  background: #fee2e2;
+}
+
+
 /* =========================================================
    Pflichtfelder: genau EIN roter Stern
 ========================================================= */
