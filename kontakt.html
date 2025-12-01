@@ -169,6 +169,8 @@
       padding:8px 10px;
       background:#ffffff;
       box-shadow:none;
+      /* NEU: eingegebener Text immer schwarz */
+      color:#000000;
     }
 
     .form .control input:focus,
@@ -177,6 +179,13 @@
       outline:none;
       border-color:#6f53ff;
       box-shadow:0 0 0 1px rgba(111,83,255,0.15);
+    }
+
+    /* Optional: Platzhalter auch dunkel (falls gewünscht) */
+    .form .control input::placeholder,
+    .form .control textarea::placeholder {
+      color:#000000;
+      opacity:0.6;
     }
   </style>
 
