@@ -405,56 +405,97 @@ def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
 # --------------------------------------------------------
 # Mail
 # --------------------------------------------------------
-def send_mail(to: str, subject: str, text: str | None = None, html: str | None = None,
-              tag: str | None = None, metadata: dict | None = None):
+def send_mail(
+    to: str,
+    subject: str,
+    text: str | None = None,
+    html: str | None = None,
+    tag: str | None = None,
+    metadata: dict | None = None,
+):
+    """
+    Vereinheitlichte Mail-Funktion.
+
+    - provider = resend:  /emails REST-API, nur Felder senden, die Resend sicher versteht
+    - provider = postmark: Tags + Metadata erlaubt
+    - provider = smtp:     klassisches SMTP (z.B. Strato)
+    """
     try:
         if not EMAILS_ENABLED:
-            print(f"[mail] disabled: EMAILS_ENABLED=false subject='{subject}' to={to}", flush=True)
+            print(
+                f"[mail] disabled: EMAILS_ENABLED=false subject={subject!r} to={to}",
+                flush=True,
+            )
             return True, "disabled"
 
-        provider = (MAIL_PROVIDER or "resend").lower()
-        print(f"[mail] provider={provider} from={MAIL_FROM} to={to} subject='{subject}'", flush=True)
+        provider = (MAIL_PROVIDER or "resend").strip().lower()
+        print(
+            f"[mail] provider={provider} from={MAIL_FROM} to={to} subject={subject!r}",
+            flush=True,
+        )
 
+        # ----------------- Console-Provider (nur Log) -----------------
         if provider == "console":
             print(
                 "\n--- MAIL (console) ---\n"
-                f"From: {MAIL_FROM}\nTo: {to}\nSubject: {subject}\nReply-To: {MAIL_REPLY_TO}\n\n"
-                f"{text or ''}\n{html or ''}\n--- END ---\n",
-                flush=True
+                f"From: {MAIL_FROM}\n"
+                f"To: {to}\n"
+                f"Subject: {subject}\n"
+                f"Reply-To: {MAIL_REPLY_TO}\n\n"
+                f"{text or ''}\n{html or ''}\n"
+                "--- END ---\n",
+                flush=True,
             )
             return True, "console"
 
+        # ----------------- RESEND (HTTPS API) -----------------
         if provider == "resend":
             if not RESEND_API_KEY:
                 return False, "missing RESEND_API_KEY"
-            payload = {"from": MAIL_FROM, "to": [to], "subject": subject}
+
+            # Wichtig: Resend erwartet hier einfache Strings, kein Array.
+            payload: dict[str, object] = {
+                "from": MAIL_FROM,
+                "to": to,                  # <-- String, nicht Liste
+                "subject": subject,
+            }
             if text:
                 payload["text"] = text
             if html:
                 payload["html"] = html
+            # reply_to: laut aktueller Doku ebenfalls String
             if MAIL_REPLY_TO:
-                payload["reply_to"] = [MAIL_REPLY_TO]
-            if tag:
-                payload["tags"] = [tag]
-            if metadata:
-                payload["metadata"] = metadata
+                payload["reply_to"] = MAIL_REPLY_TO
+
             r = requests.post(
                 "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-                json=payload, timeout=15
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=15,
             )
             ok = 200 <= r.status_code < 300
             print("[resend]", r.status_code, r.text, flush=True)
-            return ok, f"{r.status_code}"
+            if not ok:
+                # Mehr Infos ins Log schreiben, falls es wieder 422 gibt
+                try:
+                    print("[resend][payload]", payload, flush=True)
+                except Exception:
+                    pass
+            return ok, str(r.status_code)
 
+        # ----------------- POSTMARK (HTTPS API) -----------------
         if provider == "postmark":
             if not POSTMARK_API_TOKEN:
                 return False, "missing POSTMARK_API_TOKEN"
-            payload = {
+
+            payload: dict[str, object] = {
                 "From": MAIL_FROM,
                 "To": to,
                 "Subject": subject,
-                "MessageStream": POSTMARK_MESSAGE_STREAM
+                "MessageStream": POSTMARK_MESSAGE_STREAM,
             }
             if MAIL_REPLY_TO:
                 payload["ReplyTo"] = MAIL_REPLY_TO
@@ -465,20 +506,31 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
             if tag:
                 payload["Tag"] = tag
             if metadata:
-                payload["Metadata"] = metadata
+                # Postmark erwartet string->string; also vorsichtshalber alles zu String casten
+                payload["Metadata"] = {
+                    str(k): ("" if v is None else str(v)) for k, v in metadata.items()
+                }
+
             r = requests.post(
                 "https://api.postmarkapp.com/email",
                 headers={
                     "X-Postmark-Server-Token": POSTMARK_API_TOKEN,
                     "Accept": "application/json",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
-                json=payload, timeout=15
+                json=payload,
+                timeout=15,
             )
             ok = 200 <= r.status_code < 300
             print("[postmark]", r.status_code, r.text, flush=True)
-            return ok, f"{r.status_code}"
+            if not ok:
+                try:
+                    print("[postmark][payload]", payload, flush=True)
+                except Exception:
+                    pass
+            return ok, str(r.status_code)
 
+        # ----------------- SMTP (z.B. Strato) -----------------
         if provider == "smtp":
             missing = [
                 k
@@ -492,6 +544,7 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
             ]
             if missing:
                 return False, f"missing smtp config: {', '.join(missing)}"
+
             disp_name, _ = parseaddr(MAIL_FROM or "")
             from_hdr = formataddr((disp_name or "Terminmarktplatz", SMTP_USER))
             msg = EmailMessage()
@@ -500,11 +553,13 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
             msg["Subject"] = subject
             if MAIL_REPLY_TO:
                 msg["Reply-To"] = MAIL_REPLY_TO
+
             if html:
                 msg.set_content(text or "")
                 msg.add_alternative(html, subtype="html")
             else:
                 msg.set_content(text or "")
+
             try:
                 if SMTP_USE_TLS:
                     with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
@@ -519,6 +574,14 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
             except Exception as e:
                 print("[smtp][ERROR]", repr(e), flush=True)
                 return False, repr(e)
+
+        # Fallback: unbekannter Provider
+        return False, f"unknown provider '{provider}'"
+
+    except Exception as e:
+        print("send_mail exception:", repr(e), flush=True)
+        return False, repr(e)
+
 
         return False, f"unknown provider '{provider}'"
 
