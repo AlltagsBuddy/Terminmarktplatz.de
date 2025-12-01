@@ -149,12 +149,13 @@ else:
 CORS(
     app,
     resources={
-        r"/auth/*":   {"origins": ALLOWED_ORIGINS},
-        r"/me":       {"origins": ALLOWED_ORIGINS},
-        r"/slots*":   {"origins": ALLOWED_ORIGINS},
-        r"/admin/*":  {"origins": ALLOWED_ORIGINS},
-        r"/public/*": {"origins": ALLOWED_ORIGINS},
-        r"/api/*":    {"origins": ALLOWED_ORIGINS},
+        r"/auth/*":      {"origins": ALLOWED_ORIGINS},
+        r"/me":          {"origins": ALLOWED_ORIGINS},
+        r"/slots*":      {"origins": ALLOWED_ORIGINS},
+        r"/provider/*":  {"origins": ALLOWED_ORIGINS},  # NEU: Provider-Routen (Storno etc.)
+        r"/admin/*":     {"origins": ALLOWED_ORIGINS},
+        r"/public/*":    {"origins": ALLOWED_ORIGINS},
+        r"/api/*":       {"origins": ALLOWED_ORIGINS},
     },
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
@@ -433,6 +434,10 @@ def send_mail(to: str, subject: str, text: str | None = None, html: str | None =
                 payload["html"] = html
             if MAIL_REPLY_TO:
                 payload["reply_to"] = [MAIL_REPLY_TO]
+            if tag:
+                payload["tags"] = [tag]
+            if metadata:
+                payload["metadata"] = metadata
             r = requests.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
@@ -622,6 +627,7 @@ def maybe_api_only():
         or request.path.startswith("/admin/")
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
+        or request.path.startswith("/provider/")
         or request.path
         in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
@@ -723,7 +729,7 @@ def public_contact():
             send_mail(
                 email,
                 "Danke für deine Nachricht",
-                "Wir haben deine Nachricht erhalten undmelden uns bald.\n\n— Terminmarktplatz",
+                "Wir haben deine Nachricht erhalten und melden uns bald.\n\n— Terminmarktplatz",
             )
         except Exception:
             pass
@@ -1445,41 +1451,45 @@ def provider_cancel_booking(booking_id):
             if b.status not in ("hold", "confirmed"):
                 return _json_error("not_cancelable", 409)
 
-            slot = s.get(Slot, b.slot_id) if b.slot_id else None
-            provider = s.get(Provider, b.provider_id) if b.provider_id else None
+            slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+            provider_obj = s.get(Provider, b.provider_id) if b.provider_id else None
 
-            # Stornieren
+            # Daten für Mail vor dem Commit herausziehen
+            customer_email = b.customer_email
+            customer_name = b.customer_name
+            slot_title = (slot_obj.title if slot_obj and slot_obj.title else "dein Termin")
+            slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at) if slot_obj else ""
+            provider_name = (
+                (provider_obj.company_name or provider_obj.email)
+                if provider_obj else "der Anbieter"
+            )
+            booking_id_str = str(b.id)
+            slot_id_str = str(b.slot_id) if b.slot_id else None
+
             b.status = "canceled"
             s.commit()
 
         # Mail an den Kunden schicken (außerhalb der Session)
         try:
-            if b.customer_email:
-                slot_title = slot.title if slot else "dein Termin"
-                slot_time = _from_db_as_iso_utc(slot.start_at) if slot else ""
-                provider_name = (
-                    (provider.company_name or provider.email)
-                    if provider else "der Anbieter"
-                )
-
+            if customer_email:
                 reason_txt = f"\n\nBegründung:\n{reason}" if reason else ""
-
                 body = (
-                    f"Hallo {b.customer_name},\n\n"
-                    f"dein Termin '{slot_title}' am {slot_time} wurde von {provider_name} abgesagt."
+                    f"Hallo {customer_name},\n\n"
+                    f"dein Termin '{slot_title}' am {slot_time_iso} wurde von {provider_name} abgesagt."
                     f"{reason_txt}\n\n"
                     "Bitte buche bei Bedarf einen neuen Termin.\n\n"
                     "Viele Grüße\n"
                     "Terminmarktplatz"
                 )
 
-                send_mail(
-                    b.customer_email,
+                ok, info = send_mail(
+                    customer_email,
                     "Termin abgesagt",
                     text=body,
                     tag="booking_canceled_by_provider",
-                    metadata={"booking_id": str(b.id), "slot_id": str(b.slot_id)},
+                    metadata={"booking_id": booking_id_str, "slot_id": slot_id_str},
                 )
+                print("[provider_cancel_booking][mail]", ok, info, flush=True)
         except Exception as e:
             # Fehler bei Mail nicht tödlich machen, nur loggen
             print("[provider_cancel_booking][mail_error]", repr(e), flush=True)
