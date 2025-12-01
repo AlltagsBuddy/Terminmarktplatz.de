@@ -78,47 +78,32 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    # --------------------------------------------------------
-    # Hilfs-Properties / Methoden für Ausgabe / API
-    # --------------------------------------------------------
-
+    # -------- Convenience / Public-Ansicht --------
     @property
     def public_name(self) -> str:
-        """
-        Name, der öffentlich in der Suche angezeigt wird.
-        Fällt zurück auf E-Mail, wenn kein Firmenname hinterlegt ist.
-        """
-        return self.company_name or self.email
+        return (self.company_name or self.email or "").strip()
 
     @property
     def public_address(self) -> str:
-        """
-        Vollständige Adresse als eine Zeile.
-        Z.B.: "Musterstraße 1, 12345 Musterstadt"
-        """
         parts: list[str] = []
         if self.street:
-            parts.append(self.street)
-
-        plz_ort_parts: list[str] = []
-        if self.zip:
-            plz_ort_parts.append(self.zip)
-        if self.city:
-            plz_ort_parts.append(self.city)
-
-        if plz_ort_parts:
-            parts.append(" ".join(plz_ort_parts))
-
+            parts.append(self.street.strip())
+        plz_ort = " ".join(
+            p for p in [(self.zip or "").strip(), (self.city or "").strip()] if p
+        )
+        if plz_ort:
+            parts.append(plz_ort)
         return ", ".join(parts)
 
     def to_public_dict(self) -> dict:
         """
-        Serialisierung für öffentliche API-Ausgaben.
-        (Z.B. in /public/slots im provider-Block verwenden)
+        Kompakte, öffentliche Sicht auf einen Provider:
+        ohne interne Felder wie Passworthash, Status, Limits etc.
         """
         return {
             "id": self.id,
             "name": self.public_name,
+            "company_name": self.company_name,
             "street": self.street,
             "zip": self.zip,
             "city": self.city,
@@ -185,44 +170,26 @@ class Slot(Base):
         passive_deletes=True,
     )
 
-    # --------------------------------------------------------
-    # Hilfs-Properties / Methoden für Ausgabe / API
-    # --------------------------------------------------------
-
-    @property
-    def is_published(self) -> bool:
-        """True, wenn Slot öffentlich sichtbar sein soll."""
-        return self.status == "published"
-
-    @property
-    def price_eur(self) -> Decimal | None:
-        """Preis in EUR aus Cent berechnet."""
-        if self.price_cents is None:
-            return None
-        return (Decimal(self.price_cents) / Decimal(100)).quantize(Decimal("0.01"))
-
-    def to_public_dict(self, include_provider: bool = True) -> dict:
-        """
-        Serialisierung für öffentliche Suche (/public/slots).
-        Gibt Start/Ende, Kategorie, Titel, Preis und – optional – den Anbieterblock zurück.
-        """
+    # -------- Convenience / Public-Ansicht --------
+    def to_public_dict(self, include_provider: bool = False) -> dict:
         data: dict = {
             "id": self.id,
+            "provider_id": self.provider_id,
             "title": self.title,
             "category": self.category,
-            "start_at": self.start_at.isoformat(),
-            "end_at": self.end_at.isoformat(),
+            "start_at": self.start_at,
+            "end_at": self.end_at,
             "location": self.location,
             "capacity": self.capacity,
-            "status": self.status,
+            "contact_method": self.contact_method,
+            "booking_link": self.booking_link,
             "price_cents": self.price_cents,
-            "price_eur": float(self.price_eur) if self.price_eur is not None else None,
             "notes": self.notes,
+            "status": self.status,
+            "created_at": self.created_at,
         }
-
         if include_provider and self.provider is not None:
             data["provider"] = self.provider.to_public_dict()
-
         return data
 
 
@@ -276,4 +243,35 @@ class Booking(Base):
     is_billed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Beziehungen
-    slot: Mapped[Slot] = relationship("Slot", back
+    slot: Mapped[Slot] = relationship(
+        "Slot",
+        back_populates="bookings",
+    )
+    provider: Mapped[Provider] = relationship(
+        "Provider",
+        back_populates="bookings",
+    )
+
+    # -------- Convenience / Public-Ansicht --------
+    def to_public_dict(
+        self,
+        include_slot: bool = False,
+        include_provider: bool = False,
+    ) -> dict:
+        data: dict = {
+            "id": self.id,
+            "slot_id": self.slot_id,
+            "provider_id": self.provider_id,
+            "customer_name": self.customer_name,
+            "customer_email": self.customer_email,
+            "status": self.status,
+            "created_at": self.created_at,
+            "confirmed_at": self.confirmed_at,
+            "provider_fee_eur": self.provider_fee_eur,
+            "is_billed": self.is_billed,
+        }
+        if include_slot and self.slot is not None:
+            data["slot"] = self.slot.to_public_dict(include_provider=False)
+        if include_provider and self.provider is not None:
+            data["provider"] = self.provider.to_public_dict()
+        return data
