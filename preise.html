@@ -315,7 +315,10 @@
           Mehr Reichweite & Features? Wähle ein Premium-Paket.
         </p>
         <div class="price-hero-actions">
-          <a class="btn primary" href="login.html?tab=register">Jetzt kostenlos starten</a>
+          <!-- Nicht eingeloggt: erst registrieren -->
+          <a class="btn primary auth-out" href="login.html?tab=register">Jetzt kostenlos starten</a>
+          <!-- Eingeloggt: direkt in Paket-Buchung -->
+          <a class="btn primary auth-in" href="/paket-buchen?plan=starter">Paket buchen</a>
         </div>
       </div>
     </section>
@@ -380,7 +383,14 @@
               • Einfache Statistiken (Aufrufe, Buchungen, Conversion)<br>
               • Basis-Listing in der Suche
             </p>
-            <a class="btn" href="login.html?tab=register" style="margin-top:8px">Starter wählen</a>
+            <!-- Nicht eingeloggt: Registrierung -->
+            <a class="btn auth-out" href="login.html?tab=register" style="margin-top:8px">
+              Starter wählen
+            </a>
+            <!-- Eingeloggt: direkt zur Paket-Buchung -->
+            <a class="btn primary auth-in" href="/paket-buchen?plan=starter" style="margin-top:8px">
+              Starter-Paket buchen
+            </a>
           </div>
 
           <div class="card">
@@ -390,7 +400,14 @@
               • <strong>Premium-Platzierung</strong> in Listen<br>
               • <strong>Automatische Termin-Synchronisation</strong> (iCal/Google/Outlook)
             </p>
-            <a class="btn primary" href="login.html?tab=register" style="margin-top:8px">Profi wählen</a>
+            <!-- Nicht eingeloggt -->
+            <a class="btn primary auth-out" href="login.html?tab=register" style="margin-top:8px">
+              Profi wählen
+            </a>
+            <!-- Eingeloggt -->
+            <a class="btn primary auth-in" href="/paket-buchen?plan=profi" style="margin-top:8px">
+              Profi-Paket buchen
+            </a>
           </div>
 
           <div class="card">
@@ -401,7 +418,14 @@
               • <em>API-Integration</em> <span class="pill warn">in Planung</span><br>
               • Erweiterte Statistiken & Export
             </p>
-            <a class="btn" href="login.html?tab=register" style="margin-top:8px">Business vormerken</a>
+            <!-- Nicht eingeloggt -->
+            <a class="btn auth-out" href="login.html?tab=register" style="margin-top:8px">
+              Business vormerken
+            </a>
+            <!-- Eingeloggt -->
+            <a class="btn auth-in" href="/paket-buchen?plan=business" style="margin-top:8px">
+              Business-Paket vormerken
+            </a>
           </div>
         </div>
 

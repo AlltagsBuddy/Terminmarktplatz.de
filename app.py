@@ -1,7 +1,7 @@
 import os
 import traceback
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal  # NEU: für Geldbeträge
+from datetime import datetime, timedelta, timezone, date
+from decimal import Decimal  # für Geldbeträge
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
@@ -31,8 +31,14 @@ from flask_cors import CORS
 from argon2 import PasswordHasher
 import jwt
 
+# Stripe (optional)
+try:
+    import stripe
+except ImportError:
+    stripe = None
+
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking
+from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice
 
 
 # --------------------------------------------------------
@@ -42,7 +48,7 @@ load_dotenv()
 
 APP_ROOT     = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR   = os.path.join(APP_ROOT, "static")
-TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")  # <— WICHTIG: Templates-Ordner!
+TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")  # <— Templates-Ordner
 
 IS_RENDER = bool(os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
 API_ONLY  = os.environ.get("API_ONLY") == "1"
@@ -105,6 +111,38 @@ def _cfg(name: str, default: str | None = None) -> str:
 BASE_URL     = _cfg("BASE_URL", "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
 FRONTEND_URL = _cfg("FRONTEND_URL", "https://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
 
+# Stripe Config
+STRIPE_SECRET_KEY      = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+if stripe and STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
+
+# Pakete / Pläne
+PLANS = {
+    "starter": {
+        "key": "starter",
+        "name": "Starter",
+        "price_eur": Decimal("9.90"),
+        "price_cents": 990,
+        "free_slots": 50,
+    },
+    "profi": {
+        "key": "profi",
+        "name": "Profi",
+        "price_eur": Decimal("19.90"),
+        "price_cents": 1990,
+        "free_slots": 500,
+    },
+    "business": {
+        "key": "business",
+        "name": "Business",
+        "price_eur": Decimal("39.90"),
+        "price_cents": 3990,
+        "free_slots": 5000,
+    },
+}
+
 
 def _external_base() -> str:
     try:
@@ -152,10 +190,12 @@ CORS(
         r"/auth/*":      {"origins": ALLOWED_ORIGINS},
         r"/me":          {"origins": ALLOWED_ORIGINS},
         r"/slots*":      {"origins": ALLOWED_ORIGINS},
-        r"/provider/*":  {"origins": ALLOWED_ORIGINS},  # NEU: Provider-Routen (Storno etc.)
+        r"/provider/*":  {"origins": ALLOWED_ORIGINS},
         r"/admin/*":     {"origins": ALLOWED_ORIGINS},
         r"/public/*":    {"origins": ALLOWED_ORIGINS},
         r"/api/*":       {"origins": ALLOWED_ORIGINS},
+        r"/paket-buchen*": {"origins": ALLOWED_ORIGINS},
+        r"/webhook/stripe": {"origins": ALLOWED_ORIGINS},
     },
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
@@ -362,13 +402,11 @@ def is_profile_complete(p: Provider) -> bool:
     )
 
 
-# NEU: Limit-Check – max. freie Slots pro Monat
+# NEU: Limit-Check – max. freie Slots pro Monat (abhängig von free_slots_per_month)
 def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
     """
-    Prüft, ob der Provider im aktuellen Monat noch kostenlose Slots anlegen darf.
-    Basis: Provider.free_slots_per_month (Standard: 3).
-    Es werden Slots im Status pending_review/published gezählt, deren Startdatum
-    im aktuellen Monat (Zeitzone Berlin) liegt.
+    Prüft, ob der Provider im aktuellen Monat noch Slots im Rahmen
+    seines Kontingents (free_slots_per_month) anlegen darf.
     """
     p = session.get(Provider, provider_id)
     if not p:
@@ -402,6 +440,74 @@ def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
     return count < free_limit
 
 
+# Monatsabrechnung: Sammelrechnungen erzeugen
+def create_invoices_for_period(session: Session, year: int, month: int) -> dict:
+    """
+    Erzeugt Sammelrechnungen für alle bestätigten Buchungen (status='confirmed')
+    eines Monats, deren fee_status='open' ist.
+    """
+    period_start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
+    if month == 12:
+        next_month_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        next_month_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+
+    start_db = _to_db_utc_naive(period_start_dt)
+    end_db = _to_db_utc_naive(next_month_dt)
+
+    bookings = session.execute(
+        select(Booking).where(
+            Booking.status == "confirmed",
+            Booking.fee_status == "open",
+            Booking.created_at >= start_db,
+            Booking.created_at < end_db,
+        )
+    ).scalars().all()
+
+    by_provider: dict[str, list[Booking]] = {}
+    for b in bookings:
+        by_provider.setdefault(b.provider_id, []).append(b)
+
+    invoices_summary = []
+
+    for provider_id, blist in by_provider.items():
+        total = sum((b.provider_fee_eur or Decimal("0.00")) for b in blist)
+        if total <= 0:
+            continue
+
+        inv = Invoice(
+            provider_id=provider_id,
+            period_start=period_start_dt.date(),
+            period_end=(next_month_dt - timedelta(days=1)).date(),
+            total_eur=total,
+            status="open",
+        )
+        session.add(inv)
+        session.flush()  # invoice.id verfügbar
+
+        now = _now()
+        for b in blist:
+            b.invoice_id = inv.id
+            b.fee_status = "invoiced"
+            b.is_billed = True
+            b.billed_at = now
+
+        invoices_summary.append(
+            {
+                "provider_id": provider_id,
+                "invoice_id": inv.id,
+                "booking_count": len(blist),
+                "total_eur": float(total),
+            }
+        )
+
+    return {
+        "period": {"year": year, "month": month},
+        "invoices_created": len(invoices_summary),
+        "items": invoices_summary,
+    }
+
+
 # --------------------------------------------------------
 # Mail
 # --------------------------------------------------------
@@ -416,9 +522,10 @@ def send_mail(
     """
     Vereinheitlichte Mail-Funktion.
 
-    - provider = resend:  /emails REST-API, nur Felder senden, die Resend sicher versteht
-    - provider = postmark: Tags + Metadata erlaubt
-    - provider = smtp:     klassisches SMTP (z.B. Strato)
+    - provider = resend:  /emails REST-API
+    - provider = postmark
+    - provider = smtp
+    - provider = console
     """
     try:
         if not EMAILS_ENABLED:
@@ -434,7 +541,7 @@ def send_mail(
             flush=True,
         )
 
-        # ----------------- Console-Provider (nur Log) -----------------
+        # Console
         if provider == "console":
             print(
                 "\n--- MAIL (console) ---\n"
@@ -448,22 +555,20 @@ def send_mail(
             )
             return True, "console"
 
-        # ----------------- RESEND (HTTPS API) -----------------
+        # RESEND
         if provider == "resend":
             if not RESEND_API_KEY:
                 return False, "missing RESEND_API_KEY"
 
-            # Wichtig: Resend erwartet hier einfache Strings, kein Array.
             payload: dict[str, object] = {
                 "from": MAIL_FROM,
-                "to": to,                  # <-- String, nicht Liste
+                "to": to,
                 "subject": subject,
             }
             if text:
                 payload["text"] = text
             if html:
                 payload["html"] = html
-            # reply_to: laut aktueller Doku ebenfalls String
             if MAIL_REPLY_TO:
                 payload["reply_to"] = MAIL_REPLY_TO
 
@@ -479,14 +584,13 @@ def send_mail(
             ok = 200 <= r.status_code < 300
             print("[resend]", r.status_code, r.text, flush=True)
             if not ok:
-                # Mehr Infos ins Log schreiben, falls es wieder 422 gibt
                 try:
                     print("[resend][payload]", payload, flush=True)
                 except Exception:
                     pass
             return ok, str(r.status_code)
 
-        # ----------------- POSTMARK (HTTPS API) -----------------
+        # POSTMARK
         if provider == "postmark":
             if not POSTMARK_API_TOKEN:
                 return False, "missing POSTMARK_API_TOKEN"
@@ -506,7 +610,6 @@ def send_mail(
             if tag:
                 payload["Tag"] = tag
             if metadata:
-                # Postmark erwartet string->string; also vorsichtshalber alles zu String casten
                 payload["Metadata"] = {
                     str(k): ("" if v is None else str(v)) for k, v in metadata.items()
                 }
@@ -530,7 +633,7 @@ def send_mail(
                     pass
             return ok, str(r.status_code)
 
-        # ----------------- SMTP (z.B. Strato) -----------------
+        # SMTP
         if provider == "smtp":
             missing = [
                 k
@@ -575,14 +678,7 @@ def send_mail(
                 print("[smtp][ERROR]", repr(e), flush=True)
                 return False, repr(e)
 
-        # Fallback: unbekannter Provider
-        return False, f"unknown provider '{provider}'"
-
-    except Exception as e:
-        print("send_mail exception:", repr(e), flush=True)
-        return False, repr(e)
-
-
+        # Fallback
         return False, f"unknown provider '{provider}'"
 
     except Exception as e:
@@ -691,6 +787,8 @@ def maybe_api_only():
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
         or request.path.startswith("/provider/")
+        or request.path.startswith("/paket-buchen")
+        or request.path.startswith("/webhook/stripe")
         or request.path
         in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
@@ -734,6 +832,24 @@ if _html_enabled():
     @app.get("/agb")
     def agb():
         return render_template("agb.html")
+
+    @app.get("/paket-buchen")
+    @auth_required()
+    def paket_buchen_page():
+        plan_key = request.args.get("plan", "starter")
+        plan = PLANS.get(plan_key)
+        if not plan:
+            abort(404)
+
+        with Session(engine) as s:
+            provider = s.get(Provider, request.provider_id)
+
+        return render_template(
+            "paket_buchen.html",
+            plan_key=plan_key,
+            plan=plan,
+            provider=provider,
+        )
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
@@ -864,7 +980,7 @@ def register():
             provider_id = p.id
             reg_email = p.email
 
-        # --- Admin-Notification bei neuer Registrierung -------------------
+        # Admin-Notification
         try:
             admin_to = os.getenv("ADMIN_NOTIFY_TO", CONTACT_TO)
             if admin_to:
@@ -885,7 +1001,6 @@ def register():
                 )
         except Exception as _e:
             print("[notify_admin][register] failed:", repr(_e), flush=True)
-        # ------------------------------------------------------------------
 
         payload = {
             "sub": provider_id,
@@ -921,7 +1036,6 @@ def auth_verify():
     debug = request.args.get("debug") == "1"
 
     def _ret(kind: str):
-        # Immer zurück auf die Login-Seite, mit Query-Flag
         url = f"{FRONTEND_URL}/login.html?verified={'1' if kind == '1' else '0'}"
         if debug:
             return jsonify({"ok": kind == "1", "redirect": url})
@@ -1038,7 +1152,6 @@ def delete_me():
             p = s.get(Provider, request.provider_id)
             if not p:
                 return _json_error("not_found", 404)
-            # DB-FKs erledigen Cascade: provider -> slot -> booking
             s.delete(p)
             s.commit()
 
@@ -1127,7 +1240,7 @@ def me_update():
                 s.rollback()
                 return _json_error("db_error", 400)
 
-            # Koordinaten in Cache (optional, für spätere Optimierungen)
+            # Geocode-Cache optional
             try:
                 lat, lon = geocode_cached(s, p.zip, p.city)
                 if lat is not None and lon is not None:
@@ -1168,18 +1281,8 @@ def _status_transition_ok(current: str, new: str) -> bool:
 @app.get("/slots")
 @auth_required()
 def slots_list():
-    """
-    Liefert alle Slots des eingeloggeten Providers inkl.
-    - booked         : Anzahl aktiver Buchungen (hold + confirmed)
-    - available      : freie Plätze
-    - bookings[]     : Liste der Buchungen mit id, Name, E-Mail, Status
-                       (inkl. 'canceled' für abgesagte Termine)
-    - has_canceled   : True, wenn es mindestens eine stornierte Buchung gibt
-    - canceled_count : Anzahl stornierter Buchungen
-    """
     status = request.args.get("status")
     with Session(engine) as s:
-        # 1) Aggregat: Anzahl aktiver Buchungen pro Slot (hold + confirmed)
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1187,7 +1290,6 @@ def slots_list():
             .subquery()
         )
 
-        # 2) Slots + booked-Zahl holen
         q = (
             select(
                 Slot,
@@ -1202,7 +1304,6 @@ def slots_list():
 
         rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
-        # 3) Slot-IDs sammeln und dazu passende Buchungen laden
         slot_ids = [slot.id for slot, _ in rows]
         bookings_by_slot: dict[str, list[dict]] = {}
         canceled_counts: dict[str, int] = {}
@@ -1234,7 +1335,6 @@ def slots_list():
                 if b.status == "canceled":
                     canceled_counts[slot_id] = canceled_counts.get(slot_id, 0) + 1
 
-        # 4) Response-Objekte bauen
         out = []
         for slot, booked in rows:
             cap = slot.capacity or 1
@@ -1287,11 +1387,11 @@ def slots_create():
             if not p or not is_profile_complete(p):
                 return _json_error("profile_incomplete", 400)
 
-            # NEU: Limit 3 kostenlose Slots pro Monat
+            # Limit bezogen auf free_slots_per_month (Planabhängig)
             if not provider_can_create_free_slot(s, request.provider_id):
                 return _json_error("free_slot_limit_reached", 400)
 
-            # bestehendes globales Limit
+            # globales Schutzlimit
             count = (
                 s.scalar(
                     select(func.count())
@@ -1380,13 +1480,11 @@ def slots_update(slot_id):
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
-
                 except Exception:
                     return _json_error("bad_datetime", 400)
             if "end_at" in data:
                 try:
                     slot.end_at = _to_db_utc_naive(parse_iso_utc(data["end_at"]))
-
                 except Exception:
                     return _json_error("bad_datetime", 400)
             if slot.end_at <= slot.start_at:
@@ -1504,11 +1602,9 @@ def provider_cancel_booking(booking_id):
             if not b:
                 return _json_error("not_found", 404)
 
-            # Sicherheitscheck: darf nur der Anbieter, dem die Buchung gehört
             if b.provider_id != request.provider_id:
                 return _json_error("forbidden", 403)
 
-            # Nur hold/confirmed stornierbar
             if b.status == "canceled":
                 return _json_error("already_canceled", 409)
             if b.status not in ("hold", "confirmed"):
@@ -1517,7 +1613,6 @@ def provider_cancel_booking(booking_id):
             slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
             provider_obj = s.get(Provider, b.provider_id) if b.provider_id else None
 
-            # Daten für Mail vor dem Commit herausziehen
             customer_email = b.customer_email
             customer_name = b.customer_name
             slot_title = (slot_obj.title if slot_obj and slot_obj.title else "dein Termin")
@@ -1532,7 +1627,6 @@ def provider_cancel_booking(booking_id):
             b.status = "canceled"
             s.commit()
 
-        # Mail an den Kunden schicken (außerhalb der Session)
         try:
             if customer_email:
                 reason_txt = f"\n\nBegründung:\n{reason}" if reason else ""
@@ -1554,7 +1648,6 @@ def provider_cancel_booking(booking_id):
                 )
                 print("[provider_cancel_booking][mail]", ok, info, flush=True)
         except Exception as e:
-            # Fehler bei Mail nicht tödlich machen, nur loggen
             print("[provider_cancel_booking][mail_error]", repr(e), flush=True)
 
         return jsonify({"ok": True})
@@ -1654,6 +1747,238 @@ def admin_slot_reject(sid):
         return jsonify({"ok": True})
 
 
+@app.get("/admin/billing_overview")
+@auth_required(admin=True)
+def admin_billing_overview():
+    """
+    Zeigt je Provider die Summe aller noch nicht abgerechneten
+    bestätigten Buchungen (fee_status='open', status='confirmed').
+    """
+    with Session(engine) as s:
+        rows = s.execute(
+            select(
+                Provider.id,
+                Provider.email,
+                Provider.company_name,
+                func.count(Booking.id).label("booking_count"),
+                func.coalesce(func.sum(Booking.provider_fee_eur), 0).label("total_eur"),
+            )
+            .join(Booking, Booking.provider_id == Provider.id)
+            .where(
+                Booking.status == "confirmed",
+                Booking.fee_status == "open",
+            )
+            .group_by(Provider.id, Provider.email, Provider.company_name)
+            .order_by(Provider.created_at.asc())
+        ).all()
+
+    out = []
+    for pid, email, company_name, booking_count, total_eur in rows:
+        out.append(
+            {
+                "provider_id": pid,
+                "email": email,
+                "company_name": company_name,
+                "booking_count": int(booking_count or 0),
+                "total_eur": float(total_eur or 0),
+            }
+        )
+    return jsonify(out)
+
+
+@app.post("/admin/run_billing")
+@auth_required(admin=True)
+def admin_run_billing():
+    """
+    Erzeugt Sammelrechnungen für einen Monat.
+
+    Request-JSON (optional):
+      { "year": 2025, "month": 11 }
+
+    Default:
+      letzter Kalendermonat.
+    """
+    data = request.get_json(silent=True) or {}
+    now = _now()
+    year = int(data.get("year") or now.year)
+
+    if "month" in data and data["month"]:
+        month = int(data["month"])
+    else:
+        if now.month == 1:
+            year = now.year - 1
+            month = 12
+        else:
+            month = now.month - 1
+
+    with Session(engine) as s:
+        result = create_invoices_for_period(s, year, month)
+        s.commit()
+
+    return jsonify(result)
+
+
+# --------------------------------------------------------
+# Pakete / Stripe
+# --------------------------------------------------------
+@app.post("/paket-buchen")
+@auth_required()
+def paket_buchen_start():
+    """
+    Startet den Kauf eines Pakets (Starter/Profi/Business).
+
+    - Wenn Stripe konfiguriert ist: Checkout-Session wird erzeugt,
+      Response enthält checkout_url (für Redirect im Frontend).
+    - Wenn Stripe NICHT konfiguriert ist: Plan wird direkt als 'bezahlt'
+      eingetragen (Testmodus / lokaler Betrieb).
+    """
+    data = request.get_json(silent=True) or {}
+    plan_key = (
+        data.get("plan")
+        or request.form.get("plan")
+        or request.form.get("plan_key")
+        or request.args.get("plan")
+        or "starter"
+    )
+    plan = PLANS.get(plan_key)
+    if not plan:
+        return _json_error("unknown_plan", 400)
+
+    # Stripe aktiv?
+    if stripe and STRIPE_SECRET_KEY:
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                mode="payment",
+                success_url=f"{FRONTEND_URL}/anbieter-portal.html?plan_success=1",
+                cancel_url=f"{FRONTEND_URL}/anbieter-portal.html?plan_cancel=1",
+                line_items=[
+                    {
+                        "price_data": {
+                            "currency": "eur",
+                            "unit_amount": plan["price_cents"],
+                            "product_data": {
+                                "name": f"{plan['name']} – Monatszugang",
+                            },
+                        },
+                        "quantity": 1,
+                    }
+                ],
+                metadata={
+                    "provider_id": request.provider_id,
+                    "plan_key": plan_key,
+                },
+            )
+            return jsonify(
+                {
+                    "ok": True,
+                    "provider_id": request.provider_id,
+                    "plan": plan_key,
+                    "checkout_url": checkout_session.url,
+                }
+            )
+        except Exception as e:
+            app.logger.exception("stripe checkout failed")
+            return jsonify({"error": "stripe_error", "detail": str(e)}), 500
+
+    # Fallback ohne Stripe: direkt aktivieren (lokale Tests)
+    today = date.today()
+    period_start = today
+    period_end = today + timedelta(days=30)
+
+    with Session(engine) as s:
+        p = s.get(Provider, request.provider_id)
+        if not p:
+            return _json_error("not_found", 404)
+
+        p.plan = plan_key
+        p.plan_valid_until = period_end
+        p.free_slots_per_month = plan["free_slots"]
+
+        purchase = PlanPurchase(
+            provider_id=p.id,
+            plan=plan_key,
+            price_eur=plan["price_eur"],
+            period_start=period_start,
+            period_end=period_end,
+            payment_provider="manual",
+            payment_ref="no-stripe",
+            status="paid",
+        )
+        s.add(purchase)
+        s.commit()
+
+    return jsonify(
+        {
+            "ok": True,
+            "provider_id": request.provider_id,
+            "plan": plan_key,
+            "mode": "manual_no_stripe",
+        }
+    )
+
+
+@app.post("/webhook/stripe")
+def stripe_webhook():
+    """
+    Webhook für Stripe Checkout.
+
+    Erwartet Event 'checkout.session.completed' mit metadata:
+      - provider_id
+      - plan_key
+    """
+    if not (stripe and STRIPE_WEBHOOK_SECRET):
+        return jsonify({"error": "stripe_not_configured"}), 501
+
+    payload = request.data
+    sig_header = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except Exception as e:
+        app.logger.exception("stripe webhook signature error")
+        return jsonify({"error": "invalid_signature", "detail": str(e)}), 400
+
+    if event["type"] == "checkout.session.completed":
+        session_obj = event["data"]["object"]
+        metadata = session_obj.get("metadata", {}) or {}
+        provider_id = metadata.get("provider_id")
+        plan_key = metadata.get("plan_key")
+        plan = PLANS.get(plan_key)
+
+        if not provider_id or not plan:
+            return jsonify({"error": "missing_metadata"}), 400
+
+        today = date.today()
+        period_start = today
+        period_end = today + timedelta(days=30)
+
+        with Session(engine) as s:
+            p = s.get(Provider, provider_id)
+            if not p:
+                return jsonify({"error": "provider_not_found"}), 404
+
+            p.plan = plan_key
+            p.plan_valid_until = period_end
+            p.free_slots_per_month = plan["free_slots"]
+
+            purchase = PlanPurchase(
+                provider_id=p.id,
+                plan=plan_key,
+                price_eur=plan["price_eur"],
+                period_start=period_start,
+                period_end=period_end,
+                payment_provider="stripe",
+                payment_ref=session_obj.get("id"),
+                status="paid",
+            )
+            s.add(purchase)
+            s.commit()
+
+    return jsonify({"ok": True})
+
+
 # --------------------------------------------------------
 # Public (Slots + Booking)
 # --------------------------------------------------------
@@ -1701,38 +2026,16 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 def public_slots():
     """
     Öffentliche Slot-Suche.
-
-    Haupt-Parameter (neue Suche.html):
-      - q         : Freitext (Titel/Kategorie)
-      - location  : Ort / PLZ, wie im SLOT-Feld "Ort / PLZ" eingegeben
-      - radius    : Umkreis in km (optional)
-      - day       : YYYY-MM-DD (optional)
-      - datum     : TT.MM.JJJJ (optional, alt)
-      - category  : exakte Kategorie (optional)
-      - include_full : "1" zeigt auch vollgebuchte Slots
-
-    Abwärtskompatibel:
-      - ort       : wird wie location behandelt
-      - city, zip : werden weiterhin für Geocoding/Radius akzeptiert
-
-    NEU in der Antwort:
-      - provider : kompletter Anbieter-Block inkl. Name + Adresse
-                   (id, name, street, zip, city, address, branch, phone, whatsapp)
-      - provider_zip / provider_city bleiben zur Kompatibilität erhalten
-      - available : freie Plätze
     """
-    # neue Parameter
     q_text = (request.args.get("q") or "").strip()
     location_raw = (request.args.get("location") or "").strip()
-    # alt: ort -> wie location behandeln, falls location leer
     if not location_raw:
         location_raw = (request.args.get("ort") or "").strip()
 
     radius_raw = (request.args.get("radius") or "").strip()
     datum_raw = (request.args.get("datum") or "").strip()
-    _zeit = (request.args.get("zeit") or "").strip()  # aktuell ignoriert
+    _zeit = (request.args.get("zeit") or "").strip()
 
-    # alte / zusätzliche Parameter
     category = (request.args.get("category") or "").strip()
     city_q = (request.args.get("city") or "").strip()
     zip_filter = (request.args.get("zip") or "").strip()
@@ -1740,31 +2043,25 @@ def public_slots():
     from_str = (request.args.get("from") or "").strip()
     include_full = request.args.get("include_full") == "1"
 
-    # Falls city/zip nicht explizit gesetzt sind, aus location_raw ableiten
     if location_raw and not zip_filter and not city_q:
         if location_raw.isdigit() and len(location_raw) == 5:
             zip_filter = location_raw
         else:
             city_q = location_raw
 
-    # Wenn q exakt eine bekannte Branche ist, als Kategorie nutzen
     search_term = q_text
     if not category and q_text in BRANCHES:
         category = q_text
-        # search_term bleibt, damit Titel mit 'Friseur' etc. trotzdem matchen
 
-    # Radius parsen
     try:
         radius_km = float(radius_raw) if radius_raw else None
     except ValueError:
         radius_km = None
 
-    # Datumslogik
     start_from = None
     end_until = None
     try:
         if datum_raw:
-            # Format TT.MM.JJJJ
             parts = datum_raw.split(".")
             if len(parts) == 3:
                 d, m, y = map(int, parts)
@@ -1773,7 +2070,6 @@ def public_slots():
                 start_from = start_local.astimezone(timezone.utc)
                 end_until = end_local.astimezone(timezone.utc)
         elif day_str:
-            # Format YYYY-MM-DD
             y, m, d = map(int, day_str.split("-"))
             start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
             end_local = start_local + timedelta(days=1)
@@ -1789,7 +2085,6 @@ def public_slots():
 
     with Session(engine) as s:
         origin_lat = origin_lon = None
-        # Geocoding für Radius: Eingabe wird über zip/city abgebildet
         if radius_km is not None and (zip_filter or city_q):
             origin_lat, origin_lon = geocode_cached(
                 s,
@@ -1797,7 +2092,6 @@ def public_slots():
                 None if zip_filter else city_q,
             )
 
-        # Buchungsaggregat
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1805,7 +2099,6 @@ def public_slots():
             .subquery()
         )
 
-        # Basis-Query: Slot + Provider + booked
         sq = (
             select(
                 Slot,
@@ -1817,29 +2110,23 @@ def public_slots():
             .where(Slot.status == "published")
         )
 
-        # Zeitfilter
         if start_from is not None:
             sq = sq.where(Slot.start_at >= _to_db_utc_naive(start_from))
         if end_until is not None:
             sq = sq.where(Slot.start_at < _to_db_utc_naive(end_until))
 
-        # Kategorie-Filter
         if category:
             if category in BRANCHES:
                 sq = sq.where(Slot.category == category)
             else:
                 sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
-        # Orts-/PLZ-Filter: jetzt nur noch über Slot.location (nicht Provider-Profil)
-        # Nur anwenden, wenn KEIN Radius (bei Radius filtern wir später per Distanz)
-        # Für Kompatibilität fallback auf city_q/zip_filter, falls location_raw leer
         if radius_km is None:
             loc_for_filter = location_raw or city_q or zip_filter
             if loc_for_filter:
                 pattern_loc = f"%{loc_for_filter}%"
                 sq = sq.where(Slot.location.ilike(pattern_loc))
 
-        # Textsuche auf Titel/Kategorie
         if search_term:
             pattern = f"%{search_term}%"
             sq = sq.where(
@@ -1849,7 +2136,6 @@ def public_slots():
                 )
             )
 
-        # Sortierung & Limit
         sq = sq.order_by(Slot.start_at.asc()).limit(300)
 
         rows = s.execute(sq).all()
@@ -1861,13 +2147,11 @@ def public_slots():
             if not include_full and available <= 0:
                 continue
 
-            # Radiusfilter (weiterhin über Provider-Standort, da Slot.location nur Text ist)
             p_zip = provider.zip
             p_city = provider.city
 
             if radius_km is not None:
                 if origin_lat is None or origin_lon is None:
-                    # ohne Mittelpunkt macht Umkreissuche keinen Sinn
                     continue
                 plat, plon = geocode_cached(s, p_zip, p_city)
                 if plat is None or plon is None:
@@ -1878,12 +2162,9 @@ def public_slots():
             item = slot_to_json(slot)
             item["available"] = available
 
-            # Kompletter Anbieter-Block
             try:
-                # nutzt die Hilfs-Methoden aus models.Provider
                 provider_dict = provider.to_public_dict()
             except Exception:
-                # Fallback, falls Modelle mal anders sind
                 provider_dict = {
                     "id": provider.id,
                     "name": getattr(provider, "public_name", None) or provider.company_name or provider.email,
@@ -1897,7 +2178,6 @@ def public_slots():
                 }
 
             item["provider"] = provider_dict
-            # alte Felder zur Kompatibilität behalten
             item["provider_zip"] = p_zip
             item["provider_city"] = p_city
 
@@ -1944,7 +2224,6 @@ def public_book():
         if active >= (slot.capacity or 1):
             return _json_error("slot_full", 409)
 
-        # NEU: Gebühr pro Buchung hinterlegen
         provider = s.get(Provider, slot.provider_id)
         if provider and provider.booking_fee_eur is not None:
             fee = provider.booking_fee_eur
@@ -1982,10 +2261,6 @@ def public_book():
 
 @app.get("/public/confirm")
 def public_confirm():
-    """
-    Bestätigt eine Terminbuchung über den Token aus der E-Mail
-    und zeigt danach die HTML-Bestätigungsseite an.
-    """
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
@@ -1993,33 +2268,26 @@ def public_confirm():
 
     try:
         with Session(engine) as s:
-            # Buchung holen
             b = s.get(Booking, booking_id, with_for_update=True)
             if not b:
                 return _json_error("not_found", 404)
 
-            # Slot & Provider für die Anzeige laden
             slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
             provider_obj = s.get(Provider, slot_obj.provider_id) if slot_obj else None
 
-            # Wurde die Buchung bereits bestätigt?
             already_confirmed = b.status == "confirmed"
 
-            # Falls die Buchung noch im Hold-Status ist, jetzt versuchen zu bestätigen
             if b.status == "hold":
-                # Hold abgelaufen?
                 if (_now() - b.created_at) > timedelta(minutes=BOOKING_HOLD_MIN):
                     b.status = "canceled"
                     s.commit()
                     return _json_error("hold_expired", 409)
 
-                # Slot noch vorhanden?
                 if not slot_obj:
                     b.status = "canceled"
                     s.commit()
                     return _json_error("slot_missing", 404)
 
-                # Kapazität prüfen
                 active = (
                     s.scalar(
                         select(func.count())
@@ -2038,12 +2306,10 @@ def public_confirm():
                     s.commit()
                     return _json_error("slot_full", 409)
 
-                # Jetzt bestätigen
                 b.status = "confirmed"
                 b.confirmed_at = _now()
                 s.commit()
 
-                # Bestätigungs-Mail nur beim ersten Mal schicken
                 send_mail(
                     b.customer_email,
                     "Termin bestätigt",
@@ -2053,10 +2319,8 @@ def public_confirm():
                 )
 
             elif b.status == "canceled":
-                # Stornierte Buchungen nicht mehr bestätigen
                 return _json_error("booking_canceled", 409)
 
-            # ==== ORM-Objekte in einfache Dicts umwandeln, bevor Session zu ist ====
             booking = {
                 "id": b.id,
                 "customer_name": b.customer_name,
@@ -2084,7 +2348,6 @@ def public_confirm():
                     "city": provider_obj.city,
                 }
 
-        # Session ist hier bereits zu, aber wir arbeiten nur noch mit Dicts.
         return render_template(
             "buchung_erfolg.html",
             booking=booking,
@@ -2100,14 +2363,6 @@ def public_confirm():
 
 @app.get("/public/cancel")
 def public_cancel():
-    """
-    Storniert eine Buchung über den Token aus der E-Mail
-    und zeigt danach die HTML-Storno-Seite an.
-    Zusätzlich:
-    - schickt eine Mail an die Kund:in („Termin storniert“)
-    - optional eine Mail an den Anbieter („Buchung storniert“)
-    - liefert in /slots die Info 'has_canceled', damit im Portal rot markiert werden kann
-    """
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
@@ -2127,13 +2382,11 @@ def public_cancel():
             if not b:
                 return _json_error("not_found", 404)
 
-            # Slot & Provider laden (für Anzeige)
             slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
             provider_obj = s.get(Provider, slot_obj.provider_id) if slot_obj else None
 
             already_canceled = b.status == "canceled"
 
-            # Mail-Infos vorbereiten
             customer_email = b.customer_email
             customer_name = b.customer_name
             if slot_obj is not None:
@@ -2143,13 +2396,11 @@ def public_cancel():
                 provider_email = provider_obj.email
                 provider_name = (provider_obj.company_name or provider_obj.email) or provider_name
 
-            # Nur wenn noch nicht storniert, jetzt stornieren
             if b.status in ("hold", "confirmed"):
                 b.status = "canceled"
                 s.commit()
                 just_canceled = True
 
-            # ==== ORM-Objekte in Dicts umwandeln ====
             booking = {
                 "id": b.id,
                 "customer_name": b.customer_name,
@@ -2177,9 +2428,7 @@ def public_cancel():
                     "city": provider_obj.city,
                 }
 
-        # --- Mails nach erfolgreicher Stornierung ---
         if just_canceled:
-            # Mail an Kund:in
             try:
                 if customer_email:
                     body_cust = (
@@ -2199,7 +2448,6 @@ def public_cancel():
             except Exception as e:
                 print("[public_cancel][mail_customer_error]", repr(e), flush=True)
 
-            # Mail an Anbieter (Info über Storno)
             try:
                 if provider_email:
                     body_prov = (

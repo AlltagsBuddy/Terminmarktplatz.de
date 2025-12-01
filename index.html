@@ -86,6 +86,17 @@
       }
     }
 
+    /* Hero-CTA für Anbieter (Buttons unter dem Lead-Text) */
+    .hero-cta-providers {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:8px;
+    }
+    .hero-cta-providers .btn {
+      font-size:0.9rem;
+    }
+
     /* Mobile-Optimierung + Menü-Verhalten mobil */
     @media (max-width: 768px) {
       /* Header / Navigation */
@@ -142,6 +153,15 @@
 
       .hero .lead {
         font-size: 0.96rem;
+      }
+
+      .hero-cta-providers {
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .hero-cta-providers .btn {
+        width:100%;
+        justify-content:center;
       }
 
       /* Suchkarte / Formular mobil stapeln */
@@ -301,6 +321,19 @@
           <p class="lead">
             Dein Marktplatz für kurzfristig freigewordene Slots bei Friseur:innen, Kosmetik, Therapie, Handwerk, Fitness, Behörden & mehr. 
           </p>
+
+          <!-- CTA für Anbieter: Preise/Pakete vs. direktes Buchen -->
+          <div class="hero-cta-providers">
+            <!-- Nicht eingeloggt: erst zur Preis-/Paketseite -->
+            <a class="btn auth-out" href="preise.html">
+              Für Anbieter: Pakete &amp; Preise
+            </a>
+            <!-- Eingeloggt: direktes Paket-Buchen (Starter als Standard) -->
+            <a class="btn primary auth-in" href="/paket-buchen?plan=starter">
+              Paket buchen
+            </a>
+          </div>
+
           <div class="search-card" role="search" aria-label="Terminsuche">
             <form class="searchbar" id="search-form" action="/suche.html" method="get">
               <label class="input" aria-label="Leistung">
@@ -476,8 +509,9 @@
       const menu = document.getElementById('userMenu');
       if(!btn || !menu) return;
 
-      const authOutEls = menu.querySelectorAll('.auth-out');
-      const authInEls  = menu.querySelectorAll('.auth-in');
+      // Alle auth-in/out-Elemente auf der Seite (Menü + Hero-CTA)
+      const authOutEls = document.querySelectorAll('.auth-out');
+      const authInEls  = document.querySelectorAll('.auth-in');
 
       function setAuthVisible(isLoggedIn){
         authOutEls.forEach(el => {
@@ -492,11 +526,7 @@
       async function checkAuth(){
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
-          if(res.ok){
-            setAuthVisible(true);
-          }else{
-            setAuthVisible(false);
-          }
+          setAuthVisible(res.ok);
         }catch(e){
           setAuthVisible(false);
         }
@@ -544,7 +574,7 @@
         }
       });
 
-      // beim Laden Auth-Status prüfen und Menü anpassen
+      // beim Laden Auth-Status prüfen und Menü/CTA anpassen
       checkAuth();
     })();
   </script>
