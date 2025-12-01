@@ -168,12 +168,9 @@
       font-weight:500;
     }
 
-    /* NEU: Storno-Markierung */
+    /* Storno-Markierung / Storno-Hinweis */
     .table tr.slot-canceled td{
       background:#fee2e2; /* hell rot */
-    }
-    .table tr.slot-booked.slot-canceled td{
-      background:#fecaca;
     }
     .slot-hint-canceled{
       color:#b91c1c;
@@ -225,7 +222,7 @@
     .alert strong{ color:#92400e }
     .alert .small{ font-size:13px; opacity:.9 }
 
-    /* === DESKTOP NAV (wird gleich noch genauer überschrieben) === */
+    /* === DESKTOP NAV === */
     @media (min-width: 769px) {
       .container.nav {
         display:flex;
@@ -241,7 +238,6 @@
         font-size: 0.9rem;
       }
 
-      /* Header-Container und Content-Container: gleiche Breite */
       header .container.nav,
       .page-portal main .container {
         max-width: 720px;
@@ -259,7 +255,6 @@
         font-size: 1.0rem;
       }
 
-      /* Hauptnavigation – auch mobil sichtbar */
       .nav-links {
         display: flex !important;
         width: 100%;
@@ -275,7 +270,6 @@
         padding: 2px 4px;
       }
 
-      /* User-Menü auf Mobil sichtbar */
       .user-menu {
         display: block;
       }
@@ -328,7 +322,6 @@
 
       .field label {
         font-size: 0.85rem;
-        text-align: left;
       }
 
       .field input,
@@ -342,7 +335,6 @@
         font-size: 10px;
       }
 
-      /* Buttons + Texte linksbündig */
       .toolbar {
         flex-direction: column;
         align-items: flex-start;
@@ -391,8 +383,6 @@
         padding: 4px 6px;
       }
 
-      /* MOBILE TABLE: Ein Slot = eine Zeile
-         links Daten, rechts Buttons */
       .table-wrap {
         width: 100%;
         overflow-x: hidden;
@@ -427,18 +417,15 @@
         white-space: normal;
       }
 
-      /* keine Labels voranstellen */
       .table tbody tr td[data-label]::before {
         content: none;
       }
 
-      /* alle Infos (Checkbox, Start, Ende, Titel, Kategorie, Ort, Kapazität, Status) links */
       .table tbody tr td:nth-child(-n+8) {
         grid-column: 1 / 2;
         text-align: left;
       }
 
-      /* Aktionen nach rechts */
       .table tbody tr td:nth-child(9) {
         grid-column: 2 / 3;
         text-align: right;
@@ -451,7 +438,6 @@
         text-align: center;
       }
 
-      /* Checkbox-Zeile kompakter */
       .table tbody tr td:first-child {
         display: flex;
         align-items: center;
@@ -472,7 +458,6 @@
         margin-top: 4px;
       }
 
-      /* Dropdown in der Dauer-Zeile auf Mobile etwas kleiner */
       .duration-row select{
         flex:0 0 80px;
         max-width:80px;
@@ -487,7 +472,7 @@
       background-image:none;
     }
 
-    /* Buchungs-Cancel-UI (Dropdown + Button) */
+    /* Buchungs-Cancel-UI */
     .booking-cancel {
       display:flex;
       flex-direction:column;
@@ -499,9 +484,7 @@
       font-size: 0.8rem;
     }
 
-    /* ===================================================
-       HEADER / USER-MENÜ FIX – Menü direkt hinter Brand
-       =================================================== */
+    /* HEADER / USER-MENÜ FIX */
     header .nav{
       display:flex;
       align-items:center;
@@ -516,10 +499,9 @@
       display:block;
       position:relative;
       z-index:60;
-      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+      margin-left:12px;
     }
 
-    /* Desktop: Links nach rechts schieben */
     @media (min-width:769px){
       header .nav{
         justify-content:flex-start;
@@ -532,7 +514,6 @@
       }
     }
 
-    /* Mobile: Brand links, Menü rechts, Links darunter */
     @media (max-width:768px){
       header .nav{
         flex-wrap:wrap;
@@ -567,7 +548,6 @@
     <div class="container nav"
          role="navigation"
          aria-label="Hauptnavigation">
-      <!-- Logo / Brand -->
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png"
@@ -577,27 +557,22 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- nur sichtbar, wenn NICHT eingeloggt -->
           <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
 
-          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
-          <!-- immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
 
-      <!-- Hauptnavigation rechts -->
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
@@ -607,7 +582,6 @@
   </header>
 
   <main>
-    <!-- HERO -->
     <section class="hero" style="padding:36px 0 18px">
       <div class="container">
         <span class="badge">Anbieter-Portal</span>
@@ -617,7 +591,6 @@
       </div>
     </section>
 
-    <!-- CONTENT -->
     <section>
       <div class="container grid grid-2">
 
@@ -641,7 +614,6 @@
               </datalist>
             </div>
 
-            <!-- Pflichtfelder -->
             <div class="field">
               <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
               <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
@@ -677,13 +649,11 @@
         <div class="panel">
           <h2>Neuen Slot anlegen</h2>
 
-          <!-- Guard-Hinweis, solange Profil unvollständig -->
           <div id="slot-guard" class="callout">
             <strong>Profil unvollständig.</strong>
             <div class="lock-hint">Bitte fülle zuerst alle Pflichtfelder im Profil aus (WhatsApp ist optional). Danach kannst du Slots anlegen.</div>
           </div>
 
-          <!-- Alles im fieldset, das wir sperren -->
           <form id="form-slot" class="grid" novalidate>
             <fieldset id="slot-fields" disabled>
               <div class="field">
@@ -691,7 +661,6 @@
                 <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
               </div>
 
-              <!-- Kategorie -->
               <div class="field">
                 <label for="sl-cat">Kategorie <span class="req">*</span></label>
                 <select id="sl-cat" name="category" required aria-required="true">
@@ -708,7 +677,6 @@
                 <input id="sl-start" type="time" step="60" required aria-required="true"/>
               </div>
 
-              <!-- Dauer: Minuten oder Stunden -->
               <div class="field">
                 <label for="sl-duration">Dauer <span class="req">*</span></label>
                 <div class="duration-row">
@@ -734,11 +702,10 @@
                 <input id="sl-end" type="time" readonly/>
               </div>
 
-              <!-- ORT / PLZ – PFLICHT -->
               <div class="field">
                 <label for="sl-location">Strasse und Hausnummer <span class="req">*</span></label>
                 <input id="sl-location" name="location"
-                       placeholder="z. B. Hauptstrasse / 27"
+                       placeholder="z. B. Hauptstrasse 27"
                        required aria-required="true" pattern="(\d{5}|.{3,})"
                        title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
               </div>
@@ -823,7 +790,7 @@
   </main>
 
   <script>
-    // ---------- API-Basis (robust für Lokalnetz/Prod) ----------
+    // ---------- API-Basis ----------
     const API = (() => {
       const h = location.hostname;
       const proto = location.protocol;
@@ -868,7 +835,7 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // ---------- Kategorien (Dropdown) ----------
+    // ---------- Kategorien ----------
     const CATEGORIES = [
       "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
       "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
@@ -880,7 +847,7 @@
         + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // ---------- Profil-Completeness & Slot-Lock ----------
+    // ---------- Profil-Check ----------
     function isValidZip(v){ return /^\d{5}$/.test((v||'').trim()); }
     function isValidPhone(v){ return /^\+?[0-9\s\-\/]{6,}$/.test((v||'').trim()); }
 
@@ -916,7 +883,7 @@
       if (alert) alert.style.display = locked ? 'block' : 'none';
     }
 
-    // ---------- Auth-Gate / Me ----------
+    // ---------- Auth / Profil laden ----------
     let ME = null;
     async function requireAuth(){
       try{
@@ -977,7 +944,7 @@
       }
     });
 
-    // ---------- Slot-Form: Dauer -> Ende berechnen ----------
+    // ---------- Slot-Form: Dauer -> Ende ----------
     function totalMinutes(){
       const val = parseInt($('#sl-duration').value || '0', 10);
       const unit = $('#sl-unit').value;
@@ -1010,7 +977,7 @@
       recalcEnd();
     }));
 
-    // ---------- Slot anlegen (POST /slots) ----------
+    // ---------- Slot anlegen ----------
     document.getElementById('form-slot').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fs = document.getElementById('slot-fields');
@@ -1019,14 +986,15 @@
         return;
       }
 
-      const title    = $('#sl-title').value.trim();
-      const category = $('#sl-cat').value;
-      const date     = $('#sl-date').value;
-      const start    = $('#sl-start').value;
-      const location = $('#sl-location').value.trim();
-      const duration = totalMinutes();
+      const title       = $('#sl-title').value.trim();
+      const category    = $('#sl-cat').value;
+      const date        = $('#sl-date').value;
+      const start       = $('#sl-start').value;
+      const street      = $('#sl-location').value.trim();
+      const cityZip     = $('#sl-location2').value.trim();
+      const duration    = totalMinutes();
 
-      if (!title || !category || !date || !start || !location || !duration) {
+      if (!title || !category || !date || !start || !street || !cityZip || !duration) {
         showMsg('msg-slot', 'Bitte alle Pflichtfelder für den Slot ausfüllen.');
         return;
       }
@@ -1037,6 +1005,8 @@
       const capacity = parseInt($('#sl-cap').value || '1', 10);
       const priceVal = $('#sl-price').value;
       const notes    = $('#sl-notes').value.trim();
+
+      const location = `${street}, ${cityZip}`;
 
       const payload = {
         title,
@@ -1073,7 +1043,7 @@
       }
     });
 
-    // ---------- Buchung absagen (Provider -> Kunde) ----------
+    // ---------- Buchung absagen ----------
     async function cancelBooking(bookingId, customerLabel){
       if (!bookingId) return;
       const confirmText = customerLabel
@@ -1103,7 +1073,7 @@
       }
     }
 
-    // ---------- Slots laden & rendern + Freigabe-Workflow ----------
+    // ---------- Slots laden & rendern ----------
     let SELECTED = new Set();
     let LAST_ITEMS = [];
 
@@ -1130,61 +1100,38 @@
       for(const s of items){
         const tr = document.createElement('tr');
         const theStatus = s.status;
-        const isArchived       = theStatus === 'archived';
-        const isCanceledStatus = theStatus === 'canceled';
 
+        const endDate = s.end_at ? new Date(s.end_at) : null;
+        const isPast  = !!(endDate && endDate < now);
+
+        const allBookings = Array.isArray(s.bookings) ? s.bookings : [];
+        const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
+        const canceledBookings = allBookings.filter(b => b.status === 'canceled');
+
+        const capacity    = s.capacity || 1;
+        const bookedCount = activeBookings.length;
+        const available   = Math.max(0, capacity - bookedCount);
+        const isBooked    = bookedCount > 0;
+
+        // Status-Badge-Klasse
         const stClass =
           theStatus === 'published' ? 'st-pub'
           : theStatus === 'archived' ? 'st-arch'
           : theStatus === 'canceled' ? 'st-canceled'
           : 'st-pending';
 
-        const canPublish = (theStatus === 'pending_review' || isArchived || isCanceledStatus);
+        const canPublish = (theStatus === 'pending_review' || theStatus === 'archived' || theStatus === 'canceled');
 
-        const endDate = s.end_at ? new Date(s.end_at) : null;
-        const isPast = !!(endDate && endDate < now);
-
-        const capacity = s.capacity || 1;
-        const bookedCount = typeof s.booked === 'number' ? s.booked : 0;
-        const available = typeof s.available === 'number'
-          ? s.available
-          : Math.max(0, capacity - bookedCount);
-
-        const isBooked = bookedCount > 0;
-
-        // Canceled-Infos aus Backend
-        const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
-        const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
-        const canceledBookings = allBookings.filter(b => b.status === 'canceled');
-        const hasCanceledFlag  = !!s.has_canceled || canceledBookings.length > 0;
-
-        const canceledCount =
-          typeof s.canceled_count === 'number'
-            ? s.canceled_count
-            : canceledBookings.length;
-
-        const publishedAt = s.published_at || s.first_published_at || null;
-        const canceledAtSlot = s.canceled_at || null;
-        const firstCanceledBookingWithTime =
-          canceledBookings.find(b => b.canceled_at || b.cancelled_at || b.updated_at) || null;
-
-        // Zeilenklassen
+        // Zeilenklasssen
         let rowClass = '';
-
         if (isPast) {
           rowClass += ' slot-past';
         }
-
         if (theStatus === 'canceled') {
-          // Slot IST storniert -> rot
           rowClass += ' slot-canceled';
         } else if (theStatus === 'pending_review') {
-          // Gelb
           rowClass += ' slot-pending';
         } else if (theStatus === 'published') {
-          // Veröffentlicht:
-          // - mit Buchung(en): grün
-          // - ohne Buchung: blau (frei), egal ob es irgendwann Stornos gab
           if (isBooked) {
             rowClass += ' slot-booked';
           } else {
@@ -1193,17 +1140,19 @@
         }
         tr.className = rowClass.trim();
 
-        // 1) Hinweis (gebucht / frei / abgelaufen)
+        // 1) Kurz-Hinweis (frei/gebucht/abgelaufen) – keine Storno-Zähler
         const hintParts = [];
-        if (isBooked) {
-          hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
-        } else if (theStatus === 'published' && !hasCanceledFlag) {
-          hintParts.push(`Frei (${available}/${capacity})`);
+        if (theStatus !== 'canceled') {
+          if (isBooked) {
+            hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
+          } else if (theStatus === 'published' && !isPast) {
+            hintParts.push(`Frei (${available}/${capacity})`);
+          }
         }
         if (isPast) hintParts.push('Abgelaufen');
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
 
-        // 2) Buchungsdetails (Name + E-Mail der Kund:innen, nur aktive)
+        // 2) Buchungsdetails (Name + E-Mail – nur aktive)
         let bookingHint = '';
         if (activeBookings.length === 1){
           const b = activeBookings[0];
@@ -1223,39 +1172,40 @@
           }
         }
 
-        // 3) Buchungszeitpunkt (Datum & Uhrzeit der Buchung)
+        // 3) Gebucht am: Datum/Zeit der Buchung (erste aktive mit Timestamp)
         let bookingTimeHint = '';
         if (activeBookings.length > 0){
           const bWithTime =
             activeBookings.find(b => b.booked_at || b.created_at || b.created) || activeBookings[0];
           const ts = bWithTime.booked_at || bWithTime.created_at || bWithTime.created;
           if (ts){
-            bookingTimeHint = `Buchung am: ${fmtLocal(ts)}`;
+            bookingTimeHint = `Gebucht am: ${fmtLocal(ts)}`;
           }
         }
 
-        // 4) Hinweise unter dem Titel (inkl. Stornos, Veröffentlichung & Storno-Datum)
-        const hintHtml = [];
-        if (hintText)    hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
-        if (bookingHint) hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
-        if (bookingTimeHint) hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
-        if (hasCanceledFlag && canceledCount > 0) {
-          const label = canceledCount === 1 ? '1 Storno' : `${canceledCount} Stornos`;
-          hintHtml.push(`<span class="slot-hint slot-hint-canceled">${label}</span>`);
-        }
-        if (hasCanceledFlag && publishedAt){
-          hintHtml.push(`<span class="slot-hint">Veröffentlicht am: ${fmtLocal(publishedAt)}</span>`);
-        }
-        const canceledTs = hasCanceledFlag && (canceledAtSlot ||
-          (firstCanceledBookingWithTime &&
-           (firstCanceledBookingWithTime.canceled_at ||
-            firstCanceledBookingWithTime.cancelled_at ||
-            firstCanceledBookingWithTime.updated_at)));
-        if (canceledTs){
-          hintHtml.push(`<span class="slot-hint slot-hint-canceled">Storniert am: ${fmtLocal(canceledTs)}</span>`);
+        // 4) Storniert am: nur wenn Slot-Status = canceled
+        let canceledTimeHint = '';
+        if (theStatus === 'canceled') {
+          let ts = s.canceled_at || null;
+          if (!ts && canceledBookings.length > 0) {
+            const b = canceledBookings.find(b => b.canceled_at || b.cancelled_at || b.updated_at) || canceledBookings[0];
+            if (b) {
+              ts = b.canceled_at || b.cancelled_at || b.updated_at;
+            }
+          }
+          if (ts) {
+            canceledTimeHint = `Storniert am: ${fmtLocal(ts)}`;
+          }
         }
 
-        // 5) UI zum Absagen von Buchungen (nur aktive Buchungen stornierbar)
+        // Hints zusammenbauen – NUR aktueller Status (keine Zähler)
+        const hintHtml = [];
+        if (hintText)          hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
+        if (bookingHint)       hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
+        if (bookingTimeHint)   hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
+        if (canceledTimeHint)  hintHtml.push(`<span class="slot-hint slot-hint-canceled">${canceledTimeHint}</span>`);
+
+        // UI zum Absagen von aktiven Buchungen
         let cancelHtml = '';
         if (activeBookings.length === 1){
           const b = activeBookings[0];
@@ -1323,7 +1273,7 @@
         })
       );
 
-      // Status ändern
+      // Status ändern (inkl. wieder veröffentlichen nach Storno)
       $$('#tbl-slots [data-arch]').forEach(b =>
         b.addEventListener('click', async ()=>{
           await setStatus(b.dataset.arch, b.dataset.status);
@@ -1450,7 +1400,6 @@
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
 
-    // ---------- Init ----------
     (async function init(){
       await requireAuth();
       fillCategoryOptions();
@@ -1502,7 +1451,7 @@
     })();
   </script>
 
-  <!-- User-Menü Logik inkl. auth-in / auth-out -->
+  <!-- User-Menü Logik -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -1520,7 +1469,6 @@
         btn.setAttribute('aria-expanded', String(open));
       }
 
-      // Menü ein-/ausklappen
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
         openMenu(menu.hidden);
@@ -1529,7 +1477,6 @@
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
 
-      // Login-Status -> auth-in / auth-out steuern
       async function updateAuthUI(){
         let loggedIn = false;
         try{
@@ -1547,7 +1494,6 @@
         });
       }
 
-      // Aktionen im Menü
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
         if (!el) return;
@@ -1582,7 +1528,6 @@
     })();
   </script>
 
-  <!-- Footer -->
   <footer>
     <div class="container foot-grid">
       <div>
