@@ -1103,7 +1103,7 @@ def slots_list():
     Liefert alle Slots des eingeloggeten Providers inkl.
     - booked     : Anzahl aktiver Buchungen (hold + confirmed)
     - available  : freie Plätze
-    - bookings[] : Liste der Buchungen mit Name + E-Mail + ID
+    - bookings[] : Liste der Buchungen mit id, Name, E-Mail, Status
     """
     status = request.args.get("status")
     with Session(engine) as s:
@@ -1151,7 +1151,7 @@ def slots_list():
             for b in booking_rows:
                 bookings_by_slot.setdefault(b.slot_id, []).append(
                     {
-                        "id": b.id,  # NEU: für gezielte Stornos im Frontend
+                        "id": b.id,
                         "customer_name": b.customer_name,
                         "customer_email": b.customer_email,
                         "status": b.status,
@@ -1172,6 +1172,7 @@ def slots_list():
             out.append(item)
 
         return jsonify(out)
+
 
 
 @app.post("/slots")
@@ -1408,14 +1409,13 @@ def slots_delete(slot_id):
 # --------------------------------------------------------
 # Provider: Buchung aktiv stornieren (+ Mail an Kund:in)
 # --------------------------------------------------------
-@app.post("/bookings/<booking_id>/cancel-by-provider")
+@app.post("/provider/bookings/<booking_id>/cancel")
 @auth_required()
 def provider_cancel_booking(booking_id):
     """
-    Provider sagt eine Buchung aktiv ab.
-    - Nur der Provider, dem der Slot gehört, darf das tun.
-    - Nur Buchungen in Status 'hold' oder 'confirmed'.
-    - Kunde bekommt eine E-Mail mit Info und optionalem Grund.
+    Anbieter storniert eine Buchung manuell im Anbieter-Portal.
+    Erwartet optional im JSON-Body:
+      { "reason": "Begründungstext für den Kunden" }
     """
     data = request.get_json(silent=True) or {}
     reason = (data.get("reason") or "").strip()
@@ -1426,65 +1426,61 @@ def provider_cancel_booking(booking_id):
             if not b:
                 return _json_error("not_found", 404)
 
-            slot = s.get(Slot, b.slot_id) if b.slot_id else None
-            if not slot:
-                return _json_error("slot_missing", 404)
-
-            # Sicherheitscheck: gehört der Slot zum aktuell eingeloggten Provider?
-            if slot.provider_id != request.provider_id:
+            # Sicherheitscheck: darf nur der Anbieter, dem die Buchung gehört
+            if b.provider_id != request.provider_id:
                 return _json_error("forbidden", 403)
 
             # Nur hold/confirmed stornierbar
+            if b.status == "canceled":
+                return _json_error("already_canceled", 409)
             if b.status not in ("hold", "confirmed"):
                 return _json_error("not_cancelable", 409)
 
-            # Status setzen
+            slot = s.get(Slot, b.slot_id) if b.slot_id else None
+            provider = s.get(Provider, b.provider_id) if b.provider_id else None
+
+            # Stornieren
             b.status = "canceled"
-            # Falls du ein Feld canceled_at in Booking hast, könntest du hier:
-            # b.canceled_at = _now()
             s.commit()
 
-            # --- Mail an Kund:in -------------------------------------------------
-            try:
-                start_local = slot.start_at.replace(tzinfo=timezone.utc).astimezone(BERLIN)
-                datum = start_local.strftime("%d.%m.%Y")
-                uhrzeit = start_local.strftime("%H:%M")
+        # Mail an den Kunden schicken (außerhalb der Session)
+        try:
+            if b.customer_email:
+                slot_title = slot.title if slot else "dein Termin"
+                # Rohes UTC-Datum reicht erstmal – später kannst du das schöner formatieren
+                slot_time = _from_db_as_iso_utc(slot.start_at) if slot else ""
+                provider_name = (
+                    (provider.company_name or provider.email)
+                    if provider else "der Anbieter"
+                )
 
-                msg_lines = [
-                    f"Hallo {b.customer_name},",
-                    "",
-                    "leider musste dein Termin abgesagt werden.",
-                    "",
-                    f"Termin: {slot.title}",
-                    f"Datum: {datum}",
-                    f"Uhrzeit: {uhrzeit}",
-                    f"Ort: {slot.location or '–'}",
-                ]
-                if reason:
-                    msg_lines.append("")
-                    msg_lines.append("Begründung der Absage:")
-                    msg_lines.append(reason)
+                reason_txt = f"\n\nBegründung:\n{reason}" if reason else ""
 
-                msg_lines.append("")
-                msg_lines.append("Falls du Rückfragen hast, melde dich bitte direkt beim Anbieter.")
-                msg_lines.append("")
-                msg_lines.append("Liebe Grüße")
-                msg_lines.append("Terminmarktplatz")
+                body = (
+                    f"Hallo {b.customer_name},\n\n"
+                    f"dein Termin '{slot_title}' am {slot_time} wurde von {provider_name} abgesagt."
+                    f"{reason_txt}\n\n"
+                    "Bitte buche bei Bedarf einen neuen Termin.\n\n"
+                    "Viele Grüße\n"
+                    "Terminmarktplatz"
+                )
 
                 send_mail(
                     b.customer_email,
-                    "Dein Termin wurde abgesagt",
-                    text="\n".join(msg_lines),
+                    "Termin abgesagt",
+                    text=body,
                     tag="booking_canceled_by_provider",
-                    metadata={"slot_id": str(slot.id), "booking_id": str(b.id)},
+                    metadata={"booking_id": str(b.id), "slot_id": str(b.slot_id)},
                 )
-            except Exception:
-                app.logger.exception("send_cancel_mail_failed")
+        except Exception as e:
+            # Fehler bei Mail nicht tödlich machen, nur loggen
+            print("[provider_cancel_booking][mail_error]", repr(e), flush=True)
 
         return jsonify({"ok": True})
-    except Exception:
+    except Exception as e:
         app.logger.exception("provider_cancel_booking failed")
         return jsonify({"error": "server_error"}), 500
+
 
 
 # --------------------------------------------------------
