@@ -1665,11 +1665,12 @@ def public_slots():
     include_full = request.args.get("include_full") == "1"
 
     # Falls city/zip nicht explizit gesetzt sind, aus location_raw ableiten
-       if location_raw and not zip_filter and not city_q:
+    if location_raw and not zip_filter and not city_q:
         if location_raw.isdigit() and len(location_raw) == 5:
             zip_filter = location_raw
         else:
             city_q = location_raw
+
 
     # Wenn q exakt eine bekannte Branche ist, als Kategorie nutzen
     search_term = q_text
