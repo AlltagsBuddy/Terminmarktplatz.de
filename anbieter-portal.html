@@ -1077,7 +1077,7 @@
       if (!bookingId) return;
       const confirmText = customerLabel
         ? `Buchung von ${customerLabel} wirklich absagen?`
-        : 'Diese Buchung wirklich absagen?`;
+        : 'Diese Buchung wirklich absagen?';
       const ok = confirm(confirmText);
       if (!ok) return;
 
@@ -1178,7 +1178,7 @@
         if (hasCanceledFlag) rowClass += ' slot-canceled';
         tr.className = rowClass.trim();
 
-        // 1) bisheriger Hinweis (gebucht / abgelaufen)
+        // 1) Hinweis (gebucht / frei / abgelaufen)
         const hintParts = [];
         if (isBooked) {
           hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
