@@ -132,16 +132,25 @@
     .st-pub{background:#ecfeff}
     .st-arch{background:#f1f5f9}
 
-    /* Gebuchte / abgelaufene Slots */
+    /* Gebuchte / abgelaufene Slots / Status-Farben */
     .table tr.slot-past td{
-      background:#f9fafb;
+      /* kein eigener Hintergrund mehr, nur abgeblasster Text */
       color:#94a3b8;
     }
+    /* noch nicht veröffentlicht (pending_review) */
+    .table tr.slot-pending td{
+      background:#fef9c3; /* hell gelb */
+    }
+    /* veröffentlicht, noch nicht gebucht */
+    .table tr.slot-free td{
+      background:#e0f2fe; /* hell blau */
+    }
+    /* gebuchte Slots */
     .table tr.slot-booked td{
-      background:#ecfdf5;
+      background:#dcfce7; /* hell grün */
     }
     .table tr.slot-booked.slot-past td{
-      background:#e5e7eb;
+      background:#bbf7d0;
     }
 
     .slot-hint{
@@ -160,10 +169,10 @@
 
     /* NEU: Storno-Markierung */
     .table tr.slot-canceled td{
-      background:#fef2f2;
+      background:#fee2e2; /* hell rot */
     }
     .table tr.slot-booked.slot-canceled td{
-      background:#fee2e2;
+      background:#fecaca;
     }
     .slot-hint-canceled{
       color:#b91c1c;
@@ -852,7 +861,9 @@
       return new Date(y, (m-1), d, hh, mm, 0, 0);
     }
     function fmtLocal(dtStr){
+      if (!dtStr) return '';
       const d = new Date(dtStr);
+      if (isNaN(d.getTime())) return '';
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
@@ -1066,7 +1077,7 @@
       if (!bookingId) return;
       const confirmText = customerLabel
         ? `Buchung von ${customerLabel} wirklich absagen?`
-        : 'Diese Buchung wirklich absagen?';
+        : 'Diese Buchung wirklich absagen?`;
       const ok = confirm(confirmText);
       if (!ok) return;
 
@@ -1099,7 +1110,7 @@
       const byId = Object.fromEntries(items.map(x => [x.id, x]));
       const ids = [...SELECTED];
       const any = ids.length > 0;
-      const anyPending = ids.some(id => (byId[id]?.status === 'pending_review' || byId[id]?.status === 'archived'));
+      const anyPending = ids.some(id => (byId[id]?.status === 'pending_review' || byId[id]?.status === 'archived' || byId[id]?.status === 'canceled'));
       const anyPub     = ids.some(id => byId[id]?.status === 'published');
       $('#btn-publish').disabled = !(any && anyPending);
       $('#btn-archive').disabled = !(any && anyPub);
@@ -1119,7 +1130,9 @@
         const tr = document.createElement('tr');
         const theStatus = s.status;
         const isArchived  = theStatus === 'archived';
+        const isCanceledStatus = theStatus === 'canceled';
         const stClass = (theStatus === 'published') ? 'st-pub' : (isArchived ? 'st-arch' : 'st-pending');
+        const canPublish = (theStatus === 'pending_review' || isArchived || isCanceledStatus);
 
         const endDate = s.end_at ? new Date(s.end_at) : null;
         const isPast = !!(endDate && endDate < now);
@@ -1132,7 +1145,7 @@
 
         const isBooked = bookedCount > 0;
 
-        // NEU: Canceled-Infos aus Backend
+        // Canceled-Infos aus Backend
         const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
         const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
         const canceledBookings = allBookings.filter(b => b.status === 'canceled');
@@ -1142,9 +1155,26 @@
             ? s.canceled_count
             : canceledBookings.length;
 
+        // Zeitstempel für Veröffentlichung / Storno
+        const publishedAt = s.published_at || s.first_published_at || null;
+        const canceledAtSlot = s.canceled_at || null;
+        const firstCanceledBookingWithTime =
+          canceledBookings.find(b => b.canceled_at || b.cancelled_at || b.updated_at) || null;
+
+        // Klassen für Zeile: Status / Buchung / Storno / Past
         let rowClass = '';
         if (isPast) rowClass += ' slot-past';
-        if (isBooked) rowClass += ' slot-booked';
+
+        if (theStatus === 'pending_review') {
+          rowClass += ' slot-pending';
+        } else if (theStatus === 'published') {
+          if (isBooked) {
+            rowClass += ' slot-booked';
+          } else if (!hasCanceledFlag) {
+            rowClass += ' slot-free';
+          }
+        }
+
         if (hasCanceledFlag) rowClass += ' slot-canceled';
         tr.className = rowClass.trim();
 
@@ -1152,6 +1182,8 @@
         const hintParts = [];
         if (isBooked) {
           hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
+        } else if (theStatus === 'published' && !hasCanceledFlag) {
+          hintParts.push(`Frei (${available}/${capacity})`);
         }
         if (isPast) hintParts.push('Abgelaufen');
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
@@ -1176,16 +1208,39 @@
           }
         }
 
-        // 3) Hinweise unter dem Titel zusammenbauen (inkl. Stornos)
+        // 3) Buchungszeitpunkt (Datum & Uhrzeit der Buchung)
+        let bookingTimeHint = '';
+        if (activeBookings.length > 0){
+          const bWithTime =
+            activeBookings.find(b => b.booked_at || b.created_at || b.created) || activeBookings[0];
+          const ts = bWithTime.booked_at || bWithTime.created_at || bWithTime.created;
+          if (ts){
+            bookingTimeHint = `Buchung am: ${fmtLocal(ts)}`;
+          }
+        }
+
+        // 4) Hinweise unter dem Titel zusammenbauen (inkl. Stornos, Veröffentlichung & Storno-Datum)
         const hintHtml = [];
         if (hintText)    hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
         if (bookingHint) hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
+        if (bookingTimeHint) hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
         if (hasCanceledFlag && canceledCount > 0) {
           const label = canceledCount === 1 ? '1 Storno' : `${canceledCount} Stornos`;
           hintHtml.push(`<span class="slot-hint slot-hint-canceled">${label}</span>`);
         }
+        if (hasCanceledFlag && publishedAt){
+          hintHtml.push(`<span class="slot-hint">Veröffentlicht am: ${fmtLocal(publishedAt)}</span>`);
+        }
+        const canceledTs = hasCanceledFlag && (canceledAtSlot ||
+          (firstCanceledBookingWithTime &&
+           (firstCanceledBookingWithTime.canceled_at ||
+            firstCanceledBookingWithTime.cancelled_at ||
+            firstCanceledBookingWithTime.updated_at)));
+        if (canceledTs){
+          hintHtml.push(`<span class="slot-hint slot-hint-canceled">Storniert am: ${fmtLocal(canceledTs)}</span>`);
+        }
 
-        // 4) UI zum Absagen von Buchungen (nur aktive Buchungen stornierbar)
+        // 5) UI zum Absagen von Buchungen (nur aktive Buchungen stornierbar)
         let cancelHtml = '';
         if (activeBookings.length === 1){
           const b = activeBookings[0];
@@ -1227,7 +1282,7 @@
           <td data-label="Kapazität">${capacity}</td>
           <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
           <td data-label="Aktionen" class="nowrap">
-            ${(theStatus === 'pending_review' || isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
+            ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
             ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
             ${cancelHtml}
