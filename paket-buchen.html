@@ -13,7 +13,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Paket buchen – {{ plan.name }} | Terminmarktplatz</title>
-  <meta name="description" content="Buche dein Paket für den Terminmarktplatz. Sofort online bezahlen, inklusive Slot-Kontingent pro Monat." />
+  <meta name="description" content="Buche dein Paket für den Terminmarktplatz. Sichere dir dein Slot-Kontingent pro Monat – die Abrechnung der gebuchten Slots erfolgt monatlich." />
   <meta name="theme-color" content="#6f53ff" />
 
   <!-- OG -->
@@ -407,33 +407,6 @@
       color: #4b5563;
     }
 
-    .status-box {
-      display: none;
-      margin-top: 8px;
-      font-size: 13px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-    }
-
-    .status-box.success {
-      display: none;
-      background: #ecfdf3;
-      border-color: rgba(22,163,74,0.4);
-      color: #166534;
-    }
-
-    .status-box.error {
-      display: none;
-      background: #fef2f2;
-      border-color: rgba(220,38,38,0.4);
-      color: #b91c1c;
-    }
-
-    .status-box span.label {
-      font-weight: 600;
-    }
-
     .footnote {
       font-size: 11px;
       color: var(--tm-muted);
@@ -466,7 +439,7 @@
             <h1>Paket buchen: {{ plan.name }}</h1>
             <p>
               Sichere dir dein Kontingent an freien Slots und lasse gebuchte Termine wie vereinbart
-              monatlich abrechnen. Die Zahlung des Pakets erfolgt direkt online.
+              monatlich abrechnen. Das Paket wird nach der Buchung direkt in deinem Account aktiviert.
             </p>
           </div>
           <div class="plan-badge">
@@ -483,19 +456,30 @@
             <p class="plan-price">
               <span class="amount">{{ '%.2f'|format(plan.price_eur|float) }}</span>
               <span class="currency">&euro;</span>
-              <span class="period>/</span>
+              <span class="period">/</span>
               <span class="period">30 Tage</span>
             </p>
 
             <p class="plan-meta">
-              Enthalten: bis zu <strong>{{ plan.free_slots }}</strong> freie Slots im Monat, zzgl.
-              <strong>2,00&nbsp;&euro;</strong> pro gebuchtem Slot (nachträgliche Monatsabrechnung).
+              {% if plan.slots_per_month %}
+                Enthalten: bis zu <strong>{{ plan.slots_per_month }}</strong> freie Slots im Monat,
+              {% else %}
+                Enthalten: <strong>unbegrenzte</strong> freie Slots im Monat,
+              {% endif %}
+              zzgl. <strong>2,00&nbsp;&euro;</strong> pro gebuchtem Slot
+              (nachträgliche Monatsabrechnung).
             </p>
 
             <div class="pill-row">
               <div class="pill">
                 <span class="dot"></span>
-                <span><strong>{{ plan.free_slots }}</strong> Slots / Monat</span>
+                <span>
+                  {% if plan.slots_per_month %}
+                    <strong>{{ plan.slots_per_month }}</strong> Slots / Monat
+                  {% else %}
+                    <strong>Unbegrenzte</strong> Slots / Monat
+                  {% endif %}
+                </span>
               </div>
               <div class="pill">
                 <span class="dot"></span>
@@ -511,7 +495,7 @@
               <li>
                 <span class="bullet"></span>
                 <span class="text">
-                  Die Paketgebühr wird direkt bei der Buchung des Pakets fällig (Stripe / Online-Zahlung).
+                  Die Paketgebühr wird unmittelbar mit der Buchung des Pakets fällig und in deinem Account hinterlegt.
                 </span>
               </li>
               <li>
@@ -574,8 +558,9 @@
 
             <div class="separator"></div>
 
-            <form id="book-plan-form" class="form-row">
-              <input type="hidden" name="plan" value="{{ plan_key }}" />
+            <!-- WICHTIG: normales POST-Formular, kein JS-JSON mehr -->
+            <form class="form-row" method="post" action="/paket-buchen">
+              <input type="hidden" name="plan_key" value="{{ plan_key }}" />
 
               <button type="submit" class="btn-primary">
                 <span class="icon">⚡</span>
@@ -585,21 +570,11 @@
               <button type="button" class="btn-secondary-link" onclick="history.back()">
                 Abbrechen und zurück
               </button>
-
-              <div id="status-success" class="status-box success">
-                <span class="label">Gebucht.</span>
-                &nbsp;Das Paket wurde aktiviert. Du kannst nun zusätzliche Slots im Anbieter-Portal anlegen.
-              </div>
-
-              <div id="status-error" class="status-box error">
-                <span class="label">Fehler.</span>
-                &nbsp;Die Buchung konnte nicht durchgeführt werden. Bitte versuche es später erneut.
-              </div>
             </form>
 
             <p class="footnote">
               Durch Klick auf „Paket jetzt verbindlich buchen“ bestätigst du, dass du die
-              <a href="/agb">AGB</a> und <a href="/datenschutz">Datenschutzerklärung</a> gelesen hast.
+              <a href="/agb.html">AGB</a> und <a href="/datenschutz.html">Datenschutzerklärung</a> gelesen hast.
               Paketgebühren werden sofort fällig. Die Abrechnung der gebuchten Slots erfolgt nachträglich
               monatlich gemäß der vereinbarten Konditionen.
             </p>
@@ -608,77 +583,5 @@
       </div>
     </section>
   </main>
-
-  <script>
-    (function () {
-      const form = document.getElementById('book-plan-form');
-      const successBox = document.getElementById('status-success');
-      const errorBox = document.getElementById('status-error');
-
-      function showStatus(kind, message) {
-        if (successBox) {
-          successBox.style.display = 'none';
-        }
-        if (errorBox) {
-          errorBox.style.display = 'none';
-        }
-
-        if (kind === 'success' && successBox) {
-          if (message) {
-            successBox.innerHTML = '<span class="label">Gebucht.</span>&nbsp;' + message;
-          }
-          successBox.style.display = 'block';
-        } else if (kind === 'error' && errorBox) {
-          if (message) {
-            errorBox.innerHTML = '<span class="label">Fehler.</span>&nbsp;' + message;
-          }
-          errorBox.style.display = 'block';
-        }
-      }
-
-      if (form) {
-        form.addEventListener('submit', async function (ev) {
-          ev.preventDefault();
-          showStatus(null);
-
-          const plan = "{{ plan_key }}";
-
-          try {
-            const res = await fetch("/paket-buchen", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              credentials: "include",
-              body: JSON.stringify({ plan })
-            });
-
-            const data = await res.json().catch(() => ({}));
-
-            if (!res.ok || !data || data.error) {
-              const msg = (data && (data.error || data.detail)) || "Die Buchung ist fehlgeschlagen.";
-              showStatus("error", msg);
-              return;
-            }
-
-            if (data.checkout_url) {
-              // Stripe-Checkout
-              window.location.href = data.checkout_url;
-              return;
-            }
-
-            // Fallback: kein Stripe (z.B. Testmodus)
-            showStatus(
-              "success",
-              "Das Paket wurde aktiviert. Du kannst sofort weitere Slots im Anbieter-Portal anlegen."
-            );
-          } catch (e) {
-            console.error(e);
-            showStatus("error", "Es ist ein technischer Fehler aufgetreten.");
-          }
-        });
-      }
-    })();
-  </script>
 </body>
 </html>

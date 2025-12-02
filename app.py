@@ -405,13 +405,23 @@ def is_profile_complete(p: Provider) -> bool:
 # NEU: Limit-Check – max. freie Slots pro Monat (abhängig von free_slots_per_month)
 def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
     """
-    Prüft, ob der Provider im aktuellen Monat noch Slots im Rahmen
-    seines Kontingents (free_slots_per_month) anlegen darf.
+    Prüft, ob der Provider im aktuellen Monat noch Slots anlegen darf.
+
+    Basis:
+      - Provider.free_slots_per_month (wird beim Paketkauf gesetzt)
+      - Zeitraum: aktueller Monat (Zeitzone Berlin)
+      - gezählt werden Slots im Status pending_review/published
     """
     p = session.get(Provider, provider_id)
     if not p:
         return False
+
     free_limit = p.free_slots_per_month or 3
+
+    # "unbegrenzt" – du kannst hier z.B. 0 oder einen hohen Wert verwenden,
+    # ich nehme 0 = kein Limit
+    if free_limit <= 0:
+        return True
 
     now_berlin = datetime.now(BERLIN)
     first_local = now_berlin.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -836,20 +846,23 @@ if _html_enabled():
     @app.get("/paket-buchen")
     @auth_required()
     def paket_buchen_page():
-        plan_key = request.args.get("plan", "starter")
+        plan_key = (request.args.get("plan") or "starter").strip()
         plan = PLANS.get(plan_key)
         if not plan:
-            abort(404)
+            plan_key = "starter"
+            plan = PLANS["starter"]
 
         with Session(engine) as s:
-            provider = s.get(Provider, request.provider_id)
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                abort(404)
 
         return render_template(
             "paket_buchen.html",
             plan_key=plan_key,
             plan=plan,
-            provider=provider,
         )
+
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
@@ -1175,6 +1188,51 @@ def me():
         p = s.get(Provider, request.provider_id)
         if not p:
             return _json_error("not_found", 404)
+
+        # Plan-Infos
+        plan_key = (p.plan or "").strip() if hasattr(p, "plan") else ""
+        plan_conf = PLANS.get(plan_key) if plan_key else None
+        plan_label = None
+
+        if plan_conf:
+            plan_label = plan_conf["name"]
+        elif plan_key:
+            # Unbekannter Plan-Key, aber wenigstens anzeigen
+            plan_label = plan_key
+        else:
+            # Default: Basis
+            plan_label = "Basis (Standard)"
+
+        # Slot-Limits / Nutzung im aktuellen Monat
+        free_limit = p.free_slots_per_month or 3
+        unlimited = free_limit <= 0
+
+        now_berlin = datetime.now(BERLIN)
+        first_local = now_berlin.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if now_berlin.month == 12:
+            next_local = first_local.replace(year=now_berlin.year + 1, month=1)
+        else:
+            next_local = first_local.replace(month=now_berlin.month + 1)
+
+        first_utc_naive = _to_db_utc_naive(first_local)
+        next_utc_naive = _to_db_utc_naive(next_local)
+
+        slots_used = (
+            s.scalar(
+                select(func.count())
+                .select_from(Slot)
+                .where(
+                    Slot.provider_id == p.id,
+                    Slot.start_at >= first_utc_naive,
+                    Slot.start_at < next_utc_naive,
+                    Slot.status.in_(["pending_review", "published"]),
+                )
+            )
+            or 0
+        )
+
+        slots_left = None if unlimited else max(0, free_limit - slots_used)
+
         return jsonify(
             {
                 "id": p.id,
@@ -1189,6 +1247,14 @@ def me():
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
                 "profile_complete": is_profile_complete(p),
+                # Plan / Paket
+                "plan_key": plan_key or None,
+                "plan_label": plan_label,
+                "plan_valid_until": p.plan_valid_until.isoformat() if getattr(p, "plan_valid_until", None) else None,
+                "free_slots_per_month": free_limit,
+                "slots_used_this_month": int(slots_used),
+                "slots_left_this_month": slots_left,
+                "slots_unlimited": unlimited,
             }
         )
 
@@ -1286,6 +1352,7 @@ def slots_list():
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
+
             .group_by(Booking.slot_id)
             .subquery()
         )
@@ -1480,6 +1547,7 @@ def slots_update(slot_id):
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
+
                 except Exception:
                     return _json_error("bad_datetime", 400)
             if "end_at" in data:
@@ -2018,7 +2086,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
         * cos(radians(lat2))
         * sin(dlon / 2) ** 2
     )
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    c = 2 * atan2(sqrt(1 - a), sqrt(a))
     return R * c
 
 

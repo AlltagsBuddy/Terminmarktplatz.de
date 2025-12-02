@@ -529,6 +529,48 @@
         padding:6px 8px;
       }
     }
+
+    /* Paket-Hinweis */
+    .plan-info {
+      margin: 8px 0 18px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .plan-label {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .plan-name {
+      font-weight: 600;
+      color: #4f46e5;
+    }
+
+    .plan-valid {
+      color: #6b7280;
+    }
+
+    .plan-change-link {
+      margin-left: 6px;
+      font-weight: 500;
+      color: #4f46e5;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px){
+      .plan-info {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 
@@ -578,6 +620,16 @@
         <h1>Willkommen! 👋</h1>
         <p class="lead">Pflege hier dein <strong>Profil</strong> und lege <strong>freie Slots</strong> an.
           Neue Slots starten als <em>„pending_review“</em>. Nach deiner Bestätigung werden sie veröffentlicht.</p>
+
+                <!-- Gebuchtes Paket-Hinweis -->
+        <div class="plan-info">
+          <span class="plan-label">Aktuelles Paket:</span>
+          <span id="plan-name" class="plan-name">Basis (Standard)</span>
+          <span id="plan-valid-until" class="plan-valid">· kein Ablaufdatum hinterlegt</span>
+          <span id="plan-slots" class="plan-valid"></span>
+          <a href="preise.html#pakete" class="plan-change-link">Paket ändern</a>
+        </div>
+
       </div>
     </section>
 
@@ -895,6 +947,58 @@
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
+
+                // Paket-Info aus /me anzeigen (Plan + Slot-Limits)
+        const PLAN_LABELS = {
+          basic:    'Basis (Standard)',
+          starter:  'Starter',
+          profi:    'Profi',
+          business: 'Business'
+        };
+        const planNameEl  = document.getElementById('plan-name');
+        const planValidEl = document.getElementById('plan-valid-until');
+        const planSlotsEl = document.getElementById('plan-slots');
+
+        if (planNameEl && planValidEl) {
+          // Plan-Key kann aus ME.plan oder ME.plan_key kommen
+          const key   = (ME.plan || ME.plan_key || 'basic');
+          const label = ME.plan_label || PLAN_LABELS[key] || key;
+          planNameEl.textContent = label;
+
+          // Gültigkeit
+          if (ME.plan_valid_until) {
+            const d = new Date(ME.plan_valid_until);
+            if (!isNaN(d.getTime())) {
+              planValidEl.textContent = '· gültig bis ' + d.toLocaleDateString('de-DE');
+            } else {
+              planValidEl.textContent = '· Laufzeit aktiv';
+            }
+          } else {
+            planValidEl.textContent = '· kein Ablaufdatum hinterlegt';
+          }
+
+          // Slots diesen Monat (aus /me)
+          if (planSlotsEl) {
+            if (ME.slots_unlimited) {
+              planSlotsEl.textContent = '· Slots diesen Monat: unbegrenzt';
+            } else if (typeof ME.free_slots_per_month === 'number' &&
+                       typeof ME.slots_used_this_month === 'number') {
+
+              const total = ME.free_slots_per_month;
+              const used  = ME.slots_used_this_month;
+              const left  = (typeof ME.slots_left_this_month === 'number')
+                ? ME.slots_left_this_month
+                : Math.max(0, total - used);
+
+              planSlotsEl.textContent =
+                `· Slots diesen Monat: ${used}/${total} (noch ${left} frei)`;
+            } else {
+              // Falls Backend die Felder (noch) nicht liefert
+              planSlotsEl.textContent = '';
+            }
+          }
+        }
+
 
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
