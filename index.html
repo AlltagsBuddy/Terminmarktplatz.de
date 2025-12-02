@@ -264,6 +264,7 @@
 }
   </script>
 </head>
+
 <body>
   <!-- Header / Navigation -->
   <header>
@@ -308,6 +309,24 @@
       </nav>
     </div>
   </header>
+
+          <!-- Hinweis-Banner: Terminmarktplatz im Aufbau -->
+    <div id="tm-hinweis" class="tm-hinweis" role="status" aria-label="Hinweis zum Seitenstatus">
+      <div class="tm-hinweis-inner">
+        <div class="tm-hinweis-text">
+          <strong>Terminmarktplatz ist noch im Aufbau.</strong><br>
+          Aktuell sind noch keine Anbieter und Termine verfügbar.
+          Wir arbeiten daran, möglichst schnell erste Partner zu gewinnen.
+          Schau gerne regelmäßig vorbei – bald findest du hier passende freie Termine.
+        </div>
+        <button type="button"
+                class="tm-hinweis-close"
+                aria-label="Hinweis schließen">
+          ×
+        </button>
+      </div>
+    </div>
+
 
   <main>
     <!-- HERO -->
@@ -566,5 +585,19 @@
       checkAuth();
     })();
   </script>
+
+      <script>
+  (function(){
+    const bar = document.getElementById('tm-hinweis');
+    const btn = bar ? bar.querySelector('.tm-hinweis-close') : null;
+    if (!bar || !btn) return;
+
+    btn.addEventListener('click', function () {
+      bar.style.display = 'none';
+    });
+  })();
+</script>
+
+
 </body>
 </html>

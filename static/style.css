@@ -1483,6 +1483,52 @@ fieldset[disabled]{
   }
 }
 
+    /* Hinweis-Banner oben unter dem Header */
+.tm-hinweis {
+  background: #eef2ff;              /* leichtes Lila, unaufdringlich */
+  border-bottom: 1px solid #c7d2fe;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.tm-hinweis-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tm-hinweis-text {
+  font-size: 0.95rem;
+  color: #111827;
+  line-height: 1.4;
+}
+
+/* Schließen-Button */
+.tm-hinweis-close {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0 4px;
+}
+
+.tm-hinweis-close:hover {
+  color: #111827;
+}
+
+/* Mobile: Zeile umbrechen, Button rechts oben */
+@media (max-width: 768px) {
+  .tm-hinweis-inner {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
 }
 
 /* ---------- Accessibility / Motion already handled oben ---------- */
