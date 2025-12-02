@@ -247,6 +247,109 @@
         text-align: center;
       }
     }
+
+    /* ===== Hinweis-Sprechblase oben unter dem Header ===== */
+    #tm-hinweis-wrapper {
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    .tm-hinweis-bubble {
+      position: relative;
+      background: radial-gradient(circle at top left, #eef2ff, #ffffff);
+      border-radius: 18px;
+      padding: 14px 16px 14px 16px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      border: 1px solid rgba(129, 140, 248, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .tm-hinweis-bubble::after {
+      content: "";
+      position: absolute;
+      left: 40px;
+      top: 100%;
+      width: 0;
+      height: 0;
+      border-width: 10px 10px 0 10px;
+      border-style: solid;
+      border-color: rgba(199, 210, 254, 1) transparent transparent transparent;
+    }
+
+    .tm-hinweis-badge {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .tm-hinweis-title {
+      margin: 0;
+      margin-top: 2px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .tm-hinweis-text {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: #111827;
+    }
+
+    .tm-hinweis-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      border: none;
+      background: transparent;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      color: #9ca3af;
+      padding: 0 4px;
+    }
+
+    .tm-hinweis-close:hover {
+      color: #4b5563;
+    }
+
+    @media (max-width: 768px) {
+      #tm-hinweis-wrapper {
+        margin-top: 12px;
+        margin-bottom: 6px;
+      }
+
+      .tm-hinweis-bubble {
+        padding: 12px 12px 12px 12px;
+        border-radius: 14px;
+      }
+
+      .tm-hinweis-bubble::after {
+        left: 24px;
+        border-width: 8px 8px 0 8px;
+      }
+
+      .tm-hinweis-title {
+        font-size: 0.98rem;
+      }
+
+      .tm-hinweis-text {
+        font-size: 0.9rem;
+      }
+    }
   </style>
 
   <!-- Structured Data (mit http-URLs) -->
@@ -310,23 +413,29 @@
     </div>
   </header>
 
-          <!-- Hinweis-Banner: Terminmarktplatz im Aufbau -->
-    <div id="tm-hinweis" class="tm-hinweis" role="status" aria-label="Hinweis zum Seitenstatus">
-      <div class="tm-hinweis-inner">
-        <div class="tm-hinweis-text">
-          <strong>Terminmarktplatz ist noch im Aufbau.</strong><br>
-          Aktuell sind noch keine Anbieter und Termine verfügbar.
-          Wir arbeiten daran, möglichst schnell erste Partner zu gewinnen.
-          Schau gerne regelmäßig vorbei – bald findest du hier passende freie Termine.
-        </div>
+  <!-- Hinweis: Terminmarktplatz im Aufbau (Sprechblase) -->
+  <div id="tm-hinweis-wrapper">
+    <div class="container">
+      <div class="tm-hinweis-bubble" role="status" aria-label="Hinweis zum Seitenstatus">
         <button type="button"
                 class="tm-hinweis-close"
                 aria-label="Hinweis schließen">
           ×
         </button>
+
+        <div class="tm-hinweis-badge">Beta</div>
+
+        <h2 class="tm-hinweis-title">Terminmarktplatz ist noch im Aufbau</h2>
+        <p class="tm-hinweis-text">
+          Aktuell sind noch keine Anbieter und Termine verfügbar.
+          Wir arbeiten daran, möglichst schnell erste Partner zu gewinnen.
+        </p>
+        <p class="tm-hinweis-text">
+          Schau gerne regelmäßig vorbei – bald findest du hier passende freie Termine.
+        </p>
       </div>
     </div>
-
+  </div>
 
   <main>
     <!-- HERO -->
@@ -341,7 +450,7 @@
             Dein Marktplatz für kurzfristig freigewordene Slots bei Friseur:innen, Kosmetik, Therapie, Handwerk, Fitness, Behörden & mehr. 
           </p>
 
-        <div class="search-card" role="search" aria-label="Terminsuche">
+          <div class="search-card" role="search" aria-label="Terminsuche">
             <form class="searchbar" id="search-form" action="/suche.html" method="get">
               <label class="input" aria-label="Leistung">
                 🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt">
@@ -525,7 +634,7 @@
           el.style.display = isLoggedIn ? 'none' : '';
         });
         authInEls.forEach(el => {
-          el.style.display = isLoggedIn ? '' : 'none';
+          el.style.display = isLoggedIn ? '' : '';
         });
         // Kontakt bleibt immer sichtbar
       }
@@ -586,18 +695,19 @@
     })();
   </script>
 
-      <script>
-  (function(){
-    const bar = document.getElementById('tm-hinweis');
-    const btn = bar ? bar.querySelector('.tm-hinweis-close') : null;
-    if (!bar || !btn) return;
+  <!-- Hinweis-Sprechblase schließen -->
+  <script>
+    (function(){
+      const wrapper = document.getElementById('tm-hinweis-wrapper');
+      if (!wrapper) return;
+      const closeBtn = wrapper.querySelector('.tm-hinweis-close');
+      if (!closeBtn) return;
 
-    btn.addEventListener('click', function () {
-      bar.style.display = 'none';
-    });
-  })();
-</script>
+      closeBtn.addEventListener('click', function () {
+        wrapper.style.display = 'none';
+      });
+    })();
+  </script>
 
-
-</body>
+  </body>
 </html>
