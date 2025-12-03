@@ -3,6 +3,11 @@ import traceback
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal  # für Geldbeträge
 
+import json
+import hmac
+import hashlib
+import base64
+
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
 from email.utils import parseaddr, formataddr
@@ -118,6 +123,20 @@ STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET")
 if stripe and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
+# CopeCart IPN / Webhook
+COPECART_WEBHOOK_SECRET = os.getenv("COPECART_WEBHOOK_SECRET")
+
+# Mappe CopeCart-Produkt-IDs auf deine internen Tarife
+COPECART_PRODUCT_PLAN_MAP: dict[str, str] = {}
+for env_name, plan_key in [
+    ("COPECART_PRODUCT_STARTER_ID", "starter"),
+    ("COPECART_PRODUCT_PROFI_ID", "profi"),
+    ("COPECART_PRODUCT_BUSINESS_ID", "business"),
+]:
+    pid = os.getenv(env_name)
+    if pid:
+        COPECART_PRODUCT_PLAN_MAP[pid] = plan_key
+
 # Pakete / Pläne
 PLANS = {
     "starter": {
@@ -196,6 +215,7 @@ CORS(
         r"/api/*":       {"origins": ALLOWED_ORIGINS},
         r"/paket-buchen*": {"origins": ALLOWED_ORIGINS},
         r"/webhook/stripe": {"origins": ALLOWED_ORIGINS},
+        r"/webhook/copecart": {"origins": ALLOWED_ORIGINS},
     },
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
@@ -418,8 +438,7 @@ def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
 
     free_limit = p.free_slots_per_month or 3
 
-    # "unbegrenzt" – du kannst hier z.B. 0 oder einen hohen Wert verwenden,
-    # ich nehme 0 = kein Limit
+    # "unbegrenzt" – 0 = kein Limit
     if free_limit <= 0:
         return True
 
@@ -799,6 +818,7 @@ def maybe_api_only():
         or request.path.startswith("/provider/")
         or request.path.startswith("/paket-buchen")
         or request.path.startswith("/webhook/stripe")
+        or request.path.startswith("/webhook/copecart")
         or request.path
         in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
@@ -862,7 +882,6 @@ if _html_enabled():
             plan_key=plan_key,
             plan=plan,
         )
-
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
@@ -1352,7 +1371,6 @@ def slots_list():
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
-
             .group_by(Booking.slot_id)
             .subquery()
         )
@@ -1547,7 +1565,6 @@ def slots_update(slot_id):
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
-
                 except Exception:
                     return _json_error("bad_datetime", 400)
             if "end_at" in data:
@@ -1870,7 +1887,7 @@ def admin_run_billing():
     now = _now()
     year = int(data.get("year") or now.year)
 
-    if "month" in data and data["month"]:
+    if "month" in data and data["month"]):
         month = int(data["month"])
     else:
         if now.month == 1:
@@ -1887,7 +1904,7 @@ def admin_run_billing():
 
 
 # --------------------------------------------------------
-# Pakete / Stripe
+# Pakete / Stripe / CopeCart
 # --------------------------------------------------------
 @app.post("/paket-buchen")
 @auth_required()
@@ -2045,6 +2062,130 @@ def stripe_webhook():
             s.commit()
 
     return jsonify({"ok": True})
+
+
+@app.post("/webhook/copecart")
+def copecart_webhook():
+    """
+    CopeCart IPN Webhook.
+
+    - Signatur: Header 'X-Copecart-Signature' (HMAC-SHA256 + Base64 über RAW-Body)
+    - Provider-Zuordnung: buyer_email == Provider.email
+    - Tarif-Zuordnung: product_id -> plan_key (COPECART_PRODUCT_*_ID)
+    """
+    if not COPECART_WEBHOOK_SECRET:
+        app.logger.warning("CopeCart webhook hit, but COPECART_WEBHOOK_SECRET not set")
+        # trotzdem OK, damit CopeCart nicht dauernd retryt
+        return "OK", 200
+
+    sig = request.headers.get("X-Copecart-Signature", "")
+    raw_body = request.get_data() or b""
+
+    generated = base64.b64encode(
+        hmac.new(
+            COPECART_WEBHOOK_SECRET.encode("utf-8"),
+            raw_body,
+            hashlib.sha256,
+        ).digest()
+    ).decode("ascii")
+
+    if not sig or not hmac.compare_digest(sig, generated):
+        app.logger.warning("CopeCart webhook: invalid signature")
+        return "invalid signature", 400
+
+    try:
+        payload = json.loads(raw_body.decode("utf-8"))
+    except Exception:
+        app.logger.exception("CopeCart webhook: invalid JSON")
+        return "invalid json", 400
+
+    app.logger.info("CopeCart IPN payload: %s", payload)
+
+    event_type = payload.get("event_type")
+    payment_status = payload.get("payment_status")
+    transaction_type = payload.get("transaction_type")
+    product_id = payload.get("product_id")
+    buyer_email = (payload.get("buyer_email") or "").strip().lower()
+
+    if not (event_type and payment_status and product_id and buyer_email):
+        app.logger.warning("CopeCart webhook: missing required fields")
+        return "OK", 200
+
+    plan_key = COPECART_PRODUCT_PLAN_MAP.get(str(product_id))
+    if not plan_key:
+        # anderes Produkt, ignorieren
+        app.logger.info("CopeCart webhook: product_id %s not mapped to plan", product_id)
+        return "OK", 200
+
+    # Nur erfolgreiche Zahlungen / Trials verarbeiten
+    if event_type not in ("payment.made", "payment.trial"):
+        return "OK", 200
+
+    if payment_status not in ("paid", "test_paid", "trial", "test_trial"):
+        return "OK", 200
+
+    if transaction_type and transaction_type not in ("sale",):
+        return "OK", 200
+
+    plan_conf = PLANS.get(plan_key)
+    if not plan_conf:
+        app.logger.warning("CopeCart webhook: plan_key %s not in PLANS", plan_key)
+        return "OK", 200
+
+    payment_ref = payload.get("transaction_id") or payload.get("order_id")
+
+    try:
+        with Session(engine) as s:
+            # Annahme: Anbieter nutzt im CopeCart-Checkout dieselbe E-Mail wie im Portal-Login
+            p = s.scalar(select(Provider).where(Provider.email == buyer_email))
+            if not p:
+                app.logger.warning(
+                    "CopeCart webhook: no provider with email %s", buyer_email
+                )
+                return "OK", 200
+
+            # Doppeltes IPN für dieselbe Transaktion vermeiden
+            if payment_ref:
+                existing = s.scalar(
+                    select(PlanPurchase).where(
+                        PlanPurchase.payment_provider == "copecart",
+                        PlanPurchase.payment_ref == str(payment_ref),
+                    )
+                )
+                if existing:
+                    app.logger.info(
+                        "CopeCart webhook: PlanPurchase with ref %s already exists",
+                        payment_ref,
+                    )
+                    return "OK", 200
+
+            today = date.today()
+            period_start = today
+            period_end = today + timedelta(days=30)
+
+            # Tarif im Provider setzen
+            p.plan = plan_key
+            p.plan_valid_until = period_end
+            p.free_slots_per_month = plan_conf["free_slots"]
+
+            purchase = PlanPurchase(
+                provider_id=p.id,
+                plan=plan_key,
+                price_eur=plan_conf["price_eur"],
+                period_start=period_start,
+                period_end=period_end,
+                payment_provider="copecart",
+                payment_ref=str(payment_ref) if payment_ref else None,
+                status="paid",
+            )
+            s.add(purchase)
+            s.commit()
+
+        # CopeCart erwartet exakt "OK"
+        return "OK", 200
+    except Exception:
+        app.logger.exception("CopeCart webhook failed")
+        return "server error", 500
 
 
 # --------------------------------------------------------
