@@ -137,6 +137,17 @@ for env_name, plan_key in [
     if pid:
         COPECART_PRODUCT_PLAN_MAP[pid] = plan_key
 
+# CopeCart Checkout-URLs (aus .env)
+COPECART_STARTER_URL  = os.getenv("COPECART_STARTER_URL")
+COPECART_PROFI_URL    = os.getenv("COPECART_PROFI_URL")
+COPECART_BUSINESS_URL = os.getenv("COPECART_BUSINESS_URL")
+
+COPECART_PLAN_URLS = {
+    "starter": COPECART_STARTER_URL,
+    "profi": COPECART_PROFI_URL,
+    "business": COPECART_BUSINESS_URL,
+}
+
 # Pakete / Pläne
 PLANS = {
     "starter": {
@@ -206,15 +217,16 @@ else:
 CORS(
     app,
     resources={
-        r"/auth/*":      {"origins": ALLOWED_ORIGINS},
-        r"/me":          {"origins": ALLOWED_ORIGINS},
-        r"/slots*":      {"origins": ALLOWED_ORIGINS},
-        r"/provider/*":  {"origins": ALLOWED_ORIGINS},
-        r"/admin/*":     {"origins": ALLOWED_ORIGINS},
-        r"/public/*":    {"origins": ALLOWED_ORIGINS},
-        r"/api/*":       {"origins": ALLOWED_ORIGINS},
+        r"/auth/*":        {"origins": ALLOWED_ORIGINS},
+        r"/me":            {"origins": ALLOWED_ORIGINS},
+        r"/slots*":        {"origins": ALLOWED_ORIGINS},
+        r"/provider/*":    {"origins": ALLOWED_ORIGINS},
+        r"/admin/*":       {"origins": ALLOWED_ORIGINS},
+        r"/public/*":      {"origins": ALLOWED_ORIGINS},
+        r"/api/*":         {"origins": ALLOWED_ORIGINS},
         r"/paket-buchen*": {"origins": ALLOWED_ORIGINS},
-        r"/webhook/stripe": {"origins": ALLOWED_ORIGINS},
+        r"/copecart/*":    {"origins": ALLOWED_ORIGINS},
+        r"/webhook/stripe":   {"origins": ALLOWED_ORIGINS},
         r"/webhook/copecart": {"origins": ALLOWED_ORIGINS},
     },
     supports_credentials=True,
@@ -779,6 +791,34 @@ def auth_required(admin: bool = False):
     return wrapper
 
 
+def _current_provider_id_or_none() -> str | None:
+    """
+    Hilfsfunktion für HTML/Redirect-Routen:
+    - liest access_token-Cookie oder Bearer-Token
+    - gibt provider_id (sub) oder None zurück
+    """
+    token = request.cookies.get("access_token")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.lower().startswith("bearer "):
+            token = auth.split(" ", 1)[1].strip()
+    if not token:
+        return None
+
+    try:
+        data = jwt.decode(
+            token,
+            SECRET,
+            algorithms=["HS256"],
+            audience=JWT_AUD,
+            issuer=JWT_ISS,
+        )
+    except Exception:
+        return None
+
+    return data.get("sub")
+
+
 # --------------------------------------------------------
 # Misc (favicon/robots + health)
 # --------------------------------------------------------
@@ -817,6 +857,7 @@ def maybe_api_only():
         or request.path.startswith("/slots")
         or request.path.startswith("/provider/")
         or request.path.startswith("/paket-buchen")
+        or request.path.startswith("/copecart/")
         or request.path.startswith("/webhook/stripe")
         or request.path.startswith("/webhook/copecart")
         or request.path
@@ -882,6 +923,33 @@ if _html_enabled():
             plan_key=plan_key,
             plan=plan,
         )
+
+    @app.get("/copecart/kaufen")
+    def copecart_kaufen():
+        """
+        Einstieg für Paket-Kauf über CopeCart.
+
+        - ?plan=starter|profi|business
+        - wenn nicht eingeloggt: Redirect zu /login mit next=...
+        - wenn eingeloggt: Redirect zur CopeCart-Checkout-URL + subid=provider_id
+        """
+        plan_key = (request.args.get("plan") or "starter").strip().lower()
+        url = COPECART_PLAN_URLS.get(plan_key)
+        if not url:
+            abort(404)
+
+        provider_id = _current_provider_id_or_none()
+        if not provider_id:
+            # nicht eingeloggt → Login mit Rücksprung
+            next_url = url_for("copecart_kaufen", plan=plan_key)
+            login_url = url_for("login_page")
+            return redirect(f"{login_url}?next={next_url}&register=1")
+
+        # eingeloggt → direkt zu CopeCart, Provider-ID als Tracking-Param
+        sep = "&" if "?" in url else "?"
+        target = f"{url}{sep}subid={provider_id}"
+
+        return redirect(target, code=302)
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
@@ -1134,7 +1202,9 @@ def auth_login_form():
         )
 
     access, refresh = issue_tokens(p.id, p.is_admin)
-    resp = make_response(redirect("anbieter-portal"))
+    # optional: next-Parameter aus Query abholen, falls vorhanden
+    next_url = request.args.get("next") or url_for("anbieter_portal_page")
+    resp = make_response(redirect(next_url))
     return _set_auth_cookies(resp, access, refresh)
 
 
