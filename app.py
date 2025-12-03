@@ -1887,7 +1887,7 @@ def admin_run_billing():
     now = _now()
     year = int(data.get("year") or now.year)
 
-    if "month" in data and data["month"]):
+    if "month" in data and data["month"]:
         month = int(data["month"])
     else:
         if now.month == 1:
