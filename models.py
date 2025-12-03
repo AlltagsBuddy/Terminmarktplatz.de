@@ -27,9 +27,9 @@ class Base(DeclarativeBase):
 # ------------------------------------------------------------
 class Provider(Base):
     """Dienstleister (Arzt, Amt, Handwerker …)."""
-    __tablename__ = "provider"  # <- entspricht deiner DB
+    __tablename__ = "provider"
 
-    # UUIDs als String
+    # UUID als String
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
         primary_key=True,
@@ -64,14 +64,28 @@ class Provider(Base):
         default="basic",
     )
 
-    # Bis wann das aktuell gebuchte Paket gültig ist (Datum, kein Zeitpunkt)
+    # Bis wann das aktuell gebuchte Paket gültig ist (Datum)
     plan_valid_until: Mapped[date | None] = mapped_column(SADate)
 
-    # Limit freie Slots pro Monat (für basic z.B. 3, für Pakete höher/None)
+    # Slots unbegrenzt? (z.B. bei Profi/Business)
+    slots_unlimited: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    # Limit freie Slots pro Monat (für basic z.B. 3)
     free_slots_per_month: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=3,
+    )
+
+    # Wieviele Slots in diesem Monat bereits angelegt/verbraucht wurden
+    slots_used_this_month: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
     )
 
     # Gebühr pro gebuchtem Slot (in EUR, z. B. 2.00)
@@ -154,7 +168,7 @@ class Provider(Base):
 # ------------------------------------------------------------
 class Slot(Base):
     """Freies Zeitfenster eines Providers."""
-    __tablename__ = "slot"  # <- entspricht deiner DB
+    __tablename__ = "slot"
 
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
@@ -186,7 +200,7 @@ class Slot(Base):
 
     notes: Mapped[str | None] = mapped_column(Text)
 
-    # pending_review | published | archived
+    # pending_review | published | archived | canceled
     status: Mapped[str] = mapped_column(Text, default="pending_review")
 
     created_at: Mapped[datetime] = mapped_column(
@@ -195,7 +209,10 @@ class Slot(Base):
     )
 
     # Beziehungen
-    provider: Mapped[Provider] = relationship("Provider", back_populates="slots")
+    provider: Mapped["Provider"] = relationship(
+        "Provider",
+        back_populates="slots",
+    )
 
     # alle Buchungen zu diesem Slot
     bookings: Mapped[list["Booking"]] = relationship(
@@ -233,7 +250,7 @@ class Slot(Base):
 # ------------------------------------------------------------
 class Booking(Base):
     """Buchung eines Slots durch einen Kunden."""
-    __tablename__ = "booking"  # <- entspricht deiner DB
+    __tablename__ = "booking"
 
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
@@ -258,7 +275,7 @@ class Booking(Base):
     customer_name: Mapped[str] = mapped_column(Text, nullable=False)
     customer_email: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # hold | confirmed | canceled (o.ä.)
+    # hold | confirmed | canceled
     status: Mapped[str] = mapped_column(Text, default="hold")
 
     created_at: Mapped[datetime] = mapped_column(
@@ -298,11 +315,11 @@ class Booking(Base):
     billed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Beziehungen
-    slot: Mapped[Slot] = relationship(
+    slot: Mapped["Slot"] = relationship(
         "Slot",
         back_populates="bookings",
     )
-    provider: Mapped[Provider] = relationship(
+    provider: Mapped["Provider"] = relationship(
         "Provider",
         back_populates="bookings",
     )
@@ -371,9 +388,9 @@ class PlanPurchase(Base):
     period_start: Mapped[date] = mapped_column(SADate, nullable=False)
     period_end: Mapped[date] = mapped_column(SADate, nullable=False)
 
-    # Zahlungsprovider-Infos (z.B. Stripe)
+    # Zahlungsprovider-Infos (z.B. CopeCart, Stripe, …)
     payment_provider: Mapped[str | None] = mapped_column(Text)
-    payment_ref: Mapped[str | None] = mapped_column(Text)  # z.B. Stripe-Session-ID
+    payment_ref: Mapped[str | None] = mapped_column(Text)  # z.B. Session-ID / Order-ID
 
     # paid | refunded | failed
     status: Mapped[str] = mapped_column(Text, default="paid")
@@ -384,7 +401,7 @@ class PlanPurchase(Base):
     )
 
     # Beziehung zurück zum Provider
-    provider: Mapped[Provider] = relationship(
+    provider: Mapped["Provider"] = relationship(
         "Provider",
         back_populates="plan_purchases",
     )
@@ -428,12 +445,12 @@ class Invoice(Base):
     )
 
     # Beziehungen
-    provider: Mapped[Provider] = relationship(
+    provider: Mapped["Provider"] = relationship(
         "Provider",
         back_populates="invoices",
     )
 
-    bookings: Mapped[list[Booking]] = relationship(
+    bookings: Mapped[list["Booking"]] = relationship(
         "Booking",
         back_populates="invoice",
     )

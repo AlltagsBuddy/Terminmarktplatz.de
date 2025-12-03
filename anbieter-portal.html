@@ -565,10 +565,23 @@
       text-decoration: underline;
     }
 
+    /* Kündigungs-Button innerhalb der Plan-Info */
+    .plan-info .btn-cancel-plan {
+      margin-left: auto;
+      font-size: 0.85rem;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+
     @media (max-width: 768px){
       .plan-info {
         width: 100%;
         justify-content: flex-start;
+      }
+      .plan-info .btn-cancel-plan {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
       }
     }
   </style>
@@ -621,13 +634,19 @@
         <p class="lead">Pflege hier dein <strong>Profil</strong> und lege <strong>freie Slots</strong> an.
           Neue Slots starten als <em>„pending_review“</em>. Nach deiner Bestätigung werden sie veröffentlicht.</p>
 
-                <!-- Gebuchtes Paket-Hinweis -->
+        <!-- Gebuchtes Paket-Hinweis -->
         <div class="plan-info">
           <span class="plan-label">Aktuelles Paket:</span>
           <span id="plan-name" class="plan-name">Basis (Standard)</span>
           <span id="plan-valid-until" class="plan-valid">· kein Ablaufdatum hinterlegt</span>
           <span id="plan-slots" class="plan-valid"></span>
           <a href="preise.html#pakete" class="plan-change-link">Paket ändern</a>
+          <button type="button"
+                  id="cancel-plan-btn"
+                  class="btn danger btn-cancel-plan"
+                  style="display:none;">
+            Paket kündigen
+          </button>
         </div>
 
       </div>
@@ -948,16 +967,17 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-                // Paket-Info aus /me anzeigen (Plan + Slot-Limits)
+        // Paket-Info aus /me anzeigen (Plan + Slot-Limits)
         const PLAN_LABELS = {
           basic:    'Basis (Standard)',
           starter:  'Starter',
           profi:    'Profi',
           business: 'Business'
         };
-        const planNameEl  = document.getElementById('plan-name');
-        const planValidEl = document.getElementById('plan-valid-until');
-        const planSlotsEl = document.getElementById('plan-slots');
+        const planNameEl   = document.getElementById('plan-name');
+        const planValidEl  = document.getElementById('plan-valid-until');
+        const planSlotsEl  = document.getElementById('plan-slots');
+        const cancelBtn    = document.getElementById('cancel-plan-btn');
 
         if (planNameEl && planValidEl) {
           // Plan-Key kann aus ME.plan oder ME.plan_key kommen
@@ -993,12 +1013,43 @@
               planSlotsEl.textContent =
                 `· Slots diesen Monat: ${used}/${total} (noch ${left} frei)`;
             } else {
-              // Falls Backend die Felder (noch) nicht liefert
               planSlotsEl.textContent = '';
             }
           }
         }
 
+        // Paket kündigen-Button nur anzeigen, wenn ein bezahltes Paket aktiv ist
+        if (cancelBtn) {
+          const planKey = (ME.plan || ME.plan_key || '').trim();
+          if (planKey) {
+            cancelBtn.style.display = 'inline-flex';
+            cancelBtn.onclick = async () => {
+              const ok = confirm('Paket wirklich kündigen und auf die kostenlose Basisversion wechseln?');
+              if (!ok) return;
+
+              try {
+                const res = await fetch(`${API}/me/cancel_plan`, {
+                  method: 'POST',
+                  credentials: 'include'
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok) {
+                  alert('Dein Paket wurde im Portal beendet. Prüfe zusätzlich dein CopeCart-Abo, damit keine weiteren Abbuchungen erfolgen.');
+                  location.reload();
+                } else if (data.error === 'no_active_plan') {
+                  alert('Kein aktives Paket gefunden.');
+                  cancelBtn.style.display = 'none';
+                } else {
+                  alert(data.error ? `Kündigung fehlgeschlagen: ${data.error}` : 'Kündigung fehlgeschlagen.');
+                }
+              } catch (err) {
+                alert('Netzwerkfehler bei der Kündigung – bitte später erneut versuchen.');
+              }
+            };
+          } else {
+            cancelBtn.style.display = 'none';
+          }
+        }
 
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);

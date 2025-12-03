@@ -218,7 +218,7 @@ CORS(
     app,
     resources={
         r"/auth/*":        {"origins": ALLOWED_ORIGINS},
-        r"/me":            {"origins": ALLOWED_ORIGINS},
+        r"/me*":           {"origins": ALLOWED_ORIGINS},
         r"/slots*":        {"origins": ALLOWED_ORIGINS},
         r"/provider/*":    {"origins": ALLOWED_ORIGINS},
         r"/admin/*":       {"origins": ALLOWED_ORIGINS},
@@ -860,8 +860,8 @@ def maybe_api_only():
         or request.path.startswith("/copecart/")
         or request.path.startswith("/webhook/stripe")
         or request.path.startswith("/webhook/copecart")
-        or request.path
-        in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt")
+        or request.path.startswith("/me")
+        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
     ):
         return _json_error("api_only", 404)
@@ -1410,6 +1410,41 @@ def me_update():
         return jsonify({"ok": True})
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.post("/me/cancel_plan")
+@auth_required()
+def cancel_plan():
+    """
+    Kündigt das aktuelle Paket im Portal:
+    - setzt Provider.plan auf None
+    - setzt plan_valid_until auf None
+    - setzt free_slots_per_month auf Basis (=> None -> 3 über Logik)
+
+    WICHTIG:
+    Das stoppt NICHT automatisch Abbuchungen bei CopeCart.
+    Dafür muss der Nutzer über CopeCart (Kündigungslink / Kundenbereich) gehen.
+    """
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+
+            # Kein aktives Paket
+            if not p.plan:
+                return _json_error("no_active_plan", 400)
+
+            # Zurück auf Basis
+            p.plan = None
+            p.plan_valid_until = None
+            p.free_slots_per_month = None  # Basis: 3 via provider_can_create_free_slot
+            s.commit()
+
+            return jsonify({"ok": True, "status": "canceled"})
+    except Exception as e:
+        app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
 
 
