@@ -1294,6 +1294,8 @@ def me():
 
         # Slot-Limits / Nutzung im aktuellen Monat
         free_limit = p.free_slots_per_month or 3
+        # "unlimited" wird NICHT mehr aus der DB gelesen,
+        # sondern rein über free_slots_per_month abgebildet:
         unlimited = free_limit <= 0
 
         now_berlin = datetime.now(BERLIN)
@@ -1339,13 +1341,15 @@ def me():
                 # Plan / Paket
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
-                "plan_valid_until": p.plan_valid_until.isoformat() if getattr(p, "plan_valid_until", None) else None,
+                "plan_valid_until": p.plan_valid_until.isoformat()
+                if getattr(p, "plan_valid_until", None) else None,
                 "free_slots_per_month": free_limit,
                 "slots_used_this_month": int(slots_used),
                 "slots_left_this_month": slots_left,
-                "slots_unlimited": unlimited,
+                "slots_unlimited": unlimited,  # nur noch berechnet, NICHT mehr DB-Spalte
             }
         )
+
 
 
 @app.put("/me")
@@ -1411,6 +1415,42 @@ def me_update():
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
+
+
+@app.post("/me/cancel_plan")
+@auth_required()
+def cancel_plan():
+    """
+    Kündigt das aktuelle Paket im Portal:
+    - setzt Provider.plan auf None
+    - setzt plan_valid_until auf None
+    - setzt free_slots_per_month auf Basis (=> None -> 3 über Logik)
+
+    WICHTIG:
+    Das stoppt NICHT automatisch Abbuchungen bei CopeCart.
+    Dafür muss der Nutzer über CopeCart (Kündigungslink / Kundenbereich) gehen.
+    """
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+
+            # Kein aktives Paket
+            if not p.plan:
+                return _json_error("no_active_plan", 400)
+
+            # Zurück auf Basis
+            p.plan = None
+            p.plan_valid_until = None
+            p.free_slots_per_month = None  # Basis: 3 via provider_can_create_free_slot
+            s.commit()
+
+            return jsonify({"ok": True, "status": "canceled"})
+    except Exception as e:
+        app.logger.exception("cancel_plan failed")
+        return jsonify({"error": "server_error"}), 500
+
 
 
         @app.post("/me/cancel_plan")

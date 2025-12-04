@@ -57,42 +57,25 @@ class Provider(Base):
     )
 
     # ---------------- Tarif / Plan ----------------
-    # basic | starter | profi | business
-    plan: Mapped[str] = mapped_column(
+    # z.B. "starter", "profi", "business" – kann auch None sein (Basisplan)
+    plan: Mapped[str | None] = mapped_column(
         Text,
-        nullable=False,
-        default="basic",
+        nullable=True,
     )
 
     # Bis wann das aktuell gebuchte Paket gültig ist (Datum)
     plan_valid_until: Mapped[date | None] = mapped_column(SADate)
 
-    # Slots unbegrenzt? (z.B. bei Profi/Business)
-    slots_unlimited: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-    )
-
-    # Limit freie Slots pro Monat (für basic z.B. 3)
-    free_slots_per_month: Mapped[int] = mapped_column(
+    # Limit freie Slots pro Monat (für Basis z.B. 3; None = Standard aus Logik)
+    free_slots_per_month: Mapped[int | None] = mapped_column(
         Integer,
-        nullable=False,
-        default=3,
+        nullable=True,
     )
 
-    # Wieviele Slots in diesem Monat bereits angelegt/verbraucht wurden
-    slots_used_this_month: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-    )
-
-    # Gebühr pro gebuchtem Slot (in EUR, z. B. 2.00)
-    booking_fee_eur: Mapped[Decimal] = mapped_column(
+    # Gebühr pro gebuchtem Slot (in EUR, z. B. 2.00) – None = Fallback in app.py
+    booking_fee_eur: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
-        nullable=False,
-        default=Decimal("2.00"),
+        nullable=True,
     )
 
     # Beziehungen
