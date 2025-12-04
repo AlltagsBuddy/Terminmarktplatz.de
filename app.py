@@ -218,7 +218,7 @@ CORS(
     app,
     resources={
         r"/auth/*":        {"origins": ALLOWED_ORIGINS},
-        r"/me*":           {"origins": ALLOWED_ORIGINS},
+        r"/me":            {"origins": ALLOWED_ORIGINS},
         r"/slots*":        {"origins": ALLOWED_ORIGINS},
         r"/provider/*":    {"origins": ALLOWED_ORIGINS},
         r"/admin/*":       {"origins": ALLOWED_ORIGINS},
@@ -844,109 +844,126 @@ def health():
 
 
 # --------------------------------------------------------
-# API-only Gate (deaktiviert – alles erreichbar)
+# API-only Gate (optional)
 # --------------------------------------------------------
 @app.before_request
 def maybe_api_only():
-    # Früher wurden im API_ONLY-Modus viele HTML-Routen geblockt.
-    # Für stabilen Betrieb (Login + Suche) lassen wir jetzt alle Pfade durch.
-    return None
+    if not API_ONLY:
+        return
+    if not (
+        request.path.startswith("/auth/")
+        or request.path.startswith("/admin/")
+        or request.path.startswith("/public/")
+        or request.path.startswith("/slots")
+        or request.path.startswith("/provider/")
+        or request.path.startswith("/paket-buchen")
+        or request.path.startswith("/copecart/")
+        or request.path.startswith("/webhook/stripe")
+        or request.path.startswith("/webhook/copecart")
+        or request.path
+        in ("/me", "/api/health", "/healthz", "/favicon.ico", "/robots.txt")
+        or request.path.startswith("/static/")
+    ):
+        return _json_error("api_only", 404)
 
 
 # --------------------------------------------------------
-# HTML ROUTES
+# HTML ROUTES (Full mode)
 # --------------------------------------------------------
-@app.get("/")
-def index():
-    return render_template("index.html")
+def _html_enabled() -> bool:
+    return not API_ONLY
 
 
-@app.get("/login")
-def login_page():
-    return render_template("login.html")
+if _html_enabled():
 
+    @app.get("/")
+    def index():
+        return render_template("index.html")
 
-@app.get("/anbieter-portal")
-def anbieter_portal_page():
-    return render_template("anbieter-portal.html")
+    @app.get("/login")
+    def login_page():
+        return render_template("login.html")
 
+    @app.get("/anbieter-portal")
+    def anbieter_portal_page():
+        return render_template("anbieter-portal.html")
 
-@app.get("/anbieter-portal.html")
-def anbieter_portal_page_html():
-    return render_template("anbieter-portal.html")
+    @app.get("/anbieter-portal.html")
+    def anbieter_portal_page_html():
+        return render_template("anbieter-portal.html")
 
+    @app.get("/impressum")
+    def impressum():
+        return render_template("impressum.html")
 
-@app.get("/impressum")
-def impressum():
-    return render_template("impressum.html")
+    @app.get("/datenschutz")
+    def datenschutz():
+        return render_template("datenschutz.html")
 
+    @app.get("/agb")
+    def agb():
+        return render_template("agb.html")
 
-@app.get("/datenschutz")
-def datenschutz():
-    return render_template("datenschutz.html")
+    @app.get("/paket-buchen")
+    @auth_required()
+    def paket_buchen_page():
+        plan_key = (request.args.get("plan") or "starter").strip()
+        plan = PLANS.get(plan_key)
+        if not plan:
+            plan_key = "starter"
+            plan = PLANS["starter"]
 
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                abort(404)
 
-@app.get("/agb")
-def agb():
-    return render_template("agb.html")
+        return render_template(
+            "paket_buchen.html",
+            plan_key=plan_key,
+            plan=plan,
+        )
 
+    @app.get("/copecart/kaufen")
+    def copecart_kaufen():
+        """
+        Einstieg für Paket-Kauf über CopeCart.
 
-@app.get("/paket-buchen")
-@auth_required()
-def paket_buchen_page():
-    plan_key = (request.args.get("plan") or "starter").strip()
-    plan = PLANS.get(plan_key)
-    if not plan:
-        plan_key = "starter"
-        plan = PLANS["starter"]
-
-    with Session(engine) as s:
-        p = s.get(Provider, request.provider_id)
-        if not p:
+        - ?plan=starter|profi|business
+        - wenn nicht eingeloggt: Redirect zu /login mit next=...
+        - wenn eingeloggt: Redirect zur CopeCart-Checkout-URL + subid=provider_id
+        """
+        plan_key = (request.args.get("plan") or "starter").strip().lower()
+        url = COPECART_PLAN_URLS.get(plan_key)
+        if not url:
             abort(404)
 
-    return render_template(
-        "paket_buchen.html",
-        plan_key=plan_key,
-        plan=plan,
-    )
+        provider_id = _current_provider_id_or_none()
+        if not provider_id:
+            # nicht eingeloggt → Login mit Rücksprung
+            next_url = url_for("copecart_kaufen", plan=plan_key)
+            login_url = url_for("login_page")
+            return redirect(f"{login_url}?next={next_url}&register=1")
 
+        # eingeloggt → direkt zu CopeCart, Provider-ID als Tracking-Param
+        sep = "&" if "?" in url else "?"
+        target = f"{url}{sep}subid={provider_id}"
 
-@app.get("/copecart/kaufen")
-def copecart_kaufen():
-    """
-    Einstieg für Paket-Kauf über CopeCart.
+        return redirect(target, code=302)
 
-    - ?plan=starter|profi|business
-    - wenn nicht eingeloggt: Redirect zu /login mit next=...
-    - wenn eingeloggt: Redirect zur CopeCart-Checkout-URL + subid=provider_id
-    """
-    plan_key = (request.args.get("plan") or "starter").strip().lower()
-    url = COPECART_PLAN_URLS.get(plan_key)
-    if not url:
-        abort(404)
+    @app.get("/<path:slug>")
+    def any_page(slug: str):
+        filename = slug if slug.endswith(".html") else f"{slug}.html"
+        try:
+            return render_template(filename)
+        except Exception:
+            abort(404)
 
-    provider_id = _current_provider_id_or_none()
-    if not provider_id:
-        # nicht eingeloggt → Login mit Rücksprung
-        next_url = url_for("copecart_kaufen", plan=plan_key)
-        login_url = url_for("login_page")
-        return redirect(f"{login_url}?next={next_url}&register=1")
+else:
 
-    # eingeloggt → direkt zu CopeCart, Provider-ID als Tracking-Param
-    sep = "&" if "?" in url else "?"
-    target = f"{url}{sep}subid={provider_id}"
-
-    return redirect(target, code=302)
-
-
-@app.get("/<path:slug>")
-def any_page(slug: str):
-    filename = slug if slug.endswith(".html") else f"{slug}.html"
-    try:
-        return render_template(filename)
-    except Exception:
-        abort(404)
+    @app.get("/")
+    def api_root():
+        return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
 
 
 # --------------------------------------------------------
@@ -1396,39 +1413,39 @@ def me_update():
         return jsonify({"error": "server_error"}), 500
 
 
-@app.post("/me/cancel_plan")
-@auth_required()
-def cancel_plan():
-    """
-    Kündigt das aktuelle Paket im Portal:
-    - setzt Provider.plan auf None
-    - setzt plan_valid_until auf None
-    - setzt free_slots_per_month auf Basis (=> None -> 3 über Logik)
+        @app.post("/me/cancel_plan")
+        @auth_required()
+        def cancel_plan():
+            """
+            Kündigt das aktuelle Paket im Portal:
+            - setzt Provider.plan auf None
+            - setzt plan_valid_until auf None
+            - setzt free_slots_per_month auf Basis (=> None -> 3 über Logik)
+            
+            WICHTIG:
+            Das stoppt NICHT automatisch Abbuchungen bei CopeCart.
+            Dafür muss der Nutzer über CopeCart (Kündigungslink / Kundenbereich) gehen.
+            """
+            try:
+                with Session(engine) as s:
+                    p = s.get(Provider, request.provider_id)
+                    if not p:
+                        return _json_error("not_found", 404)
 
-    WICHTIG:
-    Das stoppt NICHT automatisch Abbuchungen bei CopeCart.
-    Dafür muss der Nutzer über CopeCart (Kündigungslink / Kundenbereich) gehen.
-    """
-    try:
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p:
-                return _json_error("not_found", 404)
+                    # Kein aktives Paket
+                    if not p.plan:
+                        return _json_error("no_active_plan", 400)
 
-            # Kein aktives Paket
-            if not p.plan:
-                return _json_error("no_active_plan", 400)
+                    # Zurück auf Basis
+                    p.plan = None
+                    p.plan_valid_until = None
+                    p.free_slots_per_month = None  # Basis: 3 via provider_can_create_free_slot
+                    s.commit()
 
-            # Zurück auf Basis
-            p.plan = None
-            p.plan_valid_until = None
-            p.free_slots_per_month = None  # Basis: 3 via provider_can_create_free_slot
-            s.commit()
-
-            return jsonify({"ok": True, "status": "canceled"})
-    except Exception as e:
-        app.logger.exception("cancel_plan failed")
-        return jsonify({"error": "server_error"}), 500
+                    return jsonify({"ok": True, "status": "canceled"})
+            except Exception as e:
+                app.logger.exception("cancel_plan failed")
+                return jsonify({"error": "server_error"}), 500
 
 
 # --------------------------------------------------------
