@@ -1018,13 +1018,16 @@
           }
         }
 
-        // Paket kündigen-Button nur anzeigen, wenn ein bezahltes Paket aktiv ist
+        // Paket kündigen-Button nur anzeigen, wenn ein bezahltes Paket aktiv ist (nicht basic)
         if (cancelBtn) {
           const planKey = (ME.plan || ME.plan_key || '').trim();
-          if (planKey) {
+          if (planKey && planKey !== 'basic') {
             cancelBtn.style.display = 'inline-flex';
             cancelBtn.onclick = async () => {
-              const ok = confirm('Paket wirklich kündigen und auf die kostenlose Basisversion wechseln?');
+              const ok = confirm(
+                'Willst du dein aktuelles Paket im Terminmarktplatz-Portal wirklich kündigen?\n\n' +
+                'Hinweis: Dein kostenpflichtiges Abo bei CopeCart musst du zusätzlich direkt bei CopeCart kündigen.'
+              );
               if (!ok) return;
 
               try {
@@ -1034,10 +1037,19 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && data.ok) {
-                  alert('Dein Paket wurde im Portal beendet. Du erhältst eine Bestätigungs-E-Mail. Prüfe zusätzlich dein CopeCart-Abo, damit keine weiteren Abbuchungen erfolgen.');
+                  alert(
+                    'Paket im Portal gekündigt.\n\n' +
+                    'Dein Paket wurde im Terminmarktplatz-Portal auf das kostenlose Basis-Paket umgestellt.\n\n' +
+                    'WICHTIG: Damit keine weiteren Abbuchungen erfolgen, musst du dein kostenpflichtiges Abo zusätzlich direkt bei CopeCart kündigen.\n\n' +
+                    'So gehst du vor:\n' +
+                    '1. Öffne deine CopeCart-Bestellbestätigung oder logge dich bei CopeCart ein.\n' +
+                    '2. Suche dein aktives Abo für den Terminmarktplatz.\n' +
+                    '3. Klicke dort auf „Abo kündigen“ bzw. den entsprechenden Kündigungslink.\n\n' +
+                    'Erst wenn die Kündigung bei CopeCart durchgeführt wurde, stoppen zukünftige Abbuchungen.'
+                  );
                   location.reload();
                 } else if (data.error === 'no_active_plan') {
-                  alert('Kein aktives Paket gefunden.');
+                  alert('Du hast aktuell kein bezahltes Paket. Du nutzt bereits das Basis-Paket.');
                   cancelBtn.style.display = 'none';
                 } else {
                   alert(data.error ? `Kündigung fehlgeschlagen: ${data.error}` : 'Kündigung fehlgeschlagen.');
@@ -1304,21 +1316,23 @@
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
 
         let bookingHint = '';
-        if (activeBookings.length === 1){
-          const b = activeBookings[0];
-          bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
-        } else if (activeBookings.length > 1){
-          const maxVisible = 3;
-          const visible = activeBookings.slice(0, maxVisible);
-          const listStr = visible
-            .map(b => `${b.customer_name} (${b.customer_email})`)
-            .join('; ');
-          const hiddenCount = activeBookings.length - visible.length;
-
-          if (hiddenCount > 0){
-            bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
+        if (activeBookings.length > 0){
+          if (activeBookings.length === 1){
+            const b = activeBookings[0];
+            bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
           } else {
-            bookingHint = `Gebucht von: ${listStr}`;
+            const maxVisible = 3;
+            const visible = activeBookings.slice(0, maxVisible);
+            const listStr = visible
+              .map(b => `${b.customer_name} (${b.customer_email})`)
+              .join('; ');
+            const hiddenCount = activeBookings.length - visible.length;
+
+            if (hiddenCount > 0){
+              bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
+            } else {
+              bookingHint = `Gebucht von: ${listStr}`;
+            }
           }
         }
 

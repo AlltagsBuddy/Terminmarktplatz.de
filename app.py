@@ -766,6 +766,69 @@ def send_mail(
 
 
 # --------------------------------------------------------
+# Spezielle Kündigungs-Mail (Portal + CopeCart-Hinweis)
+# --------------------------------------------------------
+def send_email_plan_canceled(provider: Provider, old_plan: str | None):
+    """
+    Bestätigungsmail nach Klick auf "Paket kündigen" im Anbieter-Portal.
+
+    WICHTIG: Hier wird NUR das Portal-Paket beendet.
+    Das CopeCart-Abo muss der/die Anbieter:in selbst bei CopeCart kündigen.
+    """
+    to = (provider.email or "").strip().lower()
+    if not to:
+        return
+
+    # im Portal wird nach der Kündigung auf Basis zurückgestuft
+    plan_name = "Basis-Paket (kostenlos)"
+    slots = provider.free_slots_per_month or 3
+
+    body = f"""Hallo {provider.company_name or 'Anbieter/in'},
+
+du hast dein kostenpflichtiges Paket im Terminmarktplatz-Anbieterportal gekündigt.
+
+Was wurde jetzt in deinem Portal geändert?
+- Dein Konto wurde auf das kostenlose {plan_name} zurückgesetzt.
+- Dein Slot-Kontingent im Portal liegt jetzt bei {slots} freien Slots pro Monat.
+- Deine bestehenden Slots und Buchungen bleiben erhalten.
+
+WICHTIG: CopeCart-Abo separat kündigen
+Wenn du dein Paket ursprünglich über CopeCart gebucht hast, läuft dort weiterhin dein Zahlungs-Abo.
+Dieses Abo wird NICHT automatisch von Terminmarktplatz gekündigt.
+
+So kündigst du dein CopeCart-Abo:
+1. Öffne die Bestellbestätigungs-E-Mail von CopeCart zu deinem Paket.
+2. Klicke dort auf den Link „Abo verwalten“ oder „Abo kündigen“.
+3. Folge den Schritten bei CopeCart, bis dir die Kündigung bestätigt wird.
+
+Alternativ kannst du dich im CopeCart-Kundenbereich anmelden und dein Abo dort beenden:
+https://copecart.com/login
+
+Wichtig: Erst nach der Kündigung bei CopeCart werden keine weiteren Zahlungen mehr abgebucht.
+
+Bei Fragen antworte einfach auf diese E-Mail.
+
+Viele Grüße
+Terminmarktplatz
+"""
+
+    try:
+        send_mail(
+            to,
+            "Bestätigung deiner Paket-Kündigung im Terminmarktplatz-Portal",
+            text=body,
+            tag="plan_canceled",
+            metadata={
+                "provider_id": str(provider.id),
+                "old_plan": old_plan or "",
+                "source": "portal_cancel_plan",
+            },
+        )
+    except Exception as e:
+        app.logger.warning("send_email_plan_canceled failed: %r", e)
+
+
+# --------------------------------------------------------
 # Auth / Tokens
 # --------------------------------------------------------
 def issue_tokens(provider_id: str, is_admin: bool):
@@ -1462,8 +1525,7 @@ def cancel_plan():
     Kündigt das Paket NUR im Portal:
     - stellt auf Basis-Paket um (plan='basic')
     - setzt free_slots_per_month auf Basis-Limit
-    - schickt eine E-Mail mit Hinweis:
-      Das zahlungspflichtige Abo muss IMMER bei CopeCart gekündigt werden.
+    - schickt eine E-Mail mit klarer Bestätigung + Anleitung für CopeCart-Kündigung.
     """
     try:
         with Session(engine) as s:
@@ -1482,38 +1544,15 @@ def cancel_plan():
             p.plan_valid_until = None
             p.free_slots_per_month = 3  # dein Basis-Limit
 
-            # Daten für Mail merken, bevor Session zugeht
-            email = p.email
-            company_name = p.company_name
-            provider_id = p.id
-
             s.commit()
 
-        # Hinweis-Mail: Abo muss bei CopeCart gekündigt werden
-        try:
-            body = (
-                f"Hallo {company_name or 'Anbieter'},\n\n"
-                f"dein Paket '{old_plan}' wurde im Terminmarktplatz-Portal auf das kostenlose Basis-Paket umgestellt.\n\n"
-                "WICHTIG: Dein zahlungspflichtiges Abo bei CopeCart wird dadurch NICHT automatisch beendet.\n"
-                "Bitte kündige dein Abo direkt bei CopeCart (über dein Kundenkonto oder die Bestellbestätigung),\n"
-                "damit keine weiteren Abbuchungen erfolgen.\n\n"
-                "Viele Grüße\n"
-                "Terminmarktplatz\n"
-            )
-
-            send_mail(
-                email,
-                "Hinweis zu deiner Paket-Kündigung",
-                text=body,
-                tag="plan_canceled",
-                metadata={
-                    "provider_id": str(provider_id),
-                    "old_plan": old_plan,
-                    "source": "portal_cancel_plan",
-                },
-            )
-        except Exception as e:
-            app.logger.warning("cancel_plan: send_mail failed: %r", e)
+            # Bestätigungs-Mail mit CopeCart-Hinweisen
+            try:
+                send_email_plan_canceled(p, old_plan)
+            except Exception as e:
+                app.logger.warning(
+                    "cancel_plan: send_email_plan_canceled failed: %r", e
+                )
 
         return jsonify({"ok": True, "status": "canceled_to_basic"})
     except Exception:
