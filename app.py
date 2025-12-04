@@ -19,6 +19,7 @@ try:
     from zoneinfo import ZoneInfo
 except Exception:
     from backports.zoneinfo import ZoneInfo
+
 BERLIN = ZoneInfo("Europe/Berlin")
 
 import time
@@ -29,8 +30,14 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
 from flask import (
-    Flask, request, redirect, jsonify, make_response,
-    render_template, url_for, abort
+    Flask,
+    request,
+    redirect,
+    jsonify,
+    make_response,
+    render_template,
+    url_for,
+    abort,
 )
 from flask_cors import CORS
 from argon2 import PasswordHasher
@@ -51,12 +58,16 @@ from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice
 # --------------------------------------------------------
 load_dotenv()
 
-APP_ROOT     = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR   = os.path.join(APP_ROOT, "static")
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")  # <— Templates-Ordner
 
-IS_RENDER = bool(os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID") or os.environ.get("RENDER_EXTERNAL_URL"))
-API_ONLY  = os.environ.get("API_ONLY") == "1"
+IS_RENDER = bool(
+    os.environ.get("RENDER")
+    or os.environ.get("RENDER_SERVICE_ID")
+    or os.environ.get("RENDER_EXTERNAL_URL")
+)
+API_ONLY = os.environ.get("API_ONLY") == "1"
 
 app = Flask(
     __name__,
@@ -77,32 +88,34 @@ print("STATIC     :", STATIC_DIR)
 # --------------------------------------------------------
 # Config
 # --------------------------------------------------------
-SECRET            = os.environ.get("SECRET_KEY", "dev")
-DB_URL            = os.environ.get("DATABASE_URL", "")
-JWT_ISS           = os.environ.get("JWT_ISS", "terminmarktplatz")
-JWT_AUD           = os.environ.get("JWT_AUD", "terminmarktplatz_client")
-JWT_EXP_MIN       = int(os.environ.get("JWT_EXP_MINUTES", "60"))
-REFRESH_EXP_DAYS  = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
+SECRET = os.environ.get("SECRET_KEY", "dev")
+DB_URL = os.environ.get("DATABASE_URL", "")
+JWT_ISS = os.environ.get("JWT_ISS", "terminmarktplatz")
+JWT_AUD = os.environ.get("JWT_AUD", "terminmarktplatz_client")
+JWT_EXP_MIN = int(os.environ.get("JWT_EXP_MINUTES", "60"))
+REFRESH_EXP_DAYS = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
 
 # --- MAIL Konfiguration (Resend standard; Postmark/SMTP optional) ---
-MAIL_PROVIDER  = os.getenv("MAIL_PROVIDER", "resend")   # resend | postmark | smtp | console
-MAIL_FROM      = os.getenv("MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>")
-MAIL_REPLY_TO  = os.getenv("MAIL_REPLY_TO", os.getenv("REPLY_TO", MAIL_FROM))
+MAIL_PROVIDER = os.getenv("MAIL_PROVIDER", "resend")  # resend | postmark | smtp | console
+MAIL_FROM = os.getenv(
+    "MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>"
+)
+MAIL_REPLY_TO = os.getenv("MAIL_REPLY_TO", os.getenv("REPLY_TO", MAIL_FROM))
 EMAILS_ENABLED = os.getenv("EMAILS_ENABLED", "true").lower() == "true"
-CONTACT_TO     = os.getenv("CONTACT_TO", MAIL_FROM)
+CONTACT_TO = os.getenv("CONTACT_TO", MAIL_FROM)
 
 # RESEND (HTTPS)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
 # POSTMARK (HTTPS)
-POSTMARK_API_TOKEN      = os.getenv("POSTMARK_API_TOKEN") or os.getenv("POSTMARK_TOKEN")
+POSTMARK_API_TOKEN = os.getenv("POSTMARK_API_TOKEN") or os.getenv("POSTMARK_TOKEN")
 POSTMARK_MESSAGE_STREAM = os.getenv("POSTMARK_MESSAGE_STREAM", "outbound")
 
 # SMTP (z. B. STRATO) – für lokale Tests
-SMTP_HOST    = os.getenv("SMTP_HOST")
-SMTP_PORT    = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER    = os.getenv("SMTP_USER")
-SMTP_PASS    = os.getenv("SMTP_PASS")
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
 
@@ -113,12 +126,18 @@ def _cfg(name: str, default: str | None = None) -> str:
     return val
 
 
-BASE_URL     = _cfg("BASE_URL", "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
-FRONTEND_URL = _cfg("FRONTEND_URL", "https://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000")
+BASE_URL = _cfg(
+    "BASE_URL",
+    "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000",
+)
+FRONTEND_URL = _cfg(
+    "FRONTEND_URL",
+    "https://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000",
+)
 
 # Stripe Config
-STRIPE_SECRET_KEY      = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET  = os.getenv("STRIPE_WEBHOOK_SECRET")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 if stripe and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
@@ -138,8 +157,8 @@ for env_name, plan_key in [
         COPECART_PRODUCT_PLAN_MAP[pid] = plan_key
 
 # CopeCart Checkout-URLs (aus .env)
-COPECART_STARTER_URL  = os.getenv("COPECART_STARTER_URL")
-COPECART_PROFI_URL    = os.getenv("COPECART_PROFI_URL")
+COPECART_STARTER_URL = os.getenv("COPECART_STARTER_URL")
+COPECART_PROFI_URL = os.getenv("COPECART_PROFI_URL")
 COPECART_BUSINESS_URL = os.getenv("COPECART_BUSINESS_URL")
 
 COPECART_PLAN_URLS = {
@@ -217,16 +236,16 @@ else:
 CORS(
     app,
     resources={
-        r"/auth/*":        {"origins": ALLOWED_ORIGINS},
-        r"/me":            {"origins": ALLOWED_ORIGINS},
-        r"/slots*":        {"origins": ALLOWED_ORIGINS},
-        r"/provider/*":    {"origins": ALLOWED_ORIGINS},
-        r"/admin/*":       {"origins": ALLOWED_ORIGINS},
-        r"/public/*":      {"origins": ALLOWED_ORIGINS},
-        r"/api/*":         {"origins": ALLOWED_ORIGINS},
+        r"/auth/*": {"origins": ALLOWED_ORIGINS},
+        r"/me": {"origins": ALLOWED_ORIGINS},
+        r"/slots*": {"origins": ALLOWED_ORIGINS},
+        r"/provider/*": {"origins": ALLOWED_ORIGINS},
+        r"/admin/*": {"origins": ALLOWED_ORIGINS},
+        r"/public/*": {"origins": ALLOWED_ORIGINS},
+        r"/api/*": {"origins": ALLOWED_ORIGINS},
         r"/paket-buchen*": {"origins": ALLOWED_ORIGINS},
-        r"/copecart/*":    {"origins": ALLOWED_ORIGINS},
-        r"/webhook/stripe":   {"origins": ALLOWED_ORIGINS},
+        r"/copecart/*": {"origins": ALLOWED_ORIGINS},
+        r"/webhook/stripe": {"origins": ALLOWED_ORIGINS},
         r"/webhook/copecart": {"origins": ALLOWED_ORIGINS},
     },
     supports_credentials=True,
@@ -271,12 +290,16 @@ def _gc_key(zip_code: str | None, city: str | None) -> str:
     return ""
 
 
-def geocode_cached(session: Session, zip_code: str | None, city: str | None) -> tuple[float | None, float | None]:
+def geocode_cached(
+    session: Session, zip_code: str | None, city: str | None
+) -> tuple[float | None, float | None]:
     key = _gc_key(zip_code, city)
     if not key:
         return None, None
 
-    row = session.execute(text("SELECT lat, lon FROM geocode_cache WHERE key=:k"), {"k": key}).first()
+    row = session.execute(
+        text("SELECT lat, lon FROM geocode_cache WHERE key=:k"), {"k": key}
+    ).first()
     if row and row[0] is not None and row[1] is not None:
         return float(row[0]), float(row[1])
 
@@ -284,8 +307,15 @@ def geocode_cached(session: Session, zip_code: str | None, city: str | None) -> 
     try:
         r = requests.get(
             "https://nominatim.openstreetmap.org/search",
-            params={"q": query, "format": "json", "limit": 1, "countrycodes": "de"},
-            headers={"User-Agent": "Terminmarktplatz/1.0 (kontakt@terminmarktplatz.de)"},
+            params={
+                "q": query,
+                "format": "json",
+                "limit": 1,
+                "countrycodes": "de",
+            },
+            headers={
+                "User-Agent": "Terminmarktplatz/1.0 (kontakt@terminmarktplatz.de)"
+            },
             timeout=8,
         )
         if r.ok:
@@ -496,14 +526,18 @@ def create_invoices_for_period(session: Session, year: int, month: int) -> dict:
     start_db = _to_db_utc_naive(period_start_dt)
     end_db = _to_db_utc_naive(next_month_dt)
 
-    bookings = session.execute(
-        select(Booking).where(
-            Booking.status == "confirmed",
-            Booking.fee_status == "open",
-            Booking.created_at >= start_db,
-            Booking.created_at < end_db,
+    bookings = (
+        session.execute(
+            select(Booking).where(
+                Booking.status == "confirmed",
+                Booking.fee_status == "open",
+                Booking.created_at >= start_db,
+                Booking.created_at < end_db,
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     by_provider: dict[str, list[Booking]] = {}
     for b in bookings:
@@ -706,12 +740,16 @@ def send_mail(
 
             try:
                 if SMTP_USE_TLS:
-                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+                    with smtplib.SMTP(
+                        SMTP_HOST, SMTP_PORT, timeout=20
+                    ) as s:
                         s.starttls()
                         s.login(SMTP_USER, SMTP_PASS)
                         s.send_message(msg, from_addr=SMTP_USER)
                 else:
-                    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+                    with smtplib.SMTP_SSL(
+                        SMTP_HOST, SMTP_PORT, timeout=20
+                    ) as s:
                         s.login(SMTP_USER, SMTP_PASS)
                         s.send_message(msg, from_addr=SMTP_USER)
                 return True, "smtp"
@@ -860,13 +898,11 @@ def maybe_api_only():
         or request.path.startswith("/copecart/")
         or request.path.startswith("/webhook/stripe")
         or request.path.startswith("/webhook/copecart")
-        # HIER ändern:
         or request.path.startswith("/me")
         or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
     ):
         return _json_error("api_only", 404)
-
 
 
 # --------------------------------------------------------
@@ -1344,14 +1380,14 @@ def me():
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
                 "plan_valid_until": p.plan_valid_until.isoformat()
-                if getattr(p, "plan_valid_until", None) else None,
+                if getattr(p, "plan_valid_until", None)
+                else None,
                 "free_slots_per_month": free_limit,
                 "slots_used_this_month": int(slots_used),
                 "slots_left_this_month": slots_left,
                 "slots_unlimited": unlimited,  # nur noch berechnet, NICHT mehr DB-Spalte
             }
         )
-
 
 
 @app.put("/me")
@@ -1423,14 +1459,11 @@ def me_update():
 @auth_required()
 def cancel_plan():
     """
-    Kündigt das aktuelle Paket im Portal:
-    - setzt Provider.plan auf None
-    - setzt plan_valid_until auf None
-    - setzt free_slots_per_month auf Basis (3)
-
-    WICHTIG:
-    Das stoppt NICHT automatisch Abbuchungen bei CopeCart/Stripe.
-    Dafür muss der Nutzer über CopeCart / Zahlungsanbieter selbst kündigen.
+    Kündigt das Paket NUR im Portal:
+    - stellt auf Basis-Paket um (plan='basic')
+    - setzt free_slots_per_month auf Basis-Limit
+    - schickt eine E-Mail mit Hinweis:
+      Das zahlungspflichtige Abo muss IMMER bei CopeCart gekündigt werden.
     """
     try:
         with Session(engine) as s:
@@ -1438,61 +1471,54 @@ def cancel_plan():
             if not p:
                 return _json_error("not_found", 404)
 
-            # Kein aktives Paket
-            if not p.plan:
+            # Wenn kein bezahltes Paket aktiv ist, abbrechen
+            if not p.plan or p.plan == "basic":
                 return _json_error("no_active_plan", 400)
 
-            # Werte sichern, bevor wir sie überschreiben (für Mail)
-            old_plan_key = p.plan
-            old_valid_until = getattr(p, "plan_valid_until", None)
+            old_plan = p.plan
 
-            # Zurück auf Basis
-            p.plan = None
+            # Portal-seitig auf Basis runterstufen
+            p.plan = "basic"  # WICHTIG: kein None, sonst NOT NULL-Fehler
             p.plan_valid_until = None
-            # GANZ WICHTIG: nicht NULL schreiben, sondern auf Basis-Limit setzen
-            p.free_slots_per_month = 3
+            p.free_slots_per_month = 3  # dein Basis-Limit
+
+            # Daten für Mail merken, bevor Session zugeht
+            email = p.email
+            company_name = p.company_name
+            provider_id = p.id
 
             s.commit()
 
-        # Bestätigungs-Mail an den Anbieter
+        # Hinweis-Mail: Abo muss bei CopeCart gekündigt werden
         try:
-            plan_name = old_plan_key or "Dein Paket"
-            subj = "Bestätigung: Dein Paket im Terminmarktplatz wurde gekündigt"
-
-            valid_txt = ""
-            if old_valid_until:
-                try:
-                    valid_txt = f" (bisher gültig bis {old_valid_until.isoformat()})"
-                except Exception:
-                    pass
-
             body = (
-                f"Hallo,\n\n"
-                f"dein Paket '{plan_name}'{valid_txt} wurde im Anbieter-Portal gekündigt.\n\n"
-                f"Ab sofort bist du wieder im Basis-Zugang mit 3 freien Slots pro Monat.\n\n"
-                f"WICHTIG: Wenn du das Paket über einen Zahlungsanbieter wie CopeCart oder Stripe "
-                f"gebucht hast, musst du das Abo dort separat kündigen. Die Kündigung im Portal "
-                f"stoppt keine Abbuchungen beim Zahlungsanbieter.\n\n"
-                f"Viele Grüße\n"
-                f"Terminmarktplatz"
+                f"Hallo {company_name or 'Anbieter'},\n\n"
+                f"dein Paket '{old_plan}' wurde im Terminmarktplatz-Portal auf das kostenlose Basis-Paket umgestellt.\n\n"
+                "WICHTIG: Dein zahlungspflichtiges Abo bei CopeCart wird dadurch NICHT automatisch beendet.\n"
+                "Bitte kündige dein Abo direkt bei CopeCart (über dein Kundenkonto oder die Bestellbestätigung),\n"
+                "damit keine weiteren Abbuchungen erfolgen.\n\n"
+                "Viele Grüße\n"
+                "Terminmarktplatz\n"
             )
 
             send_mail(
-                p.email,
-                subj,
+                email,
+                "Hinweis zu deiner Paket-Kündigung",
                 text=body,
                 tag="plan_canceled",
-                metadata={"provider_id": str(p.id), "old_plan": old_plan_key or ""},
+                metadata={
+                    "provider_id": str(provider_id),
+                    "old_plan": old_plan,
+                    "source": "portal_cancel_plan",
+                },
             )
         except Exception as e:
-            app.logger.exception("cancel_plan mail failed: %r", e)
+            app.logger.warning("cancel_plan: send_mail failed: %r", e)
 
-        return jsonify({"ok": True, "status": "canceled"})
-    except Exception as e:
+        return jsonify({"ok": True, "status": "canceled_to_basic"})
+    except Exception:
         app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
-
-
 
 
 # --------------------------------------------------------
@@ -1852,11 +1878,14 @@ def provider_cancel_booking(booking_id):
 
             customer_email = b.customer_email
             customer_name = b.customer_name
-            slot_title = (slot_obj.title if slot_obj and slot_obj.title else "dein Termin")
+            slot_title = (
+                slot_obj.title if slot_obj and slot_obj.title else "dein Termin"
+            )
             slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at) if slot_obj else ""
             provider_name = (
                 (provider_obj.company_name or provider_obj.email)
-                if provider_obj else "der Anbieter"
+                if provider_obj
+                else "der Anbieter"
             )
             booking_id_str = str(b.id)
             slot_id_str = str(b.slot_id) if b.slot_id else None
@@ -1901,11 +1930,14 @@ def provider_cancel_booking(booking_id):
 def admin_providers():
     status = request.args.get("status", "pending")
     with Session(engine) as s:
-        items = s.scalars(
-            select(Provider)
-            .where(Provider.status == status)
-            .order_by(Provider.created_at.asc())
-        ).all()
+        items = (
+            s.scalars(
+                select(Provider)
+                .where(Provider.status == status)
+                .order_by(Provider.created_at.asc())
+            )
+            .all()
+        )
         return jsonify(
             [
                 {
@@ -1948,11 +1980,14 @@ def admin_provider_reject(pid):
 def admin_slots():
     status = request.args.get("status", "pending_review")
     with Session(engine) as s:
-        items = s.scalars(
-            select(Slot)
-            .where(Slot.status == status)
-            .order_by(Slot.start_at.asc())
-        ).all()
+        items = (
+            s.scalars(
+                select(Slot)
+                .where(Slot.status == status)
+                .order_by(Slot.start_at.asc())
+            )
+            .all()
+        )
         return jsonify([slot_to_json(x) for x in items])
 
 
@@ -2266,7 +2301,9 @@ def copecart_webhook():
     plan_key = COPECART_PRODUCT_PLAN_MAP.get(str(product_id))
     if not plan_key:
         # anderes Produkt, ignorieren
-        app.logger.info("CopeCart webhook: product_id %s not mapped to plan", product_id)
+        app.logger.info(
+            "CopeCart webhook: product_id %s not mapped to plan", product_id
+        )
         return "OK", 200
 
     # Nur erfolgreiche Zahlungen / Trials verarbeiten
@@ -2381,7 +2418,6 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     )
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
-
 
 
 @app.get("/public/slots")
@@ -2529,11 +2565,15 @@ def public_slots():
             except Exception:
                 provider_dict = {
                     "id": provider.id,
-                    "name": getattr(provider, "public_name", None) or provider.company_name or provider.email,
+                    "name": getattr(provider, "public_name", None)
+                    or provider.company_name
+                    or provider.email,
                     "street": provider.street,
                     "zip": provider.zip,
                     "city": provider.city,
-                    "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(", "),
+                    "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(
+                        ", "
+                    ),
                     "branch": provider.branch,
                     "phone": provider.phone,
                     "whatsapp": provider.whatsapp,
@@ -2756,7 +2796,10 @@ def public_cancel():
                 slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at)
             if provider_obj is not None:
                 provider_email = provider_obj.email
-                provider_name = (provider_obj.company_name or provider_obj.email) or provider_name
+                provider_name = (
+                    (provider_obj.company_name or provider_obj.email)
+                    or provider_name
+                )
 
             if b.status in ("hold", "confirmed"):
                 b.status = "canceled"
@@ -2805,7 +2848,10 @@ def public_cancel():
                         "Termin storniert",
                         text=body_cust,
                         tag="booking_canceled_by_customer",
-                        metadata={"booking_id": str(booking["id"]), "slot_id": str(slot["id"]) if slot else None},
+                        metadata={
+                            "booking_id": str(booking["id"]),
+                            "slot_id": str(slot["id"]) if slot else None,
+                        },
                     )
             except Exception as e:
                 print("[public_cancel][mail_customer_error]", repr(e), flush=True)
@@ -2824,7 +2870,10 @@ def public_cancel():
                         "Buchung storniert",
                         text=body_prov,
                         tag="booking_canceled_notify_provider",
-                        metadata={"booking_id": str(booking["id"]), "slot_id": str(slot["id"]) if slot else None},
+                        metadata={
+                            "booking_id": str(booking["id"]),
+                            "slot_id": str(slot["id"]) if slot else None,
+                        },
                     )
             except Exception as e:
                 print("[public_cancel][mail_provider_error]", repr(e), flush=True)
