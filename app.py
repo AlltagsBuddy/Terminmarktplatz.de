@@ -844,126 +844,109 @@ def health():
 
 
 # --------------------------------------------------------
-# API-only Gate (optional)
+# API-only Gate (deaktiviert – alles erreichbar)
 # --------------------------------------------------------
 @app.before_request
 def maybe_api_only():
-    if not API_ONLY:
-        return
-    if not (
-        request.path.startswith("/auth/")
-        or request.path.startswith("/admin/")
-        or request.path.startswith("/public/")
-        or request.path.startswith("/slots")
-        or request.path.startswith("/provider/")
-        or request.path.startswith("/paket-buchen")
-        or request.path.startswith("/copecart/")
-        or request.path.startswith("/webhook/stripe")
-        or request.path.startswith("/webhook/copecart")
-        or request.path.startswith("/me")
-        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt")
-        or request.path.startswith("/static/")
-    ):
-        return _json_error("api_only", 404)
+    # Früher wurden im API_ONLY-Modus viele HTML-Routen geblockt.
+    # Für stabilen Betrieb (Login + Suche) lassen wir jetzt alle Pfade durch.
+    return None
 
 
 # --------------------------------------------------------
-# HTML ROUTES (Full mode)
+# HTML ROUTES
 # --------------------------------------------------------
-def _html_enabled() -> bool:
-    return not API_ONLY
+@app.get("/")
+def index():
+    return render_template("index.html")
 
 
-if _html_enabled():
+@app.get("/login")
+def login_page():
+    return render_template("login.html")
 
-    @app.get("/")
-    def index():
-        return render_template("index.html")
 
-    @app.get("/login")
-    def login_page():
-        return render_template("login.html")
+@app.get("/anbieter-portal")
+def anbieter_portal_page():
+    return render_template("anbieter-portal.html")
 
-    @app.get("/anbieter-portal")
-    def anbieter_portal_page():
-        return render_template("anbieter-portal.html")
 
-    @app.get("/anbieter-portal.html")
-    def anbieter_portal_page_html():
-        return render_template("anbieter-portal.html")
+@app.get("/anbieter-portal.html")
+def anbieter_portal_page_html():
+    return render_template("anbieter-portal.html")
 
-    @app.get("/impressum")
-    def impressum():
-        return render_template("impressum.html")
 
-    @app.get("/datenschutz")
-    def datenschutz():
-        return render_template("datenschutz.html")
+@app.get("/impressum")
+def impressum():
+    return render_template("impressum.html")
 
-    @app.get("/agb")
-    def agb():
-        return render_template("agb.html")
 
-    @app.get("/paket-buchen")
-    @auth_required()
-    def paket_buchen_page():
-        plan_key = (request.args.get("plan") or "starter").strip()
-        plan = PLANS.get(plan_key)
-        if not plan:
-            plan_key = "starter"
-            plan = PLANS["starter"]
+@app.get("/datenschutz")
+def datenschutz():
+    return render_template("datenschutz.html")
 
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p:
-                abort(404)
 
-        return render_template(
-            "paket_buchen.html",
-            plan_key=plan_key,
-            plan=plan,
-        )
+@app.get("/agb")
+def agb():
+    return render_template("agb.html")
 
-    @app.get("/copecart/kaufen")
-    def copecart_kaufen():
-        """
-        Einstieg für Paket-Kauf über CopeCart.
 
-        - ?plan=starter|profi|business
-        - wenn nicht eingeloggt: Redirect zu /login mit next=...
-        - wenn eingeloggt: Redirect zur CopeCart-Checkout-URL + subid=provider_id
-        """
-        plan_key = (request.args.get("plan") or "starter").strip().lower()
-        url = COPECART_PLAN_URLS.get(plan_key)
-        if not url:
+@app.get("/paket-buchen")
+@auth_required()
+def paket_buchen_page():
+    plan_key = (request.args.get("plan") or "starter").strip()
+    plan = PLANS.get(plan_key)
+    if not plan:
+        plan_key = "starter"
+        plan = PLANS["starter"]
+
+    with Session(engine) as s:
+        p = s.get(Provider, request.provider_id)
+        if not p:
             abort(404)
 
-        provider_id = _current_provider_id_or_none()
-        if not provider_id:
-            # nicht eingeloggt → Login mit Rücksprung
-            next_url = url_for("copecart_kaufen", plan=plan_key)
-            login_url = url_for("login_page")
-            return redirect(f"{login_url}?next={next_url}&register=1")
+    return render_template(
+        "paket_buchen.html",
+        plan_key=plan_key,
+        plan=plan,
+    )
 
-        # eingeloggt → direkt zu CopeCart, Provider-ID als Tracking-Param
-        sep = "&" if "?" in url else "?"
-        target = f"{url}{sep}subid={provider_id}"
 
-        return redirect(target, code=302)
+@app.get("/copecart/kaufen")
+def copecart_kaufen():
+    """
+    Einstieg für Paket-Kauf über CopeCart.
 
-    @app.get("/<path:slug>")
-    def any_page(slug: str):
-        filename = slug if slug.endswith(".html") else f"{slug}.html"
-        try:
-            return render_template(filename)
-        except Exception:
-            abort(404)
+    - ?plan=starter|profi|business
+    - wenn nicht eingeloggt: Redirect zu /login mit next=...
+    - wenn eingeloggt: Redirect zur CopeCart-Checkout-URL + subid=provider_id
+    """
+    plan_key = (request.args.get("plan") or "starter").strip().lower()
+    url = COPECART_PLAN_URLS.get(plan_key)
+    if not url:
+        abort(404)
 
-else:
+    provider_id = _current_provider_id_or_none()
+    if not provider_id:
+        # nicht eingeloggt → Login mit Rücksprung
+        next_url = url_for("copecart_kaufen", plan=plan_key)
+        login_url = url_for("login_page")
+        return redirect(f"{login_url}?next={next_url}&register=1")
 
-    @app.get("/")
-    def api_root():
-        return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
+    # eingeloggt → direkt zu CopeCart, Provider-ID als Tracking-Param
+    sep = "&" if "?" in url else "?"
+    target = f"{url}{sep}subid={provider_id}"
+
+    return redirect(target, code=302)
+
+
+@app.get("/<path:slug>")
+def any_page(slug: str):
+    filename = slug if slug.endswith(".html") else f"{slug}.html"
+    try:
+        return render_template(filename)
+    except Exception:
+        abort(404)
 
 
 # --------------------------------------------------------
