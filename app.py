@@ -237,7 +237,10 @@ CORS(
     app,
     resources={
         r"/auth/*": {"origins": ALLOWED_ORIGINS},
+        # WICHTIG: /me UND alle Unterpfade
         r"/me": {"origins": ALLOWED_ORIGINS},
+        r"/me/*": {"origins": ALLOWED_ORIGINS},
+
         r"/slots*": {"origins": ALLOWED_ORIGINS},
         r"/provider/*": {"origins": ALLOWED_ORIGINS},
         r"/admin/*": {"origins": ALLOWED_ORIGINS},
@@ -252,6 +255,7 @@ CORS(
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 )
+
 
 
 @app.after_request
