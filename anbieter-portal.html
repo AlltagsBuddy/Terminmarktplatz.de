@@ -1034,7 +1034,7 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && data.ok) {
-                  alert('Dein Paket wurde im Portal beendet. Prüfe zusätzlich dein CopeCart-Abo, damit keine weiteren Abbuchungen erfolgen.');
+                  alert('Dein Paket wurde im Portal beendet. Du erhältst eine Bestätigungs-E-Mail. Prüfe zusätzlich dein CopeCart-Abo, damit keine weiteren Abbuchungen erfolgen.');
                   location.reload();
                 } else if (data.error === 'no_active_plan') {
                   alert('Kein aktives Paket gefunden.');

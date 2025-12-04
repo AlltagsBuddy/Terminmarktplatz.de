@@ -1426,11 +1426,11 @@ def cancel_plan():
     Kündigt das aktuelle Paket im Portal:
     - setzt Provider.plan auf None
     - setzt plan_valid_until auf None
-    - setzt free_slots_per_month auf Basis (=> None -> 3 über Logik)
+    - setzt free_slots_per_month auf Basis (3)
 
     WICHTIG:
-    Das stoppt NICHT automatisch Abbuchungen bei CopeCart.
-    Dafür muss der Nutzer über CopeCart (Kündigungslink / Kundenbereich) gehen.
+    Das stoppt NICHT automatisch Abbuchungen bei CopeCart/Stripe.
+    Dafür muss der Nutzer über CopeCart / Zahlungsanbieter selbst kündigen.
     """
     try:
         with Session(engine) as s:
@@ -1442,20 +1442,57 @@ def cancel_plan():
             if not p.plan:
                 return _json_error("no_active_plan", 400)
 
+            # Werte sichern, bevor wir sie überschreiben (für Mail)
+            old_plan_key = p.plan
+            old_valid_until = getattr(p, "plan_valid_until", None)
+
             # Zurück auf Basis
             p.plan = None
             p.plan_valid_until = None
-            p.free_slots_per_month = None  # Basis: 3 via provider_can_create_free_slot
+            # GANZ WICHTIG: nicht NULL schreiben, sondern auf Basis-Limit setzen
+            p.free_slots_per_month = 3
+
             s.commit()
 
-            return jsonify({"ok": True, "status": "canceled"})
+        # Bestätigungs-Mail an den Anbieter
+        try:
+            plan_name = old_plan_key or "Dein Paket"
+            subj = "Bestätigung: Dein Paket im Terminmarktplatz wurde gekündigt"
+
+            valid_txt = ""
+            if old_valid_until:
+                try:
+                    valid_txt = f" (bisher gültig bis {old_valid_until.isoformat()})"
+                except Exception:
+                    pass
+
+            body = (
+                f"Hallo,\n\n"
+                f"dein Paket '{plan_name}'{valid_txt} wurde im Anbieter-Portal gekündigt.\n\n"
+                f"Ab sofort bist du wieder im Basis-Zugang mit 3 freien Slots pro Monat.\n\n"
+                f"WICHTIG: Wenn du das Paket über einen Zahlungsanbieter wie CopeCart oder Stripe "
+                f"gebucht hast, musst du das Abo dort separat kündigen. Die Kündigung im Portal "
+                f"stoppt keine Abbuchungen beim Zahlungsanbieter.\n\n"
+                f"Viele Grüße\n"
+                f"Terminmarktplatz"
+            )
+
+            send_mail(
+                p.email,
+                subj,
+                text=body,
+                tag="plan_canceled",
+                metadata={"provider_id": str(p.id), "old_plan": old_plan_key or ""},
+            )
+        except Exception as e:
+            app.logger.exception("cancel_plan mail failed: %r", e)
+
+        return jsonify({"ok": True, "status": "canceled"})
     except Exception as e:
         app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
 
 
-
-    
 
 
 # --------------------------------------------------------
@@ -2342,8 +2379,9 @@ def _haversine_km(lat1, lon1, lat2, lon2):
         * cos(radians(lat2))
         * sin(dlon / 2) ** 2
     )
-    c = 2 * atan2(sqrt(1 - a), sqrt(a))
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
+
 
 
 @app.get("/public/slots")
