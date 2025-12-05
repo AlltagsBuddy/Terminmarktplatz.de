@@ -2,6 +2,7 @@ import os
 import traceback
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal  # für Geldbeträge
+from typing import Optional
 
 import json
 import hmac
@@ -97,9 +98,7 @@ REFRESH_EXP_DAYS = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
 
 # --- MAIL Konfiguration (Resend standard; Postmark/SMTP optional) ---
 MAIL_PROVIDER = os.getenv("MAIL_PROVIDER", "resend")  # resend | postmark | smtp | console
-MAIL_FROM = os.getenv(
-    "MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>"
-)
+MAIL_FROM = os.getenv("MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>")
 MAIL_REPLY_TO = os.getenv("MAIL_REPLY_TO", os.getenv("REPLY_TO", MAIL_FROM))
 EMAILS_ENABLED = os.getenv("EMAILS_ENABLED", "true").lower() == "true"
 CONTACT_TO = os.getenv("CONTACT_TO", MAIL_FROM)
@@ -240,7 +239,6 @@ CORS(
         # WICHTIG: /me UND alle Unterpfade
         r"/me": {"origins": ALLOWED_ORIGINS},
         r"/me/*": {"origins": ALLOWED_ORIGINS},
-
         r"/slots*": {"origins": ALLOWED_ORIGINS},
         r"/provider/*": {"origins": ALLOWED_ORIGINS},
         r"/admin/*": {"origins": ALLOWED_ORIGINS},
@@ -255,7 +253,6 @@ CORS(
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 )
-
 
 
 @app.after_request
@@ -284,6 +281,68 @@ def _ensure_geo_tables():
 
 
 _ensure_geo_tables()
+
+
+# --------------------------------------------------------
+# Publish-Quota Tabellen (idempotent, best effort)
+# --------------------------------------------------------
+def _ensure_publish_quota_tables():
+    # 1) publish_quota
+    ddl_quota_uuid = """
+    CREATE TABLE IF NOT EXISTS public.publish_quota (
+      provider_id uuid NOT NULL,
+      month date NOT NULL,
+      used integer NOT NULL DEFAULT 0,
+      "limit" integer NOT NULL,
+      PRIMARY KEY (provider_id, month)
+    );
+    """
+    ddl_quota_fk = """
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'publish_quota_provider_fk'
+      ) THEN
+        ALTER TABLE public.publish_quota
+        ADD CONSTRAINT publish_quota_provider_fk
+        FOREIGN KEY (provider_id) REFERENCES public.provider(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+    """
+    # 2) slot.published_at (damit slot_to_json & Admin/Publish nicht crashen, wenn du es noch nicht hast)
+    ddl_slot_published_at = """
+    ALTER TABLE public.slot
+      ADD COLUMN IF NOT EXISTS published_at timestamp without time zone;
+    """
+    with engine.begin() as conn:
+        try:
+            conn.exec_driver_sql(ddl_quota_uuid)
+            conn.exec_driver_sql(ddl_quota_fk)
+        except Exception as e:
+            # Wenn provider.id NICHT uuid ist, kann das fehlschlagen.
+            # Dann probieren wir text (ohne FK) – besser als gar nichts.
+            try:
+                conn.exec_driver_sql(
+                    """
+                    CREATE TABLE IF NOT EXISTS public.publish_quota (
+                      provider_id text NOT NULL,
+                      month date NOT NULL,
+                      used integer NOT NULL DEFAULT 0,
+                      "limit" integer NOT NULL,
+                      PRIMARY KEY (provider_id, month)
+                    );
+                    """
+                )
+            except Exception:
+                app.logger.warning("publish_quota ensure failed: %r", e)
+
+        try:
+            conn.exec_driver_sql(ddl_slot_published_at)
+        except Exception as e:
+            app.logger.warning("slot.published_at ensure failed: %r", e)
+
+
+_ensure_publish_quota_tables()
 
 
 def _gc_key(zip_code: str | None, city: str | None) -> str:
@@ -357,6 +416,12 @@ def geocode_cached(
 # --------------------------------------------------------
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _as_utc_aware(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def parse_iso_utc(s: str) -> datetime:
@@ -440,6 +505,9 @@ def slot_to_json(x: Slot):
         "price_cents": x.price_cents,
         "notes": x.notes,
         "status": x.status,
+        "published_at": _from_db_as_iso_utc(getattr(x, "published_at"))
+        if getattr(x, "published_at", None)
+        else None,
         "created_at": _from_db_as_iso_utc(x.created_at),
     }
 
@@ -468,51 +536,215 @@ def is_profile_complete(p: Provider) -> bool:
     )
 
 
-# NEU: Limit-Check – max. freie Slots pro Monat (abhängig von free_slots_per_month)
-def provider_can_create_free_slot(session: Session, provider_id: str) -> bool:
-    """
-    Prüft, ob der Provider im aktuellen Monat noch Slots anlegen darf.
+# --------------------------------------------------------
+# Publish-Quota (Variante A)
+# - Slots werden als DRAFT angelegt (unbegrenzt)
+# - Publish ist pro Monat limitiert (Provider.free_slots_per_month)
+# - Zählung nach Slot.start_at Monat (Europe/Berlin)
+# --------------------------------------------------------
+class PublishLimitReached(Exception):
+    pass
 
-    Basis:
-      - Provider.free_slots_per_month (wird beim Paketkauf gesetzt)
-      - Zeitraum: aktueller Monat (Zeitzone Berlin)
-      - gezählt werden Slots im Status pending_review/published
-    """
-    p = session.get(Provider, provider_id)
-    if not p:
-        return False
 
-    free_limit = p.free_slots_per_month or 3
+def _month_key_from_dt(dt: datetime) -> date:
+    dt_aware = _as_utc_aware(dt)
+    local = dt_aware.astimezone(BERLIN)
+    return date(local.year, local.month, 1)
 
-    # "unbegrenzt" – 0 = kein Limit
-    if free_limit <= 0:
-        return True
 
-    now_berlin = datetime.now(BERLIN)
-    first_local = now_berlin.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    if now_berlin.month == 12:
-        next_local = first_local.replace(year=now_berlin.year + 1, month=1)
+def _month_bounds_utc_naive(month_key: date) -> tuple[datetime, datetime]:
+    start_local = datetime(month_key.year, month_key.month, 1, 0, 0, 0, tzinfo=BERLIN)
+    if month_key.month == 12:
+        next_local = datetime(month_key.year + 1, 1, 1, 0, 0, 0, tzinfo=BERLIN)
     else:
-        next_local = first_local.replace(month=now_berlin.month + 1)
+        next_local = datetime(month_key.year, month_key.month + 1, 1, 0, 0, 0, tzinfo=BERLIN)
+    return _to_db_utc_naive(start_local), _to_db_utc_naive(next_local)
 
-    first_utc_naive = _to_db_utc_naive(first_local)
-    next_utc_naive = _to_db_utc_naive(next_local)
 
-    count = (
+def _published_count_for_month(session: Session, provider_id: str, month_key: date) -> int:
+    start_db, next_db = _month_bounds_utc_naive(month_key)
+    c = (
         session.scalar(
             select(func.count())
             .select_from(Slot)
             .where(
                 Slot.provider_id == provider_id,
-                Slot.start_at >= first_utc_naive,
-                Slot.start_at < next_utc_naive,
-                Slot.status.in_(["pending_review", "published"]),
+                Slot.start_at >= start_db,
+                Slot.start_at < next_db,
+                Slot.status == "PUBLISHED",
             )
         )
         or 0
     )
+    return int(c)
 
-    return count < free_limit
+
+def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> dict:
+    """
+    Atomisch publishen:
+      - Slot FOR UPDATE lock
+      - publish_quota upsert + sync used mit IST-Zählung
+      - used++ nur wenn used < limit
+      - Slot.status -> PUBLISHED + published_at
+    """
+    slot = session.execute(
+        text(
+            """
+            SELECT id, provider_id, start_at, status, capacity
+            FROM public.slot
+            WHERE id = :sid AND provider_id = :pid
+            FOR UPDATE
+            """
+        ),
+        {"sid": str(slot_id), "pid": str(provider_id)},
+    ).mappings().first()
+
+    if not slot:
+        raise ValueError("not_found")
+    if slot["status"] != "DRAFT":
+        raise ValueError("not_draft")
+
+    start_at = slot["start_at"]
+    if start_at is None:
+        raise ValueError("bad_datetime")
+    start_at_aware = _as_utc_aware(start_at)
+    if start_at_aware <= _now():
+        raise ValueError("start_in_past")
+
+    cap = int(slot["capacity"] or 1)
+    if cap < 1:
+        raise ValueError("bad_capacity")
+
+    lim_row = session.execute(
+        text("SELECT free_slots_per_month AS lim FROM public.provider WHERE id=:pid"),
+        {"pid": str(provider_id)},
+    ).mappings().first()
+    if not lim_row:
+        raise ValueError("provider_not_found")
+
+    plan_limit = int(lim_row["lim"] or 0)  # <=0 = unlimited
+    month_key = _month_key_from_dt(start_at_aware)
+
+    now_db = _to_db_utc_naive(_now())
+
+    # Unlimited -> direkt publishen
+    if plan_limit <= 0:
+        session.execute(
+            text(
+                """
+                UPDATE public.slot
+                SET status='PUBLISHED', published_at=:now
+                WHERE id=:sid AND provider_id=:pid AND status='DRAFT'
+                """
+            ),
+            {"sid": str(slot_id), "pid": str(provider_id), "now": now_db},
+        )
+        return {"unlimited": True, "month": str(month_key), "used": None, "limit": None}
+
+    actual_used = _published_count_for_month(session, provider_id, month_key)
+
+    session.execute(
+        text(
+            """
+            INSERT INTO public.publish_quota (provider_id, month, used, "limit")
+            VALUES (:pid, :m, :used, :lim)
+            ON CONFLICT (provider_id, month) DO UPDATE
+            SET used    = GREATEST(public.publish_quota.used, EXCLUDED.used),
+                "limit" = GREATEST(public.publish_quota."limit", EXCLUDED."limit")
+            """
+        ),
+        {"pid": str(provider_id), "m": month_key, "used": int(actual_used), "lim": int(plan_limit)},
+    )
+
+    bumped = session.execute(
+        text(
+            """
+            UPDATE public.publish_quota
+            SET used = used + 1
+            WHERE provider_id=:pid AND month=:m AND used < "limit"
+            RETURNING used, "limit"
+            """
+        ),
+        {"pid": str(provider_id), "m": month_key},
+    ).mappings().first()
+
+    if not bumped:
+        raise PublishLimitReached("monthly_publish_limit_reached")
+
+    session.execute(
+        text(
+            """
+            UPDATE public.slot
+            SET status='PUBLISHED', published_at=:now
+            WHERE id=:sid AND provider_id=:pid AND status='DRAFT'
+            """
+        ),
+        {"sid": str(slot_id), "pid": str(provider_id), "now": now_db},
+    )
+
+    return {
+        "unlimited": False,
+        "month": str(month_key),
+        "used": int(bumped["used"]),
+        "limit": int(bumped["limit"]),
+    }
+
+
+def _unpublish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> dict:
+    """
+    PUBLISHED -> DRAFT und Quota used--.
+    """
+    slot = session.execute(
+        text(
+            """
+            SELECT id, provider_id, start_at, status
+            FROM public.slot
+            WHERE id=:sid AND provider_id=:pid
+            FOR UPDATE
+            """
+        ),
+        {"sid": str(slot_id), "pid": str(provider_id)},
+    ).mappings().first()
+
+    if not slot:
+        raise ValueError("not_found")
+    if slot["status"] != "PUBLISHED":
+        raise ValueError("not_published")
+
+    start_at = slot["start_at"]
+    start_at_aware = _as_utc_aware(start_at) if start_at else _now()
+    month_key = _month_key_from_dt(start_at_aware)
+
+    session.execute(
+        text(
+            """
+            UPDATE public.publish_quota
+            SET used = GREATEST(used - 1, 0)
+            WHERE provider_id=:pid AND month=:m
+            """
+        ),
+        {"pid": str(provider_id), "m": month_key},
+    )
+
+    session.execute(
+        text(
+            """
+            UPDATE public.slot
+            SET status='DRAFT', published_at=NULL
+            WHERE id=:sid AND provider_id=:pid AND status='PUBLISHED'
+            """
+        ),
+        {"sid": str(slot_id), "pid": str(provider_id)},
+    )
+
+    row = session.execute(
+        text("""SELECT used, "limit" FROM public.publish_quota WHERE provider_id=:pid AND month=:m"""),
+        {"pid": str(provider_id), "m": month_key},
+    ).mappings().first()
+
+    if row:
+        return {"month": str(month_key), "used": int(row["used"] or 0), "limit": int(row["limit"] or 0)}
+    return {"month": str(month_key), "used": 0, "limit": None}
 
 
 # Monatsabrechnung: Sammelrechnungen erzeugen
@@ -744,16 +976,12 @@ def send_mail(
 
             try:
                 if SMTP_USE_TLS:
-                    with smtplib.SMTP(
-                        SMTP_HOST, SMTP_PORT, timeout=20
-                    ) as s:
+                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
                         s.starttls()
                         s.login(SMTP_USER, SMTP_PASS)
                         s.send_message(msg, from_addr=SMTP_USER)
                 else:
-                    with smtplib.SMTP_SSL(
-                        SMTP_HOST, SMTP_PORT, timeout=20
-                    ) as s:
+                    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
                         s.login(SMTP_USER, SMTP_PASS)
                         s.send_message(msg, from_addr=SMTP_USER)
                 return True, "smtp"
@@ -1106,9 +1334,7 @@ def public_contact():
             f"Nachricht:\n{message}\n"
         )
 
-        ok, reason = send_mail(
-            CONTACT_TO, f"[Terminmarktplatz] Kontakt: {subject}", body
-        )
+        ok, reason = send_mail(CONTACT_TO, f"[Terminmarktplatz] Kontakt: {subject}", body)
         try:
             send_mail(
                 email,
@@ -1307,7 +1533,6 @@ def auth_login_form():
         )
 
     access, refresh = issue_tokens(p.id, p.is_admin)
-    # optional: next-Parameter aus Query abholen, falls vorhanden
     next_url = request.args.get("next") or url_for("anbieter_portal_page")
     resp = make_response(redirect(next_url))
     return _set_auth_cookies(resp, access, refresh)
@@ -1367,7 +1592,7 @@ def delete_me():
         resp.delete_cookie("access_token", **flags)
         resp.delete_cookie("refresh_token", **flags)
         return resp
-    except Exception as e:
+    except Exception:
         app.logger.exception("delete_me failed")
         return jsonify({"error": "server_error"}), 500
 
@@ -1391,43 +1616,28 @@ def me():
         if plan_conf:
             plan_label = plan_conf["name"]
         elif plan_key:
-            # Unbekannter Plan-Key, aber wenigstens anzeigen
             plan_label = plan_key
         else:
-            # Default: Basis
             plan_label = "Basis (Standard)"
 
-        # Slot-Limits / Nutzung im aktuellen Monat
+        # Publish-Limit pro Monat
         free_limit = p.free_slots_per_month or 3
-        # "unlimited" wird NICHT mehr aus der DB gelesen,
-        # sondern rein über free_slots_per_month abgebildet:
         unlimited = free_limit <= 0
 
         now_berlin = datetime.now(BERLIN)
-        first_local = now_berlin.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        if now_berlin.month == 12:
-            next_local = first_local.replace(year=now_berlin.year + 1, month=1)
+        month_key = date(now_berlin.year, now_berlin.month, 1)
+
+        row = s.execute(
+            text("""SELECT used, "limit" FROM public.publish_quota WHERE provider_id=:pid AND month=:m"""),
+            {"pid": str(p.id), "m": month_key},
+        ).mappings().first()
+
+        if row:
+            slots_used = int(row["used"] or 0)
         else:
-            next_local = first_local.replace(month=now_berlin.month + 1)
+            slots_used = _published_count_for_month(s, str(p.id), month_key)
 
-        first_utc_naive = _to_db_utc_naive(first_local)
-        next_utc_naive = _to_db_utc_naive(next_local)
-
-        slots_used = (
-            s.scalar(
-                select(func.count())
-                .select_from(Slot)
-                .where(
-                    Slot.provider_id == p.id,
-                    Slot.start_at >= first_utc_naive,
-                    Slot.start_at < next_utc_naive,
-                    Slot.status.in_(["pending_review", "published"]),
-                )
-            )
-            or 0
-        )
-
-        slots_left = None if unlimited else max(0, free_limit - slots_used)
+        slots_left = None if unlimited else max(0, int(free_limit) - int(slots_used))
 
         return jsonify(
             {
@@ -1452,7 +1662,7 @@ def me():
                 "free_slots_per_month": free_limit,
                 "slots_used_this_month": int(slots_used),
                 "slots_left_this_month": slots_left,
-                "slots_unlimited": unlimited,  # nur noch berechnet, NICHT mehr DB-Spalte
+                "slots_unlimited": unlimited,
             }
         )
 
@@ -1537,26 +1747,21 @@ def cancel_plan():
             if not p:
                 return _json_error("not_found", 404)
 
-            # Wenn kein bezahltes Paket aktiv ist, abbrechen
             if not p.plan or p.plan == "basic":
                 return _json_error("no_active_plan", 400)
 
             old_plan = p.plan
 
-            # Portal-seitig auf Basis runterstufen
-            p.plan = "basic"  # WICHTIG: kein None, sonst NOT NULL-Fehler
+            p.plan = "basic"
             p.plan_valid_until = None
-            p.free_slots_per_month = 3  # dein Basis-Limit
+            p.free_slots_per_month = 3
 
             s.commit()
 
-            # Bestätigungs-Mail mit CopeCart-Hinweisen
             try:
                 send_email_plan_canceled(p, old_plan)
             except Exception as e:
-                app.logger.warning(
-                    "cancel_plan: send_email_plan_canceled failed: %r", e
-                )
+                app.logger.warning("cancel_plan: send_email_plan_canceled failed: %r", e)
 
         return jsonify({"ok": True, "status": "canceled_to_basic"})
     except Exception:
@@ -1567,27 +1772,15 @@ def cancel_plan():
 # --------------------------------------------------------
 # Slots (Provider)
 # --------------------------------------------------------
-VALID_STATUSES = {"pending_review", "published", "archived"}
-
-
-def _status_transition_ok(current: str, new: str) -> bool:
-    if new not in VALID_STATUSES:
-        return False
-    if current == new:
-        return True
-    if current == "pending_review":
-        return new in {"published", "archived"}
-    if current == "published":
-        return new in {"archived"}
-    if current == "archived":
-        return new in {"published"}
-    return False
+VALID_STATUSES = {"DRAFT", "PUBLISHED"}
 
 
 @app.get("/slots")
 @auth_required()
 def slots_list():
     status = request.args.get("status")
+    status = status.strip().upper() if status else None
+
     with Session(engine) as s:
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
@@ -1693,25 +1886,16 @@ def slots_create():
             if not p or not is_profile_complete(p):
                 return _json_error("profile_incomplete", 400)
 
-            # Limit bezogen auf free_slots_per_month (Planabhängig)
-            if not provider_can_create_free_slot(s, request.provider_id):
-                return _json_error("free_slot_limit_reached", 400)
-
-            # globales Schutzlimit
+            # globales Schutzlimit (gegen Missbrauch). DRAFTs sind "unbegrenzt" im Sinne von: nicht pro Monat limitiert.
             count = (
                 s.scalar(
                     select(func.count())
                     .select_from(Slot)
-                    .where(
-                        and_(
-                            Slot.provider_id == request.provider_id,
-                            Slot.status.in_(["pending_review", "published"]),
-                        )
-                    )
+                    .where(Slot.provider_id == request.provider_id, Slot.status.in_(["DRAFT", "PUBLISHED"]))
                 )
                 or 0
             )
-            if count > 200:
+            if count > 50000:
                 return _json_error("limit_reached", 400)
 
             title = (str(data["title"]).strip() or "Slot")[:100]
@@ -1730,7 +1914,7 @@ def slots_create():
                 booking_link=(data.get("booking_link") or None),
                 price_cents=(data.get("price_cents") or None),
                 notes=(data.get("notes") or None),
-                status="pending_review",
+                status="DRAFT",
             )
             s.add(slot)
             try:
@@ -1783,6 +1967,10 @@ def slots_update(slot_id):
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
+            # PUBLISHED Slots sind gesperrt – erst unpublishen, dann ändern (sonst Quota-Bypass)
+            if slot.status == "PUBLISHED":
+                return _json_error("published_locked_unpublish_first", 409)
+
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -1795,6 +1983,10 @@ def slots_update(slot_id):
                     return _json_error("bad_datetime", 400)
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
+
+            # start darf nicht in der Vergangenheit liegen (auch für Drafts sinnvoll)
+            if _as_utc_aware(slot.start_at) <= _now():
+                return _json_error("start_in_past", 409)
 
             if "category" in data:
                 data["category"] = normalize_category(data.get("category"))
@@ -1823,19 +2015,9 @@ def slots_update(slot_id):
                 if k in data:
                     setattr(slot, k, data[k])
 
+            # Status wird NICHT per PUT geändert (Publish/Unpublish sind eigene Endpoints)
             if "status" in data:
-                new_status = str(data["status"])
-                cur_status = slot.status
-                if new_status not in VALID_STATUSES:
-                    return _json_error("bad_status", 400)
-                if not _status_transition_ok(cur_status, new_status):
-                    return _json_error("transition_forbidden", 409)
-                if new_status == "published":
-                    if slot.start_at.replace(tzinfo=timezone.utc) <= _now():
-                        return _json_error("start_in_past", 409)
-                    if (slot.capacity or 1) < 1:
-                        return _json_error("bad_capacity", 400)
-                slot.status = new_status
+                return _json_error("status_change_forbidden_use_publish_endpoints", 409)
 
             try:
                 s.commit()
@@ -1874,6 +2056,54 @@ def slots_update(slot_id):
     except Exception as e:
         print("[PUT /slots] server error:", traceback.format_exc(), flush=True)
         return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
+@app.post("/slots/<slot_id>/publish")
+@auth_required()
+def slots_publish(slot_id):
+    try:
+        with Session(engine) as s:
+            try:
+                with s.begin():
+                    result = _publish_slot_quota_tx(s, request.provider_id, slot_id)
+                return jsonify({"ok": True, "quota": result})
+            except PublishLimitReached:
+                return _json_error("monthly_publish_limit_reached", 409)
+            except ValueError as e:
+                msg = str(e)
+                if msg == "not_found":
+                    return _json_error("not_found", 404)
+                if msg == "not_draft":
+                    return _json_error("not_draft", 409)
+                if msg == "start_in_past":
+                    return _json_error("start_in_past", 409)
+                if msg == "bad_capacity":
+                    return _json_error("bad_capacity", 400)
+                return _json_error("bad_request", 400)
+    except Exception:
+        app.logger.exception("slots_publish failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.post("/slots/<slot_id>/unpublish")
+@auth_required()
+def slots_unpublish(slot_id):
+    try:
+        with Session(engine) as s:
+            try:
+                with s.begin():
+                    result = _unpublish_slot_quota_tx(s, request.provider_id, slot_id)
+                return jsonify({"ok": True, "quota": result})
+            except ValueError as e:
+                msg = str(e)
+                if msg == "not_found":
+                    return _json_error("not_found", 404)
+                if msg == "not_published":
+                    return _json_error("not_published", 409)
+                return _json_error("bad_request", 400)
+    except Exception:
+        app.logger.exception("slots_unpublish failed")
+        return jsonify({"error": "server_error"}), 500
 
 
 @app.delete("/slots/<slot_id>")
@@ -1921,9 +2151,7 @@ def provider_cancel_booking(booking_id):
 
             customer_email = b.customer_email
             customer_name = b.customer_name
-            slot_title = (
-                slot_obj.title if slot_obj and slot_obj.title else "dein Termin"
-            )
+            slot_title = slot_obj.title if slot_obj and slot_obj.title else "dein Termin"
             slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at) if slot_obj else ""
             provider_name = (
                 (provider_obj.company_name or provider_obj.email)
@@ -1960,7 +2188,7 @@ def provider_cancel_booking(booking_id):
             print("[provider_cancel_booking][mail_error]", repr(e), flush=True)
 
         return jsonify({"ok": True})
-    except Exception as e:
+    except Exception:
         app.logger.exception("provider_cancel_booking failed")
         return jsonify({"error": "server_error"}), 500
 
@@ -1983,12 +2211,7 @@ def admin_providers():
         )
         return jsonify(
             [
-                {
-                    "id": p.id,
-                    "email": p.email,
-                    "company_name": p.company_name,
-                    "status": p.status,
-                }
+                {"id": p.id, "email": p.email, "company_name": p.company_name, "status": p.status}
                 for p in items
             ]
         )
@@ -2021,7 +2244,7 @@ def admin_provider_reject(pid):
 @app.get("/admin/slots")
 @auth_required(admin=True)
 def admin_slots():
-    status = request.args.get("status", "pending_review")
+    status = (request.args.get("status") or "DRAFT").strip().upper()
     with Session(engine) as s:
         items = (
             s.scalars(
@@ -2037,29 +2260,53 @@ def admin_slots():
 @app.post("/admin/slots/<sid>/publish")
 @auth_required(admin=True)
 def admin_slot_publish(sid):
-    with Session(engine) as s:
-        slot = s.get(Slot, sid, with_for_update=True)
-        if not slot:
-            return _json_error("not_found", 404)
-        if not _status_transition_ok(slot.status, "published"):
-            return _json_error("transition_forbidden", 409)
-        if slot.start_at <= _now():
-            return _json_error("start_in_past", 409)
-        slot.status = "published"
-        s.commit()
-        return jsonify({"ok": True})
+    try:
+        with Session(engine) as s:
+            slot = s.get(Slot, sid)
+            if not slot:
+                return _json_error("not_found", 404)
+            try:
+                with s.begin():
+                    result = _publish_slot_quota_tx(s, str(slot.provider_id), str(sid))
+                return jsonify({"ok": True, "quota": result})
+            except PublishLimitReached:
+                return _json_error("monthly_publish_limit_reached", 409)
+            except ValueError as e:
+                msg = str(e)
+                if msg == "not_draft":
+                    return _json_error("not_draft", 409)
+                if msg == "start_in_past":
+                    return _json_error("start_in_past", 409)
+                return _json_error("bad_request", 400)
+    except Exception:
+        app.logger.exception("admin_slot_publish failed")
+        return jsonify({"error": "server_error"}), 500
 
 
 @app.post("/admin/slots/<sid>/reject")
 @auth_required(admin=True)
 def admin_slot_reject(sid):
-    with Session(engine) as s:
-        slot = s.get(Slot, sid)
-        if not slot:
-            return _json_error("not_found", 404)
-        slot.status = "archived"
-        s.commit()
-        return jsonify({"ok": True})
+    """
+    In neuem Modell: "reject" == unpublish (PUBLISHED -> DRAFT).
+    """
+    try:
+        with Session(engine) as s:
+            slot = s.get(Slot, sid)
+            if not slot:
+                return _json_error("not_found", 404)
+
+            if slot.status == "DRAFT":
+                return jsonify({"ok": True, "already": "DRAFT"})
+
+            if slot.status != "PUBLISHED":
+                return _json_error("not_published", 409)
+
+            with s.begin():
+                result = _unpublish_slot_quota_tx(s, str(slot.provider_id), str(sid))
+            return jsonify({"ok": True, "quota": result})
+    except Exception:
+        app.logger.exception("admin_slot_reject failed")
+        return jsonify({"error": "server_error"}), 500
 
 
 @app.get("/admin/billing_overview")
@@ -2079,10 +2326,7 @@ def admin_billing_overview():
                 func.coalesce(func.sum(Booking.provider_fee_eur), 0).label("total_eur"),
             )
             .join(Booking, Booking.provider_id == Provider.id)
-            .where(
-                Booking.status == "confirmed",
-                Booking.fee_status == "open",
-            )
+            .where(Booking.status == "confirmed", Booking.fee_status == "open")
             .group_by(Provider.id, Provider.email, Provider.company_name)
             .order_by(Provider.created_at.asc())
         ).all()
@@ -2171,17 +2415,12 @@ def paket_buchen_start():
                         "price_data": {
                             "currency": "eur",
                             "unit_amount": plan["price_cents"],
-                            "product_data": {
-                                "name": f"{plan['name']} – Monatszugang",
-                            },
+                            "product_data": {"name": f"{plan['name']} – Monatszugang"},
                         },
                         "quantity": 1,
                     }
                 ],
-                metadata={
-                    "provider_id": request.provider_id,
-                    "plan_key": plan_key,
-                },
+                metadata={"provider_id": request.provider_id, "plan_key": plan_key},
             )
             return jsonify(
                 {
@@ -2222,14 +2461,7 @@ def paket_buchen_start():
         s.add(purchase)
         s.commit()
 
-    return jsonify(
-        {
-            "ok": True,
-            "provider_id": request.provider_id,
-            "plan": plan_key,
-            "mode": "manual_no_stripe",
-        }
-    )
+    return jsonify({"ok": True, "provider_id": request.provider_id, "plan": plan_key, "mode": "manual_no_stripe"})
 
 
 @app.post("/webhook/stripe")
@@ -2248,9 +2480,7 @@ def stripe_webhook():
     sig_header = request.headers.get("Stripe-Signature", "")
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except Exception as e:
         app.logger.exception("stripe webhook signature error")
         return jsonify({"error": "invalid_signature", "detail": str(e)}), 400
@@ -2305,7 +2535,6 @@ def copecart_webhook():
     """
     if not COPECART_WEBHOOK_SECRET:
         app.logger.warning("CopeCart webhook hit, but COPECART_WEBHOOK_SECRET not set")
-        # trotzdem OK, damit CopeCart nicht dauernd retryt
         return "OK", 200
 
     sig = request.headers.get("X-Copecart-Signature", "")
@@ -2343,13 +2572,9 @@ def copecart_webhook():
 
     plan_key = COPECART_PRODUCT_PLAN_MAP.get(str(product_id))
     if not plan_key:
-        # anderes Produkt, ignorieren
-        app.logger.info(
-            "CopeCart webhook: product_id %s not mapped to plan", product_id
-        )
+        app.logger.info("CopeCart webhook: product_id %s not mapped to plan", product_id)
         return "OK", 200
 
-    # Nur erfolgreiche Zahlungen / Trials verarbeiten
     if event_type not in ("payment.made", "payment.trial"):
         return "OK", 200
 
@@ -2368,15 +2593,11 @@ def copecart_webhook():
 
     try:
         with Session(engine) as s:
-            # Annahme: Anbieter nutzt im CopeCart-Checkout dieselbe E-Mail wie im Portal-Login
             p = s.scalar(select(Provider).where(Provider.email == buyer_email))
             if not p:
-                app.logger.warning(
-                    "CopeCart webhook: no provider with email %s", buyer_email
-                )
+                app.logger.warning("CopeCart webhook: no provider with email %s", buyer_email)
                 return "OK", 200
 
-            # Doppeltes IPN für dieselbe Transaktion vermeiden
             if payment_ref:
                 existing = s.scalar(
                     select(PlanPurchase).where(
@@ -2385,17 +2606,13 @@ def copecart_webhook():
                     )
                 )
                 if existing:
-                    app.logger.info(
-                        "CopeCart webhook: PlanPurchase with ref %s already exists",
-                        payment_ref,
-                    )
+                    app.logger.info("CopeCart webhook: PlanPurchase with ref %s already exists", payment_ref)
                     return "OK", 200
 
             today = date.today()
             period_start = today
             period_end = today + timedelta(days=30)
 
-            # Tarif im Provider setzen
             p.plan = plan_key
             p.plan_valid_until = period_end
             p.free_slots_per_month = plan_conf["free_slots"]
@@ -2413,7 +2630,6 @@ def copecart_webhook():
             s.add(purchase)
             s.commit()
 
-        # CopeCart erwartet exakt "OK"
         return "OK", 200
     except Exception:
         app.logger.exception("CopeCart webhook failed")
@@ -2548,7 +2764,7 @@ def public_slots():
             )
             .join(Provider, Provider.id == Slot.provider_id)
             .outerjoin(bq, bq.c.slot_id == Slot.id)
-            .where(Slot.status == "published")
+            .where(Slot.status == "PUBLISHED")
         )
 
         if start_from is not None:
@@ -2570,12 +2786,7 @@ def public_slots():
 
         if search_term:
             pattern = f"%{search_term}%"
-            sq = sq.where(
-                or_(
-                    Slot.title.ilike(pattern),
-                    Slot.category.ilike(pattern),
-                )
-            )
+            sq = sq.where(or_(Slot.title.ilike(pattern), Slot.category.ilike(pattern)))
 
         sq = sq.order_by(Slot.start_at.asc()).limit(300)
 
@@ -2614,9 +2825,7 @@ def public_slots():
                     "street": provider.street,
                     "zip": provider.zip,
                     "city": provider.city,
-                    "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(
-                        ", "
-                    ),
+                    "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(", "),
                     "branch": provider.branch,
                     "phone": provider.phone,
                     "whatsapp": provider.whatsapp,
@@ -2650,7 +2859,8 @@ def public_book():
         slot = s.get(Slot, slot_id, with_for_update=True)
         if not slot:
             return _json_error("not_found", 404)
-        if slot.status != "published" or slot.start_at <= _now():
+
+        if slot.status != "PUBLISHED" or _as_utc_aware(slot.start_at) <= _now():
             return _json_error("not_bookable", 409)
 
         active = (
@@ -2723,7 +2933,8 @@ def public_confirm():
             already_confirmed = b.status == "confirmed"
 
             if b.status == "hold":
-                if (_now() - b.created_at) > timedelta(minutes=BOOKING_HOLD_MIN):
+                created_at_aware = _as_utc_aware(b.created_at)
+                if (_now() - created_at_aware) > timedelta(minutes=BOOKING_HOLD_MIN):
                     b.status = "canceled"
                     s.commit()
                     return _json_error("hold_expired", 409)
@@ -2801,7 +3012,7 @@ def public_confirm():
             bereits_bestaetigt=already_confirmed,
             frontend_url=FRONTEND_URL,
         )
-    except Exception as e:
+    except Exception:
         app.logger.exception("public_confirm failed")
         return jsonify({"error": "server_error"}), 500
 
@@ -2839,10 +3050,7 @@ def public_cancel():
                 slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at)
             if provider_obj is not None:
                 provider_email = provider_obj.email
-                provider_name = (
-                    (provider_obj.company_name or provider_obj.email)
-                    or provider_name
-                )
+                provider_name = (provider_obj.company_name or provider_obj.email) or provider_name
 
             if b.status in ("hold", "confirmed"):
                 b.status = "canceled"
@@ -2929,7 +3137,7 @@ def public_cancel():
             bereits_storniert=already_canceled,
             frontend_url=FRONTEND_URL,
         )
-    except Exception as e:
+    except Exception:
         app.logger.exception("public_cancel failed")
         return jsonify({"error": "server_error"}), 500
 
