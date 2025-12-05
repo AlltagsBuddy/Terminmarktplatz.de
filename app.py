@@ -537,6 +537,35 @@ def is_profile_complete(p: Provider) -> bool:
 
 
 # --------------------------------------------------------
+# SLOT Status Konstanz (einheitlich)
+# --------------------------------------------------------
+SLOT_STATUS_DRAFT = "DRAFT"
+SLOT_STATUS_PUBLISHED = "PUBLISHED"
+VALID_STATUSES = {SLOT_STATUS_DRAFT, SLOT_STATUS_PUBLISHED}
+
+
+def _effective_monthly_limit(raw_limit) -> tuple[int, bool]:
+    """
+    FIX:
+      - None / 0 => Basislimit 3 (NICHT unlimited)
+      - < 0      => unlimited (z.B. -1)
+      - > 0      => genau dieses Limit
+    """
+    try:
+        if raw_limit is None:
+            return 3, False
+        raw = int(raw_limit)
+    except Exception:
+        return 3, False
+
+    if raw == 0:
+        return 3, False
+    if raw < 0:
+        return raw, True
+    return raw, False
+
+
+# --------------------------------------------------------
 # Publish-Quota (Variante A)
 # - Slots werden als DRAFT angelegt (unbegrenzt)
 # - Publish ist pro Monat limitiert (Provider.free_slots_per_month)
@@ -571,7 +600,7 @@ def _published_count_for_month(session: Session, provider_id: str, month_key: da
                 Slot.provider_id == provider_id,
                 Slot.start_at >= start_db,
                 Slot.start_at < next_db,
-                Slot.status == "PUBLISHED",
+                Slot.status == SLOT_STATUS_PUBLISHED,
             )
         )
         or 0
@@ -601,7 +630,7 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
 
     if not slot:
         raise ValueError("not_found")
-    if slot["status"] != "DRAFT":
+    if slot["status"] != SLOT_STATUS_DRAFT:
         raise ValueError("not_draft")
 
     start_at = slot["start_at"]
@@ -622,13 +651,12 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
     if not lim_row:
         raise ValueError("provider_not_found")
 
-    plan_limit = int(lim_row["lim"] or 0)  # <=0 = unlimited
+    eff_limit, unlimited = _effective_monthly_limit(lim_row["lim"])
     month_key = _month_key_from_dt(start_at_aware)
-
     now_db = _to_db_utc_naive(_now())
 
     # Unlimited -> direkt publishen
-    if plan_limit <= 0:
+    if unlimited:
         session.execute(
             text(
                 """
@@ -641,6 +669,8 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
         )
         return {"unlimited": True, "month": str(month_key), "used": None, "limit": None}
 
+    lim_val = lim_row["lim"]
+    plan_limit = 3 if lim_val is None else int(lim_val)  # None = Basislimit
     actual_used = _published_count_for_month(session, provider_id, month_key)
 
     session.execute(
@@ -708,7 +738,7 @@ def _unpublish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -
 
     if not slot:
         raise ValueError("not_found")
-    if slot["status"] != "PUBLISHED":
+    if slot["status"] != SLOT_STATUS_PUBLISHED:
         raise ValueError("not_published")
 
     start_at = slot["start_at"]
@@ -1013,7 +1043,8 @@ def send_email_plan_canceled(provider: Provider, old_plan: str | None):
 
     # im Portal wird nach der Kündigung auf Basis zurückgestuft
     plan_name = "Basis-Paket (kostenlos)"
-    slots = provider.free_slots_per_month or 3
+    eff_limit, unlimited = _effective_monthly_limit(provider.free_slots_per_month)
+    slots = "unbegrenzt" if unlimited else eff_limit
 
     body = f"""Hallo {provider.company_name or 'Anbieter/in'},
 
@@ -1405,7 +1436,15 @@ def register():
             if exists:
                 return _json_error("email_exists")
 
-            p = Provider(email=email, pw_hash=ph.hash(password), status="pending")
+            p = Provider(
+                email=email,
+                pw_hash=ph.hash(password),
+                status="pending",
+                plan="basic",
+                free_slots_per_month=3,
+                plan_valid_until=None,
+            )
+
             s.add(p)
             s.commit()
             provider_id = p.id
@@ -1620,9 +1659,8 @@ def me():
         else:
             plan_label = "Basis (Standard)"
 
-        # Publish-Limit pro Monat
-        free_limit = p.free_slots_per_month or 3
-        unlimited = free_limit <= 0
+        # Publish-Limit pro Monat (einheitlich!)
+        eff_limit, unlimited = _effective_monthly_limit(getattr(p, "free_slots_per_month", None))
 
         now_berlin = datetime.now(BERLIN)
         month_key = date(now_berlin.year, now_berlin.month, 1)
@@ -1637,7 +1675,7 @@ def me():
         else:
             slots_used = _published_count_for_month(s, str(p.id), month_key)
 
-        slots_left = None if unlimited else max(0, int(free_limit) - int(slots_used))
+        slots_left = None if unlimited else max(0, int(eff_limit) - int(slots_used))
 
         return jsonify(
             {
@@ -1659,7 +1697,7 @@ def me():
                 "plan_valid_until": p.plan_valid_until.isoformat()
                 if getattr(p, "plan_valid_until", None)
                 else None,
-                "free_slots_per_month": free_limit,
+                "free_slots_per_month": eff_limit if not unlimited else -1,
                 "slots_used_this_month": int(slots_used),
                 "slots_left_this_month": slots_left,
                 "slots_unlimited": unlimited,
@@ -1772,9 +1810,6 @@ def cancel_plan():
 # --------------------------------------------------------
 # Slots (Provider)
 # --------------------------------------------------------
-VALID_STATUSES = {"DRAFT", "PUBLISHED"}
-
-
 @app.get("/slots")
 @auth_required()
 def slots_list():
@@ -1886,12 +1921,12 @@ def slots_create():
             if not p or not is_profile_complete(p):
                 return _json_error("profile_incomplete", 400)
 
-            # globales Schutzlimit (gegen Missbrauch). DRAFTs sind "unbegrenzt" im Sinne von: nicht pro Monat limitiert.
+            # globales Schutzlimit (gegen Missbrauch)
             count = (
                 s.scalar(
                     select(func.count())
                     .select_from(Slot)
-                    .where(Slot.provider_id == request.provider_id, Slot.status.in_(["DRAFT", "PUBLISHED"]))
+                    .where(Slot.provider_id == request.provider_id, Slot.status.in_([SLOT_STATUS_DRAFT, SLOT_STATUS_PUBLISHED]))
                 )
                 or 0
             )
@@ -1914,7 +1949,7 @@ def slots_create():
                 booking_link=(data.get("booking_link") or None),
                 price_cents=(data.get("price_cents") or None),
                 notes=(data.get("notes") or None),
-                status="DRAFT",
+                status=SLOT_STATUS_DRAFT,
             )
             s.add(slot)
             try:
@@ -1968,7 +2003,7 @@ def slots_update(slot_id):
                 return _json_error("not_found", 404)
 
             # PUBLISHED Slots sind gesperrt – erst unpublishen, dann ändern (sonst Quota-Bypass)
-            if slot.status == "PUBLISHED":
+            if slot.status == SLOT_STATUS_PUBLISHED:
                 return _json_error("published_locked_unpublish_first", 409)
 
             if "start_at" in data:
@@ -2244,7 +2279,7 @@ def admin_provider_reject(pid):
 @app.get("/admin/slots")
 @auth_required(admin=True)
 def admin_slots():
-    status = (request.args.get("status") or "DRAFT").strip().upper()
+    status = (request.args.get("status") or SLOT_STATUS_DRAFT).strip().upper()
     with Session(engine) as s:
         items = (
             s.scalars(
@@ -2295,10 +2330,10 @@ def admin_slot_reject(sid):
             if not slot:
                 return _json_error("not_found", 404)
 
-            if slot.status == "DRAFT":
-                return jsonify({"ok": True, "already": "DRAFT"})
+            if slot.status == SLOT_STATUS_DRAFT:
+                return jsonify({"ok": True, "already": SLOT_STATUS_DRAFT})
 
-            if slot.status != "PUBLISHED":
+            if slot.status != SLOT_STATUS_PUBLISHED:
                 return _json_error("not_published", 409)
 
             with s.begin():
@@ -2764,7 +2799,7 @@ def public_slots():
             )
             .join(Provider, Provider.id == Slot.provider_id)
             .outerjoin(bq, bq.c.slot_id == Slot.id)
-            .where(Slot.status == "PUBLISHED")
+            .where(Slot.status == SLOT_STATUS_PUBLISHED)
         )
 
         if start_from is not None:
@@ -2860,7 +2895,7 @@ def public_book():
         if not slot:
             return _json_error("not_found", 404)
 
-        if slot.status != "PUBLISHED" or _as_utc_aware(slot.start_at) <= _now():
+        if slot.status != SLOT_STATUS_PUBLISHED or _as_utc_aware(slot.start_at) <= _now():
             return _json_error("not_bookable", 409)
 
         active = (
