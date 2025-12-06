@@ -1524,23 +1524,53 @@ def cancel_plan():
 # --------------------------------------------------------
 # Slots (Provider)
 # --------------------------------------------------------
-VALID_STATUSES = {"pending_review", "published", "archived", "canceled"}
+# --------------------------------------------------------
+# Slots (Provider)
+# --------------------------------------------------------
+
+# erlaubte Status-Werte im System
+# "draft" bleibt für alte Datensätze erlaubt, wird aber wie "pending_review" behandelt
+VALID_STATUSES: set[str] = {
+    "pending_review",
+    "published",
+    "archived",
+    "canceled",
+    "draft",
+}
 
 
-def _status_transition_ok(current: str, new: str) -> bool:
-    if new not in VALID_STATUSES:
-        return False
-    if current == new:
-        return True
-    if current == "pending_review":
-        return new in {"published", "archived"}
-    if current == "published":
-        return new in {"archived"}
-    if current == "archived":
-        return new in {"published"}
-    if current == "canceled":
-        return new in {"published", "archived"}
-    return False
+def _normalize_slot_status_for_response(st: str | None) -> str:
+    """
+    Vereinheitlicht Status-Werte für das Frontend.
+    Alte 'draft'-Werte werden als 'pending_review' zurückgegeben.
+    """
+    if not st:
+        return "pending_review"
+    if st == "draft":
+        return "pending_review"
+    if st not in VALID_STATUSES:
+        # Fallback: für unbekannte Werte lieber 'pending_review'
+        return "pending_review"
+    return st
+
+
+def slot_to_json(x: Slot):
+    return {
+        "id": x.id,
+        "provider_id": x.provider_id,
+        "title": x.title,
+        "category": x.category,
+        "start_at": _from_db_as_iso_utc(x.start_at),
+        "end_at": _from_db_as_iso_utc(x.end_at),
+        "location": x.location,
+        "capacity": x.capacity,
+        "contact_method": x.contact_method,
+        "booking_link": x.booking_link,
+        "price_cents": x.price_cents,
+        "notes": x.notes,
+        "status": _normalize_slot_status_for_response(x.status),
+        "created_at": _from_db_as_iso_utc(x.created_at),
+    }
 
 
 @app.get("/slots")
@@ -1548,6 +1578,7 @@ def _status_transition_ok(current: str, new: str) -> bool:
 def slots_list():
     status = request.args.get("status")
     with Session(engine) as s:
+        # Buchungsanzahl pro Slot
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
             .where(Booking.status.in_(["hold", "confirmed"]))
@@ -1595,6 +1626,9 @@ def slots_list():
                         "customer_name": b.customer_name,
                         "customer_email": b.customer_email,
                         "status": b.status,
+                        "booked_at": _from_db_as_iso_utc(b.created_at)
+                        if getattr(b, "created_at", None)
+                        else None,
                     }
                 )
                 if b.status == "canceled":
@@ -1727,9 +1761,9 @@ def slots_create():
 
             return jsonify(slot_to_json(slot)), 201
 
-    except Exception as e:
+    except Exception:
         print("[/slots] server error:", traceback.format_exc(), flush=True)
-        return jsonify({"error": "server_error", "detail": str(e)}), 500
+        return jsonify({"error": "server_error"}), 500
 
 
 @app.put("/slots/<slot_id>")
@@ -1738,12 +1772,8 @@ def slots_update(slot_id):
     """
     Slot aktualisieren (inkl. Statuswechsel für Anbieter).
 
-    Frontend ruft diese Route auf:
-      PUT /slots/<id>  mit JSON z.B. { "status": "published" }
-
-    Statuswechsel werden hier explizit erlaubt, solange:
-      - new_status in VALID_STATUSES
-      - bei "published": Startzeit liegt in der Zukunft
+    Frontend nutzt:
+      PUT /slots/<id> mit z.B. { "status": "published" }
     """
     try:
         data = request.get_json(force=True) or {}
@@ -1753,7 +1783,7 @@ def slots_update(slot_id):
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
-            # --- Zeiten anpassen (optional) ---
+            # --- Zeiten anpassen ---
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -1766,11 +1796,10 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_datetime", 400)
 
-            # Konsistenzcheck
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
-            # --- „einfache“ Felder reinigen / übernehmen ---
+            # --- einfache Felder säubern ---
             if "category" in data:
                 data["category"] = normalize_category(data.get("category"))
 
@@ -1788,7 +1817,6 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
-            # Felder in das Slot-Objekt schreiben
             for k in [
                 "title",
                 "category",
@@ -1802,19 +1830,21 @@ def slots_update(slot_id):
                 if k in data:
                     setattr(slot, k, data[k])
 
-            # --- Statuswechsel explizit zulassen ---
+            # --- Statuswechsel zulassen ---
             if "status" in data:
                 new_status = str(data["status"])
+                # alte "draft" intern auf pending_review mappen
+                if new_status == "draft":
+                    new_status = "pending_review"
+
                 if new_status not in VALID_STATUSES:
                     return _json_error("bad_status", 400)
 
-                # Beim Veröffentlichen: Startzeit muss in der Zukunft liegen
                 if new_status == "published":
-                    # start_at ist in DB als naive UTC-Datetime gespeichert
+                    # start_at ist in DB als naive UTC gespeichert
                     start_utc = slot.start_at.replace(tzinfo=timezone.utc)
                     if start_utc <= _now():
                         return _json_error("start_in_past", 409)
-
                     if (slot.capacity or 1) < 1:
                         return _json_error("bad_capacity", 400)
 
@@ -1870,6 +1900,7 @@ def slots_delete(slot_id):
         s.delete(slot)
         s.commit()
         return jsonify({"ok": True})
+
 
 
 # --------------------------------------------------------
