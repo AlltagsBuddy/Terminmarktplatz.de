@@ -1735,32 +1735,51 @@ def slots_create():
 @app.put("/slots/<slot_id>")
 @auth_required()
 def slots_update(slot_id):
+    """
+    Slot aktualisieren (inkl. Statuswechsel für Anbieter).
+
+    Frontend ruft diese Route auf:
+      PUT /slots/<id>  mit JSON z.B. { "status": "published" }
+
+    Statuswechsel werden hier explizit erlaubt, solange:
+      - new_status in VALID_STATUSES
+      - bei "published": Startzeit liegt in der Zukunft
+    """
     try:
         data = request.get_json(force=True) or {}
+
         with Session(engine) as s:
             slot = s.get(Slot, slot_id, with_for_update=True)
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
+            # --- Zeiten anpassen (optional) ---
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
                 except Exception:
                     return _json_error("bad_datetime", 400)
+
             if "end_at" in data:
                 try:
                     slot.end_at = _to_db_utc_naive(parse_iso_utc(data["end_at"]))
                 except Exception:
                     return _json_error("bad_datetime", 400)
+
+            # Konsistenzcheck
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
+            # --- „einfache“ Felder reinigen / übernehmen ---
             if "category" in data:
                 data["category"] = normalize_category(data.get("category"))
+
             if "location" in data and data["location"]:
                 data["location"] = str(data["location"]).strip()[:120]
+
             if "title" in data and data["title"]:
                 data["title"] = str(data["title"]).strip()[:100]
+
             if "capacity" in data:
                 try:
                     c = int(data["capacity"])
@@ -1769,6 +1788,7 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
+            # Felder in das Slot-Objekt schreiben
             for k in [
                 "title",
                 "category",
@@ -1782,21 +1802,22 @@ def slots_update(slot_id):
                 if k in data:
                     setattr(slot, k, data[k])
 
+            # --- Statuswechsel explizit zulassen ---
             if "status" in data:
                 new_status = str(data["status"])
-                cur_status = slot.status
                 if new_status not in VALID_STATUSES:
                     return _json_error("bad_status", 400)
-                if not _status_transition_ok(cur_status, new_status):
-                    return _json_error("transition_forbidden", 409)
+
+                # Beim Veröffentlichen: Startzeit muss in der Zukunft liegen
                 if new_status == "published":
-                    # nur verhindern, wenn der Slot komplett in der Vergangenheit liegt
+                    # start_at ist in DB als naive UTC-Datetime gespeichert
                     start_utc = slot.start_at.replace(tzinfo=timezone.utc)
-                    end_utc = slot.end_at.replace(tzinfo=timezone.utc)
-                    if end_utc <= _now():
-                        return _json_error("slot_in_past", 409)
+                    if start_utc <= _now():
+                        return _json_error("start_in_past", 409)
+
                     if (slot.capacity or 1) < 1:
                         return _json_error("bad_capacity", 400)
+
                 slot.status = new_status
 
             try:
@@ -1833,9 +1854,10 @@ def slots_update(slot_id):
                 return jsonify({"error": "db_error", "detail": str(e)}), 400
 
             return jsonify({"ok": True})
-    except Exception as e:
+
+    except Exception:
         print("[PUT /slots] server error:", traceback.format_exc(), flush=True)
-        return jsonify({"error": "server_error", "detail": str(e)}), 500
+        return jsonify({"error": "server_error"}), 500
 
 
 @app.delete("/slots/<slot_id>")
