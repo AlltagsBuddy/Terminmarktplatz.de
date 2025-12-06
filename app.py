@@ -1995,6 +1995,11 @@ def slots_create():
 @app.put("/slots/<slot_id>")
 @auth_required()
 def slots_update(slot_id):
+    """
+    Aktualisiert Slot-Daten.
+    Statusänderungen (DRAFT <-> PUBLISHED) werden weiterhin über PUT erlaubt,
+    aber intern über die Quota-Logik abgewickelt.
+    """
     try:
         data = request.get_json(force=True) or {}
         with Session(engine) as s:
@@ -2002,10 +2007,41 @@ def slots_update(slot_id):
             if not slot or slot.provider_id != request.provider_id:
                 return _json_error("not_found", 404)
 
-            # PUBLISHED Slots sind gesperrt – erst unpublishen, dann ändern (sonst Quota-Bypass)
-            if slot.status == SLOT_STATUS_PUBLISHED:
-                return _json_error("published_locked_unpublish_first", 409)
+            original_status = slot.status
 
+            # --- Statuswechsel über Quota-Logik --------------------------
+            if "status" in data:
+                target_status = str(data["status"] or "").strip().upper()
+                if target_status not in VALID_STATUSES:
+                    return _json_error("invalid_status", 400)
+
+                if target_status != original_status:
+                    try:
+                        if original_status == SLOT_STATUS_DRAFT and target_status == SLOT_STATUS_PUBLISHED:
+                            _publish_slot_quota_tx(s, request.provider_id, slot_id)
+                        elif original_status == SLOT_STATUS_PUBLISHED and target_status == SLOT_STATUS_DRAFT:
+                            _unpublish_slot_quota_tx(s, request.provider_id, slot_id)
+                        else:
+                            return _json_error("invalid_status_transition", 400)
+
+                        # Slot nach Status-Update neu laden
+                        slot = s.get(Slot, slot_id, with_for_update=True)
+                        original_status = slot.status
+                    except PublishLimitReached:
+                        return _json_error("monthly_publish_limit_reached", 409)
+                    except ValueError as e:
+                        msg = str(e)
+                        if msg == "not_found":
+                            return _json_error("not_found", 404)
+                        if msg in ("not_draft", "not_published"):
+                            return _json_error(msg, 409)
+                        if msg == "start_in_past":
+                            return _json_error("start_in_past", 409)
+                        if msg == "bad_capacity":
+                            return _json_error("bad_capacity", 400)
+                        return _json_error("bad_request", 400)
+
+            # --- normale Feld-Updates (ohne Status) ----------------------
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -2049,10 +2085,6 @@ def slots_update(slot_id):
             ]:
                 if k in data:
                     setattr(slot, k, data[k])
-
-            # Status wird NICHT per PUT geändert (Publish/Unpublish sind eigene Endpoints)
-            if "status" in data:
-                return _json_error("status_change_forbidden_use_publish_endpoints", 409)
 
             try:
                 s.commit()
@@ -2396,7 +2428,7 @@ def admin_run_billing():
     now = _now()
     year = int(data.get("year") or now.year)
 
-    if "month" in data and data["month"]:
+    if "month" in data and data["month"] is not None:
         month = int(data["month"])
     else:
         if now.month == 1:
