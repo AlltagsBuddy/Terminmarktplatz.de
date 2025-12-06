@@ -1524,7 +1524,7 @@ def cancel_plan():
 # --------------------------------------------------------
 # Slots (Provider)
 # --------------------------------------------------------
-VALID_STATUSES = {"pending_review", "published", "archived"}
+VALID_STATUSES = {"pending_review", "published", "archived", "canceled"}
 
 
 def _status_transition_ok(current: str, new: str) -> bool:
@@ -1538,6 +1538,8 @@ def _status_transition_ok(current: str, new: str) -> bool:
         return new in {"archived"}
     if current == "archived":
         return new in {"published"}
+    if current == "canceled":
+        return new in {"published", "archived"}
     return False
 
 
@@ -1788,8 +1790,11 @@ def slots_update(slot_id):
                 if not _status_transition_ok(cur_status, new_status):
                     return _json_error("transition_forbidden", 409)
                 if new_status == "published":
-                    if slot.start_at.replace(tzinfo=timezone.utc) <= _now():
-                        return _json_error("start_in_past", 409)
+                    # nur verhindern, wenn der Slot komplett in der Vergangenheit liegt
+                    start_utc = slot.start_at.replace(tzinfo=timezone.utc)
+                    end_utc = slot.end_at.replace(tzinfo=timezone.utc)
+                    if end_utc <= _now():
+                        return _json_error("slot_in_past", 409)
                     if (slot.capacity or 1) < 1:
                         return _json_error("bad_capacity", 400)
                 slot.status = new_status
@@ -2000,8 +2005,10 @@ def admin_slot_publish(sid):
             return _json_error("not_found", 404)
         if not _status_transition_ok(slot.status, "published"):
             return _json_error("transition_forbidden", 409)
-        if slot.start_at <= _now():
-            return _json_error("start_in_past", 409)
+        start_utc = slot.start_at.replace(tzinfo=timezone.utc)
+        end_utc = slot.end_at.replace(tzinfo=timezone.utc)
+        if end_utc <= _now():
+            return _json_error("slot_in_past", 409)
         slot.status = "published"
         s.commit()
         return jsonify({"ok": True})
@@ -2850,6 +2857,7 @@ def public_cancel():
                         tag="booking_canceled_by_customer",
                         metadata={
                             "booking_id": str(booking["id"]),
+
                             "slot_id": str(slot["id"]) if slot else None,
                         },
                     )

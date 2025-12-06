@@ -896,6 +896,25 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    // ---- Status-Helfer (robust gegen verschiedene Status-Bezeichner) ----
+    function normStatus(st){ return (st || '').toLowerCase(); }
+    function isPendingLike(st){
+      st = normStatus(st);
+      return st === 'pending_review' || st === 'pending' || st === 'draft';
+    }
+    function isPublishedLike(st){
+      st = normStatus(st);
+      return st === 'published' || st === 'active' || st === 'live';
+    }
+    function isArchivedLike(st){
+      st = normStatus(st);
+      return st === 'archived' || st === 'archive';
+    }
+    function isCanceledLike(st){
+      st = normStatus(st);
+      return st === 'canceled' || st === 'cancelled';
+    }
+
     // ---------- Kategorien ----------
     const CATEGORIES = [
       "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
@@ -1181,7 +1200,10 @@
           recalcEnd();
           await loadSlots();
         } else {
-          showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
+          const map = {
+            slot_limit_reached: 'Slot-Limit erreicht. Bitte Paket prüfen oder alte Slots archivieren/löschen.'
+          };
+          showMsg('msg-slot', map[data.error] || data.error || 'Slot konnte nicht gespeichert werden.');
         }
       } catch (err) {
         showMsg('msg-slot', 'Netzwerkfehler – Slot konnte nicht gespeichert werden.');
@@ -1226,10 +1248,15 @@
       const byId = Object.fromEntries(items.map(x => [x.id, x]));
       const ids = [...SELECTED];
       const any = ids.length > 0;
-      const anyPending = ids.some(id => (byId[id]?.status === 'pending_review' || byId[id]?.status === 'archived' || byId[id]?.status === 'canceled'));
-      const anyPub     = ids.some(id => byId[id]?.status === 'published');
-      $('#btn-publish').disabled = !(any && anyPending);
-      $('#btn-archive').disabled = !(any && anyPub);
+
+      const anyPendingLike = ids.some(id => {
+        const st = byId[id]?.status;
+        return isPendingLike(st) || isArchivedLike(st) || isCanceledLike(st);
+      });
+      const anyPublishedLike = ids.some(id => isPublishedLike(byId[id]?.status));
+
+      $('#btn-publish').disabled = !(any && anyPendingLike);
+      $('#btn-archive').disabled = !(any && anyPublishedLike);
       $('#btn-delete').disabled  = !any;
     }
 
@@ -1251,14 +1278,15 @@
 
       for(const s of items){
         const tr = document.createElement('tr');
-        const theStatus = s.status;
+        const normSt = normStatus(s.status);
+        const theStatus = s.status || '';
 
         const endDate = s.end_at ? new Date(s.end_at) : null;
         const isPast  = !!(endDate && endDate < now);
 
         const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
-        const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
-        const canceledBookings = allBookings.filter(b => b.status === 'canceled');
+        const activeBookings   = allBookings.filter(b => b.status !== 'canceled' && b.status !== 'cancelled');
+        const canceledBookings = allBookings.filter(b => b.status === 'canceled' || b.status === 'cancelled');
 
         const capacity    = s.capacity || 1;
         const bookedCount = activeBookings.length;
@@ -1266,24 +1294,22 @@
         const isBooked    = bookedCount > 0;
 
         const stClass =
-          theStatus === 'published' ? 'st-pub'
-          : theStatus === 'archived' ? 'st-arch'
-          : theStatus === 'canceled' ? 'st-canceled'
+          isPublishedLike(normSt) ? 'st-pub'
+          : isArchivedLike(normSt) ? 'st-arch'
+          : isCanceledLike(normSt) ? 'st-canceled'
           : 'st-pending';
 
-        const canPublish = (theStatus === 'pending_review' ||
-                            theStatus === 'archived' ||
-                            theStatus === 'canceled');
+        const canPublish = (isPendingLike(normSt) || isArchivedLike(normSt) || isCanceledLike(normSt));
 
         let rowClass = '';
         if (isPast) {
           rowClass += ' slot-past';
         }
-        if (theStatus === 'canceled') {
+        if (isCanceledLike(normSt)) {
           rowClass += ' slot-canceled';
-        } else if (theStatus === 'pending_review') {
+        } else if (isPendingLike(normSt)) {
           rowClass += ' slot-pending';
-        } else if (theStatus === 'published') {
+        } else if (isPublishedLike(normSt)) {
           if (isBooked) {
             rowClass += ' slot-booked';
           } else {
@@ -1293,10 +1319,10 @@
         tr.className = rowClass.trim();
 
         const hintParts = [];
-        if (theStatus !== 'canceled') {
+        if (!isCanceledLike(normSt)) {
           if (isBooked) {
             hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
-          } else if (theStatus === 'published' && !isPast) {
+          } else if (isPublishedLike(normSt) && !isPast) {
             hintParts.push(`Frei (${available}/${capacity})`);
           }
         }
@@ -1340,7 +1366,7 @@
         }
 
         let canceledTimeHint = '';
-        if (theStatus === 'canceled') {
+        if (isCanceledLike(normSt)) {
           const ts = pickTimestamp([
             s.canceled_at,
             s.cancelled_at,
@@ -1399,10 +1425,10 @@
           <td data-label="Kategorie">${s.category||''}</td>
           <td data-label="Ort">${s.location||''}</td>
           <td data-label="Kapazität">${capacity}</td>
-          <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
+          <td data-label="Status"><span class="badge-st ${stClass}">${theStatus}</span></td>
           <td data-label="Aktionen" class="nowrap">
             ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+            ${isPublishedLike(normSt) ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
             ${cancelHtml}
           </td>
@@ -1519,7 +1545,13 @@
           credentials:'include',
           body: JSON.stringify({status})
         });
-        if(!r.ok) showMsg('msg-slots','Konnte Status nicht ändern.');
+        const data = await r.json().catch(()=> ({}));
+        if(!r.ok){
+          const map = {
+            slot_limit_reached: 'Slot-Limit erreicht. Bitte Paket prüfen oder alte Slots archivieren/löschen.'
+          };
+          showMsg('msg-slots', map[data.error] || data.error || 'Konnte Status nicht ändern.');
+        }
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
 
