@@ -1,4 +1,4 @@
-<!-- FILE: suche.html --> 
+<!-- FILE: suche.html -->  
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
@@ -926,15 +926,22 @@
 
       checkAuth();
     })();
-  </script>
 
-  <!-- Google Maps JS API – nur laden, wenn ein API-Key gesetzt ist -->
-  {% if GOOGLE_MAPS_API_KEY %}
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap"></script>
-  {% else %}
-  <script>
-    console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
+    // Google Maps Script dynamisch laden – Key kommt aus Flask/Jinja
+    (function(){
+      const gmKey = "{{ GOOGLE_MAPS_API_KEY | default('', true) }}";
+      if (!gmKey){
+        console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' +
+              encodeURIComponent(gmKey) +
+              '&callback=initMap';
+      s.async = true;
+      s.defer = true;
+      document.body.appendChild(s);
+    })();
   </script>
-  {% endif %}
-</body>
+  </body>
 </html>

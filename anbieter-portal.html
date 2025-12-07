@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html> 
 <html lang="de">
 <head>
   <meta charset="utf-8" />
@@ -632,7 +632,7 @@
         <span class="badge">Anbieter-Portal</span>
         <h1>Willkommen! 👋</h1>
         <p class="lead">Pflege hier dein <strong>Profil</strong> und lege <strong>freie Slots</strong> an.
-          Neue Slots starten als <em>„pending_review“</em>. Nach deiner Bestätigung werden sie veröffentlicht.</p>
+          Neue Slots starten als <em>Entwurf</em> und werden erst nach dem Veröffentlichen sichtbar.</p>
 
         <!-- Gebuchtes Paket-Hinweis -->
         <div class="plan-info">
@@ -763,7 +763,7 @@
                 <input id="sl-end" type="time" readonly/>
               </div>
 
-              <!-- NEU: Slot-Adresse mit Validierung -->
+              <!-- Slot-Adresse mit Validierung -->
               <div class="field">
                 <label for="sl-street">Straße & Nr. <span class="req">*</span></label>
                 <input id="sl-street" name="slot_street"
@@ -813,7 +813,7 @@
 
               <div class="toolbar">
                 <button class="btn primary" type="submit">Slot anlegen</button>
-                <span class="muted">Status: <span class="badge-st st-pending">pending_review</span></span>
+                <span class="muted">Status: <span class="badge-st st-pending">Entwurf</span></span>
               </div>
             </fieldset>
             <div id="msg-slot" class="msg"></div>
@@ -839,7 +839,7 @@
           </div>
 
           <div class="muted" style="margin:6px 0 12px">
-            Hinweis: Neue Slots werden zunächst als <em>„pending_review“</em> angelegt. Nach deiner Bestätigung werden sie veröffentlicht.
+            Hinweis: Neue Slots werden zunächst als <em>Entwurf</em> angelegt und sind erst nach dem Veröffentlichen öffentlich sichtbar.
           </div>
 
           <!-- Hinweis bei erreichtem Slot-Limit -->
@@ -1280,6 +1280,9 @@
       // Ein gemeinsames Location-Feld für Backend
       const location = `${street}, ${zip} ${city}`;
 
+      const priceCents =
+        priceVal === '' ? null : Math.round(Number(priceVal) * 100);
+
       const payload = {
         title,
         category,
@@ -1287,7 +1290,7 @@
         end_at:   endDt.toISOString(),
         location,
         capacity: isNaN(capacity) ? 1 : capacity,
-        price:    priceVal === '' ? null : Number(priceVal),
+        price_cents: (priceCents === null || isNaN(priceCents)) ? null : priceCents,
         notes:    notes || null
       };
 
@@ -1355,10 +1358,18 @@
       const byId = Object.fromEntries(items.map(x => [x.id, x]));
       const ids = [...SELECTED];
       const any = ids.length > 0;
-      const anyPending = ids.some(id => (byId[id]?.status === 'pending_review' || byId[id]?.status === 'archived' || byId[id]?.status === 'canceled'));
-      const anyPub     = ids.some(id => byId[id]?.status === 'published');
-      $('#btn-publish').disabled = !(any && anyPending);
-      $('#btn-archive').disabled = !(any && anyPub);
+
+      const anyDraft = ids.some(id => {
+        const st = (byId[id]?.status || '').toString().toUpperCase();
+        return st === 'DRAFT';
+      });
+      const anyPublished = ids.some(id => {
+        const st = (byId[id]?.status || '').toString().toUpperCase();
+        return st === 'PUBLISHED';
+      });
+
+      $('#btn-publish').disabled = !(any && anyDraft);
+      $('#btn-archive').disabled = !(any && anyPublished);
       $('#btn-delete').disabled  = !any;
     }
 
@@ -1380,7 +1391,11 @@
 
       for(const s of items){
         const tr = document.createElement('tr');
-        const theStatus = s.status;
+
+        const rawStatus = (s.status || '').toString().toUpperCase();
+        const isDraft    = rawStatus === 'DRAFT';
+        const isPublished= rawStatus === 'PUBLISHED';
+        const isCanceled = rawStatus === 'CANCELED';
 
         const endDate = s.end_at ? new Date(s.end_at) : null;
         const isPast  = !!(endDate && endDate < now);
@@ -1395,24 +1410,21 @@
         const isBooked    = bookedCount > 0;
 
         const stClass =
-          theStatus === 'published' ? 'st-pub'
-          : theStatus === 'archived' ? 'st-arch'
-          : theStatus === 'canceled' ? 'st-canceled'
+          isPublished ? 'st-pub'
+          : isCanceled ? 'st-canceled'
           : 'st-pending';
 
-        const canPublish = (theStatus === 'pending_review' ||
-                            theStatus === 'archived' ||
-                            theStatus === 'canceled');
+        const canPublish = isDraft;
 
         let rowClass = '';
         if (isPast) {
           rowClass += ' slot-past';
         }
-        if (theStatus === 'canceled') {
+        if (isCanceled) {
           rowClass += ' slot-canceled';
-        } else if (theStatus === 'pending_review') {
+        } else if (isDraft) {
           rowClass += ' slot-pending';
-        } else if (theStatus === 'published') {
+        } else if (isPublished) {
           if (isBooked) {
             rowClass += ' slot-booked';
           } else {
@@ -1422,10 +1434,10 @@
         tr.className = rowClass.trim();
 
         const hintParts = [];
-        if (theStatus !== 'canceled') {
+        if (!isCanceled) {
           if (isBooked) {
             hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
-          } else if (theStatus === 'published' && !isPast) {
+          } else if (isPublished && !isPast) {
             hintParts.push(`Frei (${available}/${capacity})`);
           }
         }
@@ -1472,7 +1484,7 @@
         }
 
         let canceledTimeHint = '';
-        if (theStatus === 'canceled') {
+        if (isCanceled) {
           const ts = pickTimestamp([
             s.canceled_at,
             s.cancelled_at,
@@ -1520,6 +1532,13 @@
           `;
         }
 
+        const statusLabelMap = {
+          DRAFT: 'Entwurf',
+          PUBLISHED: 'Veröffentlicht',
+          CANCELED: 'Storniert'
+        };
+        const statusLabel = statusLabelMap[rawStatus] || (s.status || '');
+
         tr.innerHTML = `
           <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
           <td data-label="Start">${fmtLocal(s.start_at)}</td>
@@ -1531,10 +1550,10 @@
           <td data-label="Kategorie">${s.category||''}</td>
           <td data-label="Ort">${s.location||''}</td>
           <td data-label="Kapazität">${capacity}</td>
-          <td data-label="Status"><span class="badge-st ${stClass}">${s.status}</span></td>
+          <td data-label="Status"><span class="badge-st ${stClass}">${statusLabel}</span></td>
           <td data-label="Aktionen" class="nowrap">
-            ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="published">Veröffentlichen</button>` : ''}
-            ${(theStatus === 'published') ? `<button class="btn" data-arch="${s.id}" data-status="archived">Archivieren</button>` : ''}
+            ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : ''}
+            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="DRAFT">Archivieren</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
             ${cancelHtml}
           </td>
@@ -1559,7 +1578,7 @@
         })
       );
 
-      // Status ändern (inkl. wieder veröffentlichen nach Storno)
+      // Status ändern
       $$('#tbl-slots [data-arch]').forEach(b =>
         b.addEventListener('click', async ()=>{
           await setStatus(b.dataset.arch, b.dataset.status);
@@ -1667,8 +1686,7 @@
             showMsg('msg-slots','Konnte Status nicht ändern.');
           }
         } else {
-          // Erfolg: nichts Spezielles, Hinweis bleibt ggf. stehen,
-          // weil das Limit erst mit neuem Monat/Paket weg ist.
+          // ok
         }
       }catch(e){
         showMsg('msg-slots','Netzwerkfehler.');
@@ -1720,12 +1738,12 @@
     }
     $('#btn-publish')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
-      await bulkSetStatus(ids, 'published');
+      await bulkSetStatus(ids, 'PUBLISHED');
       await loadSlots();
     });
     $('#btn-archive')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
-      await bulkSetStatus(ids, 'archived');
+      await bulkSetStatus(ids, 'DRAFT');
       await loadSlots();
     });
     $('#btn-delete')?.addEventListener('click', async ()=>{

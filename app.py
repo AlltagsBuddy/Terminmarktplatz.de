@@ -1260,14 +1260,14 @@ if _html_enabled():
     def anbieter_portal_page_html():
         return render_template("anbieter-portal.html")
 
-    # --- NEU: Suche mit Google Maps API Key ---
+    # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
     def suche_page():
-        return render_template("suche.html", google_maps_api_key=GOOGLE_MAPS_API_KEY)
+        return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
     @app.get("/suche.html")
     def suche_page_html():
-        return render_template("suche.html", google_maps_api_key=GOOGLE_MAPS_API_KEY)
+        return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
     @app.get("/impressum")
     def impressum():
@@ -1627,7 +1627,6 @@ def auth_refresh():
     return _set_auth_cookies(resp, access)
 
 
-# --- Account löschen --------------------------------
 @app.delete("/me")
 @auth_required()
 def delete_me():
