@@ -930,7 +930,8 @@
     // Google Maps Script dynamisch laden – Key direkt im Frontend eintragen
     (function () {
       // >>> HIER DEIN GOOGLE MAPS API KEY EINTRAGEN <<<
-      const gmKey = 'DEIN_GOOGLE_MAPS_API_KEY_HIER';
+      const gmKey = "{{ google_maps_api_key | default('', true) }}";
+;
 
       if (!gmKey) {
         console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
