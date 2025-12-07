@@ -573,18 +573,20 @@
           markers.push(marker);
           bounds.extend(loc);
 
-          const content = `
+         const content = `
             <div style="font-size:13px; line-height:1.4">
-              <strong>${item.providerName || 'Anbieter'}</strong><br>
-              ${item.slotTitle ? `${item.slotTitle}<br>` : ''}
+              <strong>${item.slotTitle || 'Termin'}</strong><br>
               ${item.startAt ? `${fmtDateTime(item.startAt)}<br>` : ''}
-              ${item.address}<br>
+              <strong>Anbieter:</strong> ${item.providerName || 'Anbieter'}<br>
+              ${item.category ? `<strong>Kategorie:</strong> ${item.category}<br>` : ''}
+              ${item.address ? `<strong>Adresse:</strong> ${item.address}<br>` : ''}
               <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.address)}"
-                 target="_blank" rel="noopener">
+                target="_blank" rel="noopener">
                 Route mit Google Maps planen
               </a>
             </div>
           `;
+
 
           marker.addListener('click', () => {
             infoWindow.setContent(content);
@@ -751,14 +753,17 @@
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
           : '';
 
-        if (terminAddress) {
+       if (terminAddress) {
           mapItems.push({
             address: terminAddress,
             providerName,
             slotTitle: x.title || 'Termin',
-            startAt: x.start_at
+            startAt: x.start_at,
+            category: x.category || '',
+            city: cityShow || ''
           });
         }
+
 
         const el = document.createElement('div');
         el.className = 'card';
