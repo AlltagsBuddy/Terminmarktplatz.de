@@ -927,27 +927,26 @@
       checkAuth();
     })();
 
-    // Google Maps Script dynamisch laden – Key direkt im Frontend eintragen
-    (function () {
-      // >>> HIER DEIN GOOGLE MAPS API KEY EINTRAGEN <<<
-      const gmKey = "{{ google_maps_api_key | default('', true) }}";
-;
+  
+      // Google Maps Script dynamisch laden – Key direkt eingetragen
+      (function () {
+        const gmKey = 'HIER_DEIN_ECHTER_KEY_AUS_DER_GOOGLE_CLOUD_KONSOLE';
 
-      if (!gmKey) {
-        console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
-        return;
-      }
+        if (!gmKey) {
+          console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
+          return;
+        }
 
-      const s = document.createElement('script');
-      s.src =
-        'https://maps.googleapis.com/maps/api/js?key=' +
-        encodeURIComponent(gmKey) +
-        '&callback=initMap&libraries=places';
-      s.async = true;
-      s.defer = true;
-      document.body.appendChild(s);
-    })();
-  </script>
-
+        const s = document.createElement('script');
+        s.src =
+          'https://maps.googleapis.com/maps/api/js?key=' +
+          encodeURIComponent(AIzaSyAYaQ0WOx05nwuCF5-JTc8CK0mc_XUjBvs) +
+          '&callback=initMap&libraries=places';
+        s.async = true;
+        s.defer = true;
+        document.body.appendChild(s);
+      })();
+    </script>
   </body>
 </html>
+
