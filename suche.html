@@ -426,6 +426,22 @@
         </div>
       </div>
     </section>
+
+    <!-- Google Maps Ergebnis-Karte (wird erst nach Suche eingeblendet) -->
+    <section id="map-section" style="display:none; padding:0 0 32px;">
+      <div class="container">
+        <h2 style="margin-bottom:4px;">Standorte der gefundenen Termine</h2>
+        <p class="muted" style="margin-top:0; margin-bottom:12px;">
+          Pins anklicken für Anbieter-Infos und direkten Link zur Routenplanung.
+        </p>
+      </div>
+      <div class="container">
+        <div id="map" style="width:100%; height:420px; border-radius:18px; overflow:hidden; border:1px solid #e5e7eb;"></div>
+        <p id="map-hint" class="muted" style="font-size:0.9rem; margin-top:8px;">
+          Hinweis: Für die Routenplanung wird ein neuer Tab mit Google&nbsp;Maps geöffnet.
+        </p>
+      </div>
+    </section>
   </main>
 
   <!-- Footer -->
@@ -510,6 +526,95 @@
     };
     const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
 
+    // ---- Google Maps Integration ----
+    let map = null;
+    let geocoder = null;
+    let infoWindow = null;
+    let markers = [];
+    let pendingMapItems = null;
+
+    function clearMarkers(){
+      if (!markers) return;
+      markers.forEach(m => m.setMap(null));
+      markers = [];
+    }
+
+    function updateMapForItems(mapItems){
+      const section = document.getElementById('map-section');
+
+      if (!mapItems || !mapItems.length){
+        if (section) section.style.display = 'none';
+        clearMarkers();
+        return;
+      }
+
+      // Maps-Script noch nicht geladen -> Items zwischenspeichern
+      if (typeof window.google === 'undefined' || !map || !geocoder){
+        pendingMapItems = mapItems.slice();
+        return;
+      }
+
+      if (section) section.style.display = 'block';
+
+      clearMarkers();
+      const bounds = new google.maps.LatLngBounds();
+
+      mapItems.forEach(item => {
+        if (!item.address) return;
+        geocoder.geocode({ address: item.address }, (results, status) => {
+          if (status !== 'OK' || !results || !results[0]) return;
+          const loc = results[0].geometry.location;
+
+          const marker = new google.maps.Marker({
+            map,
+            position: loc,
+            title: item.providerName || item.slotTitle || 'Termin'
+          });
+          markers.push(marker);
+          bounds.extend(loc);
+
+          const content = `
+            <div style="font-size:13px; line-height:1.4">
+              <strong>${item.providerName || 'Anbieter'}</strong><br>
+              ${item.slotTitle ? `${item.slotTitle}<br>` : ''}
+              ${item.startAt ? `${fmtDateTime(item.startAt)}<br>` : ''}
+              ${item.address}<br>
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.address)}"
+                 target="_blank" rel="noopener">
+                Route mit Google Maps planen
+              </a>
+            </div>
+          `;
+
+          marker.addListener('click', () => {
+            infoWindow.setContent(content);
+            infoWindow.open(map, marker);
+          });
+
+          map.fitBounds(bounds);
+        });
+      });
+    }
+
+    // Wird von Google Maps Script als Callback aufgerufen
+    function initMap(){
+      const mapEl = document.getElementById('map');
+      if (!mapEl || typeof window.google === 'undefined' || !google.maps) return;
+
+      map = new google.maps.Map(mapEl, {
+        center: { lat: 51.1657, lng: 10.4515 }, // Deutschland Mitte
+        zoom: 6
+      });
+      geocoder = new google.maps.Geocoder();
+      infoWindow = new google.maps.InfoWindow();
+
+      if (pendingMapItems && pendingMapItems.length){
+        const items = pendingMapItems;
+        pendingMapItems = null;
+        updateMapForItems(items);
+      }
+    }
+
     // URL-Parameter → Filter übernehmen
     const sp     = new URLSearchParams(location.search);
     const q      = (sp.get('q')||'').trim();
@@ -548,6 +653,8 @@
       const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
       const rad2  = (s2.get('radius')||'').trim();
 
+      const hasSearch = !!(q2 || ort2 || day2 || zeit2 || rad2);
+
       // ---- API-Parameter (day optional + SLOT-LOCATION + radius)
       const params = new URLSearchParams();
 
@@ -575,6 +682,10 @@
       } catch (e) {
         console.error(e);
         summary.textContent = 'Fehler beim Laden der Slots.';
+        // Karte verstecken / Marker leeren
+        const mapSection = document.getElementById('map-section');
+        if (mapSection) mapSection.style.display = 'none';
+        clearMarkers();
         return;
       }
 
@@ -599,6 +710,9 @@
       if (items.length === 0) {
         summary.textContent = '0 Treffer';
         empty.style.display = 'block';
+        const mapSection = document.getElementById('map-section');
+        if (mapSection) mapSection.style.display = 'none';
+        clearMarkers();
         return;
       }
 
@@ -616,6 +730,8 @@
       </span>`;
 
       const frag = document.createDocumentFragment();
+      const mapItems = [];
+
       items.forEach((x) => {
         // Provider-Infos aus Backend
         const p = x.provider || {};
@@ -634,6 +750,15 @@
         const availableBadge = (typeof x.available === 'number')
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
           : '';
+
+        if (terminAddress) {
+          mapItems.push({
+            address: terminAddress,
+            providerName,
+            slotTitle: x.title || 'Termin',
+            startAt: x.start_at
+          });
+        }
 
         const el = document.createElement('div');
         el.className = 'card';
@@ -662,6 +787,17 @@
         frag.appendChild(el);
       });
       results.appendChild(frag);
+
+      // Karte nur anzeigen, wenn wirklich "gesucht" wurde (irgendein Filter gesetzt)
+      // und es mindestens eine Adresse gibt.
+      const mapSection = document.getElementById('map-section');
+      if (hasSearch && mapItems.length > 0) {
+        if (mapSection) mapSection.style.display = 'block';
+        updateMapForItems(mapItems);
+      } else {
+        if (mapSection) mapSection.style.display = 'none';
+        clearMarkers();
+      }
 
       // Buchen-Buttons
       $$('#results [data-book]').forEach(btn => {
@@ -791,5 +927,8 @@
       checkAuth();
     })();
   </script>
+
+  <!-- Google Maps JS API (API-Key einsetzen!) -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCUe4XuS02NtVoElKSpKgCyTJKbbHPvijg"></script>
 </body>
 </html>
