@@ -255,6 +255,21 @@
         display:flex;
       }
     }
+      /* Text im Google-Maps-Infofenster immer dunkel halten */
+      #map .gm-style .tm-slot-iw {
+        color: #111827 !important;       /* dunkles Grau */
+        text-shadow: none !important;
+      }
+
+      #map .gm-style .tm-slot-iw a {
+        color: #1d4ed8 !important;       /* Linkfarbe */
+        text-decoration: underline;
+      }
+
+      #map .gm-style .tm-slot-iw strong {
+        color: #111827 !important;
+      }
+
   </style>
   <script>
   (function(){
@@ -573,21 +588,20 @@
           markers.push(marker);
           bounds.extend(loc);
 
-         const content = `
-          <div style="font-size:13px; line-height:1.5; color:#111827;">
+        const content = `
+          <div class="tm-slot-iw" style="font-size:13px; line-height:1.5;">
             <strong>${item.slotTitle || 'Termin'}</strong><br>
             ${item.startAt ? `${fmtDateTime(item.startAt)}<br>` : ''}
             <strong>Anbieter:</strong> ${item.providerName || 'Anbieter'}<br>
             ${item.category ? `<strong>Kategorie:</strong> ${item.category}<br>` : ''}
             ${item.address ? `<strong>Adresse:</strong> ${item.address}<br>` : ''}
             <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.address)}"
-              target="_blank"
-              rel="noopener"
-              style="color:#1d4ed8; text-decoration:underline;">
+              target="_blank" rel="noopener">
               Route mit Google Maps planen
             </a>
           </div>
         `;
+
 
 
 
