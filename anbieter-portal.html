@@ -823,6 +823,17 @@
             Hinweis: Neue Slots werden zunächst als <em>„pending_review“</em> angelegt. Nach deiner Bestätigung werden sie veröffentlicht.
           </div>
 
+          <!-- Hinweis bei erreichtem Slot-Limit -->
+          <div id="slot-limit-alert" class="alert">
+            <strong>Slot-Limit erreicht.</strong>
+            <div class="small">
+              Du hast dein monatliches Veröffentlichungslimit erreicht.
+              Du kannst aktuell keine weiteren Slots freischalten.
+              Wenn du mehr Termine veröffentlichen möchtest, wechsle auf ein größeres Paket
+              oder versuche es im nächsten Monat erneut.
+            </div>
+          </div>
+
           <div class="table-wrap">
             <table class="table" id="tbl-slots">
               <thead>
@@ -881,6 +892,16 @@
       el.textContent = text;
       el.style.display = 'block';
       setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 4200);
+    }
+
+    // Hinweisbox für Slot-Limit steuern
+    function showSlotLimitAlert(){
+      const el = document.getElementById('slot-limit-alert');
+      if (el) el.style.display = 'block';
+    }
+    function hideSlotLimitAlert(){
+      const el = document.getElementById('slot-limit-alert');
+      if (el) el.style.display = 'none';
     }
 
     function pad(n){ return n.toString().padStart(2,'0'); }
@@ -1319,7 +1340,8 @@
         if (activeBookings.length > 0){
           if (activeBookings.length === 1){
             const b = activeBookings[0];
-            bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
+            const label = `${b.customer_name} (${b.customer_email})`;
+            bookingHint = `Gebucht von: ${label}`;
           } else {
             const maxVisible = 3;
             const visible = activeBookings.slice(0, maxVisible);
@@ -1525,6 +1547,8 @@
         if(!r.ok) showMsg('msg-slots','Konnte Slot nicht löschen.');
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
+
+    // Einzelner Statuswechsel inkl. Limit-Handling
     async function setStatus(id, status){
       try{
         const r = await fetch(`${API}/slots/${id}`, {
@@ -1533,21 +1557,65 @@
           credentials:'include',
           body: JSON.stringify({status})
         });
-        if(!r.ok) showMsg('msg-slots','Konnte Status nicht ändern.');
-      }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
+        let data = {};
+        try { data = await r.json(); } catch(_) {}
+
+        if(!r.ok){
+          if (r.status === 409 && data.error === 'monthly_publish_limit_reached') {
+            showSlotLimitAlert();
+            showMsg(
+              'msg-slots',
+              'Slot-Limit für diesen Monat erreicht. Du kannst aktuell keine weiteren Slots veröffentlichen.'
+            );
+          } else {
+            showMsg('msg-slots','Konnte Status nicht ändern.');
+          }
+        } else {
+          // Erfolg: nichts Spezielles, Hinweis bleibt ggf. stehen,
+          // weil das Limit erst mit neuem Monat/Paket weg ist.
+        }
+      }catch(e){
+        showMsg('msg-slots','Netzwerkfehler.');
+      }
     }
 
+    // Bulk-Statuswechsel inkl. Limit-Handling
     async function bulkSetStatus(ids, status){
       if(!ids.length) return;
-      await Promise.all(ids.map(id =>
-        fetch(`${API}/slots/${id}`, {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          credentials:'include',
-          body: JSON.stringify({status})
-        })
-      ));
+      let limitHit = false;
+
+      for (const id of ids){
+        try{
+          const r = await fetch(`${API}/slots/${id}`, {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify({status})
+          });
+          let data = {};
+          try { data = await r.json(); } catch(_) {}
+
+          if (!r.ok){
+            if (r.status === 409 && data.error === 'monthly_publish_limit_reached') {
+              limitHit = true;
+              break;
+            }
+          }
+        }catch(e){
+          showMsg('msg-slots','Netzwerkfehler.');
+          break;
+        }
+      }
+
+      if (limitHit){
+        showSlotLimitAlert();
+        showMsg(
+          'msg-slots',
+          'Slot-Limit für diesen Monat erreicht. Einige Slots konnten nicht mehr veröffentlicht werden.'
+        );
+      }
     }
+
     async function bulkDelete(ids){
       if(!ids.length) return;
       await Promise.all(ids.map(id =>
