@@ -930,7 +930,7 @@
   
       // Google Maps Script dynamisch laden – Key direkt eingetragen
       (function () {
-        const gmKey = 'HIER_DEIN_ECHTER_KEY_AUS_DER_GOOGLE_CLOUD_KONSOLE';
+        const gmKey = "AIzaSyAYaQ0WOx05nwuCF5-JTc8CK0mc_XUjBvs";
 
         if (!gmKey) {
           console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
@@ -940,7 +940,7 @@
         const s = document.createElement('script');
         s.src =
           'https://maps.googleapis.com/maps/api/js?key=' +
-          encodeURIComponent(AIzaSyAYaQ0WOx05nwuCF5-JTc8CK0mc_XUjBvs) +
+          encodeURIComponent(gmKey) +
           '&callback=initMap&libraries=places';
         s.async = true;
         s.defer = true;
