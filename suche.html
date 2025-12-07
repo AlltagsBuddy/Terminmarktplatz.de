@@ -574,18 +574,21 @@
           bounds.extend(loc);
 
          const content = `
-            <div style="font-size:13px; line-height:1.4">
-              <strong>${item.slotTitle || 'Termin'}</strong><br>
-              ${item.startAt ? `${fmtDateTime(item.startAt)}<br>` : ''}
-              <strong>Anbieter:</strong> ${item.providerName || 'Anbieter'}<br>
-              ${item.category ? `<strong>Kategorie:</strong> ${item.category}<br>` : ''}
-              ${item.address ? `<strong>Adresse:</strong> ${item.address}<br>` : ''}
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.address)}"
-                target="_blank" rel="noopener">
-                Route mit Google Maps planen
-              </a>
-            </div>
-          `;
+          <div style="font-size:13px; line-height:1.5; color:#111827;">
+            <strong>${item.slotTitle || 'Termin'}</strong><br>
+            ${item.startAt ? `${fmtDateTime(item.startAt)}<br>` : ''}
+            <strong>Anbieter:</strong> ${item.providerName || 'Anbieter'}<br>
+            ${item.category ? `<strong>Kategorie:</strong> ${item.category}<br>` : ''}
+            ${item.address ? `<strong>Adresse:</strong> ${item.address}<br>` : ''}
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(item.address)}"
+              target="_blank"
+              rel="noopener"
+              style="color:#1d4ed8; text-decoration:underline;">
+              Route mit Google Maps planen
+            </a>
+          </div>
+        `;
+
 
 
           marker.addListener('click', () => {
