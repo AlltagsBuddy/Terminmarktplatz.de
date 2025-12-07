@@ -927,21 +927,26 @@
       checkAuth();
     })();
 
-    // Google Maps Script dynamisch laden – Key kommt aus Flask/Jinja
-    (function(){
-      const gmKey = "{{ GOOGLE_MAPS_API_KEY | default('', true) }}";
-      if (!gmKey){
-        console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
-        return;
-      }
-      const s = document.createElement('script');
-      s.src = 'https://maps.googleapis.com/maps/api/js?key=' +
-              encodeURIComponent(gmKey) +
-              '&callback=initMap';
-      s.async = true;
-      s.defer = true;
-      document.body.appendChild(s);
-    })();
-  </script>
+    
+  // Google Maps Script dynamisch laden – Key kommt aus Flask/Jinja
+  (function () {
+    const gmKey = "{{ google_maps_api_key | default('', true) }}";
+
+    if (!gmKey) {
+      console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
+      return;
+    }
+
+    const s = document.createElement('script');
+    s.src =
+      'https://maps.googleapis.com/maps/api/js?key=' +
+      encodeURIComponent(gmKey) +
+      '&callback=initMap&libraries=places';
+    s.async = true;
+    s.defer = true;
+    document.body.appendChild(s);
+  })();
+</script>
+
   </body>
 </html>
