@@ -53,12 +53,16 @@ except ImportError:
 # Deine ORM-Modelle
 from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice
 
+# --------------------------------------------------------
+# .env laden + Google Maps API Key
+# --------------------------------------------------------
+load_dotenv()
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
 
 # --------------------------------------------------------
 # Init / Mode / Pfade
 # --------------------------------------------------------
-load_dotenv()
-
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")  # <— Templates-Ordner
@@ -787,7 +791,7 @@ def create_invoices_for_period(session: Session, year: int, month: int) -> dict:
     if month == 12:
         next_month_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
     else:
-        next_month_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+        next_month_dt = datetime(year, month + 1, 1, 1, 0, 0, tzinfo=timezone.utc)
 
     start_db = _to_db_utc_naive(period_start_dt)
     end_db = _to_db_utc_naive(next_month_dt)
@@ -1255,6 +1259,15 @@ if _html_enabled():
     @app.get("/anbieter-portal.html")
     def anbieter_portal_page_html():
         return render_template("anbieter-portal.html")
+
+    # --- NEU: Suche mit Google Maps API Key ---
+    @app.get("/suche")
+    def suche_page():
+        return render_template("suche.html", google_maps_api_key=GOOGLE_MAPS_API_KEY)
+
+    @app.get("/suche.html")
+    def suche_page_html():
+        return render_template("suche.html", google_maps_api_key=GOOGLE_MAPS_API_KEY)
 
     @app.get("/impressum")
     def impressum():

@@ -1,4 +1,4 @@
-<!-- FILE: suche.html -->
+<!-- FILE: suche.html --> 
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
@@ -383,7 +383,7 @@
               📅 <input type="date" id="search-day" name="day">
             </label>
             <label class="input" aria-label="Zeitfenster">
-              ⏰
+              ⏰ 
               <select name="zeit" id="f-zeit">
                 <option value="">Beliebig</option>
                 <option value="vormittag">Vormittag (08–12)</option>
@@ -928,7 +928,13 @@
     })();
   </script>
 
-  <!-- Google Maps JS API (API-Key einsetzen!) -->
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCUe4XuS02NtVoElKSpKgCyTJKbbHPvijg"></script>
+  <!-- Google Maps JS API – nur laden, wenn ein API-Key gesetzt ist -->
+  {% if GOOGLE_MAPS_API_KEY %}
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap"></script>
+  {% else %}
+  <script>
+    console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
+  </script>
+  {% endif %}
 </body>
 </html>
