@@ -763,21 +763,40 @@
                 <input id="sl-end" type="time" readonly/>
               </div>
 
+              <!-- NEU: Slot-Adresse mit Validierung -->
               <div class="field">
-                <label for="sl-location">Strasse und Hausnummer <span class="req">*</span></label>
-                <input id="sl-location" name="location"
-                       placeholder="z. B. Hauptstrasse 27"
-                       required aria-required="true" pattern="(\d{5}|.{3,})"
-                       title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
+                <label for="sl-street">Straße & Nr. <span class="req">*</span></label>
+                <input id="sl-street" name="slot_street"
+                       placeholder="z. B. Musterstraße 12a"
+                       required aria-required="true"
+                       pattern="^.{2,}\s+\d{1,4}[a-zA-Z0-9\-\/]*$"
+                       title="Bitte Straße und Hausnummer angeben, z. B. Musterstraße 12a" />
               </div>
 
               <div class="field">
-                <label for="sl-location2">Ort / PLZ <span class="req">*</span></label>
-                <input id="sl-location2" name="location2"
-                       placeholder="z. B. 96191 Viereth / Filiale Zentrum"
-                       required aria-required="true" pattern="(\d{5}|.{3,})"
-                       title="5-stellige PLZ oder ein Ortsname (mind. 3 Zeichen)" />
+                <label for="sl-zip">PLZ <span class="req">*</span></label>
+                <input id="sl-zip" name="slot_zip"
+                       placeholder="z. B. 96191"
+                       required aria-required="true"
+                       inputmode="numeric"
+                       pattern="\d{5}"
+                       title="5-stellige Postleitzahl, z. B. 96191" />
               </div>
+
+              <div class="field">
+                <label for="sl-city">Ort <span class="req">*</span></label>
+                <input id="sl-city" name="slot_city"
+                       placeholder="z. B. Viereth"
+                       required aria-required="true"
+                       pattern="^[A-Za-zÄÖÜäöüß.\-\s]{2,}$"
+                       title="Bitte einen gültigen Ortsnamen angeben, z. B. Viereth" />
+              </div>
+
+              <div class="toolbar">
+                <button type="button" class="btn" id="slot-copy-from-profile">Adresse aus Profil übernehmen</button>
+                <span class="muted">Standard: Profiladresse nutzen, bei Bedarf für Filialen anpassen.</span>
+              </div>
+              <!-- Ende neue Adressfelder -->
 
               <div class="field">
                 <label for="sl-cap">Kapazität</label>
@@ -933,6 +952,20 @@
     function isValidZip(v){ return /^\d{5}$/.test((v||'').trim()); }
     function isValidPhone(v){ return /^\+?[0-9\s\-\/]{6,}$/.test((v||'').trim()); }
 
+    // Straße + Hausnummer: mind. 2 Zeichen Straße + Leerzeichen + Hausnummer
+    function isValidStreetWithNumber(v){
+      v = (v || '').trim();
+      if (!v) return false;
+      return /^.{2,}\s+\d{1,4}[a-zA-Z0-9\-\/]*$/.test(v);
+    }
+
+    // Ortsname: nur Buchstaben, Leerzeichen, Punkt, Bindestrich
+    function isValidCityName(v){
+      v = (v || '').trim();
+      if (!v) return false;
+      return /^[A-Za-zÄÖÜäöüß.\-\s]{2,}$/.test(v);
+    }
+
     function isProfileCompleteFromValues(vals){
       return !!(
         vals.company_name &&
@@ -954,6 +987,31 @@
         phone:        $('#pf-phone').value.trim(),
         whatsapp:     $('#pf-whatsapp').value.trim(),
       };
+    }
+
+    // Profiladresse -> Slotadresse kopieren (Standard-Filiale)
+    function copyProfileAddressToSlot(force=false){
+      const streetInput = $('#sl-street');
+      const zipInput    = $('#sl-zip');
+      const cityInput   = $('#sl-city');
+      if (!streetInput || !zipInput || !cityInput) return;
+
+      const currentFilled =
+        (streetInput.value && streetInput.value.trim()) ||
+        (zipInput.value && zipInput.value.trim()) ||
+        (cityInput.value && cityInput.value.trim());
+
+      if (!force && currentFilled) {
+        // nichts überschreiben, wenn bereits etwas eingetragen wurde
+        return;
+      }
+
+      const prof = getProfileValuesFromForm();
+      if (!prof.street && !prof.zip && !prof.city) return;
+
+      streetInput.value = prof.street || '';
+      zipInput.value    = prof.zip || '';
+      cityInput.value   = prof.city || '';
     }
 
     function setSlotLock(locked){
@@ -1086,6 +1144,11 @@
 
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
+
+        // Wenn Profil vollständig: Slot-Adresse standardmäßig aus Profil übernehmen (nur wenn Slot-Felder leer sind)
+        if (complete) {
+          copyProfileAddressToSlot(false);
+        }
       }catch(err){
         showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
       }
@@ -1107,6 +1170,11 @@
           const complete = isProfileCompleteFromValues(payload);
           showMsg('msg-profile', complete ? 'Gespeichert ✓ Profil vollständig.' : 'Gespeichert ✓ Bitte Pflichtfelder ergänzen.');
           setSlotLock(!complete);
+
+          // Nach dem Speichern bei vollständigem Profil Slot-Adresse vorbelegen (falls Slot-Felder noch leer sind)
+          if (complete) {
+            copyProfileAddressToSlot(false);
+          }
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -1155,6 +1223,16 @@
       recalcEnd();
     }));
 
+    // Button: Adresse aus Profil übernehmen
+    const copyBtn = document.getElementById('slot-copy-from-profile');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        copyProfileAddressToSlot(true);
+        showMsg('msg-slot', 'Adresse aus Profil übernommen.', true);
+      });
+    }
+
     // ---------- Slot anlegen ----------
     document.getElementById('form-slot').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1164,16 +1242,31 @@
         return;
       }
 
-      const title       = $('#sl-title').value.trim();
-      const category    = $('#sl-cat').value;
-      const date        = $('#sl-date').value;
-      const start       = $('#sl-start').value;
-      const street      = $('#sl-location').value.trim();
-      const cityZip     = $('#sl-location2').value.trim();
-      const duration    = totalMinutes();
+      const title    = $('#sl-title').value.trim();
+      const category = $('#sl-cat').value;
+      const date     = $('#sl-date').value;
+      const start    = $('#sl-start').value;
+      const street   = $('#sl-street').value.trim();
+      const zip      = $('#sl-zip').value.trim();
+      const city     = $('#sl-city').value.trim();
+      const duration = totalMinutes();
 
-      if (!title || !category || !date || !start || !street || !cityZip || !duration) {
+      if (!title || !category || !date || !start || !street || !zip || !city || !duration) {
         showMsg('msg-slot', 'Bitte alle Pflichtfelder für den Slot ausfüllen.');
+        return;
+      }
+
+      // Adress-Plausibilitätsprüfung
+      if (!isValidStreetWithNumber(street)) {
+        showMsg('msg-slot', 'Adresse unplausibel: Bitte Straße und Hausnummer eingeben (z. B. Musterstraße 12a).');
+        return;
+      }
+      if (!isValidZip(zip)) {
+        showMsg('msg-slot', 'PLZ muss 5-stellig sein.');
+        return;
+      }
+      if (!isValidCityName(city)) {
+        showMsg('msg-slot', 'Ort unplausibel – bitte nur Buchstaben verwenden.');
         return;
       }
 
@@ -1184,7 +1277,8 @@
       const priceVal = $('#sl-price').value;
       const notes    = $('#sl-notes').value.trim();
 
-      const location = `${street}, ${cityZip}`;
+      // Ein gemeinsames Location-Feld für Backend
+      const location = `${street}, ${zip} ${city}`;
 
       const payload = {
         title,
@@ -1212,6 +1306,8 @@
           $('#sl-duration').value = 30;
           $('#sl-unit').value = 'min';
           recalcEnd();
+          // Nach Reset ggf. wieder Profiladresse in Slot-Adresse vorbelegen
+          copyProfileAddressToSlot(false);
           await loadSlots();
         } else {
           showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
