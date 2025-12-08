@@ -882,12 +882,10 @@
   </main>
 
   <script>
-    // ---------- API-Basis global ----------
-    (function(){
+    // ---------- API-Basis (global, wie vorher) ----------
+    const API = (() => {
       const h = location.hostname;
-      const proto = (location.protocol === 'http:' || location.protocol === 'https:')
-        ? location.protocol
-        : 'https:';
+      const proto = location.protocol;
 
       const isLocal =
         h === 'localhost' ||
@@ -896,18 +894,15 @@
         /^10\./.test(h) ||
         h.endsWith('.local');
 
-      let base;
       if (isLocal) {
-        base = `${proto}//${h}:5000`;
-      } else if (h === 'api.terminmarktplatz.de') {
-        base = `${proto}//${h}`;
-      } else {
-        base = 'https://api.terminmarktplatz.de';
+        return `${proto}//${h}:5000`;
       }
-      window.API_BASE = base;
+      if (h === 'api.terminmarktplatz.de') {
+        return `${proto}//${h}`;
+      }
+      return 'https://api.terminmarktplatz.de';
     })();
-
-    const API = window.API_BASE;
+    window.API = API;
 
     const $  = (q, root=document)=>root.querySelector(q);
     const $$ = (q, root=document)=>Array.from(root.querySelectorAll(q));
@@ -1919,10 +1914,29 @@
     })();
   </script>
 
-  <!-- Account löschen (nutzt globales API) -->
+  <!-- Account löschen -->
   <script>
     (function(){
-      const API = window.API_BASE || 'https://api.terminmarktplatz.de';
+      const API_LOCAL = (typeof window.API === 'string')
+        ? window.API
+        : (() => {
+            const h = location.hostname;
+            const proto = location.protocol;
+            const isLocal =
+              h === 'localhost' ||
+              h === '127.0.0.1' ||
+              /^192\.168\./.test(h) ||
+              /^10\./.test(h) ||
+              h.endsWith('.local');
+
+            if (isLocal) {
+              return `${proto}//${h}:5000`;
+            }
+            if (h === 'api.terminmarktplatz.de') {
+              return `${proto}//${h}`;
+            }
+            return 'https://api.terminmarktplatz.de';
+          })();
 
       const btn = document.getElementById('btn-delete-account');
       const msg = document.getElementById('del-msg');
@@ -1938,7 +1952,7 @@
 
         btn.disabled = true; btn.classList.add('loading');
         try{
-          const res = await fetch(`${API}/me`, {
+          const res = await fetch(`${API_LOCAL}/me`, {
             method: 'DELETE',
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
@@ -1962,7 +1976,26 @@
   <!-- User-Menü Logik -->
   <script>
     (function(){
-      const API = window.API_BASE || 'https://api.terminmarktplatz.de';
+      const API_LOCAL = (typeof window.API === 'string')
+        ? window.API
+        : (() => {
+            const h = location.hostname;
+            const proto = location.protocol;
+            const isLocal =
+              h === 'localhost' ||
+              h === '127.0.0.1' ||
+              /^192\.168\./.test(h) ||
+              /^10\./.test(h) ||
+              h.endsWith('.local');
+
+            if (isLocal) {
+              return `${proto}//${h}:5000`;
+            }
+            if (h === 'api.terminmarktplatz.de') {
+              return `${proto}//${h}`;
+            }
+            return 'https://api.terminmarktplatz.de';
+          })();
 
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
@@ -1984,7 +2017,7 @@
       async function updateAuthUI(){
         let loggedIn = false;
         try{
-          const res = await fetch(`${API}/me`, { credentials:'include' });
+          const res = await fetch(`${API_LOCAL}/me`, { credentials:'include' });
           loggedIn = res.ok;
         }catch(e){
           loggedIn = false;
@@ -2005,7 +2038,7 @@
 
         if (action === 'logout'){
           try{
-            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+            await fetch(`${API_LOCAL}/auth/logout`, { method:'POST', credentials:'include' });
           }catch(_){}
           location.href = '/login.html';
         }
@@ -2015,7 +2048,7 @@
           if (!ok) return;
 
           try{
-            const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+            const res = await fetch(`${API_LOCAL}/me`, { method:'DELETE', credentials:'include' });
             if (res.ok){
               location.href = '/login.html?deleted=1';
             }else{
