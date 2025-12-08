@@ -171,7 +171,19 @@ class Slot(Base):
     start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+    # Adresse des Termins (kann von Provider-Adresse abweichen)
+    street: Mapped[str | None] = mapped_column(Text)
+    house_number: Mapped[str | None] = mapped_column(Text)
+    zip: Mapped[str | None] = mapped_column(Text)
+    city: Mapped[str | None] = mapped_column(Text)
+
+    # Volltext-Adresse / Freitext (z.B. "im 1. OG, Praxis XY")
     location: Mapped[str | None] = mapped_column(Text)
+
+    # Geo-Koordinaten (optional, z.B. für Maps / Radius-Suche)
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    lng: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+
     capacity: Mapped[int] = mapped_column(Integer, default=1)
 
     # aktuell noch nicht im Frontend genutzt, aber vorhanden
@@ -206,6 +218,20 @@ class Slot(Base):
     )
 
     # -------- Convenience / Public-Ansicht --------
+    def public_address(self) -> str:
+        parts: list[str] = []
+        if self.street:
+            s = self.street.strip()
+            if self.house_number:
+                s = f"{s} {self.house_number.strip()}"
+            parts.append(s)
+        plz_ort = " ".join(
+            p for p in [(self.zip or "").strip(), (self.city or "").strip()] if p
+        )
+        if plz_ort:
+            parts.append(plz_ort)
+        return ", ".join(parts)
+
     def to_public_dict(self, include_provider: bool = False) -> dict:
         data: dict = {
             "id": self.id,
@@ -214,7 +240,14 @@ class Slot(Base):
             "category": self.category,
             "start_at": self.start_at,
             "end_at": self.end_at,
+            "street": self.street,
+            "house_number": self.house_number,
+            "zip": self.zip,
+            "city": self.city,
+            "address": self.public_address(),
             "location": self.location,
+            "lat": self.lat,
+            "lng": self.lng,
             "capacity": self.capacity,
             "contact_method": self.contact_method,
             "booking_link": self.booking_link,
@@ -437,3 +470,76 @@ class Invoice(Base):
         "Booking",
         back_populates="invoice",
     )
+
+
+# ------------------------------------------------------------
+# AlertSubscription (Termin-Alarm / Benachrichtigungs-Paket)
+# ------------------------------------------------------------
+class AlertSubscription(Base):
+    """
+    Termin-Alarm für suchende Nutzer:innen:
+    - Filter nach PLZ/Ort (+ optional Kategorie)
+    - Benachrichtigung per E-Mail und/oder SMS
+    - Paket-/Quota-Informationen für SMS
+    """
+    __tablename__ = "alert_subscription"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
+    # Kontakt
+    email: Mapped[str] = mapped_column(Text, nullable=False)
+    phone: Mapped[str | None] = mapped_column(Text)
+
+    via_email: Mapped[bool] = mapped_column(Boolean, default=True)
+    via_sms: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Suchkriterien
+    zip: Mapped[str] = mapped_column(Text, nullable=False)
+    city: Mapped[str | None] = mapped_column(Text)
+    radius_km: Mapped[int] = mapped_column(Integer, default=0)  # 0 = exakt PLZ
+
+    # z.B. "friseur,haare" – einfacher CSV-String, Matching in der Logik
+    categories: Mapped[str | None] = mapped_column(Text)
+
+    # Status & Double-Opt-in
+    active: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    sms_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Paket / Limits (z.B. "basic", "pro" etc.)
+    package_name: Mapped[str | None] = mapped_column(Text)
+    sms_quota_month: Mapped[int] = mapped_column(Integer, default=0)
+    sms_sent_this_month: Mapped[int] = mapped_column(Integer, default=0)
+    last_reset_quota: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Token für Verifikation & Kündigungslink
+    verify_token: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    last_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    def to_public_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "email": self.email,
+            "phone": self.phone,
+            "via_email": self.via_email,
+            "via_sms": self.via_sms,
+            "zip": self.zip,
+            "city": self.city,
+            "radius_km": self.radius_km,
+            "categories": self.categories,
+            "active": self.active,
+            "package_name": self.package_name,
+            "sms_quota_month": self.sms_quota_month,
+            "sms_sent_this_month": self.sms_sent_this_month,
+            "created_at": self.created_at,
+            "last_notified_at": self.last_notified_at,
+        }

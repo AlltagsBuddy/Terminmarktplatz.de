@@ -706,7 +706,7 @@
           </form>
         </div>
 
-        <!-- Slot anlegen -->
+        <!-- Slot anlegen / bearbeiten -->
         <div class="panel">
           <h2>Neuen Slot anlegen</h2>
 
@@ -812,7 +812,8 @@
               </div>
 
               <div class="toolbar">
-                <button class="btn primary" type="submit">Slot anlegen</button>
+                <button class="btn primary" type="submit" id="slot-submit-btn">Slot anlegen</button>
+                <button type="button" class="btn" id="btn-slot-cancel-edit" style="display:none;">Bearbeitung abbrechen</button>
                 <span class="muted">Status: <span class="badge-st st-pending">Entwurf</span></span>
               </div>
             </fieldset>
@@ -1233,7 +1234,17 @@
       });
     }
 
-    // ---------- Slot anlegen ----------
+    // Bearbeitung abbrechen
+    const cancelEditBtn = document.getElementById('btn-slot-cancel-edit');
+    if (cancelEditBtn) {
+      cancelEditBtn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        resetSlotForm();
+        showMsg('msg-slot', 'Bearbeitung abgebrochen. Neuer Slot kann angelegt werden.', true);
+      });
+    }
+
+    // ---------- Slot anlegen / aktualisieren ----------
     document.getElementById('form-slot').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fs = document.getElementById('slot-fields');
@@ -1295,22 +1306,37 @@
       };
 
       try {
-        const res = await fetch(`${API}/slots`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json().catch(() => ({}));
+        let res;
+        let data = {};
+
+        if (EDITING_SLOT && EDITING_SLOT.id) {
+          const body = Object.assign({}, payload);
+          if (EDITING_SLOT.status) {
+            body.status = EDITING_SLOT.status;
+          }
+          res = await fetch(`${API}/slots/${EDITING_SLOT.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(body)
+          });
+        } else {
+          res = await fetch(`${API}/slots`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+          });
+        }
+
+        data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          showMsg('msg-slot', 'Slot angelegt.', true);
-          document.getElementById('form-slot').reset();
-          $('#sl-duration').value = 30;
-          $('#sl-unit').value = 'min';
-          recalcEnd();
-          // Nach Reset ggf. wieder Profiladresse in Slot-Adresse vorbelegen
-          copyProfileAddressToSlot(false);
+          const msg = (EDITING_SLOT && EDITING_SLOT.id)
+            ? 'Slot aktualisiert.'
+            : 'Slot angelegt.';
+          showMsg('msg-slot', msg, true);
+          resetSlotForm();
           await loadSlots();
         } else {
           showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
@@ -1353,6 +1379,7 @@
     // ---------- Slots laden & rendern ----------
     let SELECTED = new Set();
     let LAST_ITEMS = [];
+    let EDITING_SLOT = null;
 
     function updateBulkButtons(items){
       const byId = Object.fromEntries(items.map(x => [x.id, x]));
@@ -1378,6 +1405,117 @@
         if (v) return v;
       }
       return null;
+    }
+
+    function isoToLocalDateTime(iso){
+      if (!iso) return { date:'', time:'' };
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return { date:'', time:'' };
+      const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return { date, time };
+    }
+
+    function parseLocation(loc){
+      loc = (loc || '').trim();
+      if (!loc) return { street:'', zip:'', city:'' };
+      const parts = loc.split(',');
+      if (parts.length < 2){
+        return { street: loc, zip:'', city:'' };
+      }
+      const street = parts[0].trim();
+      const rest = parts.slice(1).join(',').trim();
+      const m = rest.match(/^(\d{4,5})\s+(.*)$/);
+      if (m){
+        return { street, zip: m[1], city: m[2].trim() };
+      }
+      return { street, zip:'', city: rest };
+    }
+
+    function resetSlotForm(){
+      EDITING_SLOT = null;
+      const form = document.getElementById('form-slot');
+      if (form) form.reset();
+      const dur = document.getElementById('sl-duration');
+      const unit = document.getElementById('sl-unit');
+      if (dur) dur.value = 30;
+      if (unit) unit.value = 'min';
+      recalcEnd();
+      copyProfileAddressToSlot(false);
+      const submitBtn = document.getElementById('slot-submit-btn');
+      if (submitBtn) submitBtn.textContent = 'Slot anlegen';
+      const cancelEditBtnInner = document.getElementById('btn-slot-cancel-edit');
+      if (cancelEditBtnInner) cancelEditBtnInner.style.display = 'none';
+    }
+
+    function enterEditMode(slot){
+      if (!slot) return;
+      EDITING_SLOT = slot;
+
+      const title = document.getElementById('sl-title');
+      if (title) title.value = slot.title || '';
+
+      const cat = document.getElementById('sl-cat');
+      if (cat && slot.category){
+        cat.value = slot.category;
+      }
+
+      const dt = isoToLocalDateTime(slot.start_at);
+      const dateInput = document.getElementById('sl-date');
+      const startInput = document.getElementById('sl-start');
+      if (dateInput) dateInput.value = dt.date;
+      if (startInput) startInput.value = dt.time;
+
+      let durationMinutes = 0;
+      if (slot.start_at && slot.end_at){
+        const start = new Date(slot.start_at);
+        const end   = new Date(slot.end_at);
+        const diff  = Math.round((end - start) / 60000);
+        if (diff > 0) durationMinutes = diff;
+      }
+      if (!durationMinutes) {
+        durationMinutes = 30;
+      }
+      const dur = document.getElementById('sl-duration');
+      const unit = document.getElementById('sl-unit');
+      if (unit) unit.value = 'min';
+      if (dur) dur.value = durationMinutes;
+      recalcEnd();
+
+      const cap = document.getElementById('sl-cap');
+      if (cap) cap.value = slot.capacity || 1;
+
+      const priceInput = document.getElementById('sl-price');
+      if (priceInput){
+        if (typeof slot.price_cents === 'number' && !isNaN(slot.price_cents)){
+          priceInput.value = (slot.price_cents / 100).toFixed(2);
+        } else {
+          priceInput.value = '';
+        }
+      }
+
+      const notesInput = document.getElementById('sl-notes');
+      if (notesInput) notesInput.value = slot.notes || '';
+
+      const loc = parseLocation(slot.location || '');
+      const stInput = document.getElementById('sl-street');
+      const zipInput = document.getElementById('sl-zip');
+      const cityInput = document.getElementById('sl-city');
+      if (stInput) stInput.value = loc.street;
+      if (zipInput) zipInput.value = loc.zip;
+      if (cityInput) cityInput.value = loc.city;
+
+      const submitBtn = document.getElementById('slot-submit-btn');
+      if (submitBtn) submitBtn.textContent = 'Slot aktualisieren';
+      const cancelEditBtnInner = document.getElementById('btn-slot-cancel-edit');
+      if (cancelEditBtnInner) cancelEditBtnInner.style.display = 'inline-flex';
+
+      showMsg('msg-slot', 'Du bearbeitest einen bestehenden Slot (noch nicht gebucht).', true);
+
+      const form = document.getElementById('form-slot');
+      if (form && form.scrollIntoView){
+        form.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
     }
 
     function renderTable(items){
@@ -1415,6 +1553,7 @@
           : 'st-pending';
 
         const canPublish = isDraft;
+        const canEdit = !isCanceled && !isBooked;
 
         let rowClass = '';
         if (isPast) {
@@ -1554,6 +1693,7 @@
           <td data-label="Aktionen" class="nowrap">
             ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : ''}
             ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="DRAFT">Archivieren</button>` : ''}
+            ${canEdit ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : ''}
             <button class="btn danger" data-del="${s.id}">Löschen</button>
             ${cancelHtml}
           </td>
@@ -1585,6 +1725,17 @@
           await loadSlots();
         })
       );
+
+      // Slot bearbeiten (nur, wenn nicht gebucht)
+      $$('#tbl-slots [data-edit]').forEach(b => {
+        b.addEventListener('click', ()=>{
+          const id = b.dataset.edit;
+          const slot = items.find(x => x.id === id);
+          if (slot) {
+            enterEditMode(slot);
+          }
+        });
+      });
 
       // Einzel-Buchung absagen
       $$('#tbl-slots [data-cancel-booking]').forEach(btn => {
