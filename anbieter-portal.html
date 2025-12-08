@@ -1,4 +1,4 @@
-<!doctype html> 
+<!doctype html>  
 <html lang="de">
 <head>
   <meta charset="utf-8" />
@@ -882,10 +882,12 @@
   </main>
 
   <script>
-    // ---------- API-Basis ----------
-    const API = (() => {
+    // ---------- API-Basis global ----------
+    (function(){
       const h = location.hostname;
-      const proto = location.protocol;
+      const proto = (location.protocol === 'http:' || location.protocol === 'https:')
+        ? location.protocol
+        : 'https:';
 
       const isLocal =
         h === 'localhost' ||
@@ -894,20 +896,25 @@
         /^10\./.test(h) ||
         h.endsWith('.local');
 
+      let base;
       if (isLocal) {
-        return `${proto}//${h}:5000`;
+        base = `${proto}//${h}:5000`;
+      } else if (h === 'api.terminmarktplatz.de') {
+        base = `${proto}//${h}`;
+      } else {
+        base = 'https://api.terminmarktplatz.de';
       }
-      if (h === 'api.terminmarktplatz.de') {
-        return `${proto}//${h}`;
-      }
-      return 'https://api.terminmarktplatz.de';
+      window.API_BASE = base;
     })();
+
+    const API = window.API_BASE;
 
     const $  = (q, root=document)=>root.querySelector(q);
     const $$ = (q, root=document)=>Array.from(root.querySelectorAll(q));
 
     function showMsg(id, text, ok=false){
       const el = document.getElementById(id);
+      if (!el) return;
       el.className = 'msg ' + (ok ? 'ok' : 'err');
       el.textContent = text;
       el.style.display = 'block';
@@ -1018,10 +1025,8 @@
     function setSlotLock(locked){
       const fs = $('#slot-fields');
       const guard = $('#slot-guard');
-      const alert = $('#profile-alert');
       if (fs) fs.disabled = !!locked;
       if (guard) guard.style.display = locked ? 'block' : 'none';
-      if (alert) alert.style.display = locked ? 'block' : 'none';
     }
 
     // ---------- Auth / Profil laden ----------
@@ -1914,17 +1919,14 @@
     })();
   </script>
 
+  <!-- Account löschen (nutzt globales API) -->
   <script>
     (function(){
-      const API = (()=>{
-        const h = location.hostname;
-        if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
-        return 'https://api.terminmarktplatz.de';
-      })();
+      const API = window.API_BASE || 'https://api.terminmarktplatz.de';
 
       const btn = document.getElementById('btn-delete-account');
       const msg = document.getElementById('del-msg');
-      if (!btn) return;
+      if (!btn || !msg) return;
 
       function showDelMsg(t){ msg.textContent = t; msg.style.display = 'block'; }
       function hideDelMsg(){ msg.style.display = 'none'; msg.textContent = ''; }
@@ -1960,11 +1962,7 @@
   <!-- User-Menü Logik -->
   <script>
     (function(){
-      const API = (typeof window.API === 'string')
-        ? window.API
-        : ((h) => (h === 'localhost' || h === '127.0.0.1')
-              ? 'http://127.0.0.1:5000'
-              : 'https://api.terminmarktplatz.de')(location.hostname);
+      const API = window.API_BASE || 'https://api.terminmarktplatz.de';
 
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
