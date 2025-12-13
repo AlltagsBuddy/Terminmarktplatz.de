@@ -2,14 +2,14 @@
 <!doctype html>
 <html lang="de">
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YNZ8GW523R');
+  </script>
 
-  gtag('config', 'G-YNZ8GW523R');
-</script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -92,6 +92,22 @@
       display:flex;
       gap:8px;
       margin-left:auto;
+    }
+
+    /* NEU: Paket-CTA Block */
+    .alarm-cta{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .alarm-cta .btn{
+      white-space:nowrap;
+    }
+    .alarm-note{
+      font-size:.95rem;
+      opacity:.9;
     }
 
     @media (max-width: 768px) {
@@ -214,6 +230,15 @@
       .foot-col {
         margin-top: 4px;
       }
+
+      .alarm-cta{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .alarm-cta .btn{
+        width:100%;
+        justify-content:center;
+      }
     }
 
     @media (min-width: 769px){
@@ -222,131 +247,52 @@
       }
     }
   </style>
-    <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
-
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
-
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    // Menü ein-/ausklappen
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    // Login-Status -> auth-in / auth-out steuern
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
-      }
-
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
-      });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
-
-    // Aktionen im Menü
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
-    updateAuthUI();
-  })();
-</script>
-
 </head>
+
 <body>
   <!-- Header -->
- <header>
-  <div class="container nav"
-       role="navigation"
-       aria-label="Hauptnavigation">
-    <!-- Logo / Brand -->
-    <a class="brand" href="index.html" aria-label="Startseite">
-      <div class="brand-logo" aria-hidden="true">
-        <img src="/static/terminmarktplatz-logo.png"
-             alt="Terminmarktplatz Logo"
-             width="50" height="50">
+  <header>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <!-- Logo / Brand -->
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- nur sichtbar, wenn NICHT eingeloggt -->
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- nur sichtbar, wenn eingeloggt -->
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+          <!-- immer sichtbar -->
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
       </div>
-      <div class="brand-title">Terminmarktplatz</div>
-    </a>
 
-    <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
-    <div class="user-menu">
-      <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-        ☰ Menü
-      </button>
-      <div id="userMenu" class="menu" role="menu" hidden>
-        <!-- nur sichtbar, wenn NICHT eingeloggt -->
-        <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-        <!-- nur sichtbar, wenn eingeloggt -->
-        <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-        <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-        <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
-        <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-        <!-- immer sichtbar -->
-        <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
-      </div>
+      <!-- Hauptnavigation rechts -->
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
     </div>
-
-    <!-- Hauptnavigation rechts -->
-    <nav class="nav-links">
-      <a href="anbieter.html">Für Anbieter</a>
-      <a href="suchende.html">Für Suchende</a>
-      <a href="preise.html">Preise</a>
-    </nav>
-  </div>
-</header>
-
+  </header>
 
   <main>
     <!-- HERO -->
@@ -356,10 +302,28 @@
         <h1>Freie Termine finden – ohne Anmeldung.</h1>
         <br>
         <p class="lead">
-          Suche spontan oder geplant nach freien Terminen in deiner Nähe. 
-          Wähle Kategorie, Ort, Datum und gewünschte Dauer – und buche direkt. 
+          Suche spontan oder geplant nach freien Terminen in deiner Nähe.
+          Wähle Kategorie, Ort, Datum und gewünschte Dauer – und buche direkt.
           <strong>Ohne Konto</strong>, mit E-Mail-Bestätigung.
         </p>
+
+        <!-- NEU: Hinweis + CTA zu Benachrichtigungen -->
+        <div class="panel" style="margin-top:14px">
+          <h3 style="margin:0 0 6px">Termin-Alarm: Benachrichtigungen, wenn etwas frei wird</h3>
+          <p class="muted" style="margin:0">
+            Du willst nicht dauernd nachsehen? Hol dir das Benachrichtigungspaket:
+            <strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
+          </p>
+          <div class="alarm-cta">
+            <a class="btn primary"
+               href="https://copecart.com/products/17de1924/checkout"
+               target="_blank" rel="noopener">
+              Benachrichtigungspaket buchen
+            </a>
+            <a class="btn" href="preise.html#benachrichtigungen">Details ansehen</a>
+            <span class="muted alarm-note">Nach dem Kauf wird dein Kontingent freigeschaltet.</span>
+          </div>
+        </div>
 
         <!-- Mini-Suchkarte (führt zu suche.html mit GET-Parametern) -->
         <form class="search-card" action="suche.html" method="get" aria-label="Schnellsuche">
@@ -385,7 +349,6 @@
             </label>
 
             <div class="input">
-              <!-- Benenne das Feld gleich wie in suche.html: day -->
               <input type="date" name="day" />
             </div>
             <div class="input">
@@ -423,14 +386,18 @@
             <span class="muted">Ohne Registrierung: Name & E-Mail eintragen, Bestätigungs-Link in der E-Mail anklicken – fertig.</span>
           </div>
           <div class="step">
-            <b>4</b> Erinnerungen<br>
-            <span class="muted">Du erhältst eine Buchungsbestätigung und (optional) eine Erinnerung vor dem Termin.</span>
+            <b>4</b> Erinnerungen & Alarm<br>
+            <span class="muted">
+              Du erhältst eine Buchungsbestätigung und (optional) eine Erinnerung vor dem Termin.
+              Extra: Mit dem <strong>Benachrichtigungspaket</strong> bekommst du Alerts, sobald neue passende Slots online gehen.
+              <a href="https://copecart.com/products/17de1924/checkout" target="_blank" rel="noopener">Paket buchen</a>.
+            </span>
           </div>
         </div>
 
         <div class="panel" style="margin-top:16px">
           <p class="muted">
-            <strong>Wichtig:</strong> Deine E-Mail wird nur für die Buchung verwendet. Es gibt kein Pflicht-Konto. 
+            <strong>Wichtig:</strong> Deine E-Mail wird nur für die Buchung verwendet. Es gibt kein Pflicht-Konto.
             Wenn ein Anbieter statt Direktbuchung lieber einen <em>externen Link</em> nutzt, führen wir dich dorthin.
           </p>
         </div>
@@ -451,6 +418,28 @@
         <div class="card">
           <h3>DSGVO & EU-Hosting</h3>
           <p class="muted">Datensparsam, klare Hinweise, Server in der EU. Details siehe <a href="datenschutz.html">Datenschutz</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- NEU: eigener Abschnitt „Benachrichtigungspaket“ -->
+    <section id="benachrichtigungen">
+      <div class="container">
+        <div class="panel">
+          <h2>Benachrichtigungspaket für Suchende</h2>
+          <p class="muted">
+            Wenn du bestimmte Kategorien/Orte im Blick hast, kannst du dich benachrichtigen lassen,
+            sobald passende Slots verfügbar werden.
+            <br><strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
+          </p>
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+            <a class="btn primary"
+               href="https://copecart.com/products/17de1924/checkout"
+               target="_blank" rel="noopener">
+              Benachrichtigungspaket buchen
+            </a>
+            <a class="btn" href="preise.html">Preise ansehen</a>
+          </div>
         </div>
       </div>
     </section>
@@ -560,7 +549,7 @@
     // Footer-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
 
-    // User-Menü Logik (mobil) inkl. Auth-Status – wie auf den anderen Seiten
+    // User-Menü Logik (mobil) inkl. Auth-Status – EINMAL, sauber
     (function(){
       const APIforMenu = ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
 

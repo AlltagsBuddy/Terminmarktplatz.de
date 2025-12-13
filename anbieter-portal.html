@@ -1,4 +1,4 @@
-<!doctype html>  
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
@@ -34,33 +34,17 @@
 
   <!-- Portal-spezifische Button-Overrides + Mobile-Optimierung -->
   <style>
-    /* Basis: Seite füllt den Viewport */
-    html, body {
-      width: 100%;
-      margin: 0;
-      padding: 0;
-    }
+    html, body { width: 100%; margin: 0; padding: 0; }
 
-    /* Container im Portal */
-    .page-portal .container {
-      max-width: 1120px;
-      box-sizing: border-box;
-    }
+    .page-portal .container { max-width: 1120px; box-sizing: border-box; }
 
-    /* Formulare und Felder passen sich der Breite an */
     .page-portal form,
     .page-portal .panel,
-    .page-portal .field {
-      width: 100%;
-      box-sizing: border-box;
-    }
+    .page-portal .field { width: 100%; box-sizing: border-box; }
 
     .page-portal .field input,
     .page-portal .field select,
-    .page-portal .field textarea {
-      width: 100%;
-      box-sizing: border-box;
-    }
+    .page-portal .field textarea { width: 100%; box-sizing: border-box; }
 
     .page-portal .btn,
     .page-portal .btn.primary,
@@ -75,14 +59,10 @@
       background-image:none !important;
     }
 
-    .page-portal .panel{
-      border-radius:var(--r-3xl);
-      box-shadow:var(--shadow-2);
-    }
+    .page-portal .panel{ border-radius:var(--r-3xl); box-shadow:var(--shadow-2); }
     .grid{display:grid; gap:16px}
     @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
 
-    /* Formular */
     .field{
       display:flex; flex-direction:column; gap:6px;
       background:rgba(255,255,255,.04);
@@ -105,22 +85,10 @@
     .muted{color:var(--ink-dim)}
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 
-    /* Dauer-Row: Input breit, Dropdown schmaler */
-    .duration-row{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    .duration-row input{
-      flex:1 1 auto;
-      width:100%;
-    }
-    .duration-row select{
-      flex:0 0 90px;
-      max-width:90px;
-    }
+    .duration-row{ display:flex; gap:8px; align-items:center; }
+    .duration-row input{ flex:1 1 auto; width:100%; }
+    .duration-row select{ flex:0 0 90px; max-width:90px; }
 
-    /* Tabelle (Desktop) */
     .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
            border-radius:14px; overflow:hidden}
     .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
@@ -133,22 +101,11 @@
     .st-arch{background:#f1f5f9}
     .st-canceled{background:#fee2e2}
 
-    /* Gebuchte / abgelaufene Slots / Status-Farben */
-    .table tr.slot-past td{
-      color:#94a3b8;
-    }
-    .table tr.slot-pending td{
-      background:#fef9c3;
-    }
-    .table tr.slot-free td{
-      background:#e0f2fe;
-    }
-    .table tr.slot-booked td{
-      background:#dcfce7;
-    }
-    .table tr.slot-booked.slot-past td{
-      background:#bbf7d0;
-    }
+    .table tr.slot-past td{ color:#94a3b8; }
+    .table tr.slot-pending td{ background:#fef9c3; }
+    .table tr.slot-free td{ background:#e0f2fe; }
+    .table tr.slot-booked td{ background:#dcfce7; }
+    .table tr.slot-booked.slot-past td{ background:#bbf7d0; }
 
     .slot-hint{
       display:block;
@@ -165,13 +122,8 @@
       font-weight:500;
     }
 
-    .table tr.slot-canceled td{
-      background:#fee2e2;
-    }
-    .slot-hint-canceled{
-      color:#b91c1c;
-      font-weight:600;
-    }
+    .table tr.slot-canceled td{ background:#fee2e2; }
+    .slot-hint-canceled{ color:#b91c1c; font-weight:600; }
 
     .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
     .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
@@ -217,18 +169,11 @@
     .alert .small{ font-size:13px; opacity:.9 }
 
     @media (min-width: 769px) {
-      .container.nav {
-        display:flex;
-        align-items:center;
-        justify-content:flex-start;
-        gap:16px;
-      }
+      .container.nav { display:flex; align-items:center; justify-content:flex-start; gap:16px; }
     }
 
     @media (max-width: 768px) {
-      .page-portal {
-        font-size: 0.9rem;
-      }
+      .page-portal { font-size: 0.9rem; }
 
       header .container.nav,
       .page-portal main .container {
@@ -237,15 +182,9 @@
         padding-inline: 12px;
       }
 
-      .container.nav {
-        flex-wrap: wrap;
-        gap: 6px;
-        align-items: flex-start;
-      }
+      .container.nav { flex-wrap: wrap; gap: 6px; align-items: flex-start; }
 
-      .brand-title {
-        font-size: 1.0rem;
-      }
+      .brand-title { font-size: 1.0rem; }
 
       .nav-links {
         display: flex !important;
@@ -257,36 +196,18 @@
         margin-top: 2px;
       }
 
-      .nav-links a {
-        font-size: 0.85rem;
-        padding: 2px 4px;
-      }
+      .nav-links a { font-size: 0.85rem; padding: 2px 4px; }
 
-      .user-menu {
-        display: block;
-      }
+      .user-menu { display: block; }
 
-      .hero {
-        padding: 20px 0 8px !important;
-      }
+      .hero { padding: 20px 0 8px !important; }
 
-      .hero h1 {
-        font-size: 1.35rem;
-        line-height: 1.2;
-        margin-bottom: 4px;
-      }
+      .hero h1 { font-size: 1.35rem; line-height: 1.2; margin-bottom: 4px; }
 
-      .hero .lead {
-        font-size: 0.9rem;
-      }
+      .hero .lead { font-size: 0.9rem; }
 
-      .grid-2 {
-        grid-template-columns: 1fr !important;
-      }
-
-      .grid {
-        gap: 10px;
-      }
+      .grid-2 { grid-template-columns: 1fr !important; }
+      .grid { gap: 10px; }
 
       .panel {
         margin-bottom: 10px;
@@ -296,99 +217,41 @@
         overflow: visible;
       }
 
-      .panel h2 {
-        font-size: 1.05rem;
-        margin-bottom: 4px;
-        text-align: left;
-      }
+      .panel h2 { font-size: 1.05rem; margin-bottom: 4px; text-align: left; }
 
-      #form-profile,
-      #form-slot {
-        gap: 8px;
-      }
+      #form-profile, #form-slot { gap: 8px; }
 
-      .field {
-        padding: 6px;
-        gap: 3px;
-      }
+      .field { padding: 6px; gap: 3px; }
 
-      .field label {
-        font-size: 0.85rem;
-      }
+      .field label { font-size: 0.85rem; }
 
-      .field input,
-      .field select,
-      .field textarea {
-        padding: 6px 8px;
-        font-size: 0.85rem;
-      }
+      .field input, .field select, .field textarea { padding: 6px 8px; font-size: 0.85rem; }
 
-      .req-text {
-        font-size: 10px;
-      }
+      .req-text { font-size: 10px; }
 
-      .toolbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-      }
+      .toolbar { flex-direction: column; align-items: flex-start; gap: 6px; }
 
-      .toolbar .btn {
-        width: auto;
-        justify-content: flex-start;
-      }
+      .toolbar .btn { width: auto; justify-content: flex-start; }
 
-      .toolbar .muted {
-        font-size: 0.8rem;
-        text-align: left;
-      }
+      .toolbar .muted { font-size: 0.8rem; text-align: left; }
 
-      #form-slot .seg {
-        gap: 4px;
-      }
+      #form-slot .seg { gap: 4px; }
 
-      #form-slot .seg .btn {
-        font-size: 0.75rem;
-        padding: 4px 6px;
-      }
+      #form-slot .seg .btn { font-size: 0.75rem; padding: 4px 6px; }
 
-      .slot-filter {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 4px;
-      }
+      .slot-filter { flex-direction: column; align-items: stretch; gap: 4px; }
 
-      .slot-filter input {
-        width: 100%;
-        min-width: 0;
-      }
+      .slot-filter input { width: 100%; min-width: 0; }
 
-      .slot-filter .seg {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
+      .slot-filter .seg { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 4px; }
 
-      .slot-filter .seg .btn {
-        font-size: 0.75rem;
-        padding: 4px 6px;
-      }
+      .slot-filter .seg .btn { font-size: 0.75rem; padding: 4px 6px; }
 
-      .table-wrap {
-        width: 100%;
-        overflow-x: hidden;
-      }
+      .table-wrap { width: 100%; overflow-x: hidden; }
 
-      .table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-      }
+      .table { width: 100%; border-collapse: separate; border-spacing: 0; }
 
-      .table thead {
-        display: none;
-      }
+      .table thead { display: none; }
 
       .table tbody tr {
         display: grid;
@@ -409,19 +272,11 @@
         white-space: normal;
       }
 
-      .table tbody tr td[data-label]::before {
-        content: none;
-      }
+      .table tbody tr td[data-label]::before { content: none; }
 
-      .table tbody tr td:nth-child(-n+8) {
-        grid-column: 1 / 2;
-        text-align: left;
-      }
+      .table tbody tr td:nth-child(-n+8) { grid-column: 1 / 2; text-align: left; }
 
-      .table tbody tr td:nth-child(9) {
-        grid-column: 2 / 3;
-        text-align: right;
-      }
+      .table tbody tr td:nth-child(9) { grid-column: 2 / 3; text-align: right; }
 
       .table tbody tr td:nth-child(9) .btn {
         display: block;
@@ -430,30 +285,15 @@
         text-align: center;
       }
 
-      .table tbody tr td:first-child {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
+      .table tbody tr td:first-child { display: flex; align-items: center; gap: 4px; }
 
-      .slot-hint {
-        font-size: 0.78rem;
-      }
+      .slot-hint { font-size: 0.78rem; }
 
-      .foot-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
+      .foot-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
-      .foot-col {
-        margin-top: 4px;
-      }
+      .foot-col { margin-top: 4px; }
 
-      .duration-row select{
-        flex:0 0 80px;
-        max-width:80px;
-      }
+      .duration-row select{ flex:0 0 80px; max-width:80px; }
     }
 
     .user-menu .btn {
@@ -475,47 +315,19 @@
       font-size: 0.8rem;
     }
 
-    header .nav{
-      display:flex;
-      align-items:center;
-      gap:16px;
-    }
-    header .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-    header .user-menu{
-      display:block;
-      position:relative;
-      z-index:60;
-      margin-left:12px;
-    }
+    header .nav{ display:flex; align-items:center; gap:16px; }
+    header .brand{ display:flex; align-items:center; gap:12px; }
+    header .user-menu{ display:block; position:relative; z-index:60; margin-left:12px; }
 
     @media (min-width:769px){
-      header .nav{
-        justify-content:flex-start;
-      }
-      header .nav-links{
-        display:flex;
-        align-items:center;
-        gap:16px;
-        margin-left:auto;
-      }
+      header .nav{ justify-content:flex-start; }
+      header .nav-links{ display:flex; align-items:center; gap:16px; margin-left:auto; }
     }
 
     @media (max-width:768px){
-      header .nav{
-        flex-wrap:wrap;
-        align-items:flex-start;
-        gap:8px;
-      }
-      header .brand{
-        margin-right:0;
-      }
-      header .user-menu{
-        margin-left:auto;
-      }
+      header .nav{ flex-wrap:wrap; align-items:flex-start; gap:8px; }
+      header .brand{ margin-right:0; }
+      header .user-menu{ margin-left:auto; }
       header .nav-links{
         width:100%;
         justify-content:center;
@@ -524,13 +336,9 @@
         text-align:center;
         margin-top:4px;
       }
-      header .nav-links a{
-        font-size:0.9rem;
-        padding:6px 8px;
-      }
+      header .nav-links a{ font-size:0.9rem; padding:6px 8px; }
     }
 
-    /* Paket-Hinweis */
     .plan-info {
       margin: 8px 0 18px;
       padding: 10px 12px;
@@ -543,29 +351,11 @@
       align-items: center;
       font-size: 0.9rem;
     }
+    .plan-label { font-weight: 600; color: #111827; }
+    .plan-name { font-weight: 600; color: #4f46e5; }
+    .plan-valid { color: #6b7280; }
+    .plan-change-link { margin-left: 6px; font-weight: 500; color: #4f46e5; text-decoration: underline; }
 
-    .plan-label {
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .plan-name {
-      font-weight: 600;
-      color: #4f46e5;
-    }
-
-    .plan-valid {
-      color: #6b7280;
-    }
-
-    .plan-change-link {
-      margin-left: 6px;
-      font-weight: 500;
-      color: #4f46e5;
-      text-decoration: underline;
-    }
-
-    /* Kündigungs-Button innerhalb der Plan-Info */
     .plan-info .btn-cancel-plan {
       margin-left: auto;
       font-size: 0.85rem;
@@ -574,15 +364,8 @@
     }
 
     @media (max-width: 768px){
-      .plan-info {
-        width: 100%;
-        justify-content: flex-start;
-      }
-      .plan-info .btn-cancel-plan {
-        margin-left: 0;
-        width: 100%;
-        justify-content: center;
-      }
+      .plan-info { width: 100%; justify-content: flex-start; }
+      .plan-info .btn-cancel-plan { margin-left: 0; width: 100%; justify-content: center; }
     }
   </style>
 </head>
@@ -796,7 +579,6 @@
                 <button type="button" class="btn" id="slot-copy-from-profile">Adresse aus Profil übernehmen</button>
                 <span class="muted">Standard: Profiladresse nutzen, bei Bedarf für Filialen anpassen.</span>
               </div>
-              <!-- Ende neue Adressfelder -->
 
               <div class="field">
                 <label for="sl-cap">Kapazität</label>
@@ -916,7 +698,6 @@
       setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 4200);
     }
 
-    // Hinweisbox für Slot-Limit steuern
     function showSlotLimitAlert(){
       const el = document.getElementById('slot-limit-alert');
       if (el) el.style.display = 'block';
@@ -932,10 +713,23 @@
       const [hh,mm] = timeStr.split(':').map(Number);
       return new Date(y, (m-1), d, hh, mm, 0, 0);
     }
+
+    // ✅ FIX: Backend liefert teils ISO ohne Zeitzone -> als UTC interpretieren
+    function looksLikeIsoWithTZ(s){
+      return /[zZ]$/.test(s) || /[+\-]\d{2}:\d{2}$/.test(s);
+    }
+    function parseApiDate(s){
+      if (!s) return null;
+      const str = String(s).trim();
+      if (!str) return null;
+      const normalized = looksLikeIsoWithTZ(str) ? str : (str + 'Z');
+      const d = new Date(normalized);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
     function fmtLocal(dtStr){
-      if (!dtStr) return '';
-      const d = new Date(dtStr);
-      if (isNaN(d.getTime())) return '';
+      const d = parseApiDate(dtStr);
+      if (!d) return '';
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
@@ -951,24 +745,45 @@
         + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // ---------- Profil-Check ----------
+    // ---------- Validierungen ----------
     function isValidZip(v){ return /^\d{5}$/.test((v||'').trim()); }
     function isValidPhone(v){ return /^\+?[0-9\s\-\/]{6,}$/.test((v||'').trim()); }
 
-    // Straße + Hausnummer: mind. 2 Zeichen Straße + Leerzeichen + Hausnummer
     function isValidStreetWithNumber(v){
       v = (v || '').trim();
       if (!v) return false;
       return /^.{2,}\s+\d{1,4}[a-zA-Z0-9\-\/]*$/.test(v);
     }
 
-    // Ortsname: nur Buchstaben, Leerzeichen, Punkt, Bindestrich
     function isValidCityName(v){
       v = (v || '').trim();
       if (!v) return false;
       return /^[A-Za-zÄÖÜäöüß.\-\s]{2,}$/.test(v);
     }
 
+    // ✅ Straße+Nr splitten für DB-Felder
+    function splitStreetAndNumber(v){
+      v = (v || '').trim();
+      const m = v.match(/^(.{2,}?)\s+(\d{1,4}[a-zA-Z0-9\-\/]*)$/);
+      if (!m) return { street: v, house_number: '' };
+      return { street: m[1].trim(), house_number: m[2].trim() };
+    }
+
+    // ✅ Adresse aus Slot-Daten für Anzeige bauen (fallback)
+    function displayAddress(slot){
+      if (!slot) return '';
+      const s = (slot.street || '').trim();
+      const hn = (slot.house_number || '').trim();
+      const z = (slot.zip || '').trim();
+      const c = (slot.city || '').trim();
+
+      const line1 = (s || hn) ? `${s}${hn ? ' ' + hn : ''}`.trim() : '';
+      const line2 = (z || c) ? `${z}${(z && c) ? ' ' : ''}${c}`.trim() : '';
+      const combined = [line1, line2].filter(Boolean).join(', ');
+      return combined || (slot.location || '');
+    }
+
+    // ---------- Profil-Check ----------
     function isProfileCompleteFromValues(vals){
       return !!(
         vals.company_name &&
@@ -992,7 +807,6 @@
       };
     }
 
-    // Profiladresse -> Slotadresse kopieren (Standard-Filiale)
     function copyProfileAddressToSlot(force=false){
       const streetInput = $('#sl-street');
       const zipInput    = $('#sl-zip');
@@ -1004,10 +818,7 @@
         (zipInput.value && zipInput.value.trim()) ||
         (cityInput.value && cityInput.value.trim());
 
-      if (!force && currentFilled) {
-        // nichts überschreiben, wenn bereits etwas eingetragen wurde
-        return;
-      }
+      if (!force && currentFilled) return;
 
       const prof = getProfileValuesFromForm();
       if (!prof.street && !prof.zip && !prof.city) return;
@@ -1047,25 +858,17 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Paket-Info aus /me anzeigen (Plan + Slot-Limits)
-        const PLAN_LABELS = {
-          basic:    'Basis (Standard)',
-          starter:  'Starter',
-          profi:    'Profi',
-          business: 'Business'
-        };
+        const PLAN_LABELS = { basic:'Basis (Standard)', starter:'Starter', profi:'Profi', business:'Business' };
         const planNameEl   = document.getElementById('plan-name');
         const planValidEl  = document.getElementById('plan-valid-until');
         const planSlotsEl  = document.getElementById('plan-slots');
         const cancelBtn    = document.getElementById('cancel-plan-btn');
 
         if (planNameEl && planValidEl) {
-          // Plan-Key kann aus ME.plan oder ME.plan_key kommen
           const key   = (ME.plan || ME.plan_key || 'basic');
           const label = ME.plan_label || PLAN_LABELS[key] || key;
           planNameEl.textContent = label;
 
-          // Gültigkeit
           if (ME.plan_valid_until) {
             const d = new Date(ME.plan_valid_until);
             if (!isNaN(d.getTime())) {
@@ -1077,7 +880,6 @@
             planValidEl.textContent = '· kein Ablaufdatum hinterlegt';
           }
 
-          // Slots diesen Monat (aus /me)
           if (planSlotsEl) {
             if (ME.slots_unlimited) {
               planSlotsEl.textContent = '· Slots diesen Monat: unbegrenzt';
@@ -1090,15 +892,13 @@
                 ? ME.slots_left_this_month
                 : Math.max(0, total - used);
 
-              planSlotsEl.textContent =
-                `· Slots diesen Monat: ${used}/${total} (noch ${left} frei)`;
+              planSlotsEl.textContent = `· Slots diesen Monat: ${used}/${total} (noch ${left} frei)`;
             } else {
               planSlotsEl.textContent = '';
             }
           }
         }
 
-        // Paket kündigen-Button nur anzeigen, wenn ein bezahltes Paket aktiv ist (nicht basic)
         if (cancelBtn) {
           const planKey = (ME.plan || ME.plan_key || '').trim();
           if (planKey && planKey !== 'basic') {
@@ -1111,10 +911,7 @@
               if (!ok) return;
 
               try {
-                const res = await fetch(`${API}/me/cancel_plan`, {
-                  method: 'POST',
-                  credentials: 'include'
-                });
+                const res = await fetch(`${API}/me/cancel_plan`, { method: 'POST', credentials: 'include' });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && data.ok) {
                   alert(
@@ -1146,10 +943,8 @@
         const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
         setSlotLock(!complete);
 
-        // Wenn Profil vollständig: Slot-Adresse standardmäßig aus Profil übernehmen (nur wenn Slot-Felder leer sind)
-        if (complete) {
-          copyProfileAddressToSlot(false);
-        }
+        if (complete) copyProfileAddressToSlot(false);
+
       }catch(err){
         showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
       }
@@ -1171,11 +966,7 @@
           const complete = isProfileCompleteFromValues(payload);
           showMsg('msg-profile', complete ? 'Gespeichert ✓ Profil vollständig.' : 'Gespeichert ✓ Bitte Pflichtfelder ergänzen.');
           setSlotLock(!complete);
-
-          // Nach dem Speichern bei vollständigem Profil Slot-Adresse vorbelegen (falls Slot-Felder noch leer sind)
-          if (complete) {
-            copyProfileAddressToSlot(false);
-          }
+          if (complete) copyProfileAddressToSlot(false);
         }else{
           const map = {
             unauthorized: 'Bitte erneut anmelden.',
@@ -1224,7 +1015,6 @@
       recalcEnd();
     }));
 
-    // Button: Adresse aus Profil übernehmen
     const copyBtn = document.getElementById('slot-copy-from-profile');
     if (copyBtn) {
       copyBtn.addEventListener('click', (e)=>{
@@ -1234,7 +1024,6 @@
       });
     }
 
-    // Bearbeitung abbrechen
     const cancelEditBtn = document.getElementById('btn-slot-cancel-edit');
     if (cancelEditBtn) {
       cancelEditBtn.addEventListener('click', (e)=>{
@@ -1257,18 +1046,19 @@
       const category = $('#sl-cat').value;
       const date     = $('#sl-date').value;
       const start    = $('#sl-start').value;
-      const street   = $('#sl-street').value.trim();
+
+      const streetCombined = $('#sl-street').value.trim();
       const zip      = $('#sl-zip').value.trim();
       const city     = $('#sl-city').value.trim();
+
       const duration = totalMinutes();
 
-      if (!title || !category || !date || !start || !street || !zip || !city || !duration) {
+      if (!title || !category || !date || !start || !streetCombined || !zip || !city || !duration) {
         showMsg('msg-slot', 'Bitte alle Pflichtfelder für den Slot ausfüllen.');
         return;
       }
 
-      // Adress-Plausibilitätsprüfung
-      if (!isValidStreetWithNumber(street)) {
+      if (!isValidStreetWithNumber(streetCombined)) {
         showMsg('msg-slot', 'Adresse unplausibel: Bitte Straße und Hausnummer eingeben (z. B. Musterstraße 12a).');
         return;
       }
@@ -1288,21 +1078,32 @@
       const priceVal = $('#sl-price').value;
       const notes    = $('#sl-notes').value.trim();
 
-      // Ein gemeinsames Location-Feld für Backend
-      const location = `${street}, ${zip} ${city}`;
+      // ✅ splitten -> DB-Felder
+      const parsed = splitStreetAndNumber(streetCombined);
 
-      const priceCents =
-        priceVal === '' ? null : Math.round(Number(priceVal) * 100);
+      // Kompatibilität / Anzeige
+      const location = `${streetCombined}, ${zip} ${city}`;
+
+      const priceCents = (priceVal === '' ? null : Math.round(Number(priceVal) * 100));
 
       const payload = {
         title,
         category,
         start_at: startDt.toISOString(),
         end_at:   endDt.toISOString(),
+
+        // ✅ DB-Felder (Model Slot.street/house_number/zip/city)
+        street: parsed.street,
+        house_number: parsed.house_number,
+        zip,
+        city,
+
+        // optional: Freitext-Adresse weiter füllen
         location,
+
         capacity: isNaN(capacity) ? 1 : capacity,
         price_cents: (priceCents === null || isNaN(priceCents)) ? null : priceCents,
-        notes:    notes || null
+        notes: notes || null
       };
 
       try {
@@ -1311,9 +1112,8 @@
 
         if (EDITING_SLOT && EDITING_SLOT.id) {
           const body = Object.assign({}, payload);
-          if (EDITING_SLOT.status) {
-            body.status = EDITING_SLOT.status;
-          }
+          if (EDITING_SLOT.status) body.status = EDITING_SLOT.status;
+
           res = await fetch(`${API}/slots/${EDITING_SLOT.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -1332,9 +1132,7 @@
         data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          const msg = (EDITING_SLOT && EDITING_SLOT.id)
-            ? 'Slot aktualisiert.'
-            : 'Slot angelegt.';
+          const msg = (EDITING_SLOT && EDITING_SLOT.id) ? 'Slot aktualisiert.' : 'Slot angelegt.';
           showMsg('msg-slot', msg, true);
           resetSlotForm();
           await loadSlots();
@@ -1349,9 +1147,7 @@
     // ---------- Buchung absagen ----------
     async function cancelBooking(bookingId, customerLabel){
       if (!bookingId) return;
-      const confirmText = customerLabel
-        ? `Buchung von ${customerLabel} wirklich absagen?`
-        : 'Diese Buchung wirklich absagen?';
+      const confirmText = customerLabel ? `Buchung von ${customerLabel} wirklich absagen?` : 'Diese Buchung wirklich absagen?';
       const ok = confirm(confirmText);
       if (!ok) return;
 
@@ -1386,14 +1182,8 @@
       const ids = [...SELECTED];
       const any = ids.length > 0;
 
-      const anyDraft = ids.some(id => {
-        const st = (byId[id]?.status || '').toString().toUpperCase();
-        return st === 'DRAFT';
-      });
-      const anyPublished = ids.some(id => {
-        const st = (byId[id]?.status || '').toString().toUpperCase();
-        return st === 'PUBLISHED';
-      });
+      const anyDraft = ids.some(id => ((byId[id]?.status || '').toString().toUpperCase() === 'DRAFT'));
+      const anyPublished = ids.some(id => ((byId[id]?.status || '').toString().toUpperCase() === 'PUBLISHED'));
 
       $('#btn-publish').disabled = !(any && anyDraft);
       $('#btn-archive').disabled = !(any && anyPublished);
@@ -1408,9 +1198,8 @@
     }
 
     function isoToLocalDateTime(iso){
-      if (!iso) return { date:'', time:'' };
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return { date:'', time:'' };
+      const d = parseApiDate(iso);
+      if (!d) return { date:'', time:'' };
       const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
       const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       return { date, time };
@@ -1456,9 +1245,7 @@
       if (title) title.value = slot.title || '';
 
       const cat = document.getElementById('sl-cat');
-      if (cat && slot.category){
-        cat.value = slot.category;
-      }
+      if (cat && slot.category) cat.value = slot.category;
 
       const dt = isoToLocalDateTime(slot.start_at);
       const dateInput = document.getElementById('sl-date');
@@ -1468,14 +1255,15 @@
 
       let durationMinutes = 0;
       if (slot.start_at && slot.end_at){
-        const start = new Date(slot.start_at);
-        const end   = new Date(slot.end_at);
-        const diff  = Math.round((end - start) / 60000);
-        if (diff > 0) durationMinutes = diff;
+        const start = parseApiDate(slot.start_at);
+        const end   = parseApiDate(slot.end_at);
+        if (start && end){
+          const diff  = Math.round((end - start) / 60000);
+          if (diff > 0) durationMinutes = diff;
+        }
       }
-      if (!durationMinutes) {
-        durationMinutes = 30;
-      }
+      if (!durationMinutes) durationMinutes = 30;
+
       const dur = document.getElementById('sl-duration');
       const unit = document.getElementById('sl-unit');
       if (unit) unit.value = 'min';
@@ -1497,13 +1285,25 @@
       const notesInput = document.getElementById('sl-notes');
       if (notesInput) notesInput.value = slot.notes || '';
 
-      const loc = parseLocation(slot.location || '');
+      // ✅ DB-Felder bevorzugen, fallback auf location
       const stInput = document.getElementById('sl-street');
       const zipInput = document.getElementById('sl-zip');
       const cityInput = document.getElementById('sl-city');
-      if (stInput) stInput.value = loc.street;
-      if (zipInput) zipInput.value = loc.zip;
-      if (cityInput) cityInput.value = loc.city;
+
+      const hasDbAddress = !!((slot.street || '').trim() || (slot.house_number || '').trim() || (slot.zip || '').trim() || (slot.city || '').trim());
+
+      if (hasDbAddress){
+        const s = (slot.street || '').trim();
+        const hn = (slot.house_number || '').trim();
+        if (stInput) stInput.value = `${s}${hn ? ' ' + hn : ''}`.trim();
+        if (zipInput) zipInput.value = (slot.zip || '').trim();
+        if (cityInput) cityInput.value = (slot.city || '').trim();
+      } else {
+        const loc = parseLocation(slot.location || '');
+        if (stInput) stInput.value = loc.street;
+        if (zipInput) zipInput.value = loc.zip;
+        if (cityInput) cityInput.value = loc.city;
+      }
 
       const submitBtn = document.getElementById('slot-submit-btn');
       if (submitBtn) submitBtn.textContent = 'Slot aktualisieren';
@@ -1535,7 +1335,7 @@
         const isPublished= rawStatus === 'PUBLISHED';
         const isCanceled = rawStatus === 'CANCELED';
 
-        const endDate = s.end_at ? new Date(s.end_at) : null;
+        const endDate = s.end_at ? parseApiDate(s.end_at) : null;
         const isPast  = !!(endDate && endDate < now);
 
         const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
@@ -1556,29 +1356,16 @@
         const canEdit = !isCanceled && !isBooked;
 
         let rowClass = '';
-        if (isPast) {
-          rowClass += ' slot-past';
-        }
-        if (isCanceled) {
-          rowClass += ' slot-canceled';
-        } else if (isDraft) {
-          rowClass += ' slot-pending';
-        } else if (isPublished) {
-          if (isBooked) {
-            rowClass += ' slot-booked';
-          } else {
-            rowClass += ' slot-free';
-          }
-        }
+        if (isPast) rowClass += ' slot-past';
+        if (isCanceled) rowClass += ' slot-canceled';
+        else if (isDraft) rowClass += ' slot-pending';
+        else if (isPublished) rowClass += (isBooked ? ' slot-booked' : ' slot-free');
         tr.className = rowClass.trim();
 
         const hintParts = [];
         if (!isCanceled) {
-          if (isBooked) {
-            hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
-          } else if (isPublished && !isPast) {
-            hintParts.push(`Frei (${available}/${capacity})`);
-          }
+          if (isBooked) hintParts.push(`Gebucht (${bookedCount}/${capacity})`);
+          else if (isPublished && !isPast) hintParts.push(`Frei (${available}/${capacity})`);
         }
         if (isPast) hintParts.push('Abgelaufen');
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
@@ -1587,21 +1374,13 @@
         if (activeBookings.length > 0){
           if (activeBookings.length === 1){
             const b = activeBookings[0];
-            const label = `${b.customer_name} (${b.customer_email})`;
-            bookingHint = `Gebucht von: ${label}`;
+            bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
           } else {
             const maxVisible = 3;
             const visible = activeBookings.slice(0, maxVisible);
-            const listStr = visible
-              .map(b => `${b.customer_name} (${b.customer_email})`)
-              .join('; ');
+            const listStr = visible.map(b => `${b.customer_name} (${b.customer_email})`).join('; ');
             const hiddenCount = activeBookings.length - visible.length;
-
-            if (hiddenCount > 0){
-              bookingHint = `Gebucht von: ${listStr} + ${hiddenCount} weitere`;
-            } else {
-              bookingHint = `Gebucht von: ${listStr}`;
-            }
+            bookingHint = hiddenCount > 0 ? `Gebucht von: ${listStr} + ${hiddenCount} weitere` : `Gebucht von: ${listStr}`;
           }
         }
 
@@ -1617,9 +1396,7 @@
             s.updated_at,
             s.updated
           ]);
-          if (ts){
-            bookingTimeHint = `Gebucht am: ${fmtLocal(ts)}`;
-          }
+          if (ts) bookingTimeHint = `Gebucht am: ${fmtLocal(ts)}`;
         }
 
         let canceledTimeHint = '';
@@ -1632,9 +1409,7 @@
             ...canceledBookings.map(b => b.cancelled_at),
             ...canceledBookings.map(b => b.updated_at)
           ]);
-          if (ts) {
-            canceledTimeHint = `Storniert am: ${fmtLocal(ts)}`;
-          }
+          if (ts) canceledTimeHint = `Storniert am: ${fmtLocal(ts)}`;
         }
 
         const hintHtml = [];
@@ -1648,10 +1423,7 @@
           const b = activeBookings[0];
           const label = `${b.customer_name} (${b.customer_email})`;
           cancelHtml = `
-            <button
-              class="btn danger"
-              data-cancel-booking="${b.id}"
-              data-cancel-label="${label}">
+            <button class="btn danger" data-cancel-booking="${b.id}" data-cancel-label="${label}">
               Buchung absagen
             </button>
           `;
@@ -1661,22 +1433,17 @@
             .join('');
           cancelHtml = `
             <div class="booking-cancel">
-              <select class="booking-select">
-                ${options}
-              </select>
-              <button type="button" class="btn danger booking-cancel-btn">
-                Buchung absagen
-              </button>
+              <select class="booking-select">${options}</select>
+              <button type="button" class="btn danger booking-cancel-btn">Buchung absagen</button>
             </div>
           `;
         }
 
-        const statusLabelMap = {
-          DRAFT: 'Entwurf',
-          PUBLISHED: 'Veröffentlicht',
-          CANCELED: 'Storniert'
-        };
+        const statusLabelMap = { DRAFT:'Entwurf', PUBLISHED:'Veröffentlicht', CANCELED:'Storniert' };
         const statusLabel = statusLabelMap[rawStatus] || (s.status || '');
+
+        // ✅ Anzeige-Ort robust (DB-Felder > location)
+        const place = displayAddress(s);
 
         tr.innerHTML = `
           <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
@@ -1687,7 +1454,7 @@
             ${hintHtml.join('')}
           </td>
           <td data-label="Kategorie">${s.category||''}</td>
-          <td data-label="Ort">${s.location||''}</td>
+          <td data-label="Ort">${place || ''}</td>
           <td data-label="Kapazität">${capacity}</td>
           <td data-label="Status"><span class="badge-st ${stClass}">${statusLabel}</span></td>
           <td data-label="Aktionen" class="nowrap">
@@ -1701,7 +1468,6 @@
         tbody.appendChild(tr);
       }
 
-      // Checkboxen
       $$('#tbl-slots .row-check').forEach(cb => {
         cb.addEventListener('change', ()=>{
           const id = cb.dataset.id;
@@ -1710,7 +1476,6 @@
         });
       });
 
-      // Slot löschen
       $$('#tbl-slots [data-del]').forEach(b =>
         b.addEventListener('click', async ()=>{
           await delSlot(b.dataset.del);
@@ -1718,7 +1483,6 @@
         })
       );
 
-      // Status ändern
       $$('#tbl-slots [data-arch]').forEach(b =>
         b.addEventListener('click', async ()=>{
           await setStatus(b.dataset.arch, b.dataset.status);
@@ -1726,18 +1490,14 @@
         })
       );
 
-      // Slot bearbeiten (nur, wenn nicht gebucht)
       $$('#tbl-slots [data-edit]').forEach(b => {
         b.addEventListener('click', ()=>{
           const id = b.dataset.edit;
           const slot = items.find(x => x.id === id);
-          if (slot) {
-            enterEditMode(slot);
-          }
+          if (slot) enterEditMode(slot);
         });
       });
 
-      // Einzel-Buchung absagen
       $$('#tbl-slots [data-cancel-booking]').forEach(btn => {
         btn.addEventListener('click', async ()=>{
           const bookingId = btn.dataset.cancelBooking;
@@ -1746,7 +1506,6 @@
         });
       });
 
-      // Mehrere Buchungen: Auswahl + Absage
       $$('#tbl-slots .booking-cancel-btn').forEach(btn => {
         btn.addEventListener('click', async ()=>{
           const wrap = btn.closest('.booking-cancel');
@@ -1775,6 +1534,7 @@
     }
 
     async function loadSlots(){
+      hideSlotLimitAlert(); // ✅ FIX: Alert nicht „kleben“ lassen
       const tbody = $('#tbl-slots tbody');
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Lade …</td></tr>`;
       SELECTED.clear();
@@ -1800,7 +1560,9 @@
         const q = slotSearch.value.trim().toLowerCase();
         if(!q) return renderTable(LAST_ITEMS);
         const filtered = LAST_ITEMS.filter(s =>
-          (s.title||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q)
+          (s.title||'').toLowerCase().includes(q) ||
+          (s.category||'').toLowerCase().includes(q) ||
+          (displayAddress(s)||'').toLowerCase().includes(q)
         );
         renderTable(filtered);
       });
@@ -1814,7 +1576,6 @@
       }catch(e){ showMsg('msg-slots','Netzwerkfehler.'); }
     }
 
-    // Einzelner Statuswechsel inkl. Limit-Handling
     async function setStatus(id, status){
       try{
         const r = await fetch(`${API}/slots/${id}`, {
@@ -1826,25 +1587,24 @@
         let data = {};
         try { data = await r.json(); } catch(_) {}
 
-        if(!r.ok){
+        if(r.ok){
+          hideSlotLimitAlert(); // ✅ FIX
+          return;
+        }
+
+        if (!r.ok){
           if (r.status === 409 && data.error === 'monthly_publish_limit_reached') {
             showSlotLimitAlert();
-            showMsg(
-              'msg-slots',
-              'Slot-Limit für diesen Monat erreicht. Du kannst aktuell keine weiteren Slots veröffentlichen.'
-            );
+            showMsg('msg-slots','Slot-Limit für diesen Monat erreicht. Du kannst aktuell keine weiteren Slots veröffentlichen.');
           } else {
             showMsg('msg-slots','Konnte Status nicht ändern.');
           }
-        } else {
-          // ok
         }
       }catch(e){
         showMsg('msg-slots','Netzwerkfehler.');
       }
     }
 
-    // Bulk-Statuswechsel inkl. Limit-Handling
     async function bulkSetStatus(ids, status){
       if(!ids.length) return;
       let limitHit = false;
@@ -1874,10 +1634,9 @@
 
       if (limitHit){
         showSlotLimitAlert();
-        showMsg(
-          'msg-slots',
-          'Slot-Limit für diesen Monat erreicht. Einige Slots konnten nicht mehr veröffentlicht werden.'
-        );
+        showMsg('msg-slots','Slot-Limit für diesen Monat erreicht. Einige Slots konnten nicht mehr veröffentlicht werden.');
+      } else {
+        hideSlotLimitAlert(); // ✅ FIX
       }
     }
 
@@ -1887,6 +1646,7 @@
         fetch(`${API}/slots/${id}`, {method:'DELETE', credentials:'include'})
       ));
     }
+
     $('#btn-publish')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
       await bulkSetStatus(ids, 'PUBLISHED');
@@ -1914,65 +1674,6 @@
     })();
   </script>
 
-  <!-- Account löschen -->
-  <script>
-    (function(){
-      const API_LOCAL = (typeof window.API === 'string')
-        ? window.API
-        : (() => {
-            const h = location.hostname;
-            const proto = location.protocol;
-            const isLocal =
-              h === 'localhost' ||
-              h === '127.0.0.1' ||
-              /^192\.168\./.test(h) ||
-              /^10\./.test(h) ||
-              h.endsWith('.local');
-
-            if (isLocal) {
-              return `${proto}//${h}:5000`;
-            }
-            if (h === 'api.terminmarktplatz.de') {
-              return `${proto}//${h}`;
-            }
-            return 'https://api.terminmarktplatz.de';
-          })();
-
-      const btn = document.getElementById('btn-delete-account');
-      const msg = document.getElementById('del-msg');
-      if (!btn || !msg) return;
-
-      function showDelMsg(t){ msg.textContent = t; msg.style.display = 'block'; }
-      function hideDelMsg(){ msg.style.display = 'none'; msg.textContent = ''; }
-
-      btn.addEventListener('click', async ()=>{
-        hideDelMsg();
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen?');
-        if (!ok) return;
-
-        btn.disabled = true; btn.classList.add('loading');
-        try{
-          const res = await fetch(`${API_LOCAL}/me`, {
-            method: 'DELETE',
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-          });
-
-          if (res.ok){
-            window.location.href = '/login.html?deleted=1';
-            return;
-          }
-          const data = await res.json().catch(()=> ({}));
-          showDelMsg(data?.error === 'not_found' ? 'Konto nicht gefunden.' : 'Löschen fehlgeschlagen.');
-        }catch(e){
-          showDelMsg('Netzwerkfehler – bitte später erneut versuchen.');
-        }finally{
-          btn.disabled = false; btn.classList.remove('loading');
-        }
-      });
-    })();
-  </script>
-
   <!-- User-Menü Logik -->
   <script>
     (function(){
@@ -1988,12 +1689,8 @@
               /^10\./.test(h) ||
               h.endsWith('.local');
 
-            if (isLocal) {
-              return `${proto}//${h}:5000`;
-            }
-            if (h === 'api.terminmarktplatz.de') {
-              return `${proto}//${h}`;
-            }
+            if (isLocal) return `${proto}//${h}:5000`;
+            if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
             return 'https://api.terminmarktplatz.de';
           })();
 
@@ -2023,12 +1720,8 @@
           loggedIn = false;
         }
 
-        document.querySelectorAll('.auth-in').forEach(el => {
-          el.style.display = loggedIn ? '' : 'none';
-        });
-        document.querySelectorAll('.auth-out').forEach(el => {
-          el.style.display = loggedIn ? 'none' : '';
-        });
+        document.querySelectorAll('.auth-in').forEach(el => { el.style.display = loggedIn ? '' : 'none'; });
+        document.querySelectorAll('.auth-out').forEach(el => { el.style.display = loggedIn ? 'none' : ''; });
       }
 
       menu.addEventListener('click', async (e)=>{
@@ -2037,9 +1730,7 @@
         const action = el.dataset.action;
 
         if (action === 'logout'){
-          try{
-            await fetch(`${API_LOCAL}/auth/logout`, { method:'POST', credentials:'include' });
-          }catch(_){}
+          try{ await fetch(`${API_LOCAL}/auth/logout`, { method:'POST', credentials:'include' }); }catch(_){}
           location.href = '/login.html';
         }
 

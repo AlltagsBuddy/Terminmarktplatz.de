@@ -29,7 +29,6 @@ class Provider(Base):
     """Dienstleister (Arzt, Amt, Handwerker …)."""
     __tablename__ = "provider"
 
-    # UUID als String
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
         primary_key=True,
@@ -51,34 +50,23 @@ class Provider(Base):
     status: Mapped[str] = mapped_column(Text, default="pending")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # ⚠️ app.py arbeitet überwiegend mit UTC-naive Datetimes in DB
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
     # ---------------- Tarif / Plan ----------------
-    # z.B. "starter", "profi", "business" – kann auch None sein (Basisplan)
-    plan: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    # Bis wann das aktuell gebuchte Paket gültig ist (Datum)
+    plan: Mapped[str | None] = mapped_column(Text, nullable=True)
     plan_valid_until: Mapped[date | None] = mapped_column(SADate)
 
-    # Limit freie Slots pro Monat (für Basis z.B. 3; None = Standard aus Logik)
-    free_slots_per_month: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-    )
+    free_slots_per_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Gebühr pro gebuchtem Slot (in EUR, z. B. 2.00) – None = Fallback in app.py
     booking_fee_eur: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2),
         nullable=True,
     )
 
-    # Beziehungen
     slots: Mapped[list["Slot"]] = relationship(
         "Slot",
         back_populates="provider",
@@ -86,7 +74,6 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    # direkte Beziehung zu Buchungen (praktisch für Abrechnung)
     bookings: Mapped[list["Booking"]] = relationship(
         "Booking",
         back_populates="provider",
@@ -94,7 +81,6 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    # alle Paket-Käufe (Starter/Profi/Business)
     plan_purchases: Mapped[list["PlanPurchase"]] = relationship(
         "PlanPurchase",
         back_populates="provider",
@@ -102,7 +88,6 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    # Rechnungen für monatliche Abrechnung
     invoices: Mapped[list["Invoice"]] = relationship(
         "Invoice",
         back_populates="provider",
@@ -110,7 +95,6 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    # -------- Convenience / Public-Ansicht --------
     @property
     def public_name(self) -> str:
         return (self.company_name or self.email or "").strip()
@@ -128,10 +112,6 @@ class Provider(Base):
         return ", ".join(parts)
 
     def to_public_dict(self) -> dict:
-        """
-        Kompakte, öffentliche Sicht auf einen Provider:
-        ohne interne Felder wie Passworthash, Status, Limits etc.
-        """
         return {
             "id": self.id,
             "name": self.public_name,
@@ -168,48 +148,45 @@ class Slot(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[str] = mapped_column(Text, nullable=False)
 
-    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # ✅ app.py speichert UTC-naive
+    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
 
-    # Adresse des Termins (kann von Provider-Adresse abweichen)
     street: Mapped[str | None] = mapped_column(Text)
     house_number: Mapped[str | None] = mapped_column(Text)
     zip: Mapped[str | None] = mapped_column(Text)
     city: Mapped[str | None] = mapped_column(Text)
 
-    # Volltext-Adresse / Freitext (z.B. "im 1. OG, Praxis XY")
     location: Mapped[str | None] = mapped_column(Text)
 
-    # Geo-Koordinaten (optional, z.B. für Maps / Radius-Suche)
-    lat: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
-    lng: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    # ✅ mehr Präzision + passt zu app.py (Decimal aus lat/lng)
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
+    lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
 
     capacity: Mapped[int] = mapped_column(Integer, default=1)
 
-    # aktuell noch nicht im Frontend genutzt, aber vorhanden
     contact_method: Mapped[str] = mapped_column(Text, default="mail")
     booking_link: Mapped[str | None] = mapped_column(Text)
 
-    # Preis in Cent (optional, falls Provider den Termin direkt berechnet)
     price_cents: Mapped[int | None] = mapped_column(Integer)
-
     notes: Mapped[str | None] = mapped_column(Text)
 
-    # pending_review | published | archived | canceled
-    status: Mapped[str] = mapped_column(Text, default="pending_review")
+    # ✅ kompatibel zu app.py
+    status: Mapped[str] = mapped_column(Text, default="DRAFT")
+
+    # ✅ wird von deinem Quota-Code gesetzt/geleert
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
-    # Beziehungen
     provider: Mapped["Provider"] = relationship(
         "Provider",
         back_populates="slots",
     )
 
-    # alle Buchungen zu diesem Slot
     bookings: Mapped[list["Booking"]] = relationship(
         "Booking",
         back_populates="slot",
@@ -217,7 +194,6 @@ class Slot(Base):
         passive_deletes=True,
     )
 
-    # -------- Convenience / Public-Ansicht --------
     def public_address(self) -> str:
         parts: list[str] = []
         if self.street:
@@ -254,6 +230,7 @@ class Slot(Base):
             "price_cents": self.price_cents,
             "notes": self.notes,
             "status": self.status,
+            "published_at": self.published_at,
             "created_at": self.created_at,
         }
         if include_provider and self.provider is not None:
@@ -280,71 +257,50 @@ class Booking(Base):
         nullable=False,
     )
 
-    # direkte Referenz zum Provider (vereinfacht Abrechnung / Filter)
     provider_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
     )
 
-    # Kunde
-    customer_name: Mapped[str] = mapped_column(Text, nullable=False)
-    customer_email: Mapped[str] = mapped_column(Text, nullable=False)
+    # ✅ app.py geht damit um, dass das fehlen kann
+    customer_name: Mapped[str | None] = mapped_column(Text)
+    customer_email: Mapped[str | None] = mapped_column(Text)
 
-    # hold | confirmed | canceled
     status: Mapped[str] = mapped_column(Text, default="hold")
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
-    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
-    # Gebühr für diese Buchung in EUR (Snapshot aus Provider.booking_fee_eur)
     provider_fee_eur: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
         default=Decimal("2.00"),
     )
 
-    # Abrechnungs-Status für diese Gebühr
-    # open      = noch nicht abgerechnet
-    # invoiced  = in Rechnung erfasst
-    # paid      = Rechnung bezahlt
-    # cancelled = storniert / nicht mehr berechnen
     fee_status: Mapped[str] = mapped_column(
         Text,
         nullable=False,
         default="open",
     )
 
-    # einfache Flag für schnelle Filter (Legacy / Kompatibilität)
     is_billed: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Verknüpfung auf eine Monatsrechnung (optional)
     invoice_id: Mapped[str | None] = mapped_column(
         UUID(as_uuid=False),
         ForeignKey("invoice.id", ondelete="SET NULL"),
         nullable=True,
     )
 
-    billed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    billed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
-    # Beziehungen
-    slot: Mapped["Slot"] = relationship(
-        "Slot",
-        back_populates="bookings",
-    )
-    provider: Mapped["Provider"] = relationship(
-        "Provider",
-        back_populates="bookings",
-    )
-    invoice: Mapped["Invoice | None"] = relationship(
-        "Invoice",
-        back_populates="bookings",
-    )
+    slot: Mapped["Slot"] = relationship("Slot", back_populates="bookings")
+    provider: Mapped["Provider"] = relationship("Provider", back_populates="bookings")
+    invoice: Mapped["Invoice | None"] = relationship("Invoice", back_populates="bookings")
 
-    # -------- Convenience / Public-Ansicht --------
     def to_public_dict(
         self,
         include_slot: bool = False,
@@ -373,10 +329,9 @@ class Booking(Base):
 
 
 # ------------------------------------------------------------
-# PlanPurchase (Kauf eines Pakets: Starter/Profi/Business)
+# PlanPurchase
 # ------------------------------------------------------------
 class PlanPurchase(Base):
-    """Kauf eines Anbieter-Pakets (Starter, Profi, Business)."""
     __tablename__ = "plan_purchase"
 
     id: Mapped[str] = mapped_column(
@@ -391,43 +346,30 @@ class PlanPurchase(Base):
         nullable=False,
     )
 
-    # z.B. "starter", "profi", "business"
     plan: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # Paketpreis in EUR (Monatsgebühr)
-    price_eur: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2),
-        nullable=False,
-    )
+    price_eur: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
-    # Zeitraum der Freischaltung
     period_start: Mapped[date] = mapped_column(SADate, nullable=False)
     period_end: Mapped[date] = mapped_column(SADate, nullable=False)
 
-    # Zahlungsprovider-Infos (z.B. CopeCart, Stripe, …)
     payment_provider: Mapped[str | None] = mapped_column(Text)
-    payment_ref: Mapped[str | None] = mapped_column(Text)  # z.B. Session-ID / Order-ID
+    payment_ref: Mapped[str | None] = mapped_column(Text)
 
-    # paid | refunded | failed
     status: Mapped[str] = mapped_column(Text, default="paid")
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
-    # Beziehung zurück zum Provider
-    provider: Mapped["Provider"] = relationship(
-        "Provider",
-        back_populates="plan_purchases",
-    )
+    provider: Mapped["Provider"] = relationship("Provider", back_populates="plan_purchases")
 
 
 # ------------------------------------------------------------
-# Invoice (Monatsrechnung für Buchungsgebühren)
+# Invoice
 # ------------------------------------------------------------
 class Invoice(Base):
-    """Monatliche Sammelrechnung für Buchungen eines Providers."""
     __tablename__ = "invoice"
 
     id: Mapped[str] = mapped_column(
@@ -442,46 +384,26 @@ class Invoice(Base):
         nullable=False,
     )
 
-    # Abrechnungszeitraum (typisch: 1. bis letzter Tag des Monats)
     period_start: Mapped[date] = mapped_column(SADate, nullable=False)
     period_end: Mapped[date] = mapped_column(SADate, nullable=False)
 
-    # Gesamtsumme der Gebühr in EUR (Summe der Booking.provider_fee_eur)
-    total_eur: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2),
-        nullable=False,
-    )
+    total_eur: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
-    # open | sent | paid | cancelled
     status: Mapped[str] = mapped_column(Text, default="open")
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
-    # Beziehungen
-    provider: Mapped["Provider"] = relationship(
-        "Provider",
-        back_populates="invoices",
-    )
-
-    bookings: Mapped[list["Booking"]] = relationship(
-        "Booking",
-        back_populates="invoice",
-    )
+    provider: Mapped["Provider"] = relationship("Provider", back_populates="invoices")
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="invoice")
 
 
 # ------------------------------------------------------------
-# AlertSubscription (Termin-Alarm / Benachrichtigungs-Paket)
+# AlertSubscription
 # ------------------------------------------------------------
 class AlertSubscription(Base):
-    """
-    Termin-Alarm für suchende Nutzer:innen:
-    - Filter nach PLZ/Ort (+ optional Kategorie)
-    - Benachrichtigung per E-Mail und/oder SMS
-    - Paket-/Quota-Informationen für SMS
-    """
     __tablename__ = "alert_subscription"
 
     id: Mapped[str] = mapped_column(
@@ -490,40 +412,34 @@ class AlertSubscription(Base):
         default=lambda: str(uuid4()),
     )
 
-    # Kontakt
     email: Mapped[str] = mapped_column(Text, nullable=False)
     phone: Mapped[str | None] = mapped_column(Text)
 
     via_email: Mapped[bool] = mapped_column(Boolean, default=True)
     via_sms: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Suchkriterien
     zip: Mapped[str] = mapped_column(Text, nullable=False)
     city: Mapped[str | None] = mapped_column(Text)
-    radius_km: Mapped[int] = mapped_column(Integer, default=0)  # 0 = exakt PLZ
+    radius_km: Mapped[int] = mapped_column(Integer, default=0)
 
-    # z.B. "friseur,haare" – einfacher CSV-String, Matching in der Logik
     categories: Mapped[str | None] = mapped_column(Text)
 
-    # Status & Double-Opt-in
     active: Mapped[bool] = mapped_column(Boolean, default=False)
     email_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     sms_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Paket / Limits (z.B. "basic", "pro" etc.)
     package_name: Mapped[str | None] = mapped_column(Text)
     sms_quota_month: Mapped[int] = mapped_column(Integer, default=0)
     sms_sent_this_month: Mapped[int] = mapped_column(Integer, default=0)
-    last_reset_quota: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_reset_quota: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
-    # Token für Verifikation & Kündigungslink
     verify_token: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
-    last_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
     def to_public_dict(self) -> dict:
         return {

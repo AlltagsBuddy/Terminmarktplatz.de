@@ -51,7 +51,7 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice
+from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -59,13 +59,12 @@ from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice
 load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
-
 # --------------------------------------------------------
 # Init / Mode / Pfade
 # --------------------------------------------------------
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
-TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")  # <— Templates-Ordner
+TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -88,7 +87,6 @@ if not IS_RENDER:
 print("MODE       :", "API-only" if API_ONLY else "Full (API + HTML)")
 print("TEMPLATES  :", TEMPLATE_DIR)
 print("STATIC     :", STATIC_DIR)
-
 
 # --------------------------------------------------------
 # Config
@@ -148,7 +146,7 @@ if stripe and STRIPE_SECRET_KEY:
 # CopeCart IPN / Webhook
 COPECART_WEBHOOK_SECRET = os.getenv("COPECART_WEBHOOK_SECRET")
 
-# Mappe CopeCart-Produkt-IDs auf deine internen Tarife
+# Mappe CopeCart-Produkt-IDs auf deine internen Provider-Tarife
 COPECART_PRODUCT_PLAN_MAP: dict[str, str] = {}
 for env_name, plan_key in [
     ("COPECART_PRODUCT_STARTER_ID", "starter"),
@@ -159,7 +157,7 @@ for env_name, plan_key in [
     if pid:
         COPECART_PRODUCT_PLAN_MAP[pid] = plan_key
 
-# CopeCart Checkout-URLs (aus .env)
+# CopeCart Checkout-URLs (aus .env) für Provider-Pakete
 COPECART_STARTER_URL = os.getenv("COPECART_STARTER_URL")
 COPECART_PROFI_URL = os.getenv("COPECART_PROFI_URL")
 COPECART_BUSINESS_URL = os.getenv("COPECART_BUSINESS_URL")
@@ -170,7 +168,7 @@ COPECART_PLAN_URLS = {
     "business": COPECART_BUSINESS_URL,
 }
 
-# Pakete / Pläne
+# Pakete / Pläne (Provider)
 PLANS = {
     "starter": {
         "key": "starter",
@@ -195,6 +193,32 @@ PLANS = {
     },
 }
 
+# --------------------------------------------------------
+# Benachrichtigungs-Pakete (Suchende) + CopeCart-Mapping
+# --------------------------------------------------------
+ALERT_PLANS = {
+    "alert_email": {
+        "key": "alert_email",
+        "name": "Termin-Alarm E-Mail",
+        "sms_quota_month": 0,
+    },
+    "alert_sms50": {
+        "key": "alert_sms50",
+        "name": "Termin-Alarm E-Mail + SMS (50/Monat)",
+        "sms_quota_month": 50,
+    },
+}
+
+# Mappe CopeCart-Produkt-IDs auf Alert-Pakete
+COPECART_ALERT_PRODUCT_MAP: dict[str, str] = {}
+for env_name, pkg_key in [
+    ("COPECART_ALERT_EMAIL_ID", "alert_email"),
+    ("COPECART_ALERT_SMS50_ID", "alert_sms50"),
+]:
+    pid = os.getenv(env_name)
+    if pid:
+        COPECART_ALERT_PRODUCT_MAP[pid] = pkg_key
+
 
 def _external_base() -> str:
     try:
@@ -209,20 +233,11 @@ if DB_URL.startswith("postgres://"):
 elif DB_URL.startswith("postgresql://"):
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
-
 # --------------------------------------------------------
 # DB / Crypto / CORS
 # --------------------------------------------------------
 engine = create_engine(DB_URL, pool_pre_ping=True)
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
-
-ALLOWED_ORIGINS = [
-    "https://terminmarktplatz.de",
-    "https://www.terminmarktplatz.de",
-    "https://api.terminmarktplatz.de",
-    "http://127.0.0.1:5000",
-    "http://localhost:5000",
-]
 
 # --- CORS -------------------------------------------------
 if IS_RENDER:
@@ -240,7 +255,6 @@ CORS(
     app,
     resources={
         r"/auth/*": {"origins": ALLOWED_ORIGINS},
-        # WICHTIG: /me UND alle Unterpfade
         r"/me": {"origins": ALLOWED_ORIGINS},
         r"/me/*": {"origins": ALLOWED_ORIGINS},
         r"/slots*": {"origins": ALLOWED_ORIGINS},
@@ -291,7 +305,6 @@ _ensure_geo_tables()
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
 def _ensure_publish_quota_tables():
-    # 1) publish_quota
     ddl_quota_uuid = """
     CREATE TABLE IF NOT EXISTS public.publish_quota (
       provider_id uuid NOT NULL,
@@ -313,7 +326,6 @@ def _ensure_publish_quota_tables():
       END IF;
     END $$;
     """
-    # 2) slot.published_at (damit slot_to_json & Admin/Publish nicht crashen, wenn du es noch nicht hast)
     ddl_slot_published_at = """
     ALTER TABLE public.slot
       ADD COLUMN IF NOT EXISTS published_at timestamp without time zone;
@@ -323,8 +335,6 @@ def _ensure_publish_quota_tables():
             conn.exec_driver_sql(ddl_quota_uuid)
             conn.exec_driver_sql(ddl_quota_fk)
         except Exception as e:
-            # Wenn provider.id NICHT uuid ist, kann das fehlschlagen.
-            # Dann probieren wir text (ohne FK) – besser als gar nichts.
             try:
                 conn.exec_driver_sql(
                     """
@@ -490,11 +500,11 @@ def _json_error(msg, code=400):
 def _cookie_flags():
     if IS_RENDER:
         return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
-
     return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
 
 
 def slot_to_json(x: Slot):
+    published_at = getattr(x, "published_at", None)  # FIX: safe getattr
     return {
         "id": x.id,
         "provider_id": x.provider_id,
@@ -509,9 +519,7 @@ def slot_to_json(x: Slot):
         "price_cents": x.price_cents,
         "notes": x.notes,
         "status": x.status,
-        "published_at": _from_db_as_iso_utc(getattr(x, "published_at"))
-        if getattr(x, "published_at", None)
-        else None,
+        "published_at": _from_db_as_iso_utc(published_at) if published_at else None,
         "created_at": _from_db_as_iso_utc(x.created_at),
     }
 
@@ -571,9 +579,6 @@ def _effective_monthly_limit(raw_limit) -> tuple[int, bool]:
 
 # --------------------------------------------------------
 # Publish-Quota (Variante A)
-# - Slots werden als DRAFT angelegt (unbegrenzt)
-# - Publish ist pro Monat limitiert (Provider.free_slots_per_month)
-# - Zählung nach Slot.start_at Monat (Europe/Berlin)
 # --------------------------------------------------------
 class PublishLimitReached(Exception):
     pass
@@ -673,9 +678,9 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
         )
         return {"unlimited": True, "month": str(month_key), "used": None, "limit": None}
 
-    lim_val = lim_row["lim"]
-    plan_limit = 3 if lim_val is None else int(lim_val)  # None = Basislimit
-    actual_used = _published_count_for_month(session, provider_id, month_key)
+        plan_limit = int(eff_limit)   # eff_limit kommt aus _effective_monthly_limit(...)
+        actual_used = _published_count_for_month(session, provider_id, month_key)
+
 
     session.execute(
         text(
@@ -684,7 +689,8 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
             VALUES (:pid, :m, :used, :lim)
             ON CONFLICT (provider_id, month) DO UPDATE
             SET used    = GREATEST(public.publish_quota.used, EXCLUDED.used),
-                "limit" = GREATEST(public.publish_quota."limit", EXCLUDED."limit")
+                "limit" = EXCLUDED."limit"
+
             """
         ),
         {"pid": str(provider_id), "m": month_key, "used": int(actual_used), "lim": int(plan_limit)},
@@ -828,7 +834,7 @@ def create_invoices_for_period(session: Session, year: int, month: int) -> dict:
             status="open",
         )
         session.add(inv)
-        session.flush()  # invoice.id verfügbar
+        session.flush()
 
         now = _now()
         for b in blist:
@@ -866,11 +872,6 @@ def send_mail(
 ):
     """
     Vereinheitlichte Mail-Funktion.
-
-    - provider = resend:  /emails REST-API
-    - provider = postmark
-    - provider = smtp
-    - provider = console
     """
     try:
         if not EMAILS_ENABLED:
@@ -1032,20 +1033,31 @@ def send_mail(
 
 
 # --------------------------------------------------------
-# Spezielle Kündigungs-Mail (Portal + CopeCart-Hinweis)
+# SMS-Stub (für Termin-Alarm; später echten Provider einbauen)
+# --------------------------------------------------------
+def send_sms(to: str, text: str) -> None:
+    """
+    Platzhalter für SMS-Versand.
+    Aktuell: nur Log-Ausgabe. Später: Twilio/MessageBird/etc. integrieren.
+    """
+    to = (to or "").strip()
+    text = (text or "").strip()
+    if not to or not text:
+        return
+    print(f"[sms][stub] to={to} text={text}", flush=True)
+
+
+# --------------------------------------------------------
+# Spezielle Mails: Paket gekündigt / aktiviert (FIX: korrekt auf Modulebene)
 # --------------------------------------------------------
 def send_email_plan_canceled(provider: Provider, old_plan: str | None):
     """
     Bestätigungsmail nach Klick auf "Paket kündigen" im Anbieter-Portal.
-
-    WICHTIG: Hier wird NUR das Portal-Paket beendet.
-    Das CopeCart-Abo muss der/die Anbieter:in selbst bei CopeCart kündigen.
     """
     to = (provider.email or "").strip().lower()
     if not to:
         return
 
-    # im Portal wird nach der Kündigung auf Basis zurückgestuft
     plan_name = "Basis-Paket (kostenlos)"
     eff_limit, unlimited = _effective_monthly_limit(provider.free_slots_per_month)
     slots = "unbegrenzt" if unlimited else eff_limit
@@ -1093,6 +1105,65 @@ Terminmarktplatz
         )
     except Exception as e:
         app.logger.warning("send_email_plan_canceled failed: %r", e)
+
+
+def send_email_plan_activated(
+    provider: Provider,
+    plan_key: str,
+    source: str,
+    period_start: date,
+    period_end: date,
+):
+    """
+    Schickt dem Anbieter eine Mail, wenn ein Paket erfolgreich aktiviert wurde.
+    source = 'copecart' | 'stripe' | 'manual'
+    """
+    to = (provider.email or "").strip().lower()
+    if not to:
+        return
+
+    plan_conf = PLANS.get(plan_key)
+    plan_name = plan_conf["name"] if plan_conf else plan_key
+    eff_limit, unlimited = _effective_monthly_limit(provider.free_slots_per_month)
+
+    slots_txt = "unbegrenzte Veröffentlichungen pro Monat" if unlimited else f"bis zu {eff_limit} veröffentlichte Slots pro Monat"
+
+    src_label = {
+        "copecart": "CopeCart",
+        "stripe": "Stripe",
+        "manual": "manuelle Aktivierung (Testmodus)",
+    }.get(source, source)
+
+    body = f"""Hallo {provider.company_name or 'Anbieter/in'},
+
+dein Paket "{plan_name}" im Terminmarktplatz-Anbieterportal wurde soeben aktiviert.
+
+Details:
+- Aktiviert über: {src_label}
+- Laufzeit: {period_start.isoformat()} bis {period_end.isoformat()}
+- Kontingent: {slots_txt}
+
+Du kannst ab sofort im Anbieter-Portal neue Slots anlegen und veröffentlichen.
+Dein aktuelles Limit und die bereits genutzten Veröffentlichungen siehst du jederzeit in deinem Profilbereich.
+
+Viele Grüße
+Terminmarktplatz
+"""
+
+    try:
+        send_mail(
+            to,
+            f"Dein Terminmarktplatz-Paket '{plan_name}' ist aktiv",
+            text=body,
+            tag="plan_activated",
+            metadata={
+                "provider_id": str(provider.id),
+                "plan_key": plan_key,
+                "source": source,
+            },
+        )
+    except Exception as e:
+        app.logger.warning("send_email_plan_activated failed: %r", e)
 
 
 # --------------------------------------------------------
@@ -1160,11 +1231,6 @@ def auth_required(admin: bool = False):
 
 
 def _current_provider_id_or_none() -> str | None:
-    """
-    Hilfsfunktion für HTML/Redirect-Routen:
-    - liest access_token-Cookie oder Bearer-Token
-    - gibt provider_id (sub) oder None zurück
-    """
     token = request.cookies.get("access_token")
     if not token:
         auth = request.headers.get("Authorization", "")
@@ -1229,6 +1295,7 @@ def maybe_api_only():
         or request.path.startswith("/webhook/stripe")
         or request.path.startswith("/webhook/copecart")
         or request.path.startswith("/me")
+        or request.path.startswith("/api/")
         or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
     ):
@@ -1304,11 +1371,7 @@ if _html_enabled():
     @app.get("/copecart/kaufen")
     def copecart_kaufen():
         """
-        Einstieg für Paket-Kauf über CopeCart.
-
-        - ?plan=starter|profi|business
-        - wenn nicht eingeloggt: Redirect zu /login mit next=...
-        - wenn eingeloggt: Redirect zur CopeCart-Checkout-URL + subid=provider_id
+        Einstieg für Paket-Kauf über CopeCart (Provider).
         """
         plan_key = (request.args.get("plan") or "starter").strip().lower()
         url = COPECART_PLAN_URLS.get(plan_key)
@@ -1317,12 +1380,10 @@ if _html_enabled():
 
         provider_id = _current_provider_id_or_none()
         if not provider_id:
-            # nicht eingeloggt → Login mit Rücksprung
             next_url = url_for("copecart_kaufen", plan=plan_key)
             login_url = url_for("login_page")
             return redirect(f"{login_url}?next={next_url}&register=1")
 
-        # eingeloggt → direkt zu CopeCart, Provider-ID als Tracking-Param
         sep = "&" if "?" in url else "?"
         target = f"{url}{sep}subid={provider_id}"
 
@@ -1463,7 +1524,6 @@ def register():
             provider_id = p.id
             reg_email = p.email
 
-        # Admin-Notification
         try:
             admin_to = os.getenv("ADMIN_NOTIFY_TO", CONTACT_TO)
             if admin_to:
@@ -1659,11 +1719,8 @@ def me():
         if not p:
             return _json_error("not_found", 404)
 
-        # Plan-Infos
         plan_key = (p.plan or "").strip() if hasattr(p, "plan") else ""
         plan_conf = PLANS.get(plan_key) if plan_key else None
-        plan_label = None
-
         if plan_conf:
             plan_label = plan_conf["name"]
         elif plan_key:
@@ -1671,7 +1728,6 @@ def me():
         else:
             plan_label = "Basis (Standard)"
 
-        # Publish-Limit pro Monat (einheitlich!)
         eff_limit, unlimited = _effective_monthly_limit(getattr(p, "free_slots_per_month", None))
 
         now_berlin = datetime.now(BERLIN)
@@ -1703,7 +1759,6 @@ def me():
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
                 "profile_complete": is_profile_complete(p),
-                # Plan / Paket
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
                 "plan_valid_until": p.plan_valid_until.isoformat()
@@ -1764,7 +1819,6 @@ def me_update():
                 s.rollback()
                 return _json_error("db_error", 400)
 
-            # Geocode-Cache optional
             try:
                 lat, lon = geocode_cached(s, p.zip, p.city)
                 if lat is not None and lon is not None:
@@ -1786,10 +1840,7 @@ def me_update():
 @auth_required()
 def cancel_plan():
     """
-    Kündigt das Paket NUR im Portal:
-    - stellt auf Basis-Paket um (plan='basic')
-    - setzt free_slots_per_month auf Basis-Limit
-    - schickt eine E-Mail mit klarer Bestätigung + Anleitung für CopeCart-Kündigung.
+    Kündigt das Paket NUR im Portal (Provider).
     """
     try:
         with Session(engine) as s:
@@ -1817,6 +1868,298 @@ def cancel_plan():
     except Exception:
         app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
+
+
+# --------------------------------------------------------
+# Termin-Alarm / Benachrichtigungen (Suchende)
+# --------------------------------------------------------
+def _reset_alert_quota_if_needed(alert: AlertSubscription) -> None:
+    now = _now()
+    if not alert.last_reset_quota:
+        alert.last_reset_quota = now
+        alert.sms_sent_this_month = 0
+        return
+
+    lr = _as_utc_aware(alert.last_reset_quota)
+    nr = _as_utc_aware(now)
+    if lr.year != nr.year or lr.month != nr.month:
+        alert.sms_sent_this_month = 0
+        alert.last_reset_quota = now
+
+
+def _send_notifications_for_alert_and_slot(
+    session: Session,
+    alert: AlertSubscription,
+    slot: Slot,
+    provider: Provider,
+) -> None:
+    _reset_alert_quota_if_needed(alert)
+
+    slot_title = slot.title
+    starts_at = _from_db_as_iso_utc(slot.start_at)
+    provider_address = provider.to_public_dict().get("address") if hasattr(provider, "to_public_dict") else ""
+    slot_location = slot.location or ""
+
+    address = provider_address or slot_location or ""
+
+    if hasattr(app, "view_functions") and "public_slots" in app.view_functions:
+        base = _external_base()
+        slot_url = f"{base}/suche.html"
+    else:
+        slot_url = ""
+
+    # E-Mail-Benachrichtigung
+    if alert.via_email and alert.email_confirmed and alert.active:
+        cancel_url = url_for("cancel_alert", token=alert.verify_token, _external=True)
+        body_lines = [
+            "Es gibt einen neuen Termin, der zu deinem Suchauftrag passt:",
+            "",
+            f"{slot_title}",
+            f"Zeit: {starts_at}",
+        ]
+        if address:
+            body_lines.append(f"Adresse: {address}")
+        if slot_url:
+            body_lines.append("")
+            body_lines.append(f"Details & Buchung: {slot_url}")
+        body_lines.append("")
+        body_lines.append("Wenn du diesen Alarm nicht mehr erhalten möchtest, kannst du ihn hier deaktivieren:")
+        body_lines.append(cancel_url)
+
+        body = "\n".join(body_lines)
+
+        try:
+            send_mail(
+                alert.email,
+                "Neuer Termin passt zu deinem Suchauftrag",
+                text=body,
+                tag="alert_slot_match",
+                metadata={"zip": alert.zip, "package": alert.package_name or ""},
+            )
+        except Exception as e:
+            app.logger.warning("send_mail alert failed: %r", e)
+
+    # SMS-Benachrichtigung
+    if (
+        alert.via_sms
+        and alert.phone
+        and alert.active
+        and (alert.sms_quota_month or 0) > 0
+    ):
+        if alert.sms_sent_this_month < (alert.sms_quota_month or 0):
+            parts = [f"Neuer Termin: {slot_title}", starts_at]
+            if slot_url:
+                parts.append(f"Details: {slot_url}")
+            text_msg = " | ".join(str(p) for p in parts if p)
+
+            try:
+                send_sms(alert.phone, text_msg)
+                alert.sms_sent_this_month += 1
+            except Exception as e:
+                app.logger.warning("send_sms alert failed: %r", e)
+
+    alert.last_notified_at = _now()
+
+
+def notify_alerts_for_slot(slot_id: str) -> None:
+    """
+    Wird aufgerufen, wenn ein Slot veröffentlicht wurde (Status PUBLISHED).
+    Match nach:
+      - PLZ des Providers
+      - optional Kategorie (CSV im Alert)
+    """
+    try:
+        with Session(engine) as s:
+            slot = s.get(Slot, slot_id)
+            if not slot:
+                return
+            if slot.status != SLOT_STATUS_PUBLISHED:
+                return
+
+            provider = s.get(Provider, slot.provider_id)
+            if not provider:
+                return
+
+            slot_zip = (provider.zip or "").strip()
+            slot_cat = (slot.category or "").lower().strip()
+
+            if not slot_zip:
+                return
+
+            alerts = (
+                s.execute(
+                    select(AlertSubscription).where(
+                        AlertSubscription.active.is_(True),
+                        AlertSubscription.email_confirmed.is_(True),
+                        AlertSubscription.zip == slot_zip,
+                    )
+                )
+                .scalars()
+                .all()
+            )
+
+            matched_alerts: list[AlertSubscription] = []
+            for alert in alerts:
+                if not alert.categories:
+                    matched_alerts.append(alert)
+                    continue
+                alert_cats = [
+                    c.strip().lower()
+                    for c in (alert.categories or "").split(",")
+                    if c.strip()
+                ]
+                if any(c in slot_cat for c in alert_cats):
+                    matched_alerts.append(alert)
+
+            if not matched_alerts:
+                return
+
+            for alert in matched_alerts:
+                _send_notifications_for_alert_and_slot(s, alert, slot, provider)
+
+            s.commit()
+    except Exception:
+        app.logger.exception("notify_alerts_for_slot failed")
+
+
+@app.post("/api/alerts")
+def create_alert():
+    try:
+        data = request.get_json(force=True) or {}
+
+        email = (data.get("email") or "").strip().lower()
+        phone = (data.get("phone") or "").strip()
+
+        zip_code = (data.get("zip") or "").strip()
+        city = (data.get("city") or "").strip()
+
+        radius_km_raw = data.get("radius_km") or 0
+        try:
+            radius_km = int(radius_km_raw)
+        except (TypeError, ValueError):
+            radius_km = 0
+
+        categories_raw = data.get("categories") or ""
+        categories = categories_raw.lower().strip() or None
+
+        via_email = bool(data.get("via_email", True))
+        via_sms = bool(data.get("via_sms", False))
+
+        package_name = (data.get("package_name") or "free").strip().lower()
+
+        if not via_email and not via_sms:
+            return _json_error("channel_required", 400)
+
+        if not zip_code:
+            return _json_error("zip_required", 400)
+
+        try:
+            email = validate_email(email).email
+        except EmailNotValidError:
+            return _json_error("invalid_email", 400)
+
+        if via_sms and not phone:
+            return _json_error("phone_required_for_sms", 400)
+
+        sms_quota_month = 0
+        if package_name in ALERT_PLANS:
+            sms_quota_month = ALERT_PLANS[package_name]["sms_quota_month"]
+
+        import secrets
+        verify_token = secrets.token_urlsafe(32)
+
+        with Session(engine) as s:
+            alert = AlertSubscription(
+                email=email,
+                phone=phone or None,
+                via_email=via_email,
+                via_sms=via_sms,
+                zip=zip_code,
+                city=city or None,
+                radius_km=radius_km,
+                categories=categories,
+                active=False,
+                email_confirmed=False,
+                sms_confirmed=False,
+                package_name=package_name,
+                sms_quota_month=sms_quota_month,
+                sms_sent_this_month=0,
+                verify_token=verify_token,
+            )
+            s.add(alert)
+            s.commit()
+
+        verify_url = url_for("verify_alert", token=verify_token, _external=True)
+        body = (
+            "Du hast auf Terminmarktplatz einen Termin-Alarm eingerichtet.\n\n"
+            "Bitte klicke auf folgenden Link, um deine E-Mail-Adresse zu bestätigen "
+            "und den Alarm zu aktivieren:\n\n"
+            f"{verify_url}\n\n"
+            "Wenn du das nicht warst, kannst du diese E-Mail ignorieren."
+        )
+
+        try:
+            send_mail(
+                email,
+                "Termin-Alarm bestätigen",
+                text=body,
+                tag="alert_verify",
+            )
+        except Exception as e:
+            app.logger.warning("create_alert: send_mail failed: %r", e)
+
+        return jsonify({"ok": True, "message": "Alarm angelegt. Bitte E-Mail bestätigen."})
+    except Exception:
+        app.logger.exception("create_alert failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.get("/alerts/verify/<token>")
+def verify_alert(token: str):
+    try:
+        with Session(engine) as s:
+            alert = (
+                s.execute(
+                    select(AlertSubscription).where(AlertSubscription.verify_token == token)
+                )
+                .scalars()
+                .first()
+            )
+            if not alert:
+                return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
+
+            alert.email_confirmed = True
+            alert.active = True
+            alert.last_reset_quota = _now()
+            s.commit()
+
+        return "Dein Termin-Alarm ist jetzt aktiviert. Du kannst dieses Fenster schließen."
+    except Exception:
+        app.logger.exception("verify_alert failed")
+        return "Serverfehler", 500
+
+
+@app.get("/alerts/cancel/<token>")
+def cancel_alert(token: str):
+    try:
+        with Session(engine) as s:
+            alert = (
+                s.execute(
+                    select(AlertSubscription).where(AlertSubscription.verify_token == token)
+                )
+                .scalars()
+                .first()
+            )
+            if not alert:
+                return "Alarm nicht gefunden oder bereits deaktiviert.", 400
+
+            alert.active = False
+            s.commit()
+
+        return "Dein Termin-Alarm wurde deaktiviert."
+    except Exception:
+        app.logger.exception("cancel_alert failed")
+        return "Serverfehler", 500
 
 
 # --------------------------------------------------------
@@ -1933,7 +2276,6 @@ def slots_create():
             if not p or not is_profile_complete(p):
                 return _json_error("profile_incomplete", 400)
 
-            # globales Schutzlimit (gegen Missbrauch)
             count = (
                 s.scalar(
                     select(func.count())
@@ -2009,11 +2351,11 @@ def slots_create():
 def slots_update(slot_id):
     """
     Aktualisiert Slot-Daten.
-    Statusänderungen (DRAFT <-> PUBLISHED) werden weiterhin über PUT erlaubt,
-    aber intern über die Quota-Logik abgewickelt.
     """
     try:
         data = request.get_json(force=True) or {}
+        published_now = False
+
         with Session(engine) as s:
             slot = s.get(Slot, slot_id, with_for_update=True)
             if not slot or slot.provider_id != request.provider_id:
@@ -2021,7 +2363,6 @@ def slots_update(slot_id):
 
             original_status = slot.status
 
-            # --- Statuswechsel über Quota-Logik --------------------------
             if "status" in data:
                 target_status = str(data["status"] or "").strip().upper()
                 if target_status not in VALID_STATUSES:
@@ -2031,12 +2372,13 @@ def slots_update(slot_id):
                     try:
                         if original_status == SLOT_STATUS_DRAFT and target_status == SLOT_STATUS_PUBLISHED:
                             _publish_slot_quota_tx(s, request.provider_id, slot_id)
+                            published_now = True
                         elif original_status == SLOT_STATUS_PUBLISHED and target_status == SLOT_STATUS_DRAFT:
                             _unpublish_slot_quota_tx(s, request.provider_id, slot_id)
+                            published_now = False
                         else:
                             return _json_error("invalid_status_transition", 400)
 
-                        # Slot nach Status-Update neu laden
                         slot = s.get(Slot, slot_id, with_for_update=True)
                         original_status = slot.status
                     except PublishLimitReached:
@@ -2053,7 +2395,6 @@ def slots_update(slot_id):
                             return _json_error("bad_capacity", 400)
                         return _json_error("bad_request", 400)
 
-            # --- normale Feld-Updates (ohne Status) ----------------------
             if "start_at" in data:
                 try:
                     slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
@@ -2067,7 +2408,6 @@ def slots_update(slot_id):
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
-            # start darf nicht in der Vergangenheit liegen (auch für Drafts sinnvoll)
             if _as_utc_aware(slot.start_at) <= _now():
                 return _json_error("start_in_past", 409)
 
@@ -2131,7 +2471,13 @@ def slots_update(slot_id):
                 s.rollback()
                 return jsonify({"error": "db_error", "detail": str(e)}), 400
 
-            return jsonify({"ok": True})
+        if published_now:
+            try:
+                notify_alerts_for_slot(slot_id)
+            except Exception:
+                app.logger.exception("notify_alerts_for_slot (slots_update) failed")
+
+        return jsonify({"ok": True})
     except Exception as e:
         print("[PUT /slots] server error:", traceback.format_exc(), flush=True)
         return jsonify({"error": "server_error", "detail": str(e)}), 500
@@ -2145,7 +2491,6 @@ def slots_publish(slot_id):
             try:
                 with s.begin():
                     result = _publish_slot_quota_tx(s, request.provider_id, slot_id)
-                return jsonify({"ok": True, "quota": result})
             except PublishLimitReached:
                 return _json_error("monthly_publish_limit_reached", 409)
             except ValueError as e:
@@ -2159,6 +2504,13 @@ def slots_publish(slot_id):
                 if msg == "bad_capacity":
                     return _json_error("bad_capacity", 400)
                 return _json_error("bad_request", 400)
+
+        try:
+            notify_alerts_for_slot(slot_id)
+        except Exception:
+            app.logger.exception("notify_alerts_for_slot (slots_publish) failed")
+
+        return jsonify({"ok": True, "quota": result})
     except Exception:
         app.logger.exception("slots_publish failed")
         return jsonify({"error": "server_error"}), 500
@@ -2203,11 +2555,6 @@ def slots_delete(slot_id):
 @app.post("/provider/bookings/<booking_id>/cancel")
 @auth_required()
 def provider_cancel_booking(booking_id):
-    """
-    Anbieter storniert eine Buchung manuell im Anbieter-Portal.
-    Erwartet optional im JSON-Body:
-      { "reason": "Begründungstext für den Kunden" }
-    """
     data = request.get_json(silent=True) or {}
     reason = (data.get("reason") or "").strip()
 
@@ -2347,7 +2694,6 @@ def admin_slot_publish(sid):
             try:
                 with s.begin():
                     result = _publish_slot_quota_tx(s, str(slot.provider_id), str(sid))
-                return jsonify({"ok": True, "quota": result})
             except PublishLimitReached:
                 return _json_error("monthly_publish_limit_reached", 409)
             except ValueError as e:
@@ -2357,6 +2703,13 @@ def admin_slot_publish(sid):
                 if msg == "start_in_past":
                     return _json_error("start_in_past", 409)
                 return _json_error("bad_request", 400)
+
+        try:
+            notify_alerts_for_slot(str(sid))
+        except Exception:
+            app.logger.exception("notify_alerts_for_slot (admin_slot_publish) failed")
+
+        return jsonify({"ok": True, "quota": result})
     except Exception:
         app.logger.exception("admin_slot_publish failed")
         return jsonify({"error": "server_error"}), 500
@@ -2366,7 +2719,7 @@ def admin_slot_publish(sid):
 @auth_required(admin=True)
 def admin_slot_reject(sid):
     """
-    In neuem Modell: "reject" == unpublish (PUBLISHED -> DRAFT).
+    "reject" == unpublish (PUBLISHED -> DRAFT).
     """
     try:
         with Session(engine) as s:
@@ -2391,10 +2744,6 @@ def admin_slot_reject(sid):
 @app.get("/admin/billing_overview")
 @auth_required(admin=True)
 def admin_billing_overview():
-    """
-    Zeigt je Provider die Summe aller noch nicht abgerechneten
-    bestätigten Buchungen (fee_status='open', status='confirmed').
-    """
     with Session(engine) as s:
         rows = s.execute(
             select(
@@ -2427,15 +2776,6 @@ def admin_billing_overview():
 @app.post("/admin/run_billing")
 @auth_required(admin=True)
 def admin_run_billing():
-    """
-    Erzeugt Sammelrechnungen für einen Monat.
-
-    Request-JSON (optional):
-      { "year": 2025, "month": 11 }
-
-    Default:
-      letzter Kalendermonat.
-    """
     data = request.get_json(silent=True) or {}
     now = _now()
     year = int(data.get("year") or now.year)
@@ -2457,19 +2797,11 @@ def admin_run_billing():
 
 
 # --------------------------------------------------------
-# Pakete / Stripe / CopeCart
+# Pakete / Stripe / CopeCart (Provider)
 # --------------------------------------------------------
 @app.post("/paket-buchen")
 @auth_required()
 def paket_buchen_start():
-    """
-    Startet den Kauf eines Pakets (Starter/Profi/Business).
-
-    - Wenn Stripe konfiguriert ist: Checkout-Session wird erzeugt,
-      Response enthält checkout_url (für Redirect im Frontend).
-    - Wenn Stripe NICHT konfiguriert ist: Plan wird direkt als 'bezahlt'
-      eingetragen (Testmodus / lokaler Betrieb).
-    """
     data = request.get_json(silent=True) or {}
     plan_key = (
         data.get("plan")
@@ -2482,7 +2814,6 @@ def paket_buchen_start():
     if not plan:
         return _json_error("unknown_plan", 400)
 
-    # Stripe aktiv?
     if stripe and STRIPE_SECRET_KEY:
         try:
             checkout_session = stripe.checkout.Session.create(
@@ -2513,7 +2844,6 @@ def paket_buchen_start():
             app.logger.exception("stripe checkout failed")
             return jsonify({"error": "stripe_error", "detail": str(e)}), 500
 
-    # Fallback ohne Stripe: direkt aktivieren (lokale Tests)
     today = date.today()
     period_start = today
     period_end = today + timedelta(days=30)
@@ -2540,18 +2870,20 @@ def paket_buchen_start():
         s.add(purchase)
         s.commit()
 
+    # Optional: Aktivierungs-Mail (manual)
+    try:
+        with Session(engine) as s2:
+            p2 = s2.get(Provider, request.provider_id)
+        if p2:
+            send_email_plan_activated(p2, plan_key, "manual", period_start, period_end)
+    except Exception:
+        pass
+
     return jsonify({"ok": True, "provider_id": request.provider_id, "plan": plan_key, "mode": "manual_no_stripe"})
 
 
 @app.post("/webhook/stripe")
 def stripe_webhook():
-    """
-    Webhook für Stripe Checkout.
-
-    Erwartet Event 'checkout.session.completed' mit metadata:
-      - provider_id
-      - plan_key
-    """
     if not (stripe and STRIPE_WEBHOOK_SECRET):
         return jsonify({"error": "stripe_not_configured"}), 501
 
@@ -2600,18 +2932,20 @@ def stripe_webhook():
             s.add(purchase)
             s.commit()
 
+        # Optional: Aktivierungs-Mail (stripe)
+        try:
+            with Session(engine) as s2:
+                p2 = s2.get(Provider, provider_id)
+            if p2:
+                send_email_plan_activated(p2, plan_key, "stripe", period_start, period_end)
+        except Exception:
+            pass
+
     return jsonify({"ok": True})
 
 
 @app.post("/webhook/copecart")
 def copecart_webhook():
-    """
-    CopeCart IPN Webhook.
-
-    - Signatur: Header 'X-Copecart-Signature' (HMAC-SHA256 + Base64 über RAW-Body)
-    - Provider-Zuordnung: buyer_email == Provider.email
-    - Tarif-Zuordnung: product_id -> plan_key (COPECART_PRODUCT_*_ID)
-    """
     if not COPECART_WEBHOOK_SECRET:
         app.logger.warning("CopeCart webhook hit, but COPECART_WEBHOOK_SECRET not set")
         return "OK", 200
@@ -2649,9 +2983,13 @@ def copecart_webhook():
         app.logger.warning("CopeCart webhook: missing required fields")
         return "OK", 200
 
-    plan_key = COPECART_PRODUCT_PLAN_MAP.get(str(product_id))
-    if not plan_key:
-        app.logger.info("CopeCart webhook: product_id %s not mapped to plan", product_id)
+    product_id_str = str(product_id)
+
+    plan_key = COPECART_PRODUCT_PLAN_MAP.get(product_id_str)
+    alert_plan_key = COPECART_ALERT_PRODUCT_MAP.get(product_id_str)
+
+    if not plan_key and not alert_plan_key:
+        app.logger.info("CopeCart webhook: product_id %s not mapped", product_id_str)
         return "OK", 200
 
     if event_type not in ("payment.made", "payment.trial"):
@@ -2663,51 +3001,93 @@ def copecart_webhook():
     if transaction_type and transaction_type not in ("sale",):
         return "OK", 200
 
-    plan_conf = PLANS.get(plan_key)
-    if not plan_conf:
-        app.logger.warning("CopeCart webhook: plan_key %s not in PLANS", plan_key)
-        return "OK", 200
-
     payment_ref = payload.get("transaction_id") or payload.get("order_id")
 
     try:
         with Session(engine) as s:
-            p = s.scalar(select(Provider).where(Provider.email == buyer_email))
-            if not p:
-                app.logger.warning("CopeCart webhook: no provider with email %s", buyer_email)
-                return "OK", 200
-
-            if payment_ref:
-                existing = s.scalar(
-                    select(PlanPurchase).where(
-                        PlanPurchase.payment_provider == "copecart",
-                        PlanPurchase.payment_ref == str(payment_ref),
-                    )
-                )
-                if existing:
-                    app.logger.info("CopeCart webhook: PlanPurchase with ref %s already exists", payment_ref)
+            if plan_key:
+                plan_conf = PLANS.get(plan_key)
+                if not plan_conf:
+                    app.logger.warning("CopeCart webhook: plan_key %s not in PLANS", plan_key)
                     return "OK", 200
 
-            today = date.today()
-            period_start = today
-            period_end = today + timedelta(days=30)
+                p = s.scalar(select(Provider).where(Provider.email == buyer_email))
+                if not p:
+                    app.logger.warning("CopeCart webhook: no provider with email %s", buyer_email)
+                    return "OK", 200
 
-            p.plan = plan_key
-            p.plan_valid_until = period_end
-            p.free_slots_per_month = plan_conf["free_slots"]
+                if payment_ref:
+                    existing = s.scalar(
+                        select(PlanPurchase).where(
+                            PlanPurchase.payment_provider == "copecart",
+                            PlanPurchase.payment_ref == str(payment_ref),
+                        )
+                    )
+                    if existing:
+                        app.logger.info("CopeCart webhook: PlanPurchase with ref %s already exists", payment_ref)
+                        return "OK", 200
 
-            purchase = PlanPurchase(
-                provider_id=p.id,
-                plan=plan_key,
-                price_eur=plan_conf["price_eur"],
-                period_start=period_start,
-                period_end=period_end,
-                payment_provider="copecart",
-                payment_ref=str(payment_ref) if payment_ref else None,
-                status="paid",
-            )
-            s.add(purchase)
-            s.commit()
+                today = date.today()
+                period_start = today
+                period_end = today + timedelta(days=30)
+
+                p.plan = plan_key
+                p.plan_valid_until = period_end
+                p.free_slots_per_month = plan_conf["free_slots"]
+
+                purchase = PlanPurchase(
+                    provider_id=p.id,
+                    plan=plan_key,
+                    price_eur=plan_conf["price_eur"],
+                    period_start=period_start,
+                    period_end=period_end,
+                    payment_provider="copecart",
+                    payment_ref=str(payment_ref) if payment_ref else None,
+                    status="paid",
+                )
+                s.add(purchase)
+                s.commit()
+
+                # Optional: Aktivierungs-Mail (copecart)
+                try:
+                    send_email_plan_activated(p, plan_key, "copecart", period_start, period_end)
+                except Exception:
+                    pass
+
+                return "OK", 200
+
+            if alert_plan_key:
+                alert_conf = ALERT_PLANS.get(alert_plan_key)
+                if not alert_conf:
+                    app.logger.warning("CopeCart webhook: alert_plan_key %s not in ALERT_PLANS", alert_plan_key)
+                    return "OK", 200
+
+                alerts = (
+                    s.execute(
+                        select(AlertSubscription).where(AlertSubscription.email == buyer_email)
+                    )
+                    .scalars()
+                    .all()
+                )
+                if not alerts:
+                    app.logger.info(
+                        "CopeCart webhook: no AlertSubscription for email %s (alert plan %s)",
+                        buyer_email,
+                        alert_plan_key,
+                    )
+                    return "OK", 200
+
+                now = _now()
+                sms_quota = int(alert_conf.get("sms_quota_month") or 0)
+
+                for a in alerts:
+                    a.package_name = alert_plan_key
+                    a.sms_quota_month = sms_quota
+                    a.sms_sent_this_month = 0
+                    a.last_reset_quota = now
+
+                s.commit()
+                return "OK", 200
 
         return "OK", 200
     except Exception:
@@ -2760,9 +3140,6 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 @app.get("/public/slots")
 def public_slots():
-    """
-    Öffentliche Slot-Suche.
-    """
     q_text = (request.args.get("q") or "").strip()
     location_raw = (request.args.get("location") or "").strip()
     if not location_raw:
