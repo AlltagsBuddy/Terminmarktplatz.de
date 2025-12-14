@@ -431,6 +431,10 @@ class AlertSubscription(Base):
     package_name: Mapped[str | None] = mapped_column(Text)
     sms_quota_month: Mapped[int] = mapped_column(Integer, default=0)
     sms_sent_this_month: Mapped[int] = mapped_column(Integer, default=0)
+
+    # ✅ NEU: Gesamtzahl gesendeter E-Mail-Benachrichtigungen (für 10er-Limit)
+    email_sent_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
     last_reset_quota: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
     verify_token: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
@@ -456,6 +460,7 @@ class AlertSubscription(Base):
             "package_name": self.package_name,
             "sms_quota_month": self.sms_quota_month,
             "sms_sent_this_month": self.sms_sent_this_month,
+            "email_sent_total": int(self.email_sent_total or 0),
             "created_at": self.created_at,
             "last_notified_at": self.last_notified_at,
         }

@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Benachrichtigung einrichten | Terminmarktplatz</title>
+  <meta name="description" content="Richte deinen Termin-Alarm ein und erhalte Benachrichtigungen per E-Mail." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.10);
+      --text: #e8ecff;
+      --muted: rgba(232,236,255,0.70);
+      --brand: #6f53ff;
+      --brand2:#a78bfa;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius2: 26px;
+      --max: 980px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(111,83,255,0.35), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(167,139,250,0.25), transparent 55%),
+        radial-gradient(700px 420px at 40% 100%, rgba(111,83,255,0.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.35;
+      min-height:100vh;
+    }
+
+    a{ color: #b9adff; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding: 10px 4px 22px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:0.2px;
+    }
+
+    .logo{
+      width:40px; height:40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 10px 30px rgba(111,83,255,0.30);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 45%);
+      transform: rotate(15deg);
+    }
+
+    .pill{
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      white-space:nowrap;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 18px;
+      align-items:stretch;
+      margin: 10px 0 18px;
+    }
+
+    @media (max-width: 860px){
+      .hero{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .inner{
+      padding: 22px 22px;
+    }
+
+    h1{
+      margin: 0 0 10px;
+      font-size: clamp(22px, 3vw, 30px);
+      letter-spacing: -0.2px;
+    }
+
+    .sub{
+      color: var(--muted);
+      margin: 0 0 14px;
+      font-size: 14px;
+    }
+
+    .steps{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    @media (max-width: 640px){
+      .steps{ grid-template-columns: 1fr; }
+    }
+    .step{
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      padding: 12px 12px;
+      min-height: 76px;
+    }
+    .step b{ display:block; margin-bottom: 4px; }
+    .step span{ color: var(--muted); font-size: 13px; }
+
+    .infoBox{
+      border-radius: var(--radius);
+      border: 1px solid rgba(245,158,11,0.25);
+      background: rgba(245,158,11,0.10);
+      padding: 14px;
+      color: rgba(255,255,255,0.92);
+    }
+    .infoBox b{ color: #ffd699; }
+    .infoBox small{ display:block; color: rgba(232,236,255,0.75); margin-top: 6px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 720px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    label{
+      display:block;
+      font-size: 13px;
+      color: rgba(232,236,255,0.86);
+      margin-bottom: 6px;
+    }
+
+    .field{
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      outline: none;
+    }
+    .field:focus{
+      border-color: rgba(167,139,250,0.65);
+      box-shadow: 0 0 0 4px rgba(111,83,255,0.18);
+    }
+    .hint{
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(232,236,255,0.60);
+    }
+
+    .cats{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .chip{
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor:pointer;
+      user-select:none;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chip input{ accent-color: var(--brand); }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 14px 35px rgba(111,83,255,0.25);
+    }
+    .btn:hover{ filter: brightness(1.05); }
+    .btn:disabled{
+      opacity:0.55;
+      cursor:not-allowed;
+      filter:none;
+    }
+
+    .btnGhost{
+      appearance:none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: rgba(232,236,255,0.92);
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 700;
+    }
+
+    .status{
+      margin-top: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      padding: 12px;
+      display:none;
+    }
+    .status.ok{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); }
+    .status.err{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); }
+    .status b{ display:block; margin-bottom: 4px; }
+    .status small{ color: rgba(232,236,255,0.72); }
+
+    .footer{
+      margin-top: 18px;
+      color: rgba(232,236,255,0.60);
+      font-size: 12px;
+      text-align:center;
+    }
+
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,0.10);
+      margin: 14px 0;
+    }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
+          <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Benachrichtigung einrichten</div>
+        </div>
+      </div>
+      <div class="pill">🔔 Limit: <b>10 Benachrichtigungen</b> (E-Mail)</div>
+    </div>
+
+    <div class="hero">
+      <div class="card">
+        <div class="inner">
+          <h1>Fast geschafft.</h1>
+          <p class="sub">
+            Du hast das Benachrichtigungspaket gekauft. Damit du Termine bekommst, musst du jetzt deinen
+            <b>Termin-Alarm</b> konfigurieren und anschließend deine E-Mail bestätigen (Double-Opt-In).
+          </p>
+
+          <div class="infoBox">
+            <b>Wichtig:</b> Du bekommst <b>max. 10 Benachrichtigungen</b> per E-Mail. Kategorie ist egal – das Limit zählt insgesamt.
+            <small>Wenn du die Bestätigungsmail nicht findest: bitte auch im Spam-Ordner schauen.</small>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <b>1) Daten eintragen</b>
+              <span>PLZ/Ort + optional Kategorie wählen.</span>
+            </div>
+            <div class="step">
+              <b>2) E-Mail bestätigen</b>
+              <span>Link in der Bestätigungsmail klicken.</span>
+            </div>
+            <div class="step">
+              <b>3) Benachrichtigungen erhalten</b>
+              <span>Sobald passende Slots veröffentlicht werden.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="inner">
+          <div style="font-weight:800; margin-bottom:8px;">Was wird gesucht?</div>
+          <div style="color:var(--muted); font-size:13px;">
+            Je genauer du es einstellst, desto weniger Spam bekommst du. Du kannst die Kategorie auch leer lassen –
+            dann zählt nur die PLZ.
+          </div>
+          <div class="divider"></div>
+          <div style="color:rgba(232,236,255,0.8); font-size:13px;">
+            Technisch passiert danach:
+            <div class="mono" style="margin-top:8px; font-size:12px; color:rgba(232,236,255,0.75);">
+              POST /api/alerts → Bestätigungsmail → /alerts/verify/&lt;token&gt;
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="inner">
+        <form id="alertForm">
+          <div class="grid">
+            <div>
+              <label for="email">E-Mail (dorthin kommen die Benachrichtigungen)</label>
+              <input class="field" id="email" name="email" type="email" placeholder="name@mail.de" required />
+              <div class="hint">Diese E-Mail muss gleich per Link bestätigt werden.</div>
+            </div>
+
+            <div>
+              <label for="zip">PLZ (Pflicht)</label>
+              <input class="field" id="zip" name="zip" inputmode="numeric" maxlength="5" placeholder="z.B. 96191" required />
+              <div class="hint">Nur deutsche PLZ (5-stellig).</div>
+            </div>
+
+            <div>
+              <label for="city">Ort (optional)</label>
+              <input class="field" id="city" name="city" type="text" placeholder="z.B. Bamberg" />
+              <div class="hint">Optional – hilft, falls du später Radius-Suche aktivierst.</div>
+            </div>
+
+            <div>
+              <label for="radius">Radius (optional)</label>
+              <input class="field" id="radius" name="radius_km" type="number" min="0" max="100" step="1" placeholder="z.B. 10" />
+              <div class="hint">0 = nur PLZ. (Radius wird nur genutzt, wenn im Backend aktiv.)</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <label>Kategorie (optional)</label>
+            <div class="cats" id="cats">
+              <label class="chip"><input type="checkbox" value="Friseur">Friseur</label>
+              <label class="chip"><input type="checkbox" value="Kosmetik">Kosmetik</label>
+              <label class="chip"><input type="checkbox" value="Physiotherapie">Physiotherapie</label>
+              <label class="chip"><input type="checkbox" value="Nagelstudio">Nagelstudio</label>
+              <label class="chip"><input type="checkbox" value="Zahnarzt">Zahnarzt</label>
+              <label class="chip"><input type="checkbox" value="Handwerk">Handwerk</label>
+              <label class="chip"><input type="checkbox" value="KFZ-Service">KFZ-Service</label>
+              <label class="chip"><input type="checkbox" value="Fitness">Fitness</label>
+              <label class="chip"><input type="checkbox" value="Coaching">Coaching</label>
+              <label class="chip"><input type="checkbox" value="Tierarzt">Tierarzt</label>
+              <label class="chip"><input type="checkbox" value="Behörde">Behörde</label>
+            </div>
+            <div class="hint">Kategorie ist optional. Das <b>Limit (10)</b> zählt unabhängig von Kategorien.</div>
+          </div>
+
+          <!-- Fest verdrahtet: Benachrichtigung nur per E-Mail -->
+          <input type="hidden" name="via_email" value="true" />
+          <input type="hidden" name="via_sms" value="false" />
+
+          <!-- Package-Name: kann per Query (?pkg=alert_email10) kommen, sonst default -->
+          <input type="hidden" id="package_name" name="package_name" value="alert_email" />
+
+          <div class="row" style="margin-top:14px;">
+            <label class="chip" style="border-radius:14px;">
+              <input id="consent" type="checkbox" />
+              <span>Ich willige ein, dass Terminmarktplatz mir E-Mails zu passenden Terminen sendet.</span>
+            </label>
+          </div>
+
+          <div class="row" style="margin-top:14px;">
+            <button class="btn" id="submitBtn" type="submit">Alarm erstellen & Bestätigungsmail senden</button>
+            <button class="btnGhost" type="button" id="resetBtn">Zurücksetzen</button>
+          </div>
+
+          <div id="statusBox" class="status">
+            <b id="statusTitle">Status</b>
+            <small id="statusText"></small>
+          </div>
+
+          <div class="footer">
+            Hinweis: Nach dem Klick bekommst du eine Bestätigungsmail. Erst nach Bestätigung ist der Alarm aktiv.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+  (function(){
+    const $ = (id) => document.getElementById(id);
+
+    const emailEl = $("email");
+    const zipEl = $("zip");
+    const cityEl = $("city");
+    const radiusEl = $("radius");
+    const consentEl = $("consent");
+    const pkgEl = $("package_name");
+
+    const statusBox = $("statusBox");
+    const statusTitle = $("statusTitle");
+    const statusText = $("statusText");
+    const submitBtn = $("submitBtn");
+    const resetBtn = $("resetBtn");
+
+    function showStatus(kind, title, text){
+      statusBox.classList.remove("ok","err");
+      statusBox.style.display = "block";
+      statusBox.classList.add(kind === "ok" ? "ok" : "err");
+      statusTitle.textContent = title;
+      statusText.textContent = text;
+    }
+
+    function getQueryParam(key){
+      const u = new URL(window.location.href);
+      return u.searchParams.get(key);
+    }
+
+    // Prefill aus Link: ?email=...&pkg=...
+    const preEmail = getQueryParam("email");
+    if (preEmail) emailEl.value = preEmail;
+
+    const prePkg = getQueryParam("pkg");
+    if (prePkg) pkgEl.value = prePkg;
+
+    // Basic PLZ check
+    function validZip(z){
+      return /^[0-9]{5}$/.test((z || "").trim());
+    }
+
+    function collectCategories(){
+      const checked = Array.from(document.querySelectorAll("#cats input[type=checkbox]:checked"))
+        .map(x => x.value.trim())
+        .filter(Boolean);
+      // Backend erwartet CSV string oder null
+      return checked.length ? checked.join(",") : null;
+    }
+
+    $("alertForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = (emailEl.value || "").trim().toLowerCase();
+      const zip = (zipEl.value || "").trim();
+      const city = (cityEl.value || "").trim();
+      const radiusRaw = (radiusEl.value || "").trim();
+      const pkg = (pkgEl.value || "alert_email").trim();
+
+      if (!email || !email.includes("@")){
+        showStatus("err","Fehler","Bitte eine gültige E-Mail eingeben.");
+        return;
+      }
+      if (!validZip(zip)){
+        showStatus("err","Fehler","Bitte eine gültige 5-stellige PLZ eingeben.");
+        return;
+      }
+      if (!consentEl.checked){
+        showStatus("err","Fehler","Bitte die Einwilligung bestätigen, sonst dürfen wir keine Mails senden.");
+        return;
+      }
+
+      let radius_km = 0;
+      if (radiusRaw){
+        const n = parseInt(radiusRaw, 10);
+        radius_km = Number.isFinite(n) ? Math.max(0, n) : 0;
+      }
+
+      const payload = {
+        email,
+        phone: "",
+        zip,
+        city,
+        radius_km,
+        categories: collectCategories(),
+        via_email: true,
+        via_sms: false,
+        package_name: pkg
+      };
+
+      submitBtn.disabled = true;
+      showStatus("ok","Sende…","Wir erstellen deinen Alarm und schicken dir gleich die Bestätigungsmail…");
+
+      try{
+        const res = await fetch("/api/alerts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const js = await res.json().catch(() => ({}));
+
+        if (!res.ok){
+          const msg = js && js.error ? js.error : ("HTTP " + res.status);
+          showStatus("err","Fehler","Alarm konnte nicht angelegt werden: " + msg);
+          submitBtn.disabled = false;
+          return;
+        }
+
+        showStatus(
+          "ok",
+          "Fast fertig ✅",
+          "Wir haben dir eine Bestätigungsmail gesendet. Bitte klicke den Link in der Mail, damit der Alarm aktiv wird."
+        );
+
+      }catch(err){
+        showStatus("err","Fehler","Netzwerkfehler. Bitte Seite neu laden und erneut versuchen.");
+        submitBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      document.querySelectorAll("input").forEach(i => {
+        if (i.type === "checkbox") i.checked = false;
+      });
+      emailEl.value = preEmail || "";
+      zipEl.value = "";
+      cityEl.value = "";
+      radiusEl.value = "";
+      submitBtn.disabled = false;
+      statusBox.style.display = "none";
+    });
+
+  })();
+</script>
+</body>
+</html>
