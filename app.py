@@ -2140,17 +2140,23 @@ def verify_alert(token: str):
                 .first()
             )
             if not alert:
+                # optional: eigene Fehlerseite, sonst plain text
                 return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
 
-            alert.email_confirmed = True
-            alert.active = True
-            alert.last_reset_quota = _now()
-            s.commit()
+            # idempotent: mehrfach klicken soll nicht kaputtgehen
+            if not alert.email_confirmed or not alert.active:
+                alert.email_confirmed = True
+                alert.active = True
+                alert.last_reset_quota = _now()
+                s.commit()
 
-        return "Dein Termin-Alarm ist jetzt aktiviert. Du kannst dieses Fenster schließen."
+        # ✅ Nach Bestätigung auf deine Frontend-Seite weiterleiten
+        return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
+
     except Exception:
         app.logger.exception("verify_alert failed")
         return "Serverfehler", 500
+
 
 
 @app.get("/alerts/cancel/<token>")

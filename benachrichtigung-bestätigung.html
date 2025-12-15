@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Benachrichtigung bestätigt | Terminmarktplatz</title>
+  <meta name="description" content="Dein Termin-Alarm wurde bestätigt und ist jetzt aktiv." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.10);
+      --text: #e8ecff;
+      --muted: rgba(232,236,255,0.70);
+      --brand: #6f53ff;
+      --brand2:#a78bfa;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius2: 26px;
+      --max: 980px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(111,83,255,0.35), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(167,139,250,0.25), transparent 55%),
+        radial-gradient(700px 420px at 40% 100%, rgba(111,83,255,0.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.35;
+      min-height:100vh;
+    }
+
+    a{ color: #b9adff; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding: 10px 4px 22px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:0.2px;
+    }
+
+    /* Hier echtes Logo rein */
+    .logoImg{
+      width:40px;
+      height:40px;
+      border-radius: 14px;
+      object-fit: cover;
+      display:block;
+      box-shadow: 0 10px 30px rgba(111,83,255,0.30);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Fallback wenn Bild fehlt */
+    .logoFallback{
+      width:40px; height:40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 10px 30px rgba(111,83,255,0.30);
+      position:relative;
+      overflow:hidden;
+      display:none;
+    }
+    .logoFallback::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 45%);
+      transform: rotate(15deg);
+    }
+
+    .pill{
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      white-space:nowrap;
+    }
+
+    .card{
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .inner{
+      padding: 26px 22px;
+    }
+
+    h1{
+      margin: 0 0 10px;
+      font-size: clamp(22px, 3vw, 30px);
+      letter-spacing: -0.2px;
+    }
+
+    .sub{
+      color: var(--muted);
+      margin: 0 0 14px;
+      font-size: 14px;
+    }
+
+    .okBox{
+      border-radius: var(--radius);
+      border: 1px solid rgba(34,197,94,0.25);
+      background: rgba(34,197,94,0.10);
+      padding: 14px;
+      color: rgba(255,255,255,0.92);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .okIcon{
+      width:34px; height:34px;
+      border-radius: 12px;
+      display:grid;
+      place-items:center;
+      background: rgba(34,197,94,0.18);
+      border: 1px solid rgba(34,197,94,0.25);
+      flex:0 0 auto;
+      margin-top:2px;
+      font-size: 18px;
+    }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top: 14px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 14px 35px rgba(111,83,255,0.25);
+    }
+    .btn:hover{ filter: brightness(1.05); }
+
+    .btnGhost{
+      appearance:none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: rgba(232,236,255,0.92);
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 800;
+    }
+
+    .footer{
+      margin-top: 18px;
+      color: rgba(232,236,255,0.60);
+      font-size: 12px;
+      text-align:center;
+    }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <!-- Logo: passe den Pfad an, z.B. /static/logo.png -->
+        <img id="logoImg" class="logoImg" src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo"
+             onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
+        <div id="logoFallback" class="logoFallback" aria-hidden="true"></div>
+
+        <div>
+          <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
+          <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Benachrichtigung bestätigt</div>
+        </div>
+      </div>
+
+      <div class="pill">✅ Aktiv</div>
+    </div>
+
+    <div class="card">
+      <div class="inner">
+        <h1>Benachrichtigung erfolgreich eingerichtet.</h1>
+        <p class="sub">
+          Dein Termin-Alarm ist jetzt aktiv. Du bekommst automatisch eine E-Mail, sobald passende Slots veröffentlicht werden.
+        </p>
+
+        <div class="okBox">
+          <div class="okIcon">✔</div>
+          <div>
+            <div style="font-weight:800; margin-bottom:6px;">Fertig.</div>
+            <div style="color:rgba(232,236,255,0.78); font-size:13px;">
+              Du kannst dieses Fenster schließen oder direkt zur Suche gehen.
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="btn" type="button" onclick="window.location.href='/suche.html'">
+            Zur Suche
+          </button>
+          <button class="btnGhost" type="button" onclick="window.location.href='/'">
+            Startseite
+          </button>
+        </div>
+
+        <div class="footer">
+          Hinweis: Wenn du später keine Mails mehr willst, nutze den Abmeldelink in einer Benachrichtigung.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
