@@ -66,19 +66,16 @@
       letter-spacing:0.2px;
     }
 
-    .logo{
-      width:40px; height:40px;
+    /* LOGO: echtes Bild */
+    .logoImg{
+      width:44px;
+      height:44px;
       border-radius: 14px;
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      box-shadow: 0 10px 30px rgba(111,83,255,0.30);
-      position:relative;
-      overflow:hidden;
-    }
-    .logo::after{
-      content:"";
-      position:absolute; inset:-30%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 45%);
-      transform: rotate(15deg);
+      object-fit: cover;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--stroke);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      display:block;
     }
 
     .pill{
@@ -283,7 +280,8 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <!-- Logo hier: bitte Datei unter /static/logo.png ablegen -->
+        <img class="logoImg" src="/static/logo.png" alt="Terminmarktplatz Logo" />
         <div>
           <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
           <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Benachrichtigung einrichten</div>
@@ -388,11 +386,8 @@
             <div class="hint">Kategorie ist optional. Das <b>Limit (10)</b> zählt unabhängig von Kategorien.</div>
           </div>
 
-          <!-- Fest verdrahtet: Benachrichtigung nur per E-Mail -->
           <input type="hidden" name="via_email" value="true" />
           <input type="hidden" name="via_sms" value="false" />
-
-          <!-- Package-Name: kann per Query (?pkg=alert_email10) kommen, sonst default -->
           <input type="hidden" id="package_name" name="package_name" value="alert_email" />
 
           <div class="row" style="margin-top:14px;">
@@ -422,6 +417,8 @@
 
 <script>
   (function(){
+    const API_BASE = "https://api.terminmarktplatz.de"; // Render API (wichtig gegen 404)
+
     const $ = (id) => document.getElementById(id);
 
     const emailEl = $("email");
@@ -450,14 +447,13 @@
       return u.searchParams.get(key);
     }
 
-    // Prefill aus Link: ?email=...&pkg=...
+    // Prefill: ?email=...&pkg=...
     const preEmail = getQueryParam("email");
     if (preEmail) emailEl.value = preEmail;
 
     const prePkg = getQueryParam("pkg");
     if (prePkg) pkgEl.value = prePkg;
 
-    // Basic PLZ check
     function validZip(z){
       return /^[0-9]{5}$/.test((z || "").trim());
     }
@@ -466,8 +462,7 @@
       const checked = Array.from(document.querySelectorAll("#cats input[type=checkbox]:checked"))
         .map(x => x.value.trim())
         .filter(Boolean);
-      // Backend erwartet CSV string oder null
-      return checked.length ? checked.join(",") : null;
+      return checked.length ? checked.join(",") : null; // Backend: CSV oder null
     }
 
     $("alertForm").addEventListener("submit", async (e) => {
@@ -514,7 +509,7 @@
       showStatus("ok","Sende…","Wir erstellen deinen Alarm und schicken dir gleich die Bestätigungsmail…");
 
       try{
-        const res = await fetch("/api/alerts", {
+        const res = await fetch(`${API_BASE}/api/alerts`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -555,5 +550,6 @@
 
   })();
 </script>
+
 </body>
 </html>
