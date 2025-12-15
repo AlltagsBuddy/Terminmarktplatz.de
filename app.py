@@ -1285,6 +1285,7 @@ def maybe_api_only():
         or request.path.startswith("/webhook/copecart")
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
+        or request.path.startswith("/alerts/")   # ✅ verify + cancel Links aus Mails erlauben
         or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt")
         or request.path.startswith("/static/")
     ):
