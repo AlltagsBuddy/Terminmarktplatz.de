@@ -2022,6 +2022,39 @@ def notify_alerts_for_slot(slot_id: str) -> None:
     except Exception:
         app.logger.exception("notify_alerts_for_slot failed")
 
+@app.get("/api/alerts/stats")
+def alert_stats():
+    email = (request.args.get("email") or "").strip().lower()
+    if not email:
+        return _json_error("email_required", 400)
+
+    try:
+        email = validate_email(email).email
+    except EmailNotValidError:
+        return _json_error("invalid_email", 400)
+
+    with Session(engine) as s:
+        used = (
+            s.scalar(
+                select(func.count())
+                .select_from(AlertSubscription)
+                .where(AlertSubscription.email == email)
+            )
+            or 0
+        )
+
+    used = int(used)
+    left = max(0, ALERT_MAX_PER_EMAIL - used)
+
+    return jsonify(
+        {
+            "ok": True,
+            "used": used,
+            "limit": ALERT_MAX_PER_EMAIL,
+            "left": left,
+        }
+    )
+
 
 @app.post("/api/alerts")
 def create_alert():
@@ -2079,7 +2112,9 @@ def create_alert():
                 )
                 or 0
             )
-            if int(existing_count) >= ALERT_MAX_PER_EMAIL:
+            existing_count = int(existing_count)
+
+            if existing_count >= ALERT_MAX_PER_EMAIL:
                 return _json_error("alert_limit_reached", 409)
 
             alert = AlertSubscription(
@@ -2097,14 +2132,20 @@ def create_alert():
                 package_name=package_name,
                 sms_quota_month=sms_quota_month,
                 sms_sent_this_month=0,
-                email_sent_total=0,          # wichtig für Versandlimit
+                email_sent_total=0,
                 verify_token=verify_token,
             )
             s.add(alert)
             s.commit()
 
-        verify_url = url_for("verify_alert", token=verify_token, _external=True)
-        body = (
+            # ✅ Stats NACH Erstellung
+            used = existing_count + 1
+            left = max(0, ALERT_MAX_PER_EMAIL - used)
+            stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
+
+
+            verify_url = url_for("verify_alert", token=verify_token, _external=True)
+            body = (
             "Du hast auf Terminmarktplatz einen Termin-Alarm eingerichtet.\n\n"
             "Bitte klicke auf folgenden Link, um deine E-Mail-Adresse zu bestätigen "
             "und den Alarm zu aktivieren:\n\n"
@@ -2122,7 +2163,14 @@ def create_alert():
         except Exception as e:
             app.logger.warning("create_alert: send_mail failed: %r", e)
 
-        return jsonify({"ok": True, "message": "Alarm angelegt. Bitte E-Mail bestätigen."})
+        return jsonify(
+    {
+        "ok": True,
+        "message": "Alarm angelegt. Bitte E-Mail bestätigen.",
+        "stats": stats,
+    }
+)
+
     except Exception:
         app.logger.exception("create_alert failed")
         return jsonify({"error": "server_error"}), 500

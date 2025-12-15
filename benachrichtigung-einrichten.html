@@ -66,7 +66,6 @@
       letter-spacing:0.2px;
     }
 
-    /* LOGO: echtes Bild */
     .logoImg{
       width:44px;
       height:44px;
@@ -153,6 +152,26 @@
     }
     .infoBox b{ color: #ffd699; }
     .infoBox small{ display:block; color: rgba(232,236,255,0.75); margin-top: 6px; }
+
+    /* ✅ ZÄHLERBOX */
+    .statsBox{
+      margin-top: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(111,83,255,0.35);
+      background: rgba(111,83,255,0.10);
+      padding: 12px 14px;
+      display:none;
+    }
+    .statsBox .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:0;
+    }
+    .statsBox b{ color: rgba(232,236,255,0.95); }
+    .statsBox small{ color: rgba(232,236,255,0.72); }
 
     .grid{
       display:grid;
@@ -280,8 +299,7 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <!-- Logo hier: bitte Datei unter /static/logo.png ablegen -->
-        <img class="logoImg" src="/static/logo.png" alt="Terminmarktplatz Logo" />
+        <img class="logoImg" src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" />
         <div>
           <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
           <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Benachrichtigung einrichten</div>
@@ -302,6 +320,18 @@
           <div class="infoBox">
             <b>Wichtig:</b> Du bekommst <b>max. 10 Benachrichtigungen</b> per E-Mail. Kategorie ist egal – das Limit zählt insgesamt.
             <small>Wenn du die Bestätigungsmail nicht findest: bitte auch im Spam-Ordner schauen.</small>
+          </div>
+
+          <!-- ✅ ZÄHLER (wird nach erfolgreichem POST /api/alerts eingeblendet) -->
+          <div id="alertStatsBox" class="statsBox" aria-live="polite">
+            <div class="row">
+              <div>
+                <b>Dein Kontingent:</b>
+                <span id="statUsed">0</span>/<span id="statLimit">10</span>
+                – <span id="statLeft">10</span> frei
+              </div>
+              <small id="statHint">Wird nach dem Anlegen aktualisiert.</small>
+            </div>
           </div>
 
           <div class="steps">
@@ -417,7 +447,7 @@
 
 <script>
   (function(){
-    const API_BASE = "https://api.terminmarktplatz.de"; // Render API (wichtig gegen 404)
+    const API_BASE = "https://api.terminmarktplatz.de";
 
     const $ = (id) => document.getElementById(id);
 
@@ -434,6 +464,13 @@
     const submitBtn = $("submitBtn");
     const resetBtn = $("resetBtn");
 
+    // ✅ Stats-UI
+    const statsBox = $("alertStatsBox");
+    const statUsed = $("statUsed");
+    const statLimit = $("statLimit");
+    const statLeft = $("statLeft");
+    const statHint = $("statHint");
+
     function showStatus(kind, title, text){
       statusBox.classList.remove("ok","err");
       statusBox.style.display = "block";
@@ -445,6 +482,39 @@
     function getQueryParam(key){
       const u = new URL(window.location.href);
       return u.searchParams.get(key);
+    }
+
+    function disableForm(){
+      const form = $("alertForm");
+      form.querySelectorAll("input, select, button, textarea").forEach(el => {
+        if (el.id === "resetBtn") return;
+        el.disabled = true;
+      });
+      submitBtn.disabled = true;
+    }
+
+    function setStats(stats){
+      // expected: { used, limit, left }
+      if (!stats || typeof stats !== "object") return;
+
+      const used = Number.isFinite(+stats.used) ? +stats.used : null;
+      const lim  = Number.isFinite(+stats.limit) ? +stats.limit : null;
+      const left = Number.isFinite(+stats.left) ? +stats.left : null;
+
+      if (used === null || lim === null || left === null) return;
+
+      statUsed.textContent = String(used);
+      statLimit.textContent = String(lim);
+      statLeft.textContent = String(left);
+
+      statsBox.style.display = "block";
+
+      if (left <= 0){
+        statHint.textContent = "Kontingent voll. Du kannst aktuell keine weitere Benachrichtigung anlegen.";
+        disableForm();
+      } else {
+        statHint.textContent = "Du kannst weitere Benachrichtigungen anlegen.";
+      }
     }
 
     // Prefill: ?email=...&pkg=...
@@ -462,7 +532,7 @@
       const checked = Array.from(document.querySelectorAll("#cats input[type=checkbox]:checked"))
         .map(x => x.value.trim())
         .filter(Boolean);
-      return checked.length ? checked.join(",") : null; // Backend: CSV oder null
+      return checked.length ? checked.join(",") : null;
     }
 
     $("alertForm").addEventListener("submit", async (e) => {
@@ -518,10 +588,28 @@
         const js = await res.json().catch(() => ({}));
 
         if (!res.ok){
-          const msg = js && js.error ? js.error : ("HTTP " + res.status);
-          showStatus("err","Fehler","Alarm konnte nicht angelegt werden: " + msg);
+          const err = js && js.error ? js.error : ("HTTP " + res.status);
+
+          if (err === "alert_limit_reached"){
+            showStatus("err","Limit erreicht","Du hast bereits alle 10 Benachrichtigungen genutzt.");
+            // wenn Backend Stats mitschickt, UI aktualisieren + sperren
+            if (js.stats) setStats(js.stats);
+            submitBtn.disabled = false;
+            return;
+          }
+
+          showStatus("err","Fehler","Alarm konnte nicht angelegt werden: " + err);
           submitBtn.disabled = false;
           return;
+        }
+
+        // ✅ Stats direkt nach Erstellung anzeigen
+        if (js.stats){
+          setStats(js.stats);
+        } else {
+          // fail-safe: zumindest Box zeigen, damit User weiß, dass es das Feature gibt
+          statsBox.style.display = "block";
+          statHint.textContent = "Kontingent wird nach dem nächsten Schritt aktualisiert (Backend liefert noch keine Stats).";
         }
 
         showStatus(
@@ -546,6 +634,7 @@
       radiusEl.value = "";
       submitBtn.disabled = false;
       statusBox.style.display = "none";
+      // Stats nicht hard resetten – bewusst: zeigt den letzten bekannten Stand
     });
 
   })();
