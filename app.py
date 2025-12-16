@@ -540,6 +540,12 @@ def _is_valid_zip(v: str | None) -> bool:
     v = (v or "").strip()
     return len(v) == 5 and v.isdigit()
 
+def normalize_zip(v: str | None) -> str:
+    # macht aus "96191 Viereth" -> "96191"
+    digits = "".join(ch for ch in (v or "") if ch.isdigit())
+    return digits[:5]
+
+
 
 def _is_valid_phone(v: str | None) -> bool:
     v = (v or "").strip()
@@ -2012,19 +2018,21 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                     print(f"[alerts] provider_not_found slot_id={slot_id} provider_id={slot.provider_id}", flush=True)
                     return
 
-                slot_zip = (getattr(slot, "zip", None) or "").strip()
-                if not slot_zip:
-                    slot_zip = (getattr(provider, "zip", None) or "").strip()
-                if not slot_zip:
-                    slot_zip = (_extract_zip_from_text(getattr(slot, "location", None)) or "").strip()
+                slot_zip = normalize_zip(getattr(slot, "zip", None))
+                if len(slot_zip) != 5:
+                    slot_zip = normalize_zip(getattr(provider, "zip", None))
+                if len(slot_zip) != 5:
+                    slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
+
 
                 slot_cat = (getattr(slot, "category", "") or "").lower().strip()
 
                 print(f"[alerts] check slot_id={slot_id} zip={slot_zip!r} cat={slot_cat!r}", flush=True)
 
-                if not slot_zip:
-                    print(f"[alerts] no_zip_for_slot slot_id={slot_id}", flush=True)
+                if len(slot_zip) != 5:
+                    print(f"[alerts] no_valid_zip_for_slot slot_id={slot_id} zip={slot_zip!r}", flush=True)
                     return
+
 
                 alerts = (
                     s.execute(
@@ -2189,13 +2197,12 @@ def create_alert():
         email = (data.get("email") or "").strip().lower()
         phone = (data.get("phone") or "").strip()
 
-        zip_code = (data.get("zip") or "").strip()
+        zip_code = normalize_zip(data.get("zip"))
         city = (data.get("city") or "").strip()
-        
-        # ZIP hart normalisieren: nur 5 Ziffern zulassen
-        zip_code = "".join(ch for ch in zip_code if ch.isdigit())
+
         if len(zip_code) != 5:
-            return _json_error("zip_required", 400)
+            return _json_error("invalid_zip", 400)
+
 
 
         radius_km_raw = data.get("radius_km") or 0
