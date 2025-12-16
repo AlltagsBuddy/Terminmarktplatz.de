@@ -1962,29 +1962,57 @@ def _send_notifications_for_alert_and_slot(
     alert.last_notified_at = _now()
 
 
+def _extract_zip_from_text(txt: str | None) -> str | None:
+    """
+    Fallback: versucht eine deutsche PLZ (5 Ziffern) aus Freitext zu ziehen.
+    """
+    import re
+    t = (txt or "").strip()
+    if not t:
+        return None
+    m = re.search(r"\b(\d{5})\b", t)
+    return m.group(1) if m else None
+
+
 def notify_alerts_for_slot(slot_id: str) -> None:
     """
     Wird aufgerufen, wenn ein Slot veröffentlicht wurde (Status PUBLISHED).
     Match nach:
-      - PLZ des Providers
+      - Slot.zip (wenn vorhanden) sonst Provider.zip, sonst PLZ aus Slot.location
       - optional Kategorie (CSV im Alert)
     """
     try:
         with Session(engine) as s:
             slot = s.get(Slot, slot_id)
             if not slot:
+                print(f"[alerts] slot_not_found id={slot_id}", flush=True)
                 return
+
             if slot.status != SLOT_STATUS_PUBLISHED:
+                print(f"[alerts] slot_not_published id={slot_id} status={slot.status}", flush=True)
                 return
 
             provider = s.get(Provider, slot.provider_id)
             if not provider:
+                print(f"[alerts] provider_not_found slot_id={slot_id} provider_id={slot.provider_id}", flush=True)
                 return
 
-            slot_zip = (provider.zip or "").strip()
-            slot_cat = (slot.category or "").lower().strip()
+            # 1) ZIP bestimmen: slot.zip -> provider.zip -> aus slot.location ziehen
+            slot_zip = (getattr(slot, "zip", None) or "").strip()
+            if not slot_zip:
+                slot_zip = (getattr(provider, "zip", None) or "").strip()
+            if not slot_zip:
+                slot_zip = (_extract_zip_from_text(getattr(slot, "location", None)) or "").strip()
+
+            slot_cat = (getattr(slot, "category", "") or "").lower().strip()
+
+            print(
+                f"[alerts] check slot_id={slot_id} zip={slot_zip!r} cat={slot_cat!r} provider_zip={(provider.zip or '').strip()!r}",
+                flush=True,
+            )
 
             if not slot_zip:
+                print(f"[alerts] no_zip_for_slot slot_id={slot_id}", flush=True)
                 return
 
             alerts = (
@@ -1999,29 +2027,39 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                 .all()
             )
 
+            print(f"[alerts] candidates zip={slot_zip} count={len(alerts)}", flush=True)
+
             matched_alerts: list[AlertSubscription] = []
             for alert in alerts:
-                if not alert.categories:
+                if not getattr(alert, "categories", None):
                     matched_alerts.append(alert)
                     continue
+
                 alert_cats = [
                     c.strip().lower()
                     for c in (alert.categories or "").split(",")
                     if c.strip()
                 ]
-                # (dein altes Matching war "c in slot_cat"; ich lasse es, ist aber eher fuzzy)
-                if any(c in slot_cat for c in alert_cats):
+
+                # Sauberer: exakter Vergleich ODER fuzzy enthalten
+                if any(c == slot_cat for c in alert_cats) or any(c in slot_cat for c in alert_cats):
                     matched_alerts.append(alert)
+
+            print(f"[alerts] matched count={len(matched_alerts)}", flush=True)
 
             if not matched_alerts:
                 return
 
             for alert in matched_alerts:
+                print(f"[alerts] notify alert_id={getattr(alert,'id',None)} email={getattr(alert,'email',None)}", flush=True)
                 _send_notifications_for_alert_and_slot(s, alert, slot, provider)
 
             s.commit()
+            print(f"[alerts] done slot_id={slot_id}", flush=True)
+
     except Exception:
         app.logger.exception("notify_alerts_for_slot failed")
+
 
 @app.get("/api/alerts/stats")
 def alert_stats():
@@ -2320,7 +2358,7 @@ def slots_list():
 # --------------------------------------------------------
 # Start
 # --------------------------------------------------------
-    
+
 @app.post("/slots")
 @auth_required()
 def slots_create():
@@ -2371,6 +2409,18 @@ def slots_create():
             category = normalize_category(data.get("category"))
             location_db = location[:120]
 
+            # Falls Slot-Spalten für Adresse existieren: default = Provider-Adresse
+            prov_zip = (p.zip or "").strip()
+            prov_city = (p.city or "").strip()
+            prov_street = (p.street or "").strip()
+
+            slot_kwargs_extra = {}
+            if hasattr(Slot, "zip"):
+                slot_kwargs_extra["zip"] = prov_zip
+            if hasattr(Slot, "city"):
+                slot_kwargs_extra["city"] = prov_city
+            if hasattr(Slot, "street"):
+                slot_kwargs_extra["street"] = prov_street
             slot = Slot(
                 provider_id=request.provider_id,
                 title=title,
@@ -2384,7 +2434,9 @@ def slots_create():
                 price_cents=(data.get("price_cents") or None),
                 notes=(data.get("notes") or None),
                 status=SLOT_STATUS_DRAFT,
+                **slot_kwargs_extra,
             )
+
             s.add(slot)
             try:
                 s.commit()
