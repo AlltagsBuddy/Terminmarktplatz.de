@@ -2142,6 +2142,43 @@ def debug_alerts_by_zip():
             ],
         }
     )
+@app.get("/api/alerts/debug/active_confirmed_by_zip")
+def debug_active_confirmed_by_zip():
+    zip_code = (request.args.get("zip") or "").strip()
+    if not zip_code:
+        return _json_error("zip_required", 400)
+
+    with Session(engine) as s:
+        rows = (
+            s.execute(
+                select(AlertSubscription).where(
+                    AlertSubscription.zip == zip_code,
+                    AlertSubscription.active.is_(True),
+                    AlertSubscription.email_confirmed.is_(True),
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    return jsonify(
+        {
+            "zip": zip_code,
+            "count": len(rows),
+            "items": [
+                {
+                    "id": str(a.id),
+                    "email": a.email,
+                    "zip": a.zip,
+                    "active": bool(a.active),
+                    "email_confirmed": bool(a.email_confirmed),
+                    "via_email": bool(a.via_email),
+                    "categories": a.categories,
+                }
+                for a in rows
+            ],
+        }
+    )
 
 
 @app.post("/api/alerts")
@@ -2154,6 +2191,12 @@ def create_alert():
 
         zip_code = (data.get("zip") or "").strip()
         city = (data.get("city") or "").strip()
+        
+        # ZIP hart normalisieren: nur 5 Ziffern zulassen
+        zip_code = "".join(ch for ch in zip_code if ch.isdigit())
+        if len(zip_code) != 5:
+            return _json_error("zip_required", 400)
+
 
         radius_km_raw = data.get("radius_km") or 0
         try:
