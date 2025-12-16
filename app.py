@@ -2106,6 +2106,43 @@ def alert_stats():
         }
     )
 
+@app.get("/api/alerts/debug/by_zip")
+def debug_alerts_by_zip():
+    zip_code = (request.args.get("zip") or "").strip()
+    if not zip_code:
+        return _json_error("zip_required", 400)
+
+    with Session(engine) as s:
+        rows = (
+            s.execute(
+                select(AlertSubscription).where(AlertSubscription.zip == zip_code)
+            )
+            .scalars()
+            .all()
+        )
+
+    return jsonify(
+        {
+            "zip": zip_code,
+            "count": len(rows),
+            "items": [
+                {
+                    "id": str(a.id),
+                    "email": a.email,
+                    "zip": a.zip,
+                    "active": bool(a.active),
+                    "email_confirmed": bool(a.email_confirmed),
+                    "via_email": bool(a.via_email),
+                    "categories": a.categories,
+                    "package_name": a.package_name,
+                    "created_at": _from_db_as_iso_utc(a.created_at) if getattr(a, "created_at", None) else None,
+                    "verify_token": a.verify_token,
+                }
+                for a in rows
+            ],
+        }
+    )
+
 
 @app.post("/api/alerts")
 def create_alert():
