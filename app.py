@@ -236,7 +236,18 @@ elif DB_URL.startswith("postgresql://"):
 # --------------------------------------------------------
 # DB / Crypto / CORS
 # --------------------------------------------------------
-engine = create_engine(DB_URL, pool_pre_ping=True)
+engine = create_engine(
+    DB_URL,
+    pool_pre_ping=True,     # prüft Verbindung vor Benutzung
+    pool_recycle=180,       # recycelt Connections regelmäßig (SSL/Proxy zickt oft)
+    pool_timeout=30,
+    pool_size=5,
+    max_overflow=10,
+    connect_args={
+        # bei Render/Supabase/managed Postgres fast immer korrekt:
+        "sslmode": os.getenv("PGSSLMODE", "require"),
+    },
+)
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 
 # --- CORS -------------------------------------------------
@@ -1719,10 +1730,16 @@ def me():
         now_berlin = datetime.now(BERLIN)
         month_key = date(now_berlin.year, now_berlin.month, 1)
 
-        row = s.execute(
-            text("""SELECT used, "limit" FROM public.publish_quota WHERE provider_id=:pid AND month=:m"""),
-            {"pid": str(p.id), "m": month_key},
-        ).mappings().first()
+        try:
+            row = s.execute(
+                text("""SELECT used, "limit" FROM public.publish_quota WHERE provider_id=:pid AND month=:m"""),
+                {"pid": str(p.id), "m": month_key},
+            ).mappings().first()
+        except Exception as e:
+            # DB hiccup: nicht alles killen
+            app.logger.warning("me(): publish_quota query failed: %r", e)
+            row = None
+
 
         if row:
             slots_used = int(row["used"] or 0)
@@ -1977,88 +1994,83 @@ def _extract_zip_from_text(txt: str | None) -> str | None:
 def notify_alerts_for_slot(slot_id: str) -> None:
     """
     Wird aufgerufen, wenn ein Slot veröffentlicht wurde (Status PUBLISHED).
-    Match nach:
-      - Slot.zip (wenn vorhanden) sonst Provider.zip, sonst PLZ aus Slot.location
-      - optional Kategorie (CSV im Alert)
     """
-    try:
-        with Session(engine) as s:
-            slot = s.get(Slot, slot_id)
-            if not slot:
-                print(f"[alerts] slot_not_found id={slot_id}", flush=True)
-                return
+    for attempt in (1, 2):
+        try:
+            with Session(engine) as s:
+                # --- ab hier bleibt dein bisheriger Inhalt der Funktion ---
+                slot = s.get(Slot, slot_id)
+                if not slot:
+                    print(f"[alerts] slot_not_found id={slot_id}", flush=True)
+                    return
+                if slot.status != SLOT_STATUS_PUBLISHED:
+                    print(f"[alerts] slot_not_published id={slot_id} status={slot.status}", flush=True)
+                    return
 
-            if slot.status != SLOT_STATUS_PUBLISHED:
-                print(f"[alerts] slot_not_published id={slot_id} status={slot.status}", flush=True)
-                return
+                provider = s.get(Provider, slot.provider_id)
+                if not provider:
+                    print(f"[alerts] provider_not_found slot_id={slot_id} provider_id={slot.provider_id}", flush=True)
+                    return
 
-            provider = s.get(Provider, slot.provider_id)
-            if not provider:
-                print(f"[alerts] provider_not_found slot_id={slot_id} provider_id={slot.provider_id}", flush=True)
-                return
+                slot_zip = (getattr(slot, "zip", None) or "").strip()
+                if not slot_zip:
+                    slot_zip = (getattr(provider, "zip", None) or "").strip()
+                if not slot_zip:
+                    slot_zip = (_extract_zip_from_text(getattr(slot, "location", None)) or "").strip()
 
-            # 1) ZIP bestimmen: slot.zip -> provider.zip -> aus slot.location ziehen
-            slot_zip = (getattr(slot, "zip", None) or "").strip()
-            if not slot_zip:
-                slot_zip = (getattr(provider, "zip", None) or "").strip()
-            if not slot_zip:
-                slot_zip = (_extract_zip_from_text(getattr(slot, "location", None)) or "").strip()
+                slot_cat = (getattr(slot, "category", "") or "").lower().strip()
 
-            slot_cat = (getattr(slot, "category", "") or "").lower().strip()
+                print(f"[alerts] check slot_id={slot_id} zip={slot_zip!r} cat={slot_cat!r}", flush=True)
 
-            print(
-                f"[alerts] check slot_id={slot_id} zip={slot_zip!r} cat={slot_cat!r} provider_zip={(provider.zip or '').strip()!r}",
-                flush=True,
-            )
+                if not slot_zip:
+                    print(f"[alerts] no_zip_for_slot slot_id={slot_id}", flush=True)
+                    return
 
-            if not slot_zip:
-                print(f"[alerts] no_zip_for_slot slot_id={slot_id}", flush=True)
-                return
-
-            alerts = (
-                s.execute(
-                    select(AlertSubscription).where(
-                        AlertSubscription.active.is_(True),
-                        AlertSubscription.email_confirmed.is_(True),
-                        AlertSubscription.zip == slot_zip,
+                alerts = (
+                    s.execute(
+                        select(AlertSubscription).where(
+                            AlertSubscription.active.is_(True),
+                            AlertSubscription.email_confirmed.is_(True),
+                            AlertSubscription.zip == slot_zip,
+                        )
                     )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
-            )
 
-            print(f"[alerts] candidates zip={slot_zip} count={len(alerts)}", flush=True)
+                print(f"[alerts] candidates zip={slot_zip} count={len(alerts)}", flush=True)
 
-            matched_alerts: list[AlertSubscription] = []
-            for alert in alerts:
-                if not getattr(alert, "categories", None):
-                    matched_alerts.append(alert)
-                    continue
+                matched_alerts: list[AlertSubscription] = []
+                for alert in alerts:
+                    if not getattr(alert, "categories", None):
+                        matched_alerts.append(alert)
+                        continue
 
-                alert_cats = [
-                    c.strip().lower()
-                    for c in (alert.categories or "").split(",")
-                    if c.strip()
-                ]
+                    alert_cats = [
+                        c.strip().lower()
+                        for c in (alert.categories or "").split(",")
+                        if c.strip()
+                    ]
+                    if any(c == slot_cat for c in alert_cats) or any(c in slot_cat for c in alert_cats):
+                        matched_alerts.append(alert)
 
-                # Sauberer: exakter Vergleich ODER fuzzy enthalten
-                if any(c == slot_cat for c in alert_cats) or any(c in slot_cat for c in alert_cats):
-                    matched_alerts.append(alert)
+                print(f"[alerts] matched count={len(matched_alerts)}", flush=True)
 
-            print(f"[alerts] matched count={len(matched_alerts)}", flush=True)
+                if not matched_alerts:
+                    return
 
-            if not matched_alerts:
+                for alert in matched_alerts:
+                    _send_notifications_for_alert_and_slot(s, alert, slot, provider)
+
+                s.commit()
+                print(f"[alerts] done slot_id={slot_id}", flush=True)
                 return
 
-            for alert in matched_alerts:
-                print(f"[alerts] notify alert_id={getattr(alert,'id',None)} email={getattr(alert,'email',None)}", flush=True)
-                _send_notifications_for_alert_and_slot(s, alert, slot, provider)
-
-            s.commit()
-            print(f"[alerts] done slot_id={slot_id}", flush=True)
-
-    except Exception:
-        app.logger.exception("notify_alerts_for_slot failed")
+        except Exception as e:
+            app.logger.warning("notify_alerts_for_slot failed attempt=%s slot_id=%s err=%r", attempt, slot_id, e)
+            if attempt == 2:
+                app.logger.exception("notify_alerts_for_slot final failure")
+                return
 
 
 @app.get("/api/alerts/stats")
