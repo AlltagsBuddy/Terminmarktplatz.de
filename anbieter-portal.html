@@ -785,27 +785,38 @@
 
     // ---------- Profil-Check ----------
     function isProfileCompleteFromValues(vals){
+      const streetCombined = `${(vals.street || '').trim()} ${(vals.house_number || '').trim()}`.trim();
+
       return !!(
         vals.company_name &&
         vals.branch &&
-        vals.street &&
+        isValidStreetWithNumber(streetCombined) &&
         isValidZip(vals.zip) &&
         vals.city &&
         isValidPhone(vals.phone)
       );
     }
 
+
     function getProfileValuesFromForm(){
+      const combined = $('#pf-street').value.trim();
+      const parsed = splitStreetAndNumber(combined); // nutzt deine bestehende Funktion
+
       return {
         company_name: $('#pf-company').value.trim(),
         branch:       $('#pf-branch').value.trim(),
-        street:       $('#pf-street').value.trim(),
+
+        // ✅ DB-Felder sauber
+        street:       parsed.street,
+        house_number: parsed.house_number,
+
         zip:          $('#pf-zip').value.trim(),
         city:         $('#pf-city').value.trim(),
         phone:        $('#pf-phone').value.trim(),
         whatsapp:     $('#pf-whatsapp').value.trim(),
       };
     }
+
 
     function copyProfileAddressToSlot(force=false){
       const streetInput = $('#sl-street');
@@ -823,9 +834,11 @@
       const prof = getProfileValuesFromForm();
       if (!prof.street && !prof.zip && !prof.city) return;
 
-      streetInput.value = prof.street || '';
+      const combined = `${prof.street || ''}${prof.house_number ? ' ' + prof.house_number : ''}`.trim();
+      streetInput.value = combined;
       zipInput.value    = prof.zip || '';
       cityInput.value   = prof.city || '';
+
     }
 
     function setSlotLock(locked){
@@ -852,7 +865,7 @@
 
         $('#pf-company').value  = ME.company_name || '';
         $('#pf-branch').value   = ME.branch || '';
-        $('#pf-street').value   = ME.street || '';
+        $('#pf-street').value = `${ME.street || ''}${ME.house_number ? ' ' + ME.house_number : ''}`.trim();
         $('#pf-zip').value      = ME.zip || '';
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
