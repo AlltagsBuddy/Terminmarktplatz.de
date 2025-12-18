@@ -2383,34 +2383,29 @@ def verify_alert(token: str):
 from urllib.parse import unquote
 
 @app.get("/alerts/verify")
-def verify_alert_qs():
+def verify_alert():
     token = (request.args.get("token") or "").strip()
     return _verify_alert_token(token)
 
 @app.get("/alerts/verify/<path:token>")
-def verify_alert(token: str):
+def verify_alert_path(token: str):
     token = (token or "").strip()
     return _verify_alert_token(token)
 
 def _verify_alert_token(token: str):
     try:
-        # Flask decoded normalerweise schon, aber wir machen es robust:
-        token = unquote(token or "").strip()
-
+        token = unquote(token).strip()
         if not token:
             return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
 
         with Session(engine) as s:
-            # 1) Normaler ORM-Match
-            alert = (
-                s.execute(
-                    select(AlertSubscription).where(AlertSubscription.verify_token == token)
-                )
-                .scalars()
-                .first()
-            )
+            # 1) Normaler Match
+            alert = s.execute(
+                select(AlertSubscription)
+                .where(AlertSubscription.verify_token == token)
+            ).scalars().first()
 
-            # 2) Fallback: TRIM() auf DB-Seite (falls irgendwo Whitespace gespeichert wurde)
+            # 2) Fallback: TRIM auf DB-Seite
             if not alert:
                 row = s.execute(
                     text("""
@@ -2420,22 +2415,6 @@ def _verify_alert_token(token: str):
                         LIMIT 1
                     """),
                     {"t": token},
-                ).first()
-                if row:
-                    alert = s.get(AlertSubscription, row[0])
-
-            # 3) Optionaler Fallback: Prefix-Match (nur wenn wirklich nötig)
-            #    Hilft, falls verify_token in der DB abgeschnitten wurde (zu kurze Spalte).
-            if not alert and len(token) >= 20:
-                row = s.execute(
-                    text("""
-                        SELECT id
-                        FROM public.alert_subscription
-                        WHERE verify_token LIKE :p
-                        ORDER BY created_at DESC
-                        LIMIT 1
-                    """),
-                    {"p": token[:30] + "%"},
                 ).first()
                 if row:
                     alert = s.get(AlertSubscription, row[0])
@@ -2450,14 +2429,16 @@ def _verify_alert_token(token: str):
                 alert.last_reset_quota = _now()
                 s.commit()
 
-        return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
+        return redirect(
+            f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html",
+            code=302
+        )
 
     except Exception:
         app.logger.exception("verify_alert failed")
         return "Serverfehler", 500
 
-
-
+    
 @app.get("/alerts/cancel/<token>")
 def cancel_alert(token: str):
     try:
