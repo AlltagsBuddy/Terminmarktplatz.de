@@ -2351,39 +2351,10 @@ def create_alert():
         return jsonify({"error": "server_error"}), 500
 
 
-@app.get("/alerts/verify/<token>")
-def verify_alert(token: str):
-    try:
-        with Session(engine) as s:
-            alert = (
-                s.execute(
-                    select(AlertSubscription).where(AlertSubscription.verify_token == token)
-                )
-                .scalars()
-                .first()
-            )
-            if not alert:
-                # optional: eigene Fehlerseite, sonst plain text
-                return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
-
-            # idempotent: mehrfach klicken soll nicht kaputtgehen
-            if not alert.email_confirmed or not alert.active:
-                alert.email_confirmed = True
-                alert.active = True
-                alert.last_reset_quota = _now()
-                s.commit()
-
-        # ✅ Nach Bestätigung auf deine Frontend-Seite weiterleiten
-        return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
-
-    except Exception:
-        app.logger.exception("verify_alert failed")
-        return "Serverfehler", 500
-
 from urllib.parse import unquote
 
 @app.get("/alerts/verify")
-def verify_alert():
+def verify_alert_query():
     token = (request.args.get("token") or "").strip()
     return _verify_alert_token(token)
 
@@ -2391,6 +2362,46 @@ def verify_alert():
 def verify_alert_path(token: str):
     token = (token or "").strip()
     return _verify_alert_token(token)
+
+def _verify_alert_token(token: str):
+    try:
+        token = unquote(token).strip()
+        if not token:
+            return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
+
+        with Session(engine) as s:
+            alert = s.execute(
+                select(AlertSubscription).where(AlertSubscription.verify_token == token)
+            ).scalars().first()
+
+            if not alert:
+                row = s.execute(
+                    text("""
+                        SELECT id
+                        FROM public.alert_subscription
+                        WHERE TRIM(verify_token) = :t
+                        LIMIT 1
+                    """),
+                    {"t": token},
+                ).first()
+                if row:
+                    alert = s.get(AlertSubscription, row[0])
+
+            if not alert:
+                return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
+ 
+            if not alert.email_confirmed or not alert.active:
+                alert.email_confirmed = True
+                alert.active = True
+                alert.last_reset_quota = _now()
+                s.commit()
+ 
+        return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
+
+    except Exception:
+        app.logger.exception("verify_alert failed")
+        return "Serverfehler", 500
+ 
 
 def _verify_alert_token(token: str):
     try:
@@ -2438,7 +2449,7 @@ def _verify_alert_token(token: str):
         app.logger.exception("verify_alert failed")
         return "Serverfehler", 500
 
-    
+
 @app.get("/alerts/cancel/<token>")
 def cancel_alert(token: str):
     try:
