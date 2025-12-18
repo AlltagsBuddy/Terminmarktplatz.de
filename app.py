@@ -1090,7 +1090,7 @@ So kündigst du dein CopeCart-Abo:
 
 Alternativ:
 https://copecart.com/login
-    
+
 Viele Grüße
 Terminmarktplatz
 """
@@ -2374,6 +2374,82 @@ def verify_alert(token: str):
                 s.commit()
 
         # ✅ Nach Bestätigung auf deine Frontend-Seite weiterleiten
+        return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
+
+    except Exception:
+        app.logger.exception("verify_alert failed")
+        return "Serverfehler", 500
+
+from urllib.parse import unquote
+
+@app.get("/alerts/verify")
+def verify_alert_qs():
+    token = (request.args.get("token") or "").strip()
+    return _verify_alert_token(token)
+
+@app.get("/alerts/verify/<path:token>")
+def verify_alert(token: str):
+    token = (token or "").strip()
+    return _verify_alert_token(token)
+
+def _verify_alert_token(token: str):
+    try:
+        # Flask decoded normalerweise schon, aber wir machen es robust:
+        token = unquote(token or "").strip()
+
+        if not token:
+            return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
+
+        with Session(engine) as s:
+            # 1) Normaler ORM-Match
+            alert = (
+                s.execute(
+                    select(AlertSubscription).where(AlertSubscription.verify_token == token)
+                )
+                .scalars()
+                .first()
+            )
+
+            # 2) Fallback: TRIM() auf DB-Seite (falls irgendwo Whitespace gespeichert wurde)
+            if not alert:
+                row = s.execute(
+                    text("""
+                        SELECT id
+                        FROM public.alert_subscription
+                        WHERE TRIM(verify_token) = :t
+                        LIMIT 1
+                    """),
+                    {"t": token},
+                ).first()
+                if row:
+                    alert = s.get(AlertSubscription, row[0])
+
+            # 3) Optionaler Fallback: Prefix-Match (nur wenn wirklich nötig)
+            #    Hilft, falls verify_token in der DB abgeschnitten wurde (zu kurze Spalte).
+            if not alert and len(token) >= 20:
+                row = s.execute(
+                    text("""
+                        SELECT id
+                        FROM public.alert_subscription
+                        WHERE verify_token LIKE :p
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """),
+                    {"p": token[:30] + "%"},
+                ).first()
+                if row:
+                    alert = s.get(AlertSubscription, row[0])
+
+            if not alert:
+                return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
+
+            # idempotent
+            if not alert.email_confirmed or not alert.active:
+                alert.email_confirmed = True
+                alert.active = True
+                alert.last_reset_quota = _now()
+                s.commit()
+
         return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
 
     except Exception:
