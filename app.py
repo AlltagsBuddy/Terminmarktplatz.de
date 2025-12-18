@@ -2150,6 +2150,23 @@ def debug_alerts_by_zip():
             ],
         }
     )
+    
+@app.get("/api/alerts/debug/raw_by_zip")
+def debug_raw_by_zip():
+    zip_code = normalize_zip(request.args.get("zip"))
+    with Session(engine) as s:
+        rows = s.execute(
+            text("""
+                SELECT id, email, zip, active, email_confirmed, via_email, created_at
+                FROM public.alert_subscription
+                WHERE zip LIKE :z
+                ORDER BY created_at DESC
+                LIMIT 50
+            """),
+            {"z": f"{zip_code}%"},
+        ).mappings().all()
+    return jsonify({"zip": zip_code, "count": len(rows), "rows": list(rows)})
+
 @app.get("/api/alerts/debug/active_confirmed_by_zip")
 def debug_active_confirmed_by_zip():
     zip_code = (request.args.get("zip") or "").strip()
