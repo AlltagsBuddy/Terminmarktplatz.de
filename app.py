@@ -2472,6 +2472,46 @@ def cancel_alert(token: str):
         app.logger.exception("cancel_alert failed")
         return "Serverfehler", 500
 
+@app.get("/api/alerts/debug/token")
+def debug_alert_by_token():
+    t = (request.args.get("t") or "").strip()
+    if not t:
+        return _json_error("t_required", 400)
+
+    from urllib.parse import unquote
+    t = unquote(t).strip()
+
+    with Session(engine) as s:
+        # 1) ORM lookup
+        orm = (
+            s.execute(select(AlertSubscription).where(AlertSubscription.verify_token == t))
+            .scalars()
+            .first()
+        )
+
+        # 2) RAW lookup (trim)
+        raw = s.execute(
+            text("""
+                SELECT id, email, verify_token, active, email_confirmed, created_at
+                FROM public.alert_subscription
+                WHERE TRIM(verify_token) = :t
+                LIMIT 1
+            """),
+            {"t": t},
+        ).mappings().first()
+
+        # 3) Welche DB ist das überhaupt?
+        dbinfo = s.execute(text("select current_database() as db, inet_server_addr() as addr")).mappings().first()
+
+    return jsonify({
+        "input": t,
+        "orm_found": bool(orm),
+        "orm_id": str(orm.id) if orm else None,
+        "raw_found": bool(raw),
+        "raw": dict(raw) if raw else None,
+        "dbinfo": dict(dbinfo) if dbinfo else None,
+    })
+
 
 # --------------------------------------------------------
 # Slots (Provider)
