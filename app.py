@@ -1872,8 +1872,14 @@ def cancel_plan():
 # --------------------------------------------------------
 # Termin-Alarm / Benachrichtigungen (Suchende)
 # --------------------------------------------------------
+from urllib.parse import unquote
+
 ALERT_MAX_PER_EMAIL = 10          # max. Alerts (Subscriptions) pro E-Mail
 ALERT_MAX_EMAILS_PER_ALERT = 10   # max. E-Mail-Benachrichtigungen pro Alert (email_sent_total)
+
+
+def _norm_token(t: str | None) -> str:
+    return unquote((t or "")).strip()
 
 
 def _reset_alert_quota_if_needed(alert: AlertSubscription) -> None:
@@ -1898,13 +1904,14 @@ def _send_notifications_for_alert_and_slot(
 ) -> None:
     _reset_alert_quota_if_needed(alert)
 
-    # --- LIMIT: max 10 E-Mail-Benachrichtigungen pro Alert ---
+    # LIMIT: max 10 E-Mail-Benachrichtigungen pro Alert
     sent_total = int(getattr(alert, "email_sent_total", 0) or 0)
     if sent_total >= ALERT_MAX_EMAILS_PER_ALERT:
         return
 
     slot_title = slot.title
     starts_at = _from_db_as_iso_utc(slot.start_at)
+
     provider_address = ""
     try:
         provider_address = provider.to_public_dict().get("address") or ""
@@ -1917,12 +1924,14 @@ def _send_notifications_for_alert_and_slot(
     if hasattr(app, "view_functions") and "public_slots" in app.view_functions:
         base = _external_base()
         slot_url = f"{base}/suche.html"
+
     else:
         slot_url = ""
 
     # E-Mail-Benachrichtigung
     if alert.via_email and alert.email_confirmed and alert.active:
-        cancel_url = url_for("cancel_alert", token=alert.verify_token, _external=True)
+        cancel_url = url_for("alerts_cancel", token=alert.verify_token, _external=True)
+
         body_lines = [
             "Es gibt einen neuen Termin, der zu deinem Suchauftrag passt:",
             "",
@@ -1947,18 +1956,15 @@ def _send_notifications_for_alert_and_slot(
                 text=body,
                 tag="alert_slot_match",
                 metadata={"zip": alert.zip, "package": alert.package_name or ""},
-            )
-
-            # Nur zählen, wenn Versand ok war
+            ) 
             if ok:
                 alert.email_sent_total = int(getattr(alert, "email_sent_total", 0) or 0) + 1
             else:
                 app.logger.warning("send_mail alert not delivered: %s", reason)
-
-        except Exception as e:
+        except Exception as e: 
             app.logger.warning("send_mail alert failed: %r", e)
 
-    # SMS-Benachrichtigung
+    # SMS-Benachrichtigung (Stub)
     if (
         alert.via_sms
         and alert.phone
@@ -1998,8 +2004,7 @@ def notify_alerts_for_slot(slot_id: str) -> None:
     """
     for attempt in (1, 2):
         try:
-            with Session(engine) as s:
-                # --- ab hier bleibt dein bisheriger Inhalt der Funktion ---
+            with Session(engine) as s: 
                 slot = s.get(Slot, slot_id)
                 if not slot:
                     print(f"[alerts] slot_not_found id={slot_id}", flush=True)
@@ -2019,16 +2024,13 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                 if len(slot_zip) != 5:
                     slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
 
-
-                slot_cat = (getattr(slot, "category", "") or "").lower().strip()
-
+                slot_cat = (getattr(slot, "category", "") or "").lower().strip() 
                 print(f"[alerts] check slot_id={slot_id} zip={slot_zip!r} cat={slot_cat!r}", flush=True)
 
                 if len(slot_zip) != 5:
                     print(f"[alerts] no_valid_zip_for_slot slot_id={slot_id} zip={slot_zip!r}", flush=True)
                     return
-
-
+ 
                 alerts = (
                     s.execute(
                         select(AlertSubscription).where(
@@ -2039,8 +2041,7 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                     )
                     .scalars()
                     .all()
-                )
-
+                ) 
                 print(f"[alerts] candidates zip={slot_zip} count={len(alerts)}", flush=True)
 
                 matched_alerts: list[AlertSubscription] = []
@@ -2057,8 +2058,7 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                     if any(c == slot_cat for c in alert_cats) or any(c in slot_cat for c in alert_cats):
                         matched_alerts.append(alert)
 
-                print(f"[alerts] matched count={len(matched_alerts)}", flush=True)
-
+                print(f"[alerts] matched count={len(matched_alerts)}", flush=True) 
                 if not matched_alerts:
                     return
 
@@ -2100,26 +2100,18 @@ def alert_stats():
     used = int(used)
     left = max(0, ALERT_MAX_PER_EMAIL - used)
 
-    return jsonify(
-        {
-            "ok": True,
-            "used": used,
-            "limit": ALERT_MAX_PER_EMAIL,
-            "left": left,
-        }
-    )
+    return jsonify({"ok": True, "used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left})
+
 
 @app.get("/api/alerts/debug/by_zip")
 def debug_alerts_by_zip():
-    zip_code = (request.args.get("zip") or "").strip()
-    if not zip_code:
-        return _json_error("zip_required", 400)
+    zip_code = normalize_zip(request.args.get("zip"))
+    if len(zip_code) != 5:
+        return _json_error("invalid_zip", 400)
 
     with Session(engine) as s:
         rows = (
-            s.execute(
-                select(AlertSubscription).where(AlertSubscription.zip == zip_code)
-            )
+            s.execute(select(AlertSubscription).where(AlertSubscription.zip == zip_code))
             .scalars()
             .all()
         )
@@ -2145,7 +2137,8 @@ def debug_alerts_by_zip():
             ],
         }
     )
-    
+
+
 @app.get("/api/alerts/debug/raw_by_zip")
 def debug_raw_by_zip():
     zip_code = normalize_zip(request.args.get("zip"))
@@ -2155,43 +2148,37 @@ def debug_raw_by_zip():
     with Session(engine) as s:
         rows = s.execute(
             text("""
-                SELECT id, email, zip, active, email_confirmed, via_email, created_at
+                SELECT id, email, zip, active, email_confirmed, via_email, created_at, verify_token
                 FROM public.alert_subscription
-                WHERE zip LIKE :z
+                WHERE zip = :z
                 ORDER BY created_at DESC
                 LIMIT 50
             """),
-            {"z": f"{zip_code}%"},
+            {"z": zip_code},
         ).mappings().all()
 
     def _ser(v):
         if v is None:
-            return None
-        # uuid
+            return None 
         try:
             import uuid
             if isinstance(v, uuid.UUID):
                 return str(v)
         except Exception:
             pass
-        # datetime
-        if isinstance(v, datetime):
+        if isinstance(v, datetime): 
             return _from_db_as_iso_utc(v)
         return v
 
-    clean = []
-    for r in rows:
-        d = dict(r)
-        clean.append({k: _ser(v) for k, v in d.items()})
-
+    clean = [{k: _ser(v) for k, v in dict(r).items()} for r in rows]
     return jsonify({"zip": zip_code, "count": len(clean), "rows": clean})
 
 
 @app.get("/api/alerts/debug/active_confirmed_by_zip")
 def debug_active_confirmed_by_zip():
-    zip_code = (request.args.get("zip") or "").strip()
-    if not zip_code:
-        return _json_error("zip_required", 400)
+    zip_code = normalize_zip(request.args.get("zip"))
+    if len(zip_code) != 5:
+        return _json_error("invalid_zip", 400)
 
     with Session(engine) as s:
         rows = (
@@ -2226,6 +2213,7 @@ def debug_active_confirmed_by_zip():
     )
 
 
+# ✅ EINMALIGER Create-Endpoint (nicht doppeln!)
 @app.post("/api/alerts")
 def create_alert():
     try:
@@ -2239,9 +2227,7 @@ def create_alert():
 
         if len(zip_code) != 5:
             return _json_error("invalid_zip", 400)
-
-
-
+ 
         radius_km_raw = data.get("radius_km") or 0
         try:
             radius_km = int(radius_km_raw)
@@ -2254,14 +2240,12 @@ def create_alert():
         via_email = bool(data.get("via_email", True))
         via_sms = bool(data.get("via_sms", False))
 
-        package_name = (data.get("package_name") or "free").strip().lower()
+        package_name = (data.get("package_name") or "alert_email").strip().lower()
+
 
         if not via_email and not via_sms:
             return _json_error("channel_required", 400)
-
-        if not zip_code:
-            return _json_error("zip_required", 400)
-
+ 
         try:
             email = validate_email(email).email
         except EmailNotValidError:
@@ -2278,8 +2262,7 @@ def create_alert():
         verify_token = secrets.token_urlsafe(32)
 
         with Session(engine) as s:
-            # --- LIMIT: max. 10 Alerts pro E-Mail (egal welche Kategorie) ---
-            existing_count = (
+            existing_count = ( 
                 s.scalar(
                     select(func.count())
                     .select_from(AlertSubscription)
@@ -2312,15 +2295,15 @@ def create_alert():
             )
             s.add(alert)
             s.commit()
-
-            # ✅ Stats NACH Erstellung
+ 
             used = existing_count + 1
             left = max(0, ALERT_MAX_PER_EMAIL - used)
             stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
 
+        # ✅ richtiger Endpoint-Name (unten)
+        verify_url = url_for("alerts_verify", token=verify_token, _external=True)
 
-            verify_url = url_for("verify_alert", token=verify_token, _external=True)
-            body = (
+        body = (
             "Du hast auf Terminmarktplatz einen Termin-Alarm eingerichtet.\n\n"
             "Bitte klicke auf folgenden Link, um deine E-Mail-Adresse zu bestätigen "
             "und den Alarm zu aktivieren:\n\n"
@@ -2329,168 +2312,108 @@ def create_alert():
         )
 
         try:
-            send_mail(
+            ok, reason = send_mail(
                 email,
                 "Termin-Alarm bestätigen",
                 text=body,
                 tag="alert_verify",
             )
+            if not ok:
+                app.logger.warning("create_alert: send_mail not delivered: %s", reason)
         except Exception as e:
             app.logger.warning("create_alert: send_mail failed: %r", e)
 
-        return jsonify(
-    {
-        "ok": True,
-        "message": "Alarm angelegt. Bitte E-Mail bestätigen.",
-        "stats": stats,
-    }
-)
+        return jsonify({"ok": True, "message": "Alarm angelegt. Bitte E-Mail bestätigen.", "stats": stats})
 
     except Exception:
         app.logger.exception("create_alert failed")
         return jsonify({"error": "server_error"}), 500
 
 
-from urllib.parse import unquote
+# ✅ EINZIGE Verify-Route (robust)
+@app.get("/alerts/verify/<path:token>", endpoint="alerts_verify")
+def alerts_verify(token: str):
+    token = _norm_token(token)
+    if not token:
+        return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
 
-@app.get("/alerts/verify")
-def verify_alert_query():
-    token = (request.args.get("token") or "").strip()
-    return _verify_alert_token(token)
-
-@app.get("/alerts/verify/<path:token>")
-def verify_alert_path(token: str):
-    token = (token or "").strip()
-    return _verify_alert_token(token)
-
-def _verify_alert_token(token: str):
     try:
-        token = unquote(token).strip()
-        if not token:
-            return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
-
         with Session(engine) as s:
-            alert = s.execute(
-                select(AlertSubscription).where(AlertSubscription.verify_token == token)
-            ).scalars().first()
+            row = s.execute(
+                text("""
+                    SELECT id
+                    FROM public.alert_subscription
+                    WHERE TRIM(verify_token) = :t
+                    LIMIT 1
+                """),
+                {"t": token},
+            ).mappings().first()
 
-            if not alert:
-                row = s.execute(
-                    text("""
-                        SELECT id
-                        FROM public.alert_subscription
-                        WHERE TRIM(verify_token) = :t
-                        LIMIT 1
-                    """),
-                    {"t": token},
-                ).first()
-                if row:
-                    alert = s.get(AlertSubscription, row[0])
-
-            if not alert:
+            if not row:
                 return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
- 
-            if not alert.email_confirmed or not alert.active:
-                alert.email_confirmed = True
-                alert.active = True
-                alert.last_reset_quota = _now()
-                s.commit()
- 
+
+            s.execute(
+                text("""
+                    UPDATE public.alert_subscription
+                    SET email_confirmed = TRUE,
+                        active = TRUE,
+                        last_reset_quota = COALESCE(last_reset_quota, now())
+                    WHERE id = :id
+                """),
+                {"id": row["id"]},
+            )
+            s.commit()
+
         return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
 
     except Exception:
-        app.logger.exception("verify_alert failed")
-        return "Serverfehler", 500
- 
-
-def _verify_alert_token(token: str):
-    try:
-        token = unquote(token).strip()
-        if not token:
-            return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
-
-        with Session(engine) as s:
-            # 1) Normaler Match
-            alert = s.execute(
-                select(AlertSubscription)
-                .where(AlertSubscription.verify_token == token)
-            ).scalars().first()
-
-            # 2) Fallback: TRIM auf DB-Seite
-            if not alert:
-                row = s.execute(
-                    text("""
-                        SELECT id
-                        FROM public.alert_subscription
-                        WHERE TRIM(verify_token) = :t
-                        LIMIT 1
-                    """),
-                    {"t": token},
-                ).first()
-                if row:
-                    alert = s.get(AlertSubscription, row[0])
-
-            if not alert:
-                return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
-
-            # idempotent
-            if not alert.email_confirmed or not alert.active:
-                alert.email_confirmed = True
-                alert.active = True
-                alert.last_reset_quota = _now()
-                s.commit()
-
-        return redirect(
-            f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html",
-            code=302
-        )
-
-    except Exception:
-        app.logger.exception("verify_alert failed")
+        app.logger.exception("alerts_verify failed")
         return "Serverfehler", 500
 
 
-@app.get("/alerts/cancel/<token>")
-def cancel_alert(token: str):
+@app.get("/alerts/cancel/<path:token>", endpoint="alerts_cancel")
+def alerts_cancel(token: str):
+    token = _norm_token(token)
+    if not token:
+        return "Alarm nicht gefunden oder bereits deaktiviert.", 400
+
     try:
         with Session(engine) as s:
-            alert = (
-                s.execute(
-                    select(AlertSubscription).where(AlertSubscription.verify_token == token)
-                )
-                .scalars()
-                .first()
-            )
-            if not alert:
+            row = s.execute(
+                text("""
+                    SELECT id
+                    FROM public.alert_subscription
+                    WHERE TRIM(verify_token) = :t
+                    LIMIT 1
+                """),
+                {"t": token},
+            ).mappings().first()
+
+            if not row:
                 return "Alarm nicht gefunden oder bereits deaktiviert.", 400
 
-            alert.active = False
+            s.execute(
+                text("UPDATE public.alert_subscription SET active = FALSE WHERE id = :id"),
+                {"id": row["id"]},
+            )
             s.commit()
 
         return "Dein Termin-Alarm wurde deaktiviert."
+
     except Exception:
-        app.logger.exception("cancel_alert failed")
+        app.logger.exception("alerts_cancel failed")
         return "Serverfehler", 500
+
+
 
 @app.get("/api/alerts/debug/token")
 def debug_alert_by_token():
-    t = (request.args.get("t") or "").strip()
+    t = _norm_token(request.args.get("t"))
     if not t:
         return _json_error("t_required", 400)
-
-    from urllib.parse import unquote
-    t = unquote(t).strip()
-
+ 
     with Session(engine) as s:
-        # 1) ORM lookup
-        orm = (
-            s.execute(select(AlertSubscription).where(AlertSubscription.verify_token == t))
-            .scalars()
-            .first()
-        )
-
-        # 2) RAW lookup (trim)
-        raw = s.execute(
+         raw = s.execute(
             text("""
                 SELECT id, email, verify_token, active, email_confirmed, created_at
                 FROM public.alert_subscription
@@ -2500,17 +2423,17 @@ def debug_alert_by_token():
             {"t": t},
         ).mappings().first()
 
-        # 3) Welche DB ist das überhaupt?
-        dbinfo = s.execute(text("select current_database() as db, inet_server_addr() as addr")).mappings().first()
+        dbinfo = s.execute(
+            text("select current_database() as db, inet_server_addr() as addr")
+        ).mappings().first()
 
     return jsonify({
-        "input": t,
-        "orm_found": bool(orm),
-        "orm_id": str(orm.id) if orm else None,
+        "input": t, 
         "raw_found": bool(raw),
         "raw": dict(raw) if raw else None,
         "dbinfo": dict(dbinfo) if dbinfo else None,
     })
+
 
 
 # --------------------------------------------------------
