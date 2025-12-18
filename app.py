@@ -1052,19 +1052,17 @@ def send_mail(
 # --------------------------------------------------------
 # SMS-Stub (für Termin-Alarm; später echten Provider einbauen)
 # --------------------------------------------------------
-    def send_sms(to: str, text: str) -> None:
-        to = (to or "").strip()
-        text = (text or "").strip()
-        if not to or not text:
-            return
+def send_sms(to: str, text: str) -> None:
+    to = (to or "").strip()
+    text = (text or "").strip()
+    if not to or not text:
+        return
     print(f"[sms][stub] to={to} text={text}", flush=True)
 
 
-# --------------------------------------------------------
-# Spezielle Mails: Paket gekündigt / aktiviert
-# --------------------------------------------------------
-    def send_email_plan_canceled(provider: Provider, old_plan: str | None):
-        to = (provider.email or "").strip().lower()
+
+def send_email_plan_canceled(provider: Provider, old_plan: str | None):
+    to = (provider.email or "").strip().lower()
     if not to:
         return
 
@@ -1090,13 +1088,9 @@ So kündigst du dein CopeCart-Abo:
 2. Klicke dort auf den Link „Abo verwalten“ oder „Abo kündigen“.
 3. Folge den Schritten bei CopeCart, bis dir die Kündigung bestätigt wird.
 
-Alternativ kannst du dich im CopeCart-Kundenbereich anmelden und dein Abo dort beenden:
+Alternativ:
 https://copecart.com/login
-
-Wichtig: Erst nach der Kündigung bei CopeCart werden keine weiteren Zahlungen mehr abgebucht.
-
-Bei Fragen antworte einfach auf diese E-Mail.
-
+    
 Viele Grüße
 Terminmarktplatz
 """
@@ -1115,6 +1109,7 @@ Terminmarktplatz
         )
     except Exception as e:
         app.logger.warning("send_email_plan_canceled failed: %r", e)
+
 
 
 def send_email_plan_activated(
@@ -2154,6 +2149,9 @@ def debug_alerts_by_zip():
 @app.get("/api/alerts/debug/raw_by_zip")
 def debug_raw_by_zip():
     zip_code = normalize_zip(request.args.get("zip"))
+    if len(zip_code) != 5:
+        return _json_error("invalid_zip", 400)
+
     with Session(engine) as s:
         rows = s.execute(
             text("""
@@ -2165,7 +2163,29 @@ def debug_raw_by_zip():
             """),
             {"z": f"{zip_code}%"},
         ).mappings().all()
-    return jsonify({"zip": zip_code, "count": len(rows), "rows": list(rows)})
+
+    def _ser(v):
+        if v is None:
+            return None
+        # uuid
+        try:
+            import uuid
+            if isinstance(v, uuid.UUID):
+                return str(v)
+        except Exception:
+            pass
+        # datetime
+        if isinstance(v, datetime):
+            return _from_db_as_iso_utc(v)
+        return v
+
+    clean = []
+    for r in rows:
+        d = dict(r)
+        clean.append({k: _ser(v) for k, v in d.items()})
+
+    return jsonify({"zip": zip_code, "count": len(clean), "rows": clean})
+
 
 @app.get("/api/alerts/debug/active_confirmed_by_zip")
 def debug_active_confirmed_by_zip():
