@@ -375,7 +375,7 @@ class Invoice(Base):
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
         primary_key=True,
-        default=lambda: str(uuid4()),
+       default=lambda: str(uuid4()),
     )
 
     provider_id: Mapped[str] = mapped_column(
@@ -432,7 +432,7 @@ class AlertSubscription(Base):
     sms_quota_month: Mapped[int] = mapped_column(Integer, default=0)
     sms_sent_this_month: Mapped[int] = mapped_column(Integer, default=0)
 
-    # ✅ NEU: Gesamtzahl gesendeter E-Mail-Benachrichtigungen (für 10er-Limit)
+    # ✅ Gesamtzahl gesendeter E-Mail-Benachrichtigungen (für 10er-Limit)
     email_sent_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     last_reset_quota: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
@@ -444,6 +444,11 @@ class AlertSubscription(Base):
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
     last_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+
+    # ✅ NEU: Umkreis-Zentrum (Koordinaten) – passend zu DB-Spalten search_lat/search_lng
+    # In DB: numeric. Hier: Numeric(10,7) reicht für Geo in DE locker.
+    search_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
+    search_lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
 
     def to_public_dict(self) -> dict:
         return {
@@ -461,6 +466,8 @@ class AlertSubscription(Base):
             "sms_quota_month": self.sms_quota_month,
             "sms_sent_this_month": self.sms_sent_this_month,
             "email_sent_total": int(self.email_sent_total or 0),
+            "search_lat": float(self.search_lat) if self.search_lat is not None else None,
+            "search_lng": float(self.search_lng) if self.search_lng is not None else None,
             "created_at": self.created_at,
             "last_notified_at": self.last_notified_at,
         }

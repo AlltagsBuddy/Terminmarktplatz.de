@@ -2039,17 +2039,49 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                     s.execute(
                         select(AlertSubscription).where(
                             AlertSubscription.active.is_(True),
-                            AlertSubscription.email_confirmed.is_(True),
-                            AlertSubscription.zip == slot_zip,
+                            AlertSubscription.email_confirmed.is_(True), 
                         )
                     )
                     .scalars()
                     .all()
-                ) 
-                print(f"[alerts] candidates zip={slot_zip} count={len(alerts)}", flush=True)
+                )
+                print(f"[alerts] candidates total={len(alerts)}", flush=True)
+
 
                 matched_alerts: list[AlertSubscription] = []
+
                 for alert in alerts:
+                    # NEU: Falls alte Alerts noch keine Koordinaten haben -> nachziehen
+                    if getattr(alert, "search_lat", None) is None or getattr(alert, "search_lng", None) is None:
+                        lat, lng = geocode_cached(
+                            s,
+                            normalize_zip(getattr(alert, "zip", None)),
+                            getattr(alert, "city", None),
+                        )
+                        alert.search_lat = lat
+                        alert.search_lng = lng
+
+                    # Ohne Koordinaten kann Umkreis nicht funktionieren
+                    if alert.search_lat is None or alert.search_lng is None:
+                        continue
+
+                    # Radius-Logik
+                    r = int(getattr(alert, "radius_km", 0) or 0)
+
+                    if r <= 0:
+                        # altes Verhalten: gleiche PLZ
+                        if normalize_zip(getattr(alert, "zip", None)) != slot_zip:
+                            continue
+                    else:
+                        # NEU: Umkreis prüfen
+                        dist = _haversine_km(
+                            float(slot_lat), float(slot_lng),
+                            float(alert.search_lat), float(alert.search_lng),
+                        )
+                        if dist > r:
+                            continue
+
+                    # Kategorien-Filter wie gehabt
                     if not getattr(alert, "categories", None):
                         matched_alerts.append(alert)
                         continue
@@ -2061,6 +2093,7 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                     ]
                     if any(c == slot_cat for c in alert_cats) or any(c in slot_cat for c in alert_cats):
                         matched_alerts.append(alert)
+
 
                 print(f"[alerts] matched count={len(matched_alerts)}", flush=True) 
                 if not matched_alerts:
@@ -2295,6 +2328,10 @@ def create_alert():
                 existing.categories = categories
                 existing.package_name = package_name
                 existing.sms_quota_month = sms_quota_month
+                # NEU: Umkreis-Zentrum geocoden und speichern
+                lat, lng = geocode_cached(s, zip_code, city or None)
+                existing.search_lat = lat
+                existing.search_lng = lng
                 existing.active = False
                 existing.sms_confirmed = False
 
@@ -2305,6 +2342,9 @@ def create_alert():
                 used = existing_count  # keine neue Subscription gezählt
             else:
                 verify_token = secrets.token_urlsafe(32)
+
+                # NEU: Umkreis-Zentrum geocoden und speichern
+                lat, lng = geocode_cached(s, zip_code, city or None)
 
                 alert = AlertSubscription(
                     email=email,
@@ -2323,10 +2363,15 @@ def create_alert():
                     sms_sent_this_month=0,
                     email_sent_total=0,
                     verify_token=verify_token,
+
+                    # NEU:
+                    search_lat=lat,
+                    search_lng=lng,
                 )
                 s.add(alert)
                 s.commit()
                 used = existing_count + 1
+
 
         left = max(0, ALERT_MAX_PER_EMAIL - used)
         stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
@@ -3234,6 +3279,17 @@ def stripe_webhook():
 
         if not provider_id or not plan:
             return jsonify({"error": "missing_metadata"}), 400
+
+        # NEU: Slot-Koordinaten bestimmen (wir nehmen Provider-Standort)
+        slot_lat, slot_lng = geocode_cached(
+            s,
+            normalize_zip(getattr(provider, "zip", None)),
+            getattr(provider, "city", None),
+        )
+        if slot_lat is None or slot_lng is None:
+            print(f"[alerts] slot_geo_missing slot_id={slot_id} provider_id={provider.id}", flush=True)
+            return
+
 
         today = date.today()
         period_start = today
