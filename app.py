@@ -1882,7 +1882,7 @@ def _norm_token(t: str | None) -> str:
     # 1) URL-decoden
     t = unquote((t or ""))
     # 2) ALLE Whitespace-Zeichen entfernen (inkl. \n \r \t etc.)
-    t = re.sub(r"\s+", "", t)
+    t = re.sub(r"\\s+", "", t)
     return t.strip()
 
 
@@ -2360,7 +2360,7 @@ def alerts_verify(token: str):
                 text("""
                     SELECT id
                     FROM public.alert_subscription
-                    WHERE regexp_replace(COALESCE(verify_token,''), '\s+', '', 'g') = :t
+                    WHERE regexp_replace(COALESCE(verify_token,''), '\\s+', '', 'g') = :t
                     LIMIT 1
                 """),
                 {"t": token},
@@ -2400,7 +2400,7 @@ def alerts_cancel(token: str):
                 text("""
                     SELECT id
                     FROM public.alert_subscription
-                    WHERE regexp_replace(COALESCE(verify_token,''), '\s+', '', 'g') = :t
+                    WHERE regexp_replace(COALESCE(verify_token,''), '\\s+', '', 'g') = :t
                     LIMIT 1
                 """),
                 {"t": token},
