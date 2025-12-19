@@ -2429,25 +2429,24 @@ def debug_alert_by_token():
     t = _norm_token(request.args.get("t"))
     if not t:
         return _json_error("t_required", 400)
- 
+
     with Session(engine) as s:
-         raw = s.execute(
+        raw = s.execute(
             text("""
                 SELECT id, email, verify_token, active, email_confirmed, created_at
                 FROM public.alert_subscription
-                WHERE regexp_replace(COALESCE(verify_token,''), '\s+', '', 'g') = :t
+                WHERE regexp_replace(COALESCE(verify_token, ''), '\\s+', '', 'g') = :t
                 LIMIT 1
             """),
             {"t": t},
         ).mappings().first()
-
-
+        
         dbinfo = s.execute(
             text("select current_database() as db, inet_server_addr() as addr")
         ).mappings().first()
 
     return jsonify({
-        "input": t, 
+        "input": t,
         "raw_found": bool(raw),
         "raw": dict(raw) if raw else None,
         "dbinfo": dict(dbinfo) if dbinfo else None,
