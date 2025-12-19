@@ -1879,11 +1879,11 @@ ALERT_MAX_PER_EMAIL = 10          # max. Alerts (Subscriptions) pro E-Mail
 ALERT_MAX_EMAILS_PER_ALERT = 10   # max. E-Mail-Benachrichtigungen pro Alert (email_sent_total)
  
 def _norm_token(t: str | None) -> str:
-    # 1) URL-decoden
-    t = unquote((t or ""))
-    # 2) ALLE Whitespace-Zeichen entfernen (inkl. \n \r \t etc.)
-    t = re.sub(r"\\s+", "", t)
-    return t.strip()
+    t = unquote((t or "")).strip()
+    # echte Whitespaces killen (Space, Tabs, Newlines etc.)
+    t = re.sub(r"\s+", "", t)
+    return t
+
 
 
 def _reset_alert_quota_if_needed(alert: AlertSubscription) -> None:
@@ -2225,99 +2225,112 @@ def create_alert():
 
         email = (data.get("email") or "").strip().lower()
         phone = (data.get("phone") or "").strip()
-
         zip_code = normalize_zip(data.get("zip"))
         city = (data.get("city") or "").strip()
 
         if len(zip_code) != 5:
             return _json_error("invalid_zip", 400)
- 
-        radius_km_raw = data.get("radius_km") or 0
-        try:
-            radius_km = int(radius_km_raw)
-        except (TypeError, ValueError):
-            radius_km = 0
 
-        categories_raw = data.get("categories") or ""
-        categories = categories_raw.lower().strip() or None
-
-        via_email = bool(data.get("via_email", True))
-        via_sms = bool(data.get("via_sms", False))
-
-        package_name = (data.get("package_name") or "alert_email").strip().lower()
-
-
-        if not via_email and not via_sms:
-            return _json_error("channel_required", 400)
- 
         try:
             email = validate_email(email).email
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
+        via_email = bool(data.get("via_email", True))
+        via_sms = bool(data.get("via_sms", False))
+        if not via_email and not via_sms:
+            return _json_error("channel_required", 400)
+
         if via_sms and not phone:
             return _json_error("phone_required_for_sms", 400)
 
-        sms_quota_month = 0
-        if package_name in ALERT_PLANS:
-            sms_quota_month = ALERT_PLANS[package_name]["sms_quota_month"]
+        # radius
+        try:
+            radius_km = int(data.get("radius_km") or 0)
+        except Exception:
+            radius_km = 0
 
-        import secrets    
-        existing = s.execute(
-            select(AlertSubscription)
-            .where(
-                AlertSubscription.email == email,
-                AlertSubscription.email_confirmed.is_(False)
-            )
-            .order_by(AlertSubscription.created_at.desc())
-        ).scalars().first()
+        categories_raw = data.get("categories") or ""
+        categories = categories_raw.lower().strip() or None
 
-        if existing:
-            verify_token = existing.verify_token
-        else:
-            verify_token = secrets.token_urlsafe(32)
+        package_name = (data.get("package_name") or "alert_email").strip().lower()
+        sms_quota_month = int(ALERT_PLANS.get(package_name, {}).get("sms_quota_month", 0))
 
+        import secrets
 
         with Session(engine) as s:
-            existing_count = ( 
+            # Limit check
+            existing_count = int(
                 s.scalar(
                     select(func.count())
                     .select_from(AlertSubscription)
                     .where(AlertSubscription.email == email)
-                )
-                or 0
+                ) or 0
             )
-            existing_count = int(existing_count)
-
             if existing_count >= ALERT_MAX_PER_EMAIL:
                 return _json_error("alert_limit_reached", 409)
 
-            alert = AlertSubscription(
-                email=email,
-                phone=phone or None,
-                via_email=via_email,
-                via_sms=via_sms,
-                zip=zip_code,
-                city=city or None,
-                radius_km=radius_km,
-                categories=categories,
-                active=False,
-                email_confirmed=False,
-                sms_confirmed=False,
-                package_name=package_name,
-                sms_quota_month=sms_quota_month,
-                sms_sent_this_month=0,
-                email_sent_total=0,
-                verify_token=verify_token,
+            # Reuse latest unconfirmed (optional, aber sinnvoll)
+            existing = (
+                s.execute(
+                    select(AlertSubscription)
+                    .where(
+                        AlertSubscription.email == email,
+                        AlertSubscription.email_confirmed.is_(False),
+                    )
+                    .order_by(AlertSubscription.created_at.desc())
+                )
+                .scalars()
+                .first()
             )
-            s.add(alert)
-            s.commit()
- 
-            used = existing_count + 1
-            left = max(0, ALERT_MAX_PER_EMAIL - used)
-            stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
 
-        # ✅ richtiger Endpoint-Name (unten)
+            if existing:
+                # Update existing draft instead of creating another one
+                existing.phone = phone or None
+                existing.via_email = via_email
+                existing.via_sms = via_sms
+                existing.zip = zip_code
+                existing.city = city or None
+                existing.radius_km = radius_km
+                existing.categories = categories
+                existing.package_name = package_name
+                existing.sms_quota_month = sms_quota_month
+                existing.active = False
+                existing.sms_confirmed = False
+
+                verify_token = existing.verify_token or secrets.token_urlsafe(32)
+                existing.verify_token = verify_token
+
+                s.commit()
+                used = existing_count  # keine neue Subscription gezählt
+            else:
+                verify_token = secrets.token_urlsafe(32)
+
+                alert = AlertSubscription(
+                    email=email,
+                    phone=phone or None,
+                    via_email=via_email,
+                    via_sms=via_sms,
+                    zip=zip_code,
+                    city=city or None,
+                    radius_km=radius_km,
+                    categories=categories,
+                    active=False,
+                    email_confirmed=False,
+                    sms_confirmed=False,
+                    package_name=package_name,
+                    sms_quota_month=sms_quota_month,
+                    sms_sent_this_month=0,
+                    email_sent_total=0,
+                    verify_token=verify_token,
+                )
+                s.add(alert)
+                s.commit()
+                used = existing_count + 1
+
+        left = max(0, ALERT_MAX_PER_EMAIL - used)
+        stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
+
         verify_url = url_for("alerts_verify", token=verify_token, _external=True)
 
         body = (
@@ -2328,23 +2341,21 @@ def create_alert():
             "Wenn du das nicht warst, kannst du diese E-Mail ignorieren."
         )
 
-        try:
-            ok, reason = send_mail(
-                email,
-                "Termin-Alarm bestätigen",
-                text=body,
-                tag="alert_verify",
-            )
-            if not ok:
-                app.logger.warning("create_alert: send_mail not delivered: %s", reason)
-        except Exception as e:
-            app.logger.warning("create_alert: send_mail failed: %r", e)
+        ok, reason = send_mail(
+            email,
+            "Termin-Alarm bestätigen",
+            text=body,
+            tag="alert_verify",
+        )
+        if not ok:
+            app.logger.warning("create_alert: send_mail not delivered: %s", reason)
 
         return jsonify({"ok": True, "message": "Alarm angelegt. Bitte E-Mail bestätigen.", "stats": stats})
 
     except Exception:
         app.logger.exception("create_alert failed")
         return jsonify({"error": "server_error"}), 500
+
 
 
 # ✅ EINZIGE Verify-Route (robust)
@@ -2432,15 +2443,15 @@ def debug_alert_by_token():
 
     with Session(engine) as s:
         raw = s.execute(
-            text("""
+            text(r"""
                 SELECT id, email, verify_token, active, email_confirmed, created_at
                 FROM public.alert_subscription
-                WHERE regexp_replace(COALESCE(verify_token, ''), '\\s+', '', 'g') = :t
+                WHERE regexp_replace(COALESCE(verify_token, ''), '\s+', '', 'g') = :t
                 LIMIT 1
             """),
             {"t": t},
         ).mappings().first()
-        
+
         dbinfo = s.execute(
             text("select current_database() as db, inet_server_addr() as addr")
         ).mappings().first()
@@ -2451,6 +2462,7 @@ def debug_alert_by_token():
         "raw": dict(raw) if raw else None,
         "dbinfo": dict(dbinfo) if dbinfo else None,
     })
+
 
 
 
