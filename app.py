@@ -1927,7 +1927,8 @@ def _send_notifications_for_alert_and_slot(
 
     if hasattr(app, "view_functions") and "public_slots" in app.view_functions:
         base = _external_base()
-        slot_url = f"{base}/suche.html"
+        slot_url = f"{FRONTEND_URL}/suche.html"
+
 
     else:
         slot_url = ""
@@ -2021,6 +2022,17 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                 if not provider:
                     print(f"[alerts] provider_not_found slot_id={slot_id} provider_id={slot.provider_id}", flush=True)
                     return
+                
+                # NEU: Slot-Koordinaten bestimmen (wir nehmen Provider-Standort)
+                slot_lat, slot_lng = geocode_cached(
+                    s,
+                    normalize_zip(getattr(provider, "zip", None)),
+                    getattr(provider, "city", None),
+                )
+                if slot_lat is None or slot_lng is None:
+                    print(f"[alerts] slot_geo_missing slot_id={slot_id} provider_id={provider.id}", flush=True)
+                    return
+
 
                 slot_zip = normalize_zip(getattr(slot, "zip", None))
                 if len(slot_zip) != 5:
