@@ -1873,13 +1873,17 @@ def cancel_plan():
 # Termin-Alarm / Benachrichtigungen (Suchende)
 # --------------------------------------------------------
 from urllib.parse import unquote
+import re
 
 ALERT_MAX_PER_EMAIL = 10          # max. Alerts (Subscriptions) pro E-Mail
 ALERT_MAX_EMAILS_PER_ALERT = 10   # max. E-Mail-Benachrichtigungen pro Alert (email_sent_total)
-
-
+ 
 def _norm_token(t: str | None) -> str:
-    return unquote((t or "")).strip()
+    # 1) URL-decoden
+    t = unquote((t or ""))
+    # 2) ALLE Whitespace-Zeichen entfernen (inkl. \n \r \t etc.)
+    t = re.sub(r"\s+", "", t)
+    return t.strip()
 
 
 def _reset_alert_quota_if_needed(alert: AlertSubscription) -> None:
@@ -2258,8 +2262,21 @@ def create_alert():
         if package_name in ALERT_PLANS:
             sms_quota_month = ALERT_PLANS[package_name]["sms_quota_month"]
 
-        import secrets
-        verify_token = secrets.token_urlsafe(32)
+        import secrets    
+        existing = s.execute(
+            select(AlertSubscription)
+            .where(
+                AlertSubscription.email == email,
+                AlertSubscription.email_confirmed.is_(False)
+            )
+            .order_by(AlertSubscription.created_at.desc())
+        ).scalars().first()
+
+        if existing:
+            verify_token = existing.verify_token
+        else:
+            verify_token = secrets.token_urlsafe(32)
+
 
         with Session(engine) as s:
             existing_count = ( 
@@ -2343,7 +2360,7 @@ def alerts_verify(token: str):
                 text("""
                     SELECT id
                     FROM public.alert_subscription
-                    WHERE TRIM(verify_token) = :t
+                    WHERE regexp_replace(COALESCE(verify_token,''), '\s+', '', 'g') = :t
                     LIMIT 1
                 """),
                 {"t": token},
@@ -2383,11 +2400,12 @@ def alerts_cancel(token: str):
                 text("""
                     SELECT id
                     FROM public.alert_subscription
-                    WHERE TRIM(verify_token) = :t
+                    WHERE regexp_replace(COALESCE(verify_token,''), '\s+', '', 'g') = :t
                     LIMIT 1
                 """),
                 {"t": token},
             ).mappings().first()
+
 
             if not row:
                 return "Alarm nicht gefunden oder bereits deaktiviert.", 400
@@ -2417,11 +2435,12 @@ def debug_alert_by_token():
             text("""
                 SELECT id, email, verify_token, active, email_confirmed, created_at
                 FROM public.alert_subscription
-                WHERE TRIM(verify_token) = :t
+                WHERE regexp_replace(COALESCE(verify_token,''), '\s+', '', 'g') = :t
                 LIMIT 1
             """),
             {"t": t},
         ).mappings().first()
+
 
         dbinfo = s.execute(
             text("select current_database() as db, inet_server_addr() as addr")
