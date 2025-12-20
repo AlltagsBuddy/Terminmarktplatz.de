@@ -532,6 +532,11 @@ def slot_to_json(x: Slot):
         "status": x.status,
         "published_at": _from_db_as_iso_utc(published_at) if published_at else None,
         "created_at": _from_db_as_iso_utc(x.created_at),
+        "street": getattr(x, "street", None),
+        "house_number": getattr(x, "house_number", None),
+        "zip": getattr(x, "zip", None),
+        "city": getattr(x, "city", None),
+
     }
 
 
@@ -1916,8 +1921,32 @@ def _send_notifications_for_alert_and_slot(
     slot_title = slot.title
     starts_at = _from_db_as_iso_utc(slot.start_at)
 
-        # Adresse: Slot hat Priorität (weil Slot-Adresse vom Profil abweichen kann)
+            # Adresse: Slot hat Priorität (weil Slot-Adresse vom Profil abweichen kann)
     slot_address = ""
+    try:
+        s_street = (getattr(slot, "street", None) or "").strip()
+        s_house  = (getattr(slot, "house_number", None) or "").strip()
+        s_zip    = (getattr(slot, "zip", None) or "").strip()
+        s_city   = (getattr(slot, "city", None) or "").strip()
+
+        line1 = " ".join(p for p in [s_street, s_house] if p).strip()
+        line2 = " ".join(p for p in [s_zip, s_city] if p).strip()
+        slot_address = ", ".join(p for p in [line1, line2] if p).strip()
+    except Exception:
+        slot_address = ""
+
+    # Fallback: slot.location
+    slot_location = (getattr(slot, "location", None) or "").strip()
+
+    # Letzter Fallback: Provider Profil-Adresse
+    provider_address = ""
+    try:
+        provider_address = (provider.to_public_dict().get("address") or "").strip()
+    except Exception:
+        provider_address = ""
+
+    address = slot_address or slot_location or provider_address or ""
+
 
     # 1) Wenn Slot strukturierte Felder hat -> daraus bauen (beste Qualität)
     try:
@@ -1933,17 +1962,17 @@ def _send_notifications_for_alert_and_slot(
     except Exception:
         slot_address = ""
 
-        # 2) Fallback: slot.location (wenn du dort die Slot-Adresse pflegst)
-        slot_location = (slot.location or "").strip()
+    # 2) Fallback: slot.location (wenn du dort die Slot-Adresse pflegst)
+    slot_location = (slot.location or "").strip()
 
-        # 3) Letzter Fallback: Provider Profil-Adresse
+    # 3) Letzter Fallback: Provider Profil-Adresse
+    provider_address = ""
+    try:
+        provider_address = (provider.to_public_dict().get("address") or "").strip()
+    except Exception:
         provider_address = ""
-        try:
-            provider_address = (provider.to_public_dict().get("address") or "").strip()
-        except Exception:
-            provider_address = ""
 
-        address = slot_address or slot_location or provider_address or ""
+    address = slot_address or slot_location or provider_address or ""
 
 
     if hasattr(app, "view_functions") and "public_slots" in app.view_functions:
@@ -2684,18 +2713,42 @@ def slots_create():
             category = normalize_category(data.get("category"))
             location_db = location[:120]
 
-            # Falls Slot-Spalten für Adresse existieren: default = Provider-Adresse
+            # Slot-Adresse: POST-Daten haben Priorität, sonst Provider-Profil als Default
             prov_zip = (p.zip or "").strip()
             prov_city = (p.city or "").strip()
             prov_street = (p.street or "").strip()
 
+            data_street = (data.get("street") or "").strip()
+            data_house  = (data.get("house_number") or "").strip()
+            data_zip    = normalize_zip(data.get("zip"))
+            data_city   = (data.get("city") or "").strip()
+
             slot_kwargs_extra = {}
-            if hasattr(Slot, "zip"):
-                slot_kwargs_extra["zip"] = prov_zip
-            if hasattr(Slot, "city"):
-                slot_kwargs_extra["city"] = prov_city
+
+            # street
             if hasattr(Slot, "street"):
-                slot_kwargs_extra["street"] = prov_street
+                slot_kwargs_extra["street"] = (data_street[:120] if data_street else prov_street[:120] or None)
+
+            # house_number
+            if hasattr(Slot, "house_number"):
+                slot_kwargs_extra["house_number"] = (data_house[:20] if data_house else None)
+
+            # zip
+            if hasattr(Slot, "zip"):
+                z = data_zip if len(data_zip) == 5 else prov_zip
+                slot_kwargs_extra["zip"] = (z[:5] if z else None)
+
+            # city
+            if hasattr(Slot, "city"):
+                slot_kwargs_extra["city"] = (data_city[:80] if data_city else prov_city[:80] or None)
+
+            # optional: location automatisch sauber setzen, wenn im UI location nicht gepflegt werden soll
+            # (du sendest location aber schon – daher nur Fallback)
+            if not location_db:
+                line1 = " ".join(x for x in [slot_kwargs_extra.get("street") or "", slot_kwargs_extra.get("house_number") or ""] if x).strip()
+                line2 = " ".join(x for x in [slot_kwargs_extra.get("zip") or "", slot_kwargs_extra.get("city") or ""] if x).strip()
+                location_db = ", ".join(x for x in [line1, line2] if x)[:120]
+
             slot = Slot(
                 provider_id=request.provider_id,
                 title=title,
@@ -2848,22 +2901,23 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
-                for k in [
-                    "title",
-                    "category",
-                    "location",
-                    "street",
-                    "house_number",
-                    "zip",
-                    "city",
-                    "capacity",
-                    "contact_method",
-                    "booking_link",
-                    "price_cents",
-                    "notes",
-                ]:
-                    if k in data:
-                        setattr(slot, k, data[k])
+            # WICHTIG: Updates dürfen NICHT nur bei capacity laufen
+            for k in [
+                "title",
+                "category",
+                "location",
+                "street",
+                "house_number",
+                "zip",
+                "city",
+                "capacity",
+                "contact_method",
+                "booking_link",
+                "price_cents",
+                "notes",
+            ]:
+                if k in data:
+                    setattr(slot, k, data[k])
 
 
             try:
