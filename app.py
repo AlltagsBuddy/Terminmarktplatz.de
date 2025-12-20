@@ -1916,14 +1916,35 @@ def _send_notifications_for_alert_and_slot(
     slot_title = slot.title
     starts_at = _from_db_as_iso_utc(slot.start_at)
 
-    provider_address = ""
-    try:
-        provider_address = provider.to_public_dict().get("address") or ""
-    except Exception:
-        provider_address = ""
+        # Adresse: Slot hat Priorität (weil Slot-Adresse vom Profil abweichen kann)
+    slot_address = ""
 
-    slot_location = slot.location or ""
-    address = provider_address or slot_location or ""
+    # 1) Wenn Slot strukturierte Felder hat -> daraus bauen (beste Qualität)
+    try:
+        s_street = (getattr(slot, "street", None) or "").strip()
+        s_house  = (getattr(slot, "house_number", None) or "").strip()
+        s_zip    = (getattr(slot, "zip", None) or "").strip()
+        s_city   = (getattr(slot, "city", None) or "").strip()
+
+        line1 = " ".join(p for p in [s_street, s_house] if p)
+        line2 = " ".join(p for p in [s_zip, s_city] if p)
+
+        slot_address = ", ".join(p for p in [line1, line2] if p)
+    except Exception:
+        slot_address = ""
+
+        # 2) Fallback: slot.location (wenn du dort die Slot-Adresse pflegst)
+        slot_location = (slot.location or "").strip()
+
+        # 3) Letzter Fallback: Provider Profil-Adresse
+        provider_address = ""
+        try:
+            provider_address = (provider.to_public_dict().get("address") or "").strip()
+        except Exception:
+            provider_address = ""
+
+        address = slot_address or slot_location or provider_address or ""
+
 
     if hasattr(app, "view_functions") and "public_slots" in app.view_functions:
         base = _external_base()
@@ -2801,6 +2822,22 @@ def slots_update(slot_id):
                 data["category"] = normalize_category(data.get("category"))
             if "location" in data and data["location"]:
                 data["location"] = str(data["location"]).strip()[:120]
+                    # NEU: strukturierte Adresse erlauben
+            if "street" in data and data["street"] is not None:
+                data["street"] = str(data["street"]).strip()[:120] or None
+
+            if "house_number" in data and data["house_number"] is not None:
+                data["house_number"] = str(data["house_number"]).strip()[:20] or None
+
+            if "zip" in data and data["zip"] is not None:
+                z = normalize_zip(data["zip"])
+                if z and len(z) != 5:
+                    return _json_error("invalid_zip", 400)
+                data["zip"] = z or None
+
+            if "city" in data and data["city"] is not None:
+                data["city"] = str(data["city"]).strip()[:80] or None
+
             if "title" in data and data["title"]:
                 data["title"] = str(data["title"]).strip()[:100]
             if "capacity" in data:
@@ -2811,18 +2848,23 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
-            for k in [
-                "title",
-                "category",
-                "location",
-                "capacity",
-                "contact_method",
-                "booking_link",
-                "price_cents",
-                "notes",
-            ]:
-                if k in data:
-                    setattr(slot, k, data[k])
+                for k in [
+                    "title",
+                    "category",
+                    "location",
+                    "street",
+                    "house_number",
+                    "zip",
+                    "city",
+                    "capacity",
+                    "contact_method",
+                    "booking_link",
+                    "price_cents",
+                    "notes",
+                ]:
+                    if k in data:
+                        setattr(slot, k, data[k])
+
 
             try:
                 s.commit()
