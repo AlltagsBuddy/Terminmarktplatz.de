@@ -28,7 +28,7 @@ def register():
         return _bad("password_too_short")
 
     # existiert?
-    from app import db
+    from app_monolith_backup import db
     with db.begin() as conn:
         existing = conn.execute(select(User).where(User.email == email)).scalar_one_or_none()
         if existing:
@@ -57,7 +57,7 @@ def verify():
     if not token:
         return _bad("missing_token")
 
-    from app import db
+    from app_monolith_backup import db
     with db.begin() as conn:
         ev = conn.execute(
             select(EmailVerification).where(EmailVerification.token == token)
