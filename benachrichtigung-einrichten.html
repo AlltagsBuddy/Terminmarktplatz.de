@@ -153,7 +153,6 @@
     .infoBox b{ color: #ffd699; }
     .infoBox small{ display:block; color: rgba(232,236,255,0.75); margin-top: 6px; }
 
-    /* ✅ ZÄHLERBOX */
     .statsBox{
       margin-top: 12px;
       border-radius: var(--radius);
@@ -322,7 +321,6 @@
             <small>Wenn du die Bestätigungsmail nicht findest: bitte auch im Spam-Ordner schauen.</small>
           </div>
 
-          <!-- ✅ ZÄHLER (wird nach erfolgreichem POST /api/alerts eingeblendet) -->
           <div id="alertStatsBox" class="statsBox" aria-live="polite">
             <div class="row">
               <div>
@@ -448,12 +446,22 @@
 
 <script>
   (function(){
-    // Wenn du die Seite auf terminmarktplatz.de auslieferst, ist same-origin /api/... am saubersten.
-    // Fallback auf api-subdomain bleibt drin, falls du das brauchst.
-    const API_BASE =
-      (window.location.hostname === "terminmarktplatz.de" || window.location.hostname.endsWith(".terminmarktplatz.de"))
-        ? ""
-        : "https://api.terminmarktplatz.de";
+    // ✅ Wie im Anbieter-Portal: API-Base robust ermitteln
+    const API_BASE = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
 
     const $ = (id) => document.getElementById(id);
 
@@ -471,7 +479,6 @@
     const resetBtn = $("resetBtn");
     const myAlertsBtn = $("myAlertsBtn");
 
-    // ✅ Stats-UI
     const statsBox = $("alertStatsBox");
     const statUsed = $("statUsed");
     const statLimit = $("statLimit");
@@ -514,7 +521,6 @@
     }
 
     function setStats(stats){
-      // expected: { used, limit, left } (dein Backend kann auch remaining liefern -> siehe unten)
       if (!stats || typeof stats !== "object") return;
 
       const used = Number.isFinite(+stats.used) ? +stats.used : null;
@@ -610,7 +616,6 @@
         via_email: true,
         via_sms: false,
         package_name: pkg,
-        // ✅ entscheidend: manage_key mitschicken, wenn vorhanden
         manage_key: manageKey || null
       };
 
@@ -641,8 +646,6 @@
           return;
         }
 
-        // ✅ Falls Backend beim ersten Alert einen manage_key erzeugt und zurückgibt:
-        // Unterstützte Keys: js.manage_key oder js.manageKey (wir sind tolerant)
         const returnedKey = (js.manage_key || js.manageKey || "").trim();
         if (!manageKey && returnedKey){
           updateUrlWithManageKey(returnedKey);
@@ -678,7 +681,6 @@
       radiusEl.value = "";
       submitBtn.disabled = false;
       statusBox.style.display = "none";
-      // Stats nicht hard resetten – bewusst: zeigt den letzten bekannten Stand
     });
 
   })();
