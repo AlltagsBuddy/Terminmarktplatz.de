@@ -2272,6 +2272,35 @@ def alert_subscriptions_by_manage_key():
         "alerts": alerts
     })
 
+@app.delete("/api/alert-subscriptions/<alert_id>")
+def delete_alert_subscription(alert_id: str):
+    k = (request.args.get("k") or "").strip()
+    if not k or len(k) < 20:
+        return _json_error("missing_or_invalid_key", 400)
+
+    with Session(engine) as s:
+        row = s.execute(
+            text("""
+                SELECT id
+                FROM public.alert_subscription
+                WHERE id = :id
+                  AND manage_key = :k
+                LIMIT 1
+            """),
+            {"id": str(alert_id), "k": k},
+        ).mappings().first()
+
+        if not row:
+            return _json_error("not_found", 404)
+
+        s.execute(
+            text("DELETE FROM public.alert_subscription WHERE id = :id AND manage_key = :k"),
+            {"id": str(alert_id), "k": k},
+        )
+        s.commit()
+
+    return jsonify({"ok": True, "deleted": True, "id": str(alert_id)})
+
 
 @app.get("/api/alerts/debug/by_zip")
 def debug_alerts_by_zip():

@@ -240,6 +240,19 @@
     }
     .btnSmall:hover{ background: rgba(255,255,255,0.08); }
 
+    /* NEU: Danger buttons */
+    .btnDanger{
+      border-color: rgba(239,68,68,0.35);
+      background: rgba(239,68,68,0.12);
+      color: rgba(255,255,255,0.92);
+    }
+    .btnDanger:hover{ background: rgba(239,68,68,0.16); }
+
+    .btnSmall[disabled]{
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .list{
       margin-top: 16px;
       display:flex;
@@ -284,6 +297,17 @@
     }
     .k{ color: rgba(232,236,255,0.65); }
     .v{ color: rgba(232,236,255,0.92); }
+
+    /* NEU: actions row inside item */
+    .actions{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
 
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     .muted{ color: var(--muted); }
@@ -350,6 +374,15 @@
           <div>
             <div style="font-weight:800; margin-bottom:6px;">Konnte deine Benachrichtigungen nicht laden.</div>
             <div id="apiErrorMsg" class="muted" style="font-size:13px;"></div>
+          </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="okBox hidden" role="status" aria-live="polite">
+          <div class="icon">✔</div>
+          <div>
+            <div id="toastTitle" style="font-weight:800; margin-bottom:6px;">OK</div>
+            <div id="toastMsg" class="muted" style="font-size:13px;"></div>
           </div>
         </div>
 
@@ -461,6 +494,25 @@
     const limitHintOk = document.getElementById("limitHintOk");
     const limitHintWarn = document.getElementById("limitHintWarn");
 
+    const toast = document.getElementById("toast");
+    const toastTitle = document.getElementById("toastTitle");
+    const toastMsg = document.getElementById("toastMsg");
+    let toastTimer = null;
+
+    function showToast(type, title, msg){
+      // type: 'ok' | 'warn' | 'err'
+      toast.classList.remove("hidden");
+      toastTitle.textContent = title || "Info";
+      toastMsg.textContent = msg || "";
+
+      toast.className = (type === 'err') ? "errBox" : (type === 'warn' ? "warnBox" : "okBox");
+      toast.id = "toast"; // keep id
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add("hidden"), 3200);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     function goSearch(){ window.location.href = "/suche.html"; }
     function goCreate(){
       const url = k ? ("/benachrichtigung-einrichten.html?k=" + encodeURIComponent(k)) : "/benachrichtigung-einrichten.html";
@@ -470,11 +522,11 @@
     async function copyLink(){
       try{
         await navigator.clipboard.writeText(shareLink.value);
-        alert("Link kopiert.");
+        showToast("ok", "Link kopiert", "Du kannst den Link jetzt teilen (wie ein Passwort behandeln).");
       }catch(e){
         shareLink.select();
         document.execCommand("copy");
-        alert("Link kopiert.");
+        showToast("ok", "Link kopiert", "Du kannst den Link jetzt teilen (wie ein Passwort behandeln).");
       }
     }
 
@@ -512,16 +564,23 @@
       return a.length ? a.join(" · ") : "—";
     }
 
+    function isActive(item){
+      return (item.active !== undefined) ? !!item.active : ((item.status || '').toString().toLowerCase() === 'active');
+    }
+
     function renderItem(item){
-      const idShort = String(item.id || "").slice(0, 8);
+      const id = String(item.id || "");
+      const idShort = id ? id.slice(0, 8) : "—";
       const created = item.created_at ? escapeHtml(item.created_at) : "—";
 
       const r = (item.radius_km ?? item.radius ?? 0);
       const radius = (Number(r) > 0) ? `${r} km` : "0 km (nur PLZ)";
       const place = [item.zip, item.city].filter(Boolean).join(" ") || "—";
 
+      const active = isActive(item);
+
       return `
-        <div class="item">
+        <div class="item" data-item-id="${escapeHtml(id)}">
           <div class="itemTop">
             <div>
               <div style="font-weight:900; font-size:14px;">Alarm <span class="mono">#${escapeHtml(idShort)}</span></div>
@@ -536,6 +595,15 @@
             <div class="k">Kategorien</div><div class="v">${escapeHtml(fmtCats(item.categories))}</div>
             <div class="k">Kanal</div><div class="v">${escapeHtml(fmtChannel(item))}</div>
             <div class="k">Paket</div><div class="v">${escapeHtml(item.package_name || "—")}</div>
+          </div>
+
+          <div class="actions">
+            <button class="btnSmall btnDanger" type="button"
+              data-action="delete"
+              data-id="${escapeHtml(id)}"
+              ${!id ? "disabled" : ""}>
+              🗑 Löschen
+            </button>
           </div>
         </div>
       `;
@@ -602,7 +670,75 @@
       throw new Error(lastErr || "Unbekannter Fehler");
     }
 
-    async function load(){
+    function removeFromDomById(id){
+      const el = document.querySelector(`[data-item-id="${CSS.escape(id)}"]`);
+      if (el) el.remove();
+    }
+
+    function recomputeStatsFromDom(){
+      // used = count of remaining items that are active (best-effort)
+      const cards = Array.from(document.querySelectorAll(".item[data-item-id]"));
+      const used = cards.length; // simpler: total cards shown as "aktiv" count in your UI semantics
+      const limit = Number(elLimit.textContent || "10") || 10;
+      const remaining = Math.max(0, limit - used);
+
+      elUsed.textContent = String(used);
+      elRemaining.textContent = String(remaining);
+      limitHintOk.classList.toggle("hidden", !(remaining > 0));
+      limitHintWarn.classList.toggle("hidden", !(remaining <= 0));
+    }
+
+    async function deleteAlert(alertId, btn){
+      if (!k){
+        showToast("err", "Fehler", "Magic-Link fehlt (?k=...).");
+        return;
+      }
+      if (!alertId){
+        showToast("err", "Fehler", "Keine Alarm-ID gefunden.");
+        return;
+      }
+
+      const ok = confirm("Diesen Alarm wirklich löschen?");
+      if (!ok) return;
+
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "… lösche";
+
+      // Optimistic UI: remove immediately; if API fails -> reload.
+      removeFromDomById(alertId);
+      recomputeStatsFromDom();
+
+      const candidates = [
+        { method: "DELETE", url: `${API_BASE}/api/alert-subscriptions/${encodeURIComponent(alertId)}?k=${encodeURIComponent(k)}` },
+        { method: "DELETE", url: `${API_BASE}/api/alerts/${encodeURIComponent(alertId)}?k=${encodeURIComponent(k)}` },
+        { method: "POST",   url: `${API_BASE}/api/alert-subscriptions/${encodeURIComponent(alertId)}/delete?k=${encodeURIComponent(k)}` },
+      ];
+
+      let lastErr = null;
+
+      for (const c of candidates){
+        try{
+          const r = await fetch(c.url, { method: c.method, headers:{ "Accept":"application/json" } });
+          const js = await r.json().catch(() => ({}));
+
+          if (r.ok && (js.ok !== false)){
+            showToast("ok", "Gelöscht", "Der Alarm wurde entfernt.");
+            return;
+          }
+
+          lastErr = js?.error || `HTTP ${r.status}`;
+        }catch(e){
+          lastErr = e?.message || String(e);
+        }
+      }
+
+      // If we are here: API failed. Reload to get back to consistent state.
+      showToast("err", "Löschen fehlgeschlagen", lastErr || "Unbekannter Fehler");
+      await load(true);
+    }
+
+    async function load(isReload = false){
       if(!k){
         noKeyBox.classList.remove("hidden");
         pill.textContent = "❌ Kein Magic-Link";
@@ -614,6 +750,11 @@
       shareLink.value = window.location.origin + "/meine-benachrichtigungen.html?k=" + encodeURIComponent(k);
 
       try{
+        if (isReload){
+          apiErrorBox.classList.add("hidden");
+          apiErrorMsg.textContent = "";
+        }
+
         const { js, usedUrl } = await fetchFirstWorking();
         const norm = normalizeResponse(js);
 
@@ -654,6 +795,14 @@
         apiErrorMsg.textContent = (e && e.message ? e.message : String(e));
       }
     }
+
+    // Event delegation for delete buttons
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-action='delete']");
+      if (!btn) return;
+      const id = btn.getAttribute("data-id");
+      deleteAlert(id, btn);
+    });
 
     load();
   </script>
