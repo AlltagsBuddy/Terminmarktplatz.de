@@ -2425,6 +2425,21 @@ def create_alert():
 
         # ✅ Magic-Link: manage_key optional vom Client
         incoming_manage_key = (data.get("manage_key") or "").strip() or None
+        
+        def get_existing_manage_key_for_email(session: Session, email: str) -> str | None:
+            row = session.execute(
+                text("""
+                    SELECT manage_key
+                    FROM public.alert_subscription
+                    WHERE email = :email
+                    AND manage_key IS NOT NULL
+                    ORDER BY created_at ASC
+                    LIMIT 1
+                """),
+                {"email": email},
+            ).mappings().first()
+            return (row["manage_key"] if row and row.get("manage_key") else None)
+
 
         with Session(engine) as s:
             # Limit check (bei dir pro E-Mail)
@@ -2454,11 +2469,25 @@ def create_alert():
 
             # helper: manage_key sicherstellen
             def ensure_manage_key(obj: AlertSubscription) -> str:
+                # 1) Key vom Client hat höchste Priorität
                 if incoming_manage_key:
                     obj.manage_key = incoming_manage_key
-                if not getattr(obj, "manage_key", None):
-                    obj.manage_key = secrets.token_urlsafe(24)
+                    return obj.manage_key
+
+                # 2) Wenn Objekt schon Key hat, behalten
+                if getattr(obj, "manage_key", None):
+                    return obj.manage_key
+
+                # 3) Sonst: bestehenden Key aus DB für diese E-Mail holen
+                existing_key = get_existing_manage_key_for_email(s, email)
+                if existing_key:
+                    obj.manage_key = existing_key
+                    return obj.manage_key
+
+                # 4) Sonst neu erzeugen
+                obj.manage_key = secrets.token_urlsafe(24)
                 return obj.manage_key
+
 
             if existing:
                 existing.phone = phone or None
@@ -2512,14 +2541,8 @@ def create_alert():
                 )
 
                 # ✅ manage_key setzen
-                if incoming_manage_key:
-                    alert.manage_key = incoming_manage_key
-                else:
-                    alert.manage_key = secrets.token_urlsafe(24)
-
-                s.add(alert)
-                s.commit()
-                used = existing_count + 1
+                
+                manage_key = ensure_manage_key(alert)
                 manage_key = alert.manage_key
 
         left = max(0, ALERT_MAX_PER_EMAIL - used)
