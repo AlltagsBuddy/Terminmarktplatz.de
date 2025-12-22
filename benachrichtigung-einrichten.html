@@ -430,6 +430,7 @@
           <div class="row" style="margin-top:14px;">
             <button class="btn" id="submitBtn" type="submit">Alarm erstellen & Bestätigungsmail senden</button>
             <button class="btnGhost" type="button" id="resetBtn">Zurücksetzen</button>
+            <button class="btnGhost" type="button" id="myAlertsBtn" style="display:none;">Meine Benachrichtigungen</button>
           </div>
 
           <div id="statusBox" class="status">
@@ -447,7 +448,12 @@
 
 <script>
   (function(){
-    const API_BASE = "https://api.terminmarktplatz.de";
+    // Wenn du die Seite auf terminmarktplatz.de auslieferst, ist same-origin /api/... am saubersten.
+    // Fallback auf api-subdomain bleibt drin, falls du das brauchst.
+    const API_BASE =
+      (window.location.hostname === "terminmarktplatz.de" || window.location.hostname.endsWith(".terminmarktplatz.de"))
+        ? ""
+        : "https://api.terminmarktplatz.de";
 
     const $ = (id) => document.getElementById(id);
 
@@ -463,6 +469,7 @@
     const statusText = $("statusText");
     const submitBtn = $("submitBtn");
     const resetBtn = $("resetBtn");
+    const myAlertsBtn = $("myAlertsBtn");
 
     // ✅ Stats-UI
     const statsBox = $("alertStatsBox");
@@ -484,22 +491,37 @@
       return u.searchParams.get(key);
     }
 
+    // ✅ manage_key aus URL
+    let manageKey = (getQueryParam("k") || "").trim();
+
+    function updateUrlWithManageKey(k){
+      if(!k) return;
+      const u = new URL(window.location.href);
+      if(u.searchParams.get("k") === k) return;
+      u.searchParams.set("k", k);
+      history.replaceState({}, "", u.toString());
+      manageKey = k;
+    }
+
     function disableForm(){
       const form = $("alertForm");
       form.querySelectorAll("input, select, button, textarea").forEach(el => {
         if (el.id === "resetBtn") return;
+        if (el.id === "myAlertsBtn") return;
         el.disabled = true;
       });
       submitBtn.disabled = true;
     }
 
     function setStats(stats){
-      // expected: { used, limit, left }
+      // expected: { used, limit, left } (dein Backend kann auch remaining liefern -> siehe unten)
       if (!stats || typeof stats !== "object") return;
 
       const used = Number.isFinite(+stats.used) ? +stats.used : null;
       const lim  = Number.isFinite(+stats.limit) ? +stats.limit : null;
-      const left = Number.isFinite(+stats.left) ? +stats.left : null;
+      const left =
+        Number.isFinite(+stats.left) ? +stats.left :
+        (Number.isFinite(+stats.remaining) ? +stats.remaining : null);
 
       if (used === null || lim === null || left === null) return;
 
@@ -517,12 +539,27 @@
       }
     }
 
+    function showMyAlertsButton(){
+      if(!manageKey) return;
+      myAlertsBtn.style.display = "inline-block";
+    }
+
+    myAlertsBtn.addEventListener("click", () => {
+      if(!manageKey){
+        alert("Kein Magic-Link vorhanden.");
+        return;
+      }
+      window.location.href = "/meine-benachrichtigungen.html?k=" + encodeURIComponent(manageKey);
+    });
+
     // Prefill: ?email=...&pkg=...
     const preEmail = getQueryParam("email");
     if (preEmail) emailEl.value = preEmail;
 
     const prePkg = getQueryParam("pkg");
     if (prePkg) pkgEl.value = prePkg;
+
+    if(manageKey) showMyAlertsButton();
 
     function validZip(z){
       return /^[0-9]{5}$/.test((z || "").trim());
@@ -572,7 +609,9 @@
         categories: collectCategories(),
         via_email: true,
         via_sms: false,
-        package_name: pkg
+        package_name: pkg,
+        // ✅ entscheidend: manage_key mitschicken, wenn vorhanden
+        manage_key: manageKey || null
       };
 
       submitBtn.disabled = true;
@@ -592,7 +631,6 @@
 
           if (err === "alert_limit_reached"){
             showStatus("err","Limit erreicht","Du hast bereits alle 10 Benachrichtigungen genutzt.");
-            // wenn Backend Stats mitschickt, UI aktualisieren + sperren
             if (js.stats) setStats(js.stats);
             submitBtn.disabled = false;
             return;
@@ -603,11 +641,17 @@
           return;
         }
 
-        // ✅ Stats direkt nach Erstellung anzeigen
+        // ✅ Falls Backend beim ersten Alert einen manage_key erzeugt und zurückgibt:
+        // Unterstützte Keys: js.manage_key oder js.manageKey (wir sind tolerant)
+        const returnedKey = (js.manage_key || js.manageKey || "").trim();
+        if (!manageKey && returnedKey){
+          updateUrlWithManageKey(returnedKey);
+        }
+        if(manageKey) showMyAlertsButton();
+
         if (js.stats){
           setStats(js.stats);
         } else {
-          // fail-safe: zumindest Box zeigen, damit User weiß, dass es das Feature gibt
           statsBox.style.display = "block";
           statHint.textContent = "Kontingent wird nach dem nächsten Schritt aktualisiert (Backend liefert noch keine Stats).";
         }

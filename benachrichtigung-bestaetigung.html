@@ -66,7 +66,6 @@
       letter-spacing:0.2px;
     }
 
-    /* Hier echtes Logo rein */
     .logoImg{
       width:40px;
       height:40px;
@@ -78,7 +77,6 @@
       background: rgba(255,255,255,0.05);
     }
 
-    /* Fallback wenn Bild fehlt */
     .logoFallback{
       width:40px; height:40px;
       border-radius: 14px;
@@ -104,6 +102,15 @@
       background: rgba(255,255,255,0.06);
       backdrop-filter: blur(10px);
       white-space:nowrap;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .pillDot{
+      width:8px;height:8px;border-radius:999px;
+      background: rgba(34,197,94,0.95);
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
     }
 
     .card{
@@ -114,9 +121,7 @@
       overflow:hidden;
     }
 
-    .inner{
-      padding: 26px 22px;
-    }
+    .inner{ padding: 26px 22px; }
 
     h1{
       margin: 0 0 10px;
@@ -139,6 +144,7 @@
       display:flex;
       gap:12px;
       align-items:flex-start;
+      margin-top: 12px;
     }
     .okIcon{
       width:34px; height:34px;
@@ -152,12 +158,113 @@
       font-size: 18px;
     }
 
+    .warnBox{
+      border-radius: var(--radius);
+      border: 1px solid rgba(245,158,11,0.28);
+      background: rgba(245,158,11,0.10);
+      padding: 14px;
+      color: rgba(255,255,255,0.92);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      margin-top: 12px;
+      display:none;
+    }
+    .warnIcon{
+      width:34px; height:34px;
+      border-radius: 12px;
+      display:grid;
+      place-items:center;
+      background: rgba(245,158,11,0.18);
+      border: 1px solid rgba(245,158,11,0.28);
+      flex:0 0 auto;
+      margin-top:2px;
+      font-size: 18px;
+    }
+
+    .details{
+      margin-top: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      overflow:hidden;
+    }
+
+    .detailsHeader{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .detailsTitle{
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing:0.2px;
+    }
+
+    .badge{
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: rgba(232,236,255,0.88);
+      white-space:nowrap;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 220px 1fr;
+      gap: 0;
+    }
+
+    .kvRow{
+      display: contents;
+    }
+
+    .k, .v{
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 13px;
+    }
+
+    .k{
+      color: rgba(232,236,255,0.72);
+      font-weight: 800;
+    }
+
+    .v{
+      color: rgba(232,236,255,0.92);
+      font-weight: 650;
+      overflow-wrap:anywhere;
+    }
+
+    .kvRow:last-child .k,
+    .kvRow:last-child .v{ border-bottom:none; }
+
+    .skeleton{
+      animation: pulse 1.2s ease-in-out infinite;
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      height: 14px;
+      width: 100%;
+      max-width: 420px;
+    }
+    @keyframes pulse{
+      0%{ opacity: .55; }
+      50%{ opacity: 1; }
+      100%{ opacity: .55; }
+    }
+
     .row{
       display:flex;
       gap: 10px;
       align-items:center;
       flex-wrap:wrap;
-      margin-top: 14px;
+      margin-top: 16px;
     }
 
     .btn{
@@ -166,7 +273,7 @@
       cursor:pointer;
       border-radius: 14px;
       padding: 12px 14px;
-      font-weight: 800;
+      font-weight: 900;
       color: white;
       background: linear-gradient(135deg, var(--brand), var(--brand2));
       box-shadow: 0 14px 35px rgba(111,83,255,0.25);
@@ -181,7 +288,19 @@
       cursor:pointer;
       border-radius: 14px;
       padding: 12px 14px;
-      font-weight: 800;
+      font-weight: 900;
+    }
+
+    .btnSmall{
+      appearance:none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: rgba(232,236,255,0.92);
+      cursor:pointer;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-weight: 900;
+      font-size: 12px;
     }
 
     .footer{
@@ -192,6 +311,14 @@
     }
 
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    @media (max-width: 640px){
+      .kv{ grid-template-columns: 1fr; }
+      .k{ padding-bottom: 2px; border-bottom:none; }
+      .v{ padding-top: 0; }
+      .kvRow{ border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .kvRow:last-child{ border-bottom:none; }
+    }
   </style>
 </head>
 
@@ -199,51 +326,313 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <!-- Logo: passe den Pfad an, z.B. /static/logo.png -->
         <img id="logoImg" class="logoImg" src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo"
              onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
         <div id="logoFallback" class="logoFallback" aria-hidden="true"></div>
 
         <div>
           <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
-          <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Benachrichtigung bestätigt</div>
+          <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:650;">Benachrichtigung bestätigt</div>
         </div>
       </div>
 
-      <div class="pill">✅ Aktiv</div>
+      <div class="pill" id="statusPill"><span class="pillDot"></span><span>Aktiv</span></div>
     </div>
 
     <div class="card">
       <div class="inner">
         <h1>Benachrichtigung erfolgreich eingerichtet.</h1>
-        <p class="sub">
+        <p class="sub" id="subtitle">
           Dein Termin-Alarm ist jetzt aktiv. Du bekommst automatisch eine E-Mail, sobald passende Slots veröffentlicht werden.
         </p>
 
-        <div class="okBox">
+        <div class="okBox" id="okBox">
           <div class="okIcon">✔</div>
           <div>
-            <div style="font-weight:800; margin-bottom:6px;">Fertig.</div>
-            <div style="color:rgba(232,236,255,0.78); font-size:13px;">
-              Du kannst dieses Fenster schließen oder direkt zur Suche gehen.
+            <div style="font-weight:900; margin-bottom:6px;" id="okTitle">Fertig.</div>
+            <div style="color:rgba(232,236,255,0.78); font-size:13px;" id="okText">
+              Wir laden jetzt die Details deiner Benachrichtigung.
+            </div>
+          </div>
+        </div>
+
+        <div class="warnBox" id="warnBox">
+          <div class="warnIcon">⚠</div>
+          <div>
+            <div style="font-weight:900; margin-bottom:6px;">Details konnten nicht geladen werden.</div>
+            <div style="color:rgba(232,236,255,0.78); font-size:13px;" id="warnText">
+              Prüfe den Bestätigungslink (token/alert_id). Unten siehst du, was angekommen ist.
+            </div>
+          </div>
+        </div>
+
+        <div class="details" id="detailsBox" aria-live="polite">
+          <div class="detailsHeader">
+            <div class="detailsTitle">Dein bestätigter Termin-Alarm</div>
+            <div class="badge" id="detailsBadge">wird geladen…</div>
+          </div>
+
+          <div class="kv" id="kv">
+            <!-- Skeleton -->
+            <div class="kvRow">
+              <div class="k">Kategorie</div>
+              <div class="v"><div class="skeleton"></div></div>
+            </div>
+            <div class="kvRow">
+              <div class="k">Umkreis</div>
+              <div class="v"><div class="skeleton" style="max-width:180px;"></div></div>
+            </div>
+            <div class="kvRow">
+              <div class="k">Ort / PLZ</div>
+              <div class="v"><div class="skeleton" style="max-width:260px;"></div></div>
+            </div>
+            <div class="kvRow">
+              <div class="k">Erstellt / bestätigt</div>
+              <div class="v"><div class="skeleton" style="max-width:300px;"></div></div>
+            </div>
+            <div class="kvRow">
+              <div class="k">Interne ID</div>
+              <div class="v"><div class="skeleton" style="max-width:360px;"></div></div>
             </div>
           </div>
         </div>
 
         <div class="row">
-          <button class="btn" type="button" onclick="window.location.href='/suche.html'">
-            Zur Suche
-          </button>
-          <button class="btnGhost" type="button" onclick="window.location.href='/'">
-            Startseite
-          </button>
+          <button class="btn" type="button" onclick="window.location.href='/suche.html'">Zur Suche</button>
+          <button class="btnGhost" type="button" onclick="window.location.href='/'">Startseite</button>
+          <button class="btnSmall" type="button" id="copyBtn" style="display:none;">Link kopieren</button>
         </div>
 
-        <div class="footer">
+        <div class="footer" id="footerText">
           Hinweis: Wenn du später keine Mails mehr willst, nutze den Abmeldelink in einer Benachrichtigung.
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+    (function(){
+      const $ = (id) => document.getElementById(id);
+
+      function qp(name){
+        const u = new URL(window.location.href);
+        return u.searchParams.get(name);
+      }
+
+      function safeStr(v){
+        if (v === null || v === undefined) return "";
+        if (typeof v === "string") return v;
+        try { return String(v); } catch { return ""; }
+      }
+
+      function fmtDateMaybe(v){
+        if (!v) return "";
+        const s = safeStr(v);
+        // ISO oder epoch (ms/s)
+        const num = Number(s);
+        let d = null;
+        if (!Number.isNaN(num) && num > 0){
+          // Heuristik: Sekunden vs Millisekunden
+          d = new Date(num < 1e12 ? num * 1000 : num);
+        } else {
+          const parsed = Date.parse(s);
+          if (!Number.isNaN(parsed)) d = new Date(parsed);
+        }
+        if (!d) return s;
+        return d.toLocaleString("de-DE");
+      }
+
+      function maskEmail(email){
+        email = safeStr(email);
+        if (!email.includes("@")) return email;
+        const [a,b] = email.split("@");
+        if (!a) return email;
+        const left = a.slice(0,2);
+        return left + "…" + "@" + b;
+      }
+
+      function pick(obj, keys){
+        for (const k of keys){
+          if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+        }
+        return null;
+      }
+
+      function renderKV(alert){
+        // Wir sind flexibel bei Feldnamen, weil dein Backend evtl. anders heißt.
+        const id = pick(alert, ["id","alert_id","uuid"]);
+        const category = pick(alert, ["category","service_category","slot_category","type"]);
+        const radius = pick(alert, ["radius_km","radius","distance_km","km"]);
+        const city = pick(alert, ["city","location_city","place","town"]);
+        const zip = pick(alert, ["zip","postal_code","plz"]);
+        const street = pick(alert, ["street","straße"]);
+        const house = pick(alert, ["house_number","hausnummer","houseNo"]);
+        const email = pick(alert, ["email","user_email","notify_email"]);
+        const created = pick(alert, ["created_at","createdAt","created"]);
+        const confirmed = pick(alert, ["confirmed_at","confirmedAt","activated_at","activatedAt"]);
+        const status = pick(alert, ["status","state"]);
+
+        const partsCity = [safeStr(zip), safeStr(city)].filter(Boolean).join(" ");
+        const partsAddr = [safeStr(street), safeStr(house)].filter(Boolean).join(" ").trim();
+
+        const rows = [];
+
+        rows.push(["Kategorie", category || "—"]);
+        rows.push(["Umkreis", radius ? `${radius} km` : "—"]);
+        rows.push(["Ort / PLZ", partsCity || "—"]);
+        if (partsAddr) rows.push(["Adresse", partsAddr]);
+        if (email) rows.push(["E-Mail", maskEmail(email)]);
+        rows.push(["Erstellt", created ? fmtDateMaybe(created) : "—"]);
+        rows.push(["Bestätigt / aktiv", confirmed ? fmtDateMaybe(confirmed) : "—"]);
+        rows.push(["Status", status || "aktiv"]);
+        rows.push(["Interne ID", id || "—"]);
+
+        const kv = $("kv");
+        kv.innerHTML = "";
+        for (const [k,v] of rows){
+          const row = document.createElement("div");
+          row.className = "kvRow";
+          const dk = document.createElement("div");
+          dk.className = "k";
+          dk.textContent = k;
+          const dv = document.createElement("div");
+          dv.className = "v";
+          dv.innerHTML = (v && v !== "—") ? escapeHtml(String(v)) : "—";
+          row.appendChild(dk);
+          row.appendChild(dv);
+          kv.appendChild(row);
+        }
+
+        // Badge + Texte
+        $("detailsBadge").textContent = "geladen";
+        $("okTitle").textContent = "Aktiv.";
+        $("okText").textContent = "Das ist genau die Benachrichtigung, die du gerade bestätigt hast.";
+      }
+
+      function escapeHtml(str){
+        return str
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;")
+          .replaceAll("'","&#039;");
+      }
+
+      async function tryFetchJson(url, opts){
+        try{
+          const res = await fetch(url, opts || {});
+          if (!res.ok) return null;
+          const ct = (res.headers.get("content-type") || "").toLowerCase();
+          // Manche Backends liefern JSON ohne korrekten Content-Type
+          const txt = await res.text();
+          try{
+            return JSON.parse(txt);
+          }catch{
+            // Wenn es HTML ist (Redirect-Seite), nix
+            if (ct.includes("text/html") || txt.trim().startsWith("<")) return null;
+            return null;
+          }
+        }catch(e){
+          return null;
+        }
+      }
+
+      async function loadAlert(){
+        const token = qp("token");
+        const id = qp("id") || qp("alert_id");
+        const confirm = qp("confirm"); // optional
+
+        // Copy-Link Button
+        const copyBtn = $("copyBtn");
+        copyBtn.style.display = "inline-block";
+        copyBtn.onclick = async () => {
+          try{
+            await navigator.clipboard.writeText(window.location.href);
+            copyBtn.textContent = "Kopiert ✓";
+            setTimeout(()=>copyBtn.textContent="Link kopieren", 1300);
+          }catch{
+            copyBtn.textContent = "Kopieren geht nicht";
+            setTimeout(()=>copyBtn.textContent="Link kopieren", 1300);
+          }
+        };
+
+        // Kandidaten-Endpunkte (robust, weil wir dein exaktes Backend hier nicht kennen)
+        const candidates = [];
+
+        if (id){
+          candidates.push({ url: `/api/alerts/${encodeURIComponent(id)}`, opts: { method:"GET" } });
+          candidates.push({ url: `/api/alerts?id=${encodeURIComponent(id)}`, opts: { method:"GET" } }); // falls du query-basiert arbeitest
+        }
+        if (token){
+          // häufige Varianten
+          candidates.push({ url: `/api/alerts/by-token?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+          candidates.push({ url: `/api/alerts/by_token?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+          candidates.push({ url: `/api/alerts/lookup?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+
+          // falls confirm direkt JSON zurückgibt
+          candidates.push({ url: `/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"POST" } });
+          candidates.push({ url: `/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+        }
+
+        // Letzter Versuch: wenn confirm=1 gesetzt ist, versuchen wir confirm nochmal (manche Backends verlangen es)
+        if (token && confirm === "1"){
+          candidates.push({ url: `/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"POST" } });
+        }
+
+        for (const c of candidates){
+          const data = await tryFetchJson(c.url, c.opts);
+          if (data){
+            // Manche APIs packen das Objekt in {alert: {...}}
+            const alertObj = data.alert || data.data || data;
+            if (alertObj && typeof alertObj === "object"){
+              renderKV(alertObj);
+              return;
+            }
+          }
+        }
+
+        // Wenn nix ging -> Fehlermodus, aber sauber
+        $("warnBox").style.display = "flex";
+        $("detailsBadge").textContent = "nicht geladen";
+        $("okTitle").textContent = "Aktiv – aber ohne Details.";
+        $("okText").textContent = "Die Bestätigung ist wahrscheinlich durch, aber dein Backend liefert hier keine Alarm-Details zurück.";
+
+        const kv = $("kv");
+        kv.innerHTML = "";
+        const dbg = {
+          received_params: {
+            token: token ? (token.slice(0,6) + "…") : null,
+            id: id || null,
+            alert_id: qp("alert_id") || null,
+            confirm: confirm || null
+          },
+          tried_endpoints: candidates.map(x => `${x.opts.method} ${x.url}`)
+        };
+
+        const rows = [
+          ["Hinweis", "Damit diese Seite exakt den Alarm anzeigen kann, muss der Bestätigungslink token oder alert_id enthalten – und ein API-Endpunkt muss die Alarm-Details als JSON liefern."],
+          ["Angekommene Parameter", JSON.stringify(dbg.received_params, null, 2)],
+          ["Getestete API-Aufrufe", JSON.stringify(dbg.tried_endpoints, null, 2)]
+        ];
+
+        for (const [k,v] of rows){
+          const row = document.createElement("div");
+          row.className = "kvRow";
+          const dk = document.createElement("div");
+          dk.className = "k";
+          dk.textContent = k;
+          const dv = document.createElement("div");
+          dv.className = "v mono";
+          dv.textContent = v;
+          row.appendChild(dk);
+          row.appendChild(dv);
+          kv.appendChild(row);
+        }
+      }
+
+      // Start
+      loadAlert();
+    })();
+  </script>
 </body>
 </html>

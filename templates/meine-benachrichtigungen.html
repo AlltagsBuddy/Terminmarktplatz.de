@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Meine Benachrichtigungen | Terminmarktplatz</title>
+  <meta name="description" content="Übersicht deiner bestätigten Termin-Alarme (ohne Account, per Magic-Link)." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.10);
+      --text: #e8ecff;
+      --muted: rgba(232,236,255,0.70);
+      --brand: #6f53ff;
+      --brand2:#a78bfa;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius2: 26px;
+      --max: 980px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(111,83,255,0.35), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(167,139,250,0.25), transparent 55%),
+        radial-gradient(700px 420px at 40% 100%, rgba(111,83,255,0.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.35;
+      min-height:100vh;
+    }
+
+    a{ color: #b9adff; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding: 10px 4px 22px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:0.2px;
+    }
+
+    .logoImg{
+      width:40px;
+      height:40px;
+      border-radius: 14px;
+      object-fit: cover;
+      display:block;
+      box-shadow: 0 10px 30px rgba(111,83,255,0.30);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+    }
+    .logoFallback{
+      width:40px; height:40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 10px 30px rgba(111,83,255,0.30);
+      position:relative;
+      overflow:hidden;
+      display:none;
+    }
+    .logoFallback::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 45%);
+      transform: rotate(15deg);
+    }
+
+    .pill{
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      white-space:nowrap;
+    }
+
+    .card{
+      background: linear-gradient(180deg, var(--card2), var(--card));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .inner{
+      padding: 26px 22px;
+    }
+
+    h1{
+      margin: 0 0 10px;
+      font-size: clamp(22px, 3vw, 30px);
+      letter-spacing: -0.2px;
+    }
+
+    .sub{
+      color: var(--muted);
+      margin: 0 0 14px;
+      font-size: 14px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .statRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+      align-items:center;
+    }
+    .stat{
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      padding: 10px 12px;
+      border-radius: 14px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      min-width: 160px;
+    }
+    .stat b{ font-size: 16px; }
+    .stat span{ color: var(--muted); font-size: 12px; display:block; }
+
+    .okBox{
+      border-radius: var(--radius);
+      border: 1px solid rgba(34,197,94,0.25);
+      background: rgba(34,197,94,0.10);
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.92);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      margin-top: 12px;
+    }
+
+    .warnBox{
+      border-radius: var(--radius);
+      border: 1px solid rgba(245,158,11,0.25);
+      background: rgba(245,158,11,0.10);
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.92);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      margin-top: 12px;
+    }
+
+    .errBox{
+      border-radius: var(--radius);
+      border: 1px solid rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.10);
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.92);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      margin-top: 12px;
+    }
+
+    .icon{
+      width:34px; height:34px;
+      border-radius: 12px;
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+      margin-top:2px;
+      font-size: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top: 14px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 14px 35px rgba(111,83,255,0.25);
+    }
+    .btn:hover{ filter: brightness(1.05); }
+
+    .btnGhost{
+      appearance:none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: rgba(232,236,255,0.92);
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 800;
+    }
+    .btnGhost:hover{ background: rgba(255,255,255,0.08); }
+
+    .btnSmall{
+      padding: 9px 10px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 12px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: rgba(232,236,255,0.92);
+      cursor:pointer;
+    }
+    .btnSmall:hover{ background: rgba(255,255,255,0.08); }
+
+    .list{
+      margin-top: 16px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .item{
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .itemTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+
+    .badge{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.85);
+      white-space:nowrap;
+    }
+    .badgeOk{ border-color: rgba(34,197,94,0.25); background: rgba(34,197,94,0.12); }
+    .badgeOff{ border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.10); }
+    .badgeWarn{ border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.10); }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap: 6px 10px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .k{ color: rgba(232,236,255,0.65); }
+    .v{ color: rgba(232,236,255,0.92); }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .muted{ color: var(--muted); }
+
+    .footer{
+      margin-top: 18px;
+      color: rgba(232,236,255,0.60);
+      font-size: 12px;
+      text-align:center;
+    }
+
+    .hidden{ display:none !important; }
+
+    input.link{
+      width: min(720px, 100%);
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.20);
+      color: rgba(232,236,255,0.95);
+      outline: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <img id="logoImg" class="logoImg" src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo"
+             onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
+        <div id="logoFallback" class="logoFallback" aria-hidden="true"></div>
+
+        <div>
+          <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
+          <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Meine Benachrichtigungen</div>
+        </div>
+      </div>
+
+      <div id="pill" class="pill">🔒 Magic-Link</div>
+    </div>
+
+    <div class="card">
+      <div class="inner">
+        <h1>Übersicht deiner Benachrichtigungen</h1>
+        <p class="sub">
+          Diese Seite ist <b>read-only</b>. Du brauchst keinen Account – dein Zugriff läuft über den Magic-Link in der URL.
+        </p>
+
+        <!-- Fehler: kein Key -->
+        <div id="noKeyBox" class="errBox hidden">
+          <div class="icon">✖</div>
+          <div>
+            <div style="font-weight:800; margin-bottom:6px;">Kein Magic-Link vorhanden.</div>
+            <div class="muted" style="font-size:13px;">
+              Öffne diese Seite über deinen gespeicherten Link (Parameter <span class="mono">?k=...</span>).
+            </div>
+          </div>
+        </div>
+
+        <!-- Fehler: API -->
+        <div id="apiErrorBox" class="errBox hidden">
+          <div class="icon">⚠</div>
+          <div>
+            <div style="font-weight:800; margin-bottom:6px;">Konnte deine Benachrichtigungen nicht laden.</div>
+            <div id="apiErrorMsg" class="muted" style="font-size:13px;"></div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div id="statsWrap" class="hidden">
+          <div class="statRow">
+            <div class="stat">
+              <div style="font-size:20px;">📌</div>
+              <div>
+                <b id="used">0</b>
+                <span>aktiv</span>
+              </div>
+            </div>
+            <div class="stat">
+              <div style="font-size:20px;">🎯</div>
+              <div>
+                <b id="limit">0</b>
+                <span>Limit</span>
+              </div>
+            </div>
+            <div class="stat">
+              <div style="font-size:20px;">🟣</div>
+              <div>
+                <b id="remaining">0</b>
+                <span>noch möglich</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="limitHintOk" class="okBox hidden">
+            <div class="icon">✔</div>
+            <div>
+              <div style="font-weight:800; margin-bottom:6px;">Alles gut.</div>
+              <div class="muted" style="font-size:13px;">
+                Du hast noch freie Benachrichtigungen übrig.
+              </div>
+            </div>
+          </div>
+
+          <div id="limitHintWarn" class="warnBox hidden">
+            <div class="icon">⚠</div>
+            <div>
+              <div style="font-weight:800; margin-bottom:6px;">Limit erreicht.</div>
+              <div class="muted" style="font-size:13px;">
+                Du kannst aktuell keine weiteren Benachrichtigungen hinzufügen.
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn" type="button" onclick="goSearch()">Zur Suche</button>
+            <button class="btnGhost" type="button" onclick="goCreate()">Neue Benachrichtigung anlegen</button>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <input id="shareLink" class="link mono" readonly />
+            <button class="btnSmall" type="button" onclick="copyLink()">Link kopieren</button>
+          </div>
+
+          <div class="list" id="list"></div>
+
+          <div class="footer">
+            Hinweis: Wer diesen Link besitzt, kann deine Benachrichtigungen sehen. Behandle ihn wie ein Passwort.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function qs(name){
+      const u = new URL(window.location.href);
+      return u.searchParams.get(name) || "";
+    }
+
+    const k = (qs("k") || "").trim();
+
+    const noKeyBox = document.getElementById("noKeyBox");
+    const apiErrorBox = document.getElementById("apiErrorBox");
+    const apiErrorMsg = document.getElementById("apiErrorMsg");
+    const statsWrap = document.getElementById("statsWrap");
+
+    const elUsed = document.getElementById("used");
+    const elLimit = document.getElementById("limit");
+    const elRemaining = document.getElementById("remaining");
+    const list = document.getElementById("list");
+    const shareLink = document.getElementById("shareLink");
+
+    const limitHintOk = document.getElementById("limitHintOk");
+    const limitHintWarn = document.getElementById("limitHintWarn");
+
+    function goSearch(){ window.location.href = "/suche.html"; }
+    function goCreate(){
+      // wenn k vorhanden, mitgeben -> neue Alerts bleiben in derselben "Gruppe"
+      const url = k ? ("/benachrichtigung-einrichten.html?k=" + encodeURIComponent(k)) : "/benachrichtigung-einrichten.html";
+      window.location.href = url;
+    }
+
+    async function copyLink(){
+      try{
+        await navigator.clipboard.writeText(shareLink.value);
+        alert("Link kopiert.");
+      }catch(e){
+        // Fallback
+        shareLink.select();
+        document.execCommand("copy");
+        alert("Link kopiert.");
+      }
+    }
+
+    function badgeFor(item){
+      // wirksam aktiv = active && ( (via_email && email_confirmed) || (via_sms && sms_confirmed) )
+      const active = !!item.active;
+      const okEmail = !!item.via_email && !!item.email_confirmed;
+      const okSms = !!item.via_sms && !!item.sms_confirmed;
+
+      if(active && (okEmail || okSms)) return `<span class="badge badgeOk">✅ aktiv</span>`;
+      if(active && !(okEmail || okSms)) return `<span class="badge badgeWarn">⚠ aktiv, aber nicht bestätigt</span>`;
+      return `<span class="badge badgeOff">⛔ deaktiviert</span>`;
+    }
+
+    function fmtCats(s){
+      if(!s) return "Alle";
+      return String(s).split(",").map(x => x.trim()).filter(Boolean).join(", ") || "Alle";
+    }
+
+    function fmtChannel(item){
+      const a = [];
+      if(item.via_email) a.push(item.email_confirmed ? "E-Mail ✅" : "E-Mail ⏳");
+      if(item.via_sms) a.push(item.sms_confirmed ? "SMS ✅" : "SMS ⏳");
+      return a.length ? a.join(" · ") : "—";
+    }
+
+    function escapeHtml(str){
+      return String(str || "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function renderItem(item){
+      const idShort = String(item.id || "").slice(0, 8);
+      const created = item.created_at ? escapeHtml(item.created_at) : "—";
+
+      const radius = (item.radius_km && Number(item.radius_km) > 0) ? `${item.radius_km} km` : "PLZ (alt)";
+      const place = [item.zip, item.city].filter(Boolean).join(" ") || "—";
+
+      return `
+        <div class="item">
+          <div class="itemTop">
+            <div>
+              <div style="font-weight:900; font-size:14px;">Alarm <span class="mono">#${escapeHtml(idShort)}</span></div>
+              <div class="muted" style="font-size:12px;">Erstellt: <span class="mono">${created}</span></div>
+            </div>
+            <div>${badgeFor(item)}</div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Ort</div><div class="v">${escapeHtml(place)}</div>
+            <div class="k">Radius</div><div class="v">${escapeHtml(radius)}</div>
+            <div class="k">Kategorien</div><div class="v">${escapeHtml(fmtCats(item.categories))}</div>
+            <div class="k">Kanal</div><div class="v">${escapeHtml(fmtChannel(item))}</div>
+            <div class="k">Paket</div><div class="v">${escapeHtml(item.package_name || "—")}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function load(){
+      if(!k){
+        noKeyBox.classList.remove("hidden");
+        return;
+      }
+
+      shareLink.value = window.location.origin + "/meine-benachrichtigungen.html?k=" + encodeURIComponent(k);
+
+      try{
+        const r = await fetch("/api/alert-subscriptions/by-manage-key?k=" + encodeURIComponent(k), {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+
+        const js = await r.json().catch(() => ({}));
+
+        if(!r.ok || !js || js.ok === false){
+          apiErrorBox.classList.remove("hidden");
+          apiErrorMsg.textContent = "Fehler: " + (js.error || r.status);
+          return;
+        }
+
+        statsWrap.classList.remove("hidden");
+        elUsed.textContent = String(js.used ?? 0);
+        elLimit.textContent = String(js.limit ?? 0);
+        elRemaining.textContent = String(js.remaining ?? 0);
+
+        const rem = Number(js.remaining ?? 0);
+        limitHintOk.classList.toggle("hidden", !(rem > 0));
+        limitHintWarn.classList.toggle("hidden", !(rem <= 0));
+
+        const items = Array.isArray(js.alerts) ? js.alerts : [];
+        if(items.length === 0){
+          list.innerHTML = `
+            <div class="warnBox">
+              <div class="icon">ℹ</div>
+              <div>
+                <div style="font-weight:800; margin-bottom:6px;">Keine Benachrichtigungen gefunden.</div>
+                <div class="muted" style="font-size:13px;">
+                  Entweder ist der Link falsch oder deine Alerts wurden gelöscht/deaktiviert.
+                </div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        list.innerHTML = items.map(renderItem).join("");
+
+      }catch(e){
+        apiErrorBox.classList.remove("hidden");
+        apiErrorMsg.textContent = "Netzwerkfehler: " + (e && e.message ? e.message : String(e));
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

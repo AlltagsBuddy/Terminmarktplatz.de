@@ -251,6 +251,7 @@ engine = create_engine(
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 
 # --- CORS -------------------------------------------------
+# --- CORS -------------------------------------------------
 if IS_RENDER:
     ALLOWED_ORIGINS = [
         "https://terminmarktplatz.de",
@@ -265,23 +266,32 @@ else:
 CORS(
     app,
     resources={
-        r"/auth/*": {"origins": ALLOWED_ORIGINS},
-        r"/me": {"origins": ALLOWED_ORIGINS},
-        r"/me/*": {"origins": ALLOWED_ORIGINS},
-        r"/slots*": {"origins": ALLOWED_ORIGINS},
-        r"/provider/*": {"origins": ALLOWED_ORIGINS},
-        r"/admin/*": {"origins": ALLOWED_ORIGINS},
-        r"/public/*": {"origins": ALLOWED_ORIGINS},
-        r"/api/*": {"origins": ALLOWED_ORIGINS},
-        r"/paket-buchen*": {"origins": ALLOWED_ORIGINS},
-        r"/copecart/*": {"origins": ALLOWED_ORIGINS},
-        r"/webhook/stripe": {"origins": ALLOWED_ORIGINS},
-        r"/webhook/copecart": {"origins": ALLOWED_ORIGINS},
+        # ✅ Cookie/Credentials nötig (Provider-Login/Portal)
+        r"/auth/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/me": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/me/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/provider/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/admin/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/paket-buchen*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/copecart/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+
+        # ✅ Ohne Cookies (Magic-Link / public / alerts)
+        r"/api/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/public/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/alerts/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/slots*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+
+        # Webhooks / health / assets
+        r"/webhook/stripe": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/webhook/copecart": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/api/health": {"origins": "*", "supports_credentials": False},
+        r"/healthz": {"origins": "*", "supports_credentials": False},
+        r"/static/*": {"origins": "*", "supports_credentials": False},
     },
-    supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 )
+
 
 
 @app.after_request
@@ -2201,6 +2211,67 @@ def alert_stats():
 
     return jsonify({"ok": True, "used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left})
 
+@app.get("/api/alert-subscriptions/by-manage-key")
+def alert_subscriptions_by_manage_key():
+    k = (request.args.get("k") or "").strip()
+    if not k or len(k) < 20:
+        return _json_error("missing_or_invalid_key", 400)
+
+    with Session(engine) as s:
+        rows = s.execute(
+            text("""
+                SELECT
+                  id, email, phone, via_email, via_sms,
+                  zip, city, radius_km, categories,
+                  active, email_confirmed, sms_confirmed,
+                  package_name, sms_quota_month, sms_sent_this_month,
+                  last_reset_quota, created_at, last_notified_at,
+                  email_sent_total, notification_limit
+                FROM public.alert_subscription
+                WHERE manage_key = :k
+                ORDER BY created_at DESC
+            """),
+            {"k": k},
+        ).mappings().all()
+
+    # Limit: nimm max(notification_limit), fallback auf ALERT_MAX_PER_EMAIL
+    limit_candidates = []
+    for r in rows:
+        try:
+            if r["notification_limit"] is not None:
+                limit_candidates.append(int(r["notification_limit"]))
+        except Exception:
+            pass
+    limit_val = max(limit_candidates) if limit_candidates else ALERT_MAX_PER_EMAIL
+
+    # "used": wirksam aktive (active==true UND bestätigter Kanal)
+    used = 0
+    for r in rows:
+        is_active = bool(r["active"])
+        ok_email = bool(r["via_email"]) and bool(r["email_confirmed"])
+        ok_sms = bool(r["via_sms"]) and bool(r["sms_confirmed"])
+        if is_active and (ok_email or ok_sms):
+            used += 1
+
+    remaining = max(0, int(limit_val) - int(used))
+
+    def ser(v):
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return _from_db_as_iso_utc(v)
+        return v
+
+    alerts = [{k2: ser(v2) for k2, v2 in dict(r).items()} for r in rows]
+
+    return jsonify({
+        "ok": True,
+        "limit": int(limit_val),
+        "used": int(used),
+        "remaining": int(remaining),
+        "alerts": alerts
+    })
+
 
 @app.get("/api/alerts/debug/by_zip")
 def debug_alerts_by_zip():
@@ -2339,7 +2410,6 @@ def create_alert():
         if via_sms and not phone:
             return _json_error("phone_required_for_sms", 400)
 
-        # radius
         try:
             radius_km = int(data.get("radius_km") or 0)
         except Exception:
@@ -2353,8 +2423,11 @@ def create_alert():
 
         import secrets
 
+        # ✅ Magic-Link: manage_key optional vom Client
+        incoming_manage_key = (data.get("manage_key") or "").strip() or None
+
         with Session(engine) as s:
-            # Limit check
+            # Limit check (bei dir pro E-Mail)
             existing_count = int(
                 s.scalar(
                     select(func.count())
@@ -2365,7 +2438,7 @@ def create_alert():
             if existing_count >= ALERT_MAX_PER_EMAIL:
                 return _json_error("alert_limit_reached", 409)
 
-            # Reuse latest unconfirmed (optional, aber sinnvoll)
+            # Reuse latest unconfirmed
             existing = (
                 s.execute(
                     select(AlertSubscription)
@@ -2379,8 +2452,15 @@ def create_alert():
                 .first()
             )
 
+            # helper: manage_key sicherstellen
+            def ensure_manage_key(obj: AlertSubscription) -> str:
+                if incoming_manage_key:
+                    obj.manage_key = incoming_manage_key
+                if not getattr(obj, "manage_key", None):
+                    obj.manage_key = secrets.token_urlsafe(24)
+                return obj.manage_key
+
             if existing:
-                # Update existing draft instead of creating another one
                 existing.phone = phone or None
                 existing.via_email = via_email
                 existing.via_sms = via_sms
@@ -2390,22 +2470,24 @@ def create_alert():
                 existing.categories = categories
                 existing.package_name = package_name
                 existing.sms_quota_month = sms_quota_month
-                # NEU: Umkreis-Zentrum geocoden und speichern
+
                 lat, lng = geocode_cached(s, zip_code, city or None)
                 existing.search_lat = lat
                 existing.search_lng = lng
+
                 existing.active = False
                 existing.sms_confirmed = False
 
                 verify_token = existing.verify_token or secrets.token_urlsafe(32)
                 existing.verify_token = verify_token
 
+                # ✅ manage_key setzen/halten
+                manage_key = ensure_manage_key(existing)
+
                 s.commit()
                 used = existing_count  # keine neue Subscription gezählt
             else:
                 verify_token = secrets.token_urlsafe(32)
-
-                # NEU: Umkreis-Zentrum geocoden und speichern
                 lat, lng = geocode_cached(s, zip_code, city or None)
 
                 alert = AlertSubscription(
@@ -2425,15 +2507,20 @@ def create_alert():
                     sms_sent_this_month=0,
                     email_sent_total=0,
                     verify_token=verify_token,
-
-                    # NEU:
                     search_lat=lat,
                     search_lng=lng,
                 )
+
+                # ✅ manage_key setzen
+                if incoming_manage_key:
+                    alert.manage_key = incoming_manage_key
+                else:
+                    alert.manage_key = secrets.token_urlsafe(24)
+
                 s.add(alert)
                 s.commit()
                 used = existing_count + 1
-
+                manage_key = alert.manage_key
 
         left = max(0, ALERT_MAX_PER_EMAIL - used)
         stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
@@ -2457,14 +2544,19 @@ def create_alert():
         if not ok:
             app.logger.warning("create_alert: send_mail not delivered: %s", reason)
 
-        return jsonify({"ok": True, "message": "Alarm angelegt. Bitte E-Mail bestätigen.", "stats": stats})
+        # ✅ manage_key zurückgeben (für Magic-Link)
+        return jsonify({
+            "ok": True,
+            "message": "Alarm angelegt. Bitte E-Mail bestätigen.",
+            "stats": stats,
+            "manage_key": manage_key
+        })
 
     except Exception:
         app.logger.exception("create_alert failed")
         return jsonify({"error": "server_error"}), 500
-
-
-
+ 
+ 
 # ✅ EINZIGE Verify-Route (robust)
 @app.get("/alerts/verify/<path:token>", endpoint="alerts_verify")
 def alerts_verify(token: str):
@@ -2476,7 +2568,7 @@ def alerts_verify(token: str):
         with Session(engine) as s:
             row = s.execute(
                 text("""
-                    SELECT id
+                    SELECT id, manage_key, via_email, via_sms
                     FROM public.alert_subscription
                     WHERE regexp_replace(COALESCE(verify_token,''), '\\s+', '', 'g') = :t
                     LIMIT 1
@@ -2486,6 +2578,17 @@ def alerts_verify(token: str):
 
             if not row:
                 return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
+
+            # Falls manage_key wider Erwarten fehlt: nachziehen
+            if not row["manage_key"]:
+                import secrets
+                new_key = secrets.token_urlsafe(24)
+                s.execute(
+                    text("UPDATE public.alert_subscription SET manage_key=:k WHERE id=:id"),
+                    {"k": new_key, "id": row["id"]},
+                )
+                row = dict(row)
+                row["manage_key"] = new_key
 
             s.execute(
                 text("""
@@ -2499,11 +2602,16 @@ def alerts_verify(token: str):
             )
             s.commit()
 
-        return redirect(f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html", code=302)
+        # ✅ Magic-Link + id auf Bestätigungsseite übergeben
+        return redirect(
+            f"{FRONTEND_URL}/benachrichtigung-bestaetigung.html?k={row['manage_key']}&id={row['id']}",
+            code=302
+        )
 
     except Exception:
         app.logger.exception("alerts_verify failed")
         return "Serverfehler", 500
+
 
 
 @app.get("/alerts/cancel/<path:token>", endpoint="alerts_cancel")
