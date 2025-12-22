@@ -221,9 +221,7 @@
       gap: 0;
     }
 
-    .kvRow{
-      display: contents;
-    }
+    .kvRow{ display: contents; }
 
     .k, .v{
       padding: 10px 14px;
@@ -400,6 +398,10 @@
         <div class="row">
           <button class="btn" type="button" onclick="window.location.href='/suche.html'">Zur Suche</button>
           <button class="btnGhost" type="button" onclick="window.location.href='/'">Startseite</button>
+
+          <!-- ✅ wird nur angezeigt wenn k verfügbar -->
+          <button class="btnGhost" type="button" id="myAlertsBtn" style="display:none;">Meine Benachrichtigungen</button>
+
           <button class="btnSmall" type="button" id="copyBtn" style="display:none;">Link kopieren</button>
         </div>
 
@@ -413,6 +415,23 @@
   <script>
     (function(){
       const $ = (id) => document.getElementById(id);
+
+      // ✅ API_BASE wie auf der "meine-benachrichtigungen.html"
+      const API_BASE = (() => {
+        const h = location.hostname;
+        const proto = location.protocol;
+
+        const isLocal =
+          h === 'localhost' ||
+          h === '127.0.0.1' ||
+          /^192\.168\./.test(h) ||
+          /^10\./.test(h) ||
+          h.endsWith('.local');
+
+        if (isLocal) return `${proto}//${h}:5000`;
+        if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+        return 'https://api.terminmarktplatz.de';
+      })();
 
       function qp(name){
         const u = new URL(window.location.href);
@@ -428,11 +447,9 @@
       function fmtDateMaybe(v){
         if (!v) return "";
         const s = safeStr(v);
-        // ISO oder epoch (ms/s)
         const num = Number(s);
         let d = null;
         if (!Number.isNaN(num) && num > 0){
-          // Heuristik: Sekunden vs Millisekunden
           d = new Date(num < 1e12 ? num * 1000 : num);
         } else {
           const parsed = Date.parse(s);
@@ -458,10 +475,46 @@
         return null;
       }
 
+      function escapeHtml(str){
+        return String(str || "")
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;")
+          .replaceAll("'","&#039;");
+      }
+
+      // ✅ manage key / k aus URL oder später aus API
+      let manageKey = (qp("k") || qp("manage_key") || "").trim();
+
+      function showMyAlertsBtn(){
+        if (!manageKey) return;
+        const btn = $("myAlertsBtn");
+        btn.style.display = "inline-block";
+        btn.onclick = () => {
+          window.location.href = "/meine-benachrichtigungen.html?k=" + encodeURIComponent(manageKey);
+        };
+      }
+
+      function updateUrlWithManageKey(k){
+        k = (k || "").trim();
+        if(!k) return;
+        const u = new URL(window.location.href);
+        if (u.searchParams.get("k") !== k){
+          u.searchParams.set("k", k);
+          history.replaceState({}, "", u.toString());
+        }
+        manageKey = k;
+        showMyAlertsBtn();
+      }
+
       function renderKV(alert){
-        // Wir sind flexibel bei Feldnamen, weil dein Backend evtl. anders heißt.
+        // manage_key aus API ziehen, falls nicht in URL
+        const mk = pick(alert, ["manage_key","manageKey","k"]);
+        if (!manageKey && mk) updateUrlWithManageKey(mk);
+
         const id = pick(alert, ["id","alert_id","uuid"]);
-        const category = pick(alert, ["category","service_category","slot_category","type"]);
+        const category = pick(alert, ["categories","category","service_category","slot_category","type"]);
         const radius = pick(alert, ["radius_km","radius","distance_km","km"]);
         const city = pick(alert, ["city","location_city","place","town"]);
         const zip = pick(alert, ["zip","postal_code","plz"]);
@@ -470,21 +523,20 @@
         const email = pick(alert, ["email","user_email","notify_email"]);
         const created = pick(alert, ["created_at","createdAt","created"]);
         const confirmed = pick(alert, ["confirmed_at","confirmedAt","activated_at","activatedAt"]);
-        const status = pick(alert, ["status","state"]);
+        const status = pick(alert, ["status","state","active"]);
 
         const partsCity = [safeStr(zip), safeStr(city)].filter(Boolean).join(" ");
         const partsAddr = [safeStr(street), safeStr(house)].filter(Boolean).join(" ").trim();
 
         const rows = [];
-
-        rows.push(["Kategorie", category || "—"]);
+        rows.push(["Kategorie(n)", category ? String(category) : "—"]);
         rows.push(["Umkreis", radius ? `${radius} km` : "—"]);
         rows.push(["Ort / PLZ", partsCity || "—"]);
         if (partsAddr) rows.push(["Adresse", partsAddr]);
         if (email) rows.push(["E-Mail", maskEmail(email)]);
         rows.push(["Erstellt", created ? fmtDateMaybe(created) : "—"]);
         rows.push(["Bestätigt / aktiv", confirmed ? fmtDateMaybe(confirmed) : "—"]);
-        rows.push(["Status", status || "aktiv"]);
+        rows.push(["Status", (typeof status === "boolean") ? (status ? "aktiv" : "inaktiv") : (status || "aktiv")]);
         rows.push(["Interne ID", id || "—"]);
 
         const kv = $("kv");
@@ -503,44 +555,32 @@
           kv.appendChild(row);
         }
 
-        // Badge + Texte
         $("detailsBadge").textContent = "geladen";
         $("okTitle").textContent = "Aktiv.";
-        $("okText").textContent = "Das ist genau die Benachrichtigung, die du gerade bestätigt hast.";
-      }
-
-      function escapeHtml(str){
-        return str
-          .replaceAll("&","&amp;")
-          .replaceAll("<","&lt;")
-          .replaceAll(">","&gt;")
-          .replaceAll('"',"&quot;")
-          .replaceAll("'","&#039;");
+        $("okText").textContent = "Das ist die Benachrichtigung, die du gerade bestätigt hast.";
       }
 
       async function tryFetchJson(url, opts){
         try{
           const res = await fetch(url, opts || {});
           if (!res.ok) return null;
-          const ct = (res.headers.get("content-type") || "").toLowerCase();
-          // Manche Backends liefern JSON ohne korrekten Content-Type
+
           const txt = await res.text();
           try{
             return JSON.parse(txt);
           }catch{
-            // Wenn es HTML ist (Redirect-Seite), nix
-            if (ct.includes("text/html") || txt.trim().startsWith("<")) return null;
+            if (txt.trim().startsWith("<")) return null;
             return null;
           }
-        }catch(e){
+        }catch{
           return null;
         }
       }
 
       async function loadAlert(){
-        const token = qp("token");
-        const id = qp("id") || qp("alert_id");
-        const confirm = qp("confirm"); // optional
+        const token = (qp("token") || "").trim();
+        const id = (qp("id") || qp("alert_id") || "").trim();
+        const confirm = (qp("confirm") || "").trim();
 
         // Copy-Link Button
         const copyBtn = $("copyBtn");
@@ -556,34 +596,46 @@
           }
         };
 
-        // Kandidaten-Endpunkte (robust, weil wir dein exaktes Backend hier nicht kennen)
+        // ✅ My-Alerts Button anzeigen falls k schon da ist
+        showMyAlertsBtn();
+
+        // Kandidaten-Endpunkte (alle mit API_BASE!)
         const candidates = [];
 
         if (id){
-          candidates.push({ url: `/api/alerts/${encodeURIComponent(id)}`, opts: { method:"GET" } });
-          candidates.push({ url: `/api/alerts?id=${encodeURIComponent(id)}`, opts: { method:"GET" } }); // falls du query-basiert arbeitest
+          candidates.push({ url: `${API_BASE}/api/alerts/${encodeURIComponent(id)}`, opts: { method:"GET" } });
+          candidates.push({ url: `${API_BASE}/api/alerts?id=${encodeURIComponent(id)}`, opts: { method:"GET" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/get?id=${encodeURIComponent(id)}`, opts: { method:"GET" } });
         }
+
         if (token){
-          // häufige Varianten
-          candidates.push({ url: `/api/alerts/by-token?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
-          candidates.push({ url: `/api/alerts/by_token?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
-          candidates.push({ url: `/api/alerts/lookup?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/by-token?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/by_token?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/lookup?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
 
-          // falls confirm direkt JSON zurückgibt
-          candidates.push({ url: `/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"POST" } });
-          candidates.push({ url: `/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
+          // falls confirm JSON zurückgibt
+          candidates.push({ url: `${API_BASE}/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"POST" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"GET" } });
         }
 
-        // Letzter Versuch: wenn confirm=1 gesetzt ist, versuchen wir confirm nochmal (manche Backends verlangen es)
         if (token && confirm === "1"){
-          candidates.push({ url: `/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"POST" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/confirm?token=${encodeURIComponent(token)}`, opts: { method:"POST" } });
+        }
+
+        // zusätzlich: wenn wir manageKey schon haben, versuchen wir darüber zu laden
+        if (manageKey){
+          candidates.push({ url: `${API_BASE}/api/alert-subscriptions/by-manage-key?k=${encodeURIComponent(manageKey)}`, opts: { method:"GET" } });
+          candidates.push({ url: `${API_BASE}/api/alerts/by-manage-key?k=${encodeURIComponent(manageKey)}`, opts: { method:"GET" } });
         }
 
         for (const c of candidates){
           const data = await tryFetchJson(c.url, c.opts);
           if (data){
-            // Manche APIs packen das Objekt in {alert: {...}}
-            const alertObj = data.alert || data.data || data;
+            const alertObj =
+              data.alert || data.data ||
+              (Array.isArray(data.alerts) ? data.alerts[0] : null) ||
+              data;
+
             if (alertObj && typeof alertObj === "object"){
               renderKV(alertObj);
               return;
@@ -591,26 +643,29 @@
           }
         }
 
-        // Wenn nix ging -> Fehlermodus, aber sauber
+        // Wenn nix ging -> Fehlermodus, aber debugbar
         $("warnBox").style.display = "flex";
         $("detailsBadge").textContent = "nicht geladen";
         $("okTitle").textContent = "Aktiv – aber ohne Details.";
-        $("okText").textContent = "Die Bestätigung ist wahrscheinlich durch, aber dein Backend liefert hier keine Alarm-Details zurück.";
+        $("okText").textContent = "Die Bestätigung ist wahrscheinlich durch, aber dein Backend liefert hier keine Alarm-Details als JSON zurück.";
 
         const kv = $("kv");
         kv.innerHTML = "";
+
         const dbg = {
+          api_base: API_BASE,
           received_params: {
             token: token ? (token.slice(0,6) + "…") : null,
             id: id || null,
             alert_id: qp("alert_id") || null,
+            k: manageKey ? (manageKey.slice(0,6) + "…") : null,
             confirm: confirm || null
           },
           tried_endpoints: candidates.map(x => `${x.opts.method} ${x.url}`)
         };
 
         const rows = [
-          ["Hinweis", "Damit diese Seite exakt den Alarm anzeigen kann, muss der Bestätigungslink token oder alert_id enthalten – und ein API-Endpunkt muss die Alarm-Details als JSON liefern."],
+          ["Hinweis", "Damit diese Seite den Alarm anzeigen kann, muss ein API-Endpunkt Alarm-Details als JSON liefern. Aktuell schlagen die GETs/POSTs fehl (404/HTML/leer)."],
           ["Angekommene Parameter", JSON.stringify(dbg.received_params, null, 2)],
           ["Getestete API-Aufrufe", JSON.stringify(dbg.tried_endpoints, null, 2)]
         ];
@@ -629,8 +684,7 @@
           kv.appendChild(row);
         }
       }
-
-      // Start
+ 
       loadAlert();
     })();
   </script>

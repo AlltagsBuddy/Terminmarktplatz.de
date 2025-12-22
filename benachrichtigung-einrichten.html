@@ -446,7 +446,7 @@
 
 <script>
   (function(){
-    // ✅ Wie im Anbieter-Portal: API-Base robust ermitteln
+    // ✅ API_BASE robust (gleich wie die anderen Seiten)
     const API_BASE = (() => {
       const h = location.hostname;
       const proto = location.protocol;
@@ -493,15 +493,27 @@
       statusText.textContent = text;
     }
 
-    function getQueryParam(key){
+    function qp(key){
       const u = new URL(window.location.href);
       return u.searchParams.get(key);
     }
 
-    // ✅ manage_key aus URL
-    let manageKey = (getQueryParam("k") || "").trim();
+    function validZip(z){
+      return /^[0-9]{5}$/.test((z || "").trim());
+    }
+
+    function collectCategories(){
+      const checked = Array.from(document.querySelectorAll("#cats input[type=checkbox]:checked"))
+        .map(x => x.value.trim())
+        .filter(Boolean);
+      return checked.length ? checked.join(",") : null;
+    }
+
+    // ✅ manageKey aus URL: ?k= oder ?manage_key=
+    let manageKey = (qp("k") || qp("manage_key") || "").trim();
 
     function updateUrlWithManageKey(k){
+      k = (k || "").trim();
       if(!k) return;
       const u = new URL(window.location.href);
       if(u.searchParams.get("k") === k) return;
@@ -509,6 +521,19 @@
       history.replaceState({}, "", u.toString());
       manageKey = k;
     }
+
+    function showMyAlertsButton(){
+      if(!manageKey) return;
+      myAlertsBtn.style.display = "inline-block";
+    }
+
+    myAlertsBtn.addEventListener("click", () => {
+      if(!manageKey){
+        alert("Kein Magic-Link vorhanden.");
+        return;
+      }
+      window.location.href = "/meine-benachrichtigungen.html?k=" + encodeURIComponent(manageKey);
+    });
 
     function disableForm(){
       const form = $("alertForm");
@@ -545,37 +570,47 @@
       }
     }
 
-    function showMyAlertsButton(){
+    async function tryFetchStats(){
       if(!manageKey) return;
-      myAlertsBtn.style.display = "inline-block";
-    }
 
-    myAlertsBtn.addEventListener("click", () => {
-      if(!manageKey){
-        alert("Kein Magic-Link vorhanden.");
-        return;
+      const endpoints = [
+        `${API_BASE}/api/alert-subscriptions/by-manage-key?k=${encodeURIComponent(manageKey)}`,
+        `${API_BASE}/api/alerts/by-manage-key?k=${encodeURIComponent(manageKey)}`,
+        `${API_BASE}/api/alerts/manage?k=${encodeURIComponent(manageKey)}`
+      ];
+
+      for (const url of endpoints){
+        try{
+          const r = await fetch(url, { method:"GET", headers:{ "Accept":"application/json" } });
+          const js = await r.json().catch(()=>null);
+          if(!r.ok || !js || js.ok === false) continue;
+
+          // normalize
+          const used = js.used ?? js.stats?.used;
+          const limit = js.limit ?? js.stats?.limit ?? 10;
+          const remaining = js.remaining ?? js.stats?.remaining ?? js.left ?? js.stats?.left;
+
+          if (used !== undefined && (remaining !== undefined || limit !== undefined)){
+            setStats({ used, limit, remaining, left: remaining });
+            return;
+          }
+        }catch(e){
+          // ignore
+        }
       }
-      window.location.href = "/meine-benachrichtigungen.html?k=" + encodeURIComponent(manageKey);
-    });
+    }
 
     // Prefill: ?email=...&pkg=...
-    const preEmail = getQueryParam("email");
+    const preEmail = qp("email");
     if (preEmail) emailEl.value = preEmail;
 
-    const prePkg = getQueryParam("pkg");
+    const prePkg = qp("pkg");
     if (prePkg) pkgEl.value = prePkg;
 
-    if(manageKey) showMyAlertsButton();
-
-    function validZip(z){
-      return /^[0-9]{5}$/.test((z || "").trim());
-    }
-
-    function collectCategories(){
-      const checked = Array.from(document.querySelectorAll("#cats input[type=checkbox]:checked"))
-        .map(x => x.value.trim())
-        .filter(Boolean);
-      return checked.length ? checked.join(",") : null;
+    if(manageKey){
+      showMyAlertsButton();
+      // optional: Stats direkt holen wenn vorhanden
+      tryFetchStats();
     }
 
     $("alertForm").addEventListener("submit", async (e) => {
@@ -641,22 +676,30 @@
             return;
           }
 
-          showStatus("err","Fehler","Alarm konnte nicht angelegt werden: " + err);
+          // Debug: zeig wenigstens API_BASE im Fehlertext
+          showStatus("err","Fehler",`Alarm konnte nicht angelegt werden: ${err} (API: ${API_BASE})`);
           submitBtn.disabled = false;
           return;
         }
 
-        const returnedKey = (js.manage_key || js.manageKey || "").trim();
+        // ✅ manage_key aus Response übernehmen (tolerant bei Feldnamen)
+        const returnedKey = (js.manage_key || js.manageKey || js.k || "").trim();
         if (!manageKey && returnedKey){
           updateUrlWithManageKey(returnedKey);
         }
-        if(manageKey) showMyAlertsButton();
+        if(manageKey){
+          showMyAlertsButton();
+        }
 
+        // ✅ Stats aus Response oder per Nachladen
         if (js.stats){
           setStats(js.stats);
         } else {
-          statsBox.style.display = "block";
-          statHint.textContent = "Kontingent wird nach dem nächsten Schritt aktualisiert (Backend liefert noch keine Stats).";
+          await tryFetchStats();
+          if (statsBox.style.display !== "block"){
+            statsBox.style.display = "block";
+            statHint.textContent = "Kontingent wird nach dem nächsten Schritt aktualisiert (Backend liefert noch keine Stats).";
+          }
         }
 
         showStatus(
@@ -666,7 +709,7 @@
         );
 
       }catch(err){
-        showStatus("err","Fehler","Netzwerkfehler. Bitte Seite neu laden und erneut versuchen.");
+        showStatus("err","Fehler",`Netzwerkfehler. Bitte Seite neu laden und erneut versuchen. (API: ${API_BASE})`);
         submitBtn.disabled = false;
       }
     });
@@ -681,6 +724,7 @@
       radiusEl.value = "";
       submitBtn.disabled = false;
       statusBox.style.display = "none";
+      // Stats bewusst nicht resetten
     });
 
   })();
