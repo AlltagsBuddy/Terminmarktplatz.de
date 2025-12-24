@@ -2453,23 +2453,25 @@ def create_alert():
 
         import secrets
 
-        # ✅ Magic-Link: manage_key optional vom Client
         incoming_manage_key = (data.get("manage_key") or "").strip() or None
-        
-        def get_existing_manage_key_for_email(session: Session, email: str) -> str | None:
+
+        def get_existing_manage_key_for_email(session: Session, email_: str) -> str | None:
             row = session.execute(
                 text("""
                     SELECT manage_key
                     FROM public.alert_subscription
                     WHERE email = :email
-                    AND manage_key IS NOT NULL
+                      AND manage_key IS NOT NULL
                     ORDER BY created_at ASC
                     LIMIT 1
                 """),
-                {"email": email},
+                {"email": email_},
             ).mappings().first()
             return (row["manage_key"] if row and row.get("manage_key") else None)
 
+        manage_key = None
+        verify_token = None
+        used = 0  # ✅ immer definiert
 
         with Session(engine) as s:
             # Limit check (bei dir pro E-Mail)
@@ -2497,7 +2499,6 @@ def create_alert():
                 .first()
             )
 
-            # helper: manage_key sicherstellen
             def ensure_manage_key(obj: AlertSubscription) -> str:
                 # 1) Key vom Client hat höchste Priorität
                 if incoming_manage_key:
@@ -2518,8 +2519,8 @@ def create_alert():
                 obj.manage_key = secrets.token_urlsafe(24)
                 return obj.manage_key
 
-
             if existing:
+                # ✅ Update unconfirmed (keine neue Subscription zählen)
                 existing.phone = phone or None
                 existing.via_email = via_email
                 existing.via_sms = via_sms
@@ -2540,12 +2541,14 @@ def create_alert():
                 verify_token = existing.verify_token or secrets.token_urlsafe(32)
                 existing.verify_token = verify_token
 
-                # ✅ manage_key setzen/halten
                 manage_key = ensure_manage_key(existing)
 
                 s.commit()
-                used = existing_count  # keine neue Subscription gezählt
+
+                used = existing_count  # keine neue Zeile dazu
+
             else:
+                # ✅ Neu anlegen: add + commit + used korrekt
                 verify_token = secrets.token_urlsafe(32)
                 lat, lng = geocode_cached(s, zip_code, city or None)
 
@@ -2570,10 +2573,12 @@ def create_alert():
                     search_lng=lng,
                 )
 
-                # ✅ manage_key setzen
-                
                 manage_key = ensure_manage_key(alert)
-                manage_key = alert.manage_key
+
+                s.add(alert)     # ✅ war bei dir faktisch kaputt/fehlend
+                s.commit()       # ✅ war bei dir faktisch kaputt/fehlend
+
+                used = existing_count + 1  # ✅ neue Zeile zählt
 
         left = max(0, ALERT_MAX_PER_EMAIL - used)
         stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
@@ -2597,7 +2602,6 @@ def create_alert():
         if not ok:
             app.logger.warning("create_alert: send_mail not delivered: %s", reason)
 
-        # ✅ manage_key zurückgeben (für Magic-Link)
         return jsonify({
             "ok": True,
             "message": "Alarm angelegt. Bitte E-Mail bestätigen.",
@@ -2608,6 +2612,7 @@ def create_alert():
     except Exception:
         app.logger.exception("create_alert failed")
         return jsonify({"error": "server_error"}), 500
+
  
  
 # ✅ EINZIGE Verify-Route (robust)
