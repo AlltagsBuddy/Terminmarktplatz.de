@@ -274,12 +274,12 @@ CORS(
         r"/admin/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
         r"/paket-buchen*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
         r"/copecart/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},
+        r"/slots*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},  # ✅ FIX
 
-        # ✅ Ohne Cookies (Magic-Link / public / alerts)
+        # ✅ Ohne Cookies (public / alerts)
         r"/api/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
         r"/public/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
         r"/alerts/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
-        r"/slots*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
 
         # Webhooks / health / assets
         r"/webhook/stripe": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
@@ -291,6 +291,7 @@ CORS(
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 )
+
 
 
 
