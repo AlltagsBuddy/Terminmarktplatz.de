@@ -950,6 +950,11 @@ def send_mail(
                 payload["html"] = html
             if MAIL_REPLY_TO:
                 payload["reply_to"] = MAIL_REPLY_TO
+            
+            # Resend benötigt mindestens text ODER html
+            if not text and not html:
+                print("[resend][ERROR] Kein Text- oder HTML-Inhalt vorhanden!", flush=True)
+                return False, "missing_text_or_html"
 
             r = requests.post(
                 "https://api.resend.com/emails",
@@ -962,6 +967,8 @@ def send_mail(
             )
             ok = 200 <= r.status_code < 300
             print("[resend]", r.status_code, r.text, flush=True)
+            if ok and text:
+                print(f"[resend][debug] text length={len(text)}, preview={text[:100]}...", flush=True)
             if not ok:
                 try:
                     print("[resend][payload]", payload, flush=True)
@@ -2662,6 +2669,9 @@ def create_alert():
             f"{verify_url}\n\n"
             "Wenn du das nicht warst, kannst du diese E-Mail ignorieren."
         )
+        
+        # Debug: Log verify_url und body
+        app.logger.info(f"create_alert: verify_url={verify_url}, body length={len(body)}")
 
         ok, reason = send_mail(
             email,
@@ -2671,6 +2681,8 @@ def create_alert():
         )
         if not ok:
             app.logger.warning("create_alert: send_mail not delivered: %s", reason)
+        else:
+            app.logger.info(f"create_alert: Mail erfolgreich gesendet an {email}, verify_url={verify_url}")
 
         return jsonify({
             "ok": True,
