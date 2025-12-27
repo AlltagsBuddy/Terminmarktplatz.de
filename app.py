@@ -2602,6 +2602,16 @@ def create_alert():
                 existing.verify_token = verify_token
 
                 manage_key = ensure_manage_key(existing)
+                
+                # Stelle sicher, dass alle Alerts dieser E-Mail denselben manage_key haben
+                s.execute(
+                    text("""
+                        UPDATE public.alert_subscription
+                        SET manage_key = :key
+                        WHERE email = :email AND (manage_key IS NULL OR manage_key != :key)
+                    """),
+                    {"key": manage_key, "email": email},
+                )
 
                 s.commit()
 
@@ -2611,6 +2621,11 @@ def create_alert():
                 # ✅ Neu anlegen: add + commit + used korrekt
                 verify_token = secrets.token_urlsafe(32)
                 lat, lng = geocode_cached(s, zip_code, city or None)
+
+                # Hole zuerst den manage_key für diese E-Mail (vor dem Erstellen des Objekts)
+                existing_manage_key = get_existing_manage_key_for_email(s, email)
+                if not existing_manage_key and incoming_manage_key:
+                    existing_manage_key = incoming_manage_key
 
                 alert = AlertSubscription(
                     email=email,
@@ -2633,7 +2648,44 @@ def create_alert():
                     search_lng=lng,
                 )
 
-                manage_key = ensure_manage_key(alert)
+                # Setze manage_key direkt (nutze vorhandenen oder generiere neuen)
+                if existing_manage_key:
+                    manage_key = existing_manage_key
+                    # Stelle sicher, dass alle Alerts dieser E-Mail denselben Key haben
+                    s.execute(
+                        text("""
+                            UPDATE public.alert_subscription
+                            SET manage_key = :key
+                            WHERE email = :email AND (manage_key IS NULL OR manage_key != :key)
+                        """),
+                        {"key": manage_key, "email": email},
+                    )
+                elif incoming_manage_key:
+                    manage_key = incoming_manage_key
+                    # Stelle sicher, dass alle Alerts dieser E-Mail denselben Key haben
+                    s.execute(
+                        text("""
+                            UPDATE public.alert_subscription
+                            SET manage_key = :key
+                            WHERE email = :email AND (manage_key IS NULL OR manage_key != :key)
+                        """),
+                        {"key": manage_key, "email": email},
+                    )
+                else:
+                    # Erstelle neuen Key nur, wenn keiner existiert
+                    manage_key = secrets.token_urlsafe(24)
+                    # Aktualisiere alle anderen Alerts dieser E-Mail mit dem neuen Key
+                    s.execute(
+                        text("""
+                            UPDATE public.alert_subscription
+                            SET manage_key = :key
+                            WHERE email = :email AND (manage_key IS NULL OR manage_key != :key)
+                        """),
+                        {"key": manage_key, "email": email},
+                    )
+                
+                # Setze den manage_key für den neuen Alert
+                alert.manage_key = manage_key
 
                 s.add(alert)
                 s.commit()
