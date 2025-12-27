@@ -2628,10 +2628,15 @@ def create_alert():
 
                 manage_key = ensure_manage_key(alert)
 
-                s.add(alert)     # ✅ war bei dir faktisch kaputt/fehlend
-                s.commit()       # ✅ war bei dir faktisch kaputt/fehlend
+                s.add(alert)
+                s.commit()
 
                 used = existing_count + 1  # ✅ neue Zeile zählt
+        
+        # Sicherstellen, dass verify_token und manage_key gesetzt sind
+        if not verify_token or not manage_key:
+            app.logger.error("create_alert: verify_token or manage_key not set")
+            return jsonify({"error": "server_error"}), 500
 
         # Berechne das Limit für die Stats
         with Session(engine) as s2:
@@ -2644,8 +2649,8 @@ def create_alert():
                 {"email": email},
             ).mappings().first()
             limit_val = int(limit_row["max_limit"]) if limit_row and limit_row["max_limit"] else ALERT_MAX_PER_EMAIL
+            left = max(0, limit_val - used)
         
-        left = max(0, limit_val - used)
         stats = {"used": used, "limit": limit_val, "left": left}
 
         verify_url = url_for("alerts_verify", token=verify_token, _external=True)
