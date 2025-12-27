@@ -2227,6 +2227,35 @@ def alert_subscriptions_by_manage_key():
         return _json_error("missing_or_invalid_key", 400)
 
     with Session(engine) as s:
+        # Zuerst: Finde die E-Mail-Adresse für diesen manage_key
+        email_row = s.execute(
+            text("""
+                SELECT email
+                FROM public.alert_subscription
+                WHERE manage_key = :k
+                LIMIT 1
+            """),
+            {"k": k},
+        ).mappings().first()
+        
+        if not email_row:
+            return jsonify({"ok": True, "limit": 10, "used": 0, "remaining": 10, "alerts": []})
+        
+        email = email_row["email"]
+        
+        # Dann: Hole alle Alerts für diese E-Mail-Adresse (unabhängig vom manage_key)
+        # und aktualisiere sie, um denselben manage_key zu haben
+        s.execute(
+            text("""
+                UPDATE public.alert_subscription
+                SET manage_key = :k
+                WHERE email = :email AND (manage_key IS NULL OR manage_key != :k)
+            """),
+            {"k": k, "email": email},
+        )
+        s.commit()
+        
+        # Jetzt: Hole alle Alerts für diese E-Mail-Adresse
         rows = s.execute(
             text("""
                 SELECT
@@ -2237,10 +2266,10 @@ def alert_subscriptions_by_manage_key():
                   last_reset_quota, created_at, last_notified_at,
                   email_sent_total, notification_limit
                 FROM public.alert_subscription
-                WHERE manage_key = :k
+                WHERE email = :email
                 ORDER BY created_at DESC
             """),
-            {"k": k},
+            {"email": email},
         ).mappings().all()
 
     # Limit: nimm max(notification_limit), fallback auf ALERT_MAX_PER_EMAIL
