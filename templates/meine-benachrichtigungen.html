@@ -598,6 +598,13 @@
           </div>
 
           <div class="actions">
+            <button class="btnSmall ${active ? "btnDanger" : ""}" type="button"
+              data-action="toggle"
+              data-id="${escapeHtml(id)}"
+              data-active="${active ? "true" : "false"}"
+              ${!id ? "disabled" : ""}>
+              ${active ? "⛔ Deaktivieren" : "✅ Aktivieren"}
+            </button>
             <button class="btnSmall btnDanger" type="button"
               data-action="delete"
               data-id="${escapeHtml(id)}"
@@ -796,12 +803,61 @@
       }
     }
 
-    // Event delegation for delete buttons
+    async function toggleAlert(alertId, btn, newActive){
+      if (!k){
+        showToast("err", "Fehler", "Magic-Link fehlt (?k=...).");
+        return;
+      }
+      if (!alertId){
+        showToast("err", "Fehler", "Keine Alarm-ID gefunden.");
+        return;
+      }
+
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "…";
+
+      try{
+        const r = await fetch(`${API_BASE}/api/alert-subscriptions/${encodeURIComponent(alertId)}/toggle?k=${encodeURIComponent(k)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ active: newActive })
+        });
+
+        const js = await r.json().catch(() => ({}));
+
+        if (r.ok && (js.ok !== false)){
+          showToast("ok", newActive ? "Aktiviert" : "Deaktiviert", `Der Alarm wurde ${newActive ? "aktiviert" : "deaktiviert"}.`);
+          await load(true);
+          return;
+        }
+
+        showToast("err", "Fehler", js?.error || `HTTP ${r.status}`);
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }catch(e){
+        showToast("err", "Fehler", e?.message || String(e));
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    }
+
+    // Event delegation for delete and toggle buttons
     document.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-action='delete']");
-      if (!btn) return;
-      const id = btn.getAttribute("data-id");
-      deleteAlert(id, btn);
+      if (btn) {
+        const id = btn.getAttribute("data-id");
+        deleteAlert(id, btn);
+        return;
+      }
+
+      const toggleBtn = e.target.closest("[data-action='toggle']");
+      if (toggleBtn) {
+        const id = toggleBtn.getAttribute("data-id");
+        const currentActive = toggleBtn.getAttribute("data-active") === "true";
+        toggleAlert(id, toggleBtn, !currentActive);
+        return;
+      }
     });
 
     load();

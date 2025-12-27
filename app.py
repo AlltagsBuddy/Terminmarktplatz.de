@@ -228,9 +228,9 @@ def _external_base() -> str:
 
 
 # PostgreSQL URL für SQLAlchemy (psycopg v3) normalisieren
-if DB_URL.startswith("postgres://"):
+if DB_URL and DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql+psycopg://", 1)
-elif DB_URL.startswith("postgresql://"):
+elif DB_URL and DB_URL.startswith("postgresql://"):
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # --------------------------------------------------------
@@ -1891,8 +1891,9 @@ def cancel_plan():
 from urllib.parse import unquote
 import re
 
-ALERT_MAX_PER_EMAIL = 10          # max. Alerts (Subscriptions) pro E-Mail
+ALERT_MAX_PER_EMAIL = 10          # max. Alerts (Subscriptions) pro E-Mail (Fallback, wenn kein Paket gekauft)
 ALERT_MAX_EMAILS_PER_ALERT = 10   # max. E-Mail-Benachrichtigungen pro Alert (email_sent_total)
+ALERT_LIMIT_PER_PACKAGE = 10      # Anzahl Benachrichtigungen pro gekauftem Paket
  
 def _norm_token(t: str | None) -> str:
     t = unquote((t or "")).strip()
@@ -2303,6 +2304,46 @@ def delete_alert_subscription(alert_id: str):
     return jsonify({"ok": True, "deleted": True, "id": str(alert_id)})
 
 
+@app.post("/api/alert-subscriptions/<alert_id>/toggle")
+def toggle_alert_subscription(alert_id: str):
+    """Deaktiviert oder aktiviert eine Benachrichtigung"""
+    k = (request.args.get("k") or "").strip()
+    if not k or len(k) < 20:
+        return _json_error("missing_or_invalid_key", 400)
+
+    data = request.get_json(silent=True) or {}
+    active = data.get("active")
+    if active is None:
+        return _json_error("missing_active", 400)
+
+    with Session(engine) as s:
+        row = s.execute(
+            text("""
+                SELECT id, active
+                FROM public.alert_subscription
+                WHERE id = :id
+                  AND manage_key = :k
+                LIMIT 1
+            """),
+            {"id": str(alert_id), "k": k},
+        ).mappings().first()
+
+        if not row:
+            return _json_error("not_found", 404)
+
+        s.execute(
+            text("""
+                UPDATE public.alert_subscription
+                SET active = :active
+                WHERE id = :id AND manage_key = :k
+            """),
+            {"id": str(alert_id), "k": k, "active": bool(active)},
+        )
+        s.commit()
+
+    return jsonify({"ok": True, "active": bool(active), "id": str(alert_id)})
+
+
 @app.get("/api/alerts/debug/by_zip")
 def debug_alerts_by_zip():
     zip_code = normalize_zip(request.args.get("zip"))
@@ -2482,7 +2523,19 @@ def create_alert():
                     .where(AlertSubscription.email == email)
                 ) or 0
             )
-            if existing_count >= ALERT_MAX_PER_EMAIL:
+            
+            # Berechne das aktuelle Limit basierend auf notification_limit
+            current_limit_row = s.execute(
+                text("""
+                    SELECT MAX(notification_limit) as max_limit
+                    FROM public.alert_subscription
+                    WHERE email = :email AND notification_limit IS NOT NULL
+                """),
+                {"email": email},
+            ).mappings().first()
+            current_limit = int(current_limit_row["max_limit"]) if current_limit_row and current_limit_row["max_limit"] else ALERT_MAX_PER_EMAIL
+            
+            if existing_count >= current_limit:
                 return _json_error("alert_limit_reached", 409)
 
             # Reuse latest unconfirmed
@@ -2580,8 +2633,20 @@ def create_alert():
 
                 used = existing_count + 1  # ✅ neue Zeile zählt
 
-        left = max(0, ALERT_MAX_PER_EMAIL - used)
-        stats = {"used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left}
+        # Berechne das Limit für die Stats
+        with Session(engine) as s2:
+            limit_row = s2.execute(
+                text("""
+                    SELECT MAX(notification_limit) as max_limit
+                    FROM public.alert_subscription
+                    WHERE email = :email AND notification_limit IS NOT NULL
+                """),
+                {"email": email},
+            ).mappings().first()
+            limit_val = int(limit_row["max_limit"]) if limit_row and limit_row["max_limit"] else ALERT_MAX_PER_EMAIL
+        
+        left = max(0, limit_val - used)
+        stats = {"used": used, "limit": limit_val, "left": left}
 
         verify_url = url_for("alerts_verify", token=verify_token, _external=True)
 
@@ -3554,17 +3619,6 @@ def stripe_webhook():
         if not provider_id or not plan:
             return jsonify({"error": "missing_metadata"}), 400
 
-        # NEU: Slot-Koordinaten bestimmen (wir nehmen Provider-Standort)
-        slot_lat, slot_lng = geocode_cached(
-            s,
-            normalize_zip(getattr(provider, "zip", None)),
-            getattr(provider, "city", None),
-        )
-        if slot_lat is None or slot_lng is None:
-            print(f"[alerts] slot_geo_missing slot_id={slot_id} provider_id={provider.id}", flush=True)
-            return
-
-
         today = date.today()
         period_start = today
         period_end = today + timedelta(days=30)
@@ -3739,11 +3793,36 @@ def copecart_webhook():
                 now = _now()
                 sms_quota = int(alert_conf.get("sms_quota_month") or 0)
 
+                # Zähle das aktuelle Limit (basierend auf notification_limit der vorhandenen Alerts)
+                current_limit_row = s.execute(
+                    text("""
+                        SELECT MAX(notification_limit) as max_limit
+                        FROM public.alert_subscription
+                        WHERE email = :email AND notification_limit IS NOT NULL
+                    """),
+                    {"email": buyer_email},
+                ).mappings().first()
+                
+                current_limit = int(current_limit_row["max_limit"]) if current_limit_row and current_limit_row["max_limit"] else 0
+                
+                # Erhöhe das Limit um 10 (ein neues Paket = 10 weitere Benachrichtigungen)
+                new_limit = current_limit + ALERT_LIMIT_PER_PACKAGE
+
                 for a in alerts:
                     a.package_name = alert_plan_key
                     a.sms_quota_month = sms_quota
                     a.sms_sent_this_month = 0
                     a.last_reset_quota = now
+                
+                # Setze notification_limit für alle Alerts dieser E-Mail auf das neue Limit
+                s.execute(
+                    text("""
+                        UPDATE public.alert_subscription
+                        SET notification_limit = :limit
+                        WHERE email = :email
+                    """),
+                    {"limit": new_limit, "email": buyer_email},
+                )
 
                 s.commit()
                 return "OK", 200
