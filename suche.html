@@ -629,24 +629,28 @@
     </div>
   </dialog>
 
-  <!-- Fallback Overlay für Browser ohne Dialog-Support -->
-  <div id="book-backdrop" class="book-backdrop-fallback" hidden aria-live="polite" aria-atomic="true">
-    <div class="book-dialog-content" role="dialog" aria-modal="true" aria-labelledby="book-title-fallback">
-      <h3 id="book-title-fallback" style="margin-top:0">Termin buchen</h3>
-      <p id="book-sub-fallback" class="subtext" style="margin-bottom:10px">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
-      <form id="book-form-fallback" style="display:grid; gap:10px; text-align:left">
-        <input type="hidden" id="book-slot-id-fallback" />
-        <label>Dein Name
-          <input id="book-name-fallback" type="text" required autocomplete="name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
-        </label>
-        <label>E-Mail
-          <input id="book-email-fallback" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
-        </label>
-        <div class="book-actions">
-          <button type="button" class="btn booking-cancel-btn" id="book-cancel-fallback">Abbrechen</button>
-          <button type="submit" class="btn primary" id="book-submit-fallback">Buchung anfragen</button>
-        </div>
-      </form>
+  <!-- Einfaches Mobile-Overlay - Garantiert funktioniert -->
+  <div id="book-modal-mobile" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:999999; background:rgba(0,0,0,0.7); overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <div style="min-height:100%; display:flex; align-items:flex-end; justify-content:center; padding:0;">
+      <div style="background:#fff; width:100%; max-width:100%; border-radius:18px 18px 0 0; padding:24px 20px; box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+        <h3 style="margin-top:0; margin-bottom:8px; color:#111; font-size:20px;">Termin buchen</h3>
+        <p style="margin-bottom:16px; color:#666; font-size:14px;">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+        <form id="book-form-mobile" style="display:block;">
+          <input type="hidden" id="book-slot-id-mobile" />
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Dein Name</label>
+            <input id="book-name-mobile" type="text" required autocomplete="name" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:20px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail</label>
+            <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Buchung anfragen</button>
+            <button type="button" id="book-cancel-mobile" style="width:100%; padding:12px; font-size:15px; border:1px solid #ddd; border-radius:12px; background:#f5f5f5; color:#333; font-weight:700; cursor:pointer;">Abbrechen</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -1010,204 +1014,160 @@
       sortSel.onchange = () => load();
     }
 
-    // Quick-Book Modal - Unterstützt HTML5 dialog und Fallback
+    // Einfaches Buchungsmodal - Funktioniert garantiert auf Mobile
     const bookDialog = document.getElementById('book-dialog');
-    const bookBackdrop = document.getElementById('book-backdrop');
-    const useDialog = bookDialog && typeof bookDialog.showModal === 'function';
+    const bookModalMobile = document.getElementById('book-modal-mobile');
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     // Formulare und Buttons für beide Systeme
     const bookForm = document.getElementById('book-form') || document.getElementById('book-form-fallback');
     const bookFormFallback = document.getElementById('book-form-fallback');
     
     function openBook(slotId){
-      console.log('openBook called with slotId:', slotId); // Debug
       if (!slotId) {
-        console.error('openBook called without slotId');
-        alert('Fehler: Keine Slot-ID gefunden. Bitte versuchen Sie es erneut.');
+        alert('Fehler: Keine Slot-ID gefunden.');
         return;
       }
       
-      // Setze Slot-ID in beiden Systemen
-      const slotIdInput = document.getElementById('book-slot-id') || document.getElementById('book-slot-id-fallback');
-      const nameInput = document.getElementById('book-name') || document.getElementById('book-name-fallback');
-      const emailInput = document.getElementById('book-email') || document.getElementById('book-email-fallback');
-      
-      if (slotIdInput) slotIdInput.value = slotId;
-      if (nameInput) {
-        nameInput.value = '';
-        nameInput.blur(); // Stelle sicher, dass Feld nicht fokussiert ist
-      }
-      if (emailInput) {
-        emailInput.value = '';
-        emailInput.blur();
-      }
-      
-      // Für Android Chrome: Immer Fallback verwenden (zuverlässiger)
-      // HTML5 dialog kann auf mobilen Chrome manchmal Probleme haben
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      if (!isMobile && useDialog && bookDialog) {
-        try {
-          console.log('Trying to show HTML5 dialog (Desktop)');
-          bookDialog.showModal();
-          bookDialog.style.display = 'block';
-          // Fokus auf erstes Eingabefeld setzen
-          setTimeout(() => {
-            if (nameInput) {
-              try {
-                nameInput.focus();
-              } catch (err) {
-                console.warn('Could not focus name input:', err);
-              }
-            }
-          }, 200);
-        } catch (err) {
-          console.warn('Dialog.showModal() failed, using fallback:', err);
-          openBookFallback(nameInput);
-        }
-      } else {
-        console.log('Using fallback overlay (Mobile or dialog not available)');
-        // Fallback Overlay - bevorzugt für mobile Geräte
-        openBookFallback(nameInput);
-      }
-    }
-    
-    function openBookFallback(nameInput) {
-      console.log('openBookFallback called'); // Debug
-      if (bookBackdrop) {
-        // Entferne alle versteckten Attribute
-        bookBackdrop.removeAttribute('hidden');
-        bookBackdrop.removeAttribute('aria-hidden');
-        
-        // Setze alle Styles explizit per inline-Styles (höchste Priorität)
-        bookBackdrop.style.cssText = `
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          z-index: 99999 !important;
-          display: flex !important;
-          grid: none !important;
-          align-items: center !important;
-          justify-content: center !important;
-          padding: 16px !important;
-          margin: 0 !important;
-          background: rgba(20,16,40,.75) !important;
-          backdrop-filter: blur(4px) saturate(130%) !important;
-          -webkit-backdrop-filter: blur(4px) saturate(130%) !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        `;
-        
+      // Mobile: Verwende einfaches Overlay (garantiert funktioniert)
+      if (isMobile && bookModalMobile) {
+        document.getElementById('book-slot-id-mobile').value = slotId;
+        document.getElementById('book-name-mobile').value = '';
+        document.getElementById('book-email-mobile').value = '';
+        bookModalMobile.style.display = 'block';
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
-        
-        // Scroll zum Top für mobile
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        
+        window.scrollTo(0, 0);
         setTimeout(() => {
-          if (nameInput) {
-            try {
-              nameInput.focus();
-              // Für mobile Browser: Zeige virtuelles Keyboard
-              nameInput.click();
-            } catch (err) {
-              console.warn('Could not focus input:', err);
-            }
-          }
-          console.log('Fallback modal should now be visible');
-          console.log('Modal computed style display:', window.getComputedStyle(bookBackdrop).display);
-          console.log('Modal computed style visibility:', window.getComputedStyle(bookBackdrop).visibility);
-        }, 100);
-      } else {
-        console.error('bookBackdrop not found');
-        alert('Buchungsfenster konnte nicht geöffnet werden. Bitte laden Sie die Seite neu.');
+          const nameInput = document.getElementById('book-name-mobile');
+          if (nameInput) nameInput.focus();
+        }, 300);
+        return;
+      }
+      
+      // Desktop: Verwende HTML5 Dialog
+      if (bookDialog && typeof bookDialog.showModal === 'function') {
+        document.getElementById('book-slot-id').value = slotId;
+        document.getElementById('book-name').value = '';
+        document.getElementById('book-email').value = '';
+        try {
+          bookDialog.showModal();
+          setTimeout(() => {
+            const nameInput = document.getElementById('book-name');
+            if (nameInput) nameInput.focus();
+          }, 200);
+        } catch (err) {
+          if (bookModalMobile) openBook(slotId); // Fallback zu Mobile-Modal
+        }
+      } else if (bookModalMobile) {
+        openBook(slotId); // Fallback zu Mobile-Modal
       }
     }
     
     function closeBook(){ 
-      if (useDialog && bookDialog) {
-        bookDialog.close();
-      }
-      if (bookBackdrop) {
-        bookBackdrop.setAttribute('hidden', '');
-        bookBackdrop.style.display = 'none';
-      }
+      if (bookDialog) bookDialog.close();
+      if (bookModalMobile) bookModalMobile.style.display = 'none';
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
     
-    // Event Listener für Dialog
+    // Event Listener für Mobile-Modal
+    if (bookModalMobile) {
+      const cancelBtn = document.getElementById('book-cancel-mobile');
+      if (cancelBtn) cancelBtn.addEventListener('click', closeBook);
+      bookModalMobile.addEventListener('click', (e) => {
+        if (e.target === bookModalMobile) closeBook();
+      });
+      
+      const bookFormMobile = document.getElementById('book-form-mobile');
+      if (bookFormMobile) {
+        bookFormMobile.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const slot_id = document.getElementById('book-slot-id-mobile').value;
+          const name = document.getElementById('book-name-mobile').value.trim();
+          const email = document.getElementById('book-email-mobile').value.trim();
+          if (!slot_id || !name || !email) return;
+
+          const btn = bookFormMobile.querySelector('button[type="submit"]');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Wird gesendet...';
+          }
+
+          try{
+            const r = await fetch(`${API}/public/book`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ slot_id, name, email })
+            });
+            const data = await r.json().catch(()=>({}));
+            if (!r.ok || data.error){
+              alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+            } else {
+              alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
+              closeBook();
+            }
+          } catch (err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Buchung anfragen';
+            }
+          }
+        });
+      }
+    }
+    
+    // Event Listener für Desktop-Dialog
     if (bookDialog) {
       const cancelBtn = document.getElementById('book-cancel');
       if (cancelBtn) cancelBtn.addEventListener('click', closeBook);
-      // Dialog schließen bei Klick außerhalb
       bookDialog.addEventListener('click', (e) => {
         if (e.target === bookDialog) closeBook();
       });
-      // ESC-Taste
       bookDialog.addEventListener('cancel', closeBook);
-    }
-    
-    // Event Listener für Fallback
-    if (bookBackdrop) {
-      const cancelBtnFallback = document.getElementById('book-cancel-fallback');
-      if (cancelBtnFallback) cancelBtnFallback.addEventListener('click', closeBook);
-      bookBackdrop.addEventListener('click', (e) => {
-        if (e.target === bookBackdrop) closeBook();
-      });
-    }
+      
+      const bookForm = document.getElementById('book-form');
+      if (bookForm) {
+        bookForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const slot_id = document.getElementById('book-slot-id').value;
+          const name = document.getElementById('book-name').value.trim();
+          const email = document.getElementById('book-email').value.trim();
+          if (!slot_id || !name || !email) return;
 
-    // Form Submit Handler - funktioniert für beide Systeme
-    async function handleBookSubmit(e, formId, slotIdId, nameId, emailId, submitId) {
-      e.preventDefault();
-      const slot_id = document.getElementById(slotIdId)?.value;
-      const name = document.getElementById(nameId)?.value.trim();
-      const email = document.getElementById(emailId)?.value.trim();
-      if (!slot_id || !name || !email) return;
+          const btn = document.getElementById('book-submit');
+          if (btn) {
+            btn.classList.add('loading');
+            btn.disabled = true;
+          }
 
-      const btn = document.getElementById(submitId);
-      if (btn) {
-        btn.classList.add('loading');
-        btn.disabled = true;
-      }
-
-      try{
-        const r = await fetch(`${API}/public/book`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ slot_id, name, email })
+          try{
+            const r = await fetch(`${API}/public/book`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ slot_id, name, email })
+            });
+            const data = await r.json().catch(()=>({}));
+            if (!r.ok || data.error){
+              alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+            } else {
+              alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
+              closeBook();
+            }
+          } catch (err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          } finally {
+            if (btn) {
+              btn.classList.remove('loading');
+              btn.disabled = false;
+            }
+          }
         });
-        const data = await r.json().catch(()=>({}));
-        if (!r.ok || data.error){
-          alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
-        } else {
-          alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
-          closeBook();
-        }
-      } catch (err){
-        alert('Netzwerkfehler – bitte später erneut versuchen.');
-      } finally {
-        if (btn) {
-          btn.classList.remove('loading');
-          btn.disabled = false;
-        }
       }
-    }
-
-    // Event Listener für beide Formulare
-    if (bookForm) {
-      bookForm.addEventListener('submit', (e) => 
-        handleBookSubmit(e, 'book-form', 'book-slot-id', 'book-name', 'book-email', 'book-submit')
-      );
-    }
-    if (bookFormFallback) {
-      bookFormFallback.addEventListener('submit', (e) => 
-        handleBookSubmit(e, 'book-form-fallback', 'book-slot-id-fallback', 'book-name-fallback', 'book-email-fallback', 'book-submit-fallback')
-      );
     }
 
     // Start
