@@ -1322,7 +1322,8 @@ def maybe_api_only():
     if not API_ONLY:
         return
     if not (
-        request.path.startswith("/auth/")
+        request.path == "/"  # ✅ Root-Route erlauben für Healthchecks
+        or request.path.startswith("/auth/")
         or request.path.startswith("/admin/")
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
@@ -4066,148 +4067,165 @@ def public_slots():
         start_from = _now()
         end_until = None
 
-    with Session(engine) as s:
-        origin_lat = origin_lon = None
-        # Umkreissuche funktioniert mit PLZ ODER Ort (Stadtname)
-        if radius_km is not None:
-            if zip_filter:
-                # PLZ hat Priorität
-                origin_lat, origin_lon = geocode_cached(s, zip_filter, None)
-            elif city_q:
-                # Falls keine PLZ, verwende Ortsname
-                origin_lat, origin_lon = geocode_cached(s, None, city_q)
-            elif location_raw:
-                # Fallback: versuche location_raw als PLZ oder Stadt
-                if location_raw.isdigit() and len(location_raw) == 5:
-                    origin_lat, origin_lon = geocode_cached(s, location_raw, None)
-                else:
-                    origin_lat, origin_lon = geocode_cached(s, None, location_raw)
+    # Retry-Logik für Datenbankverbindungsfehler (max 2 Versuche)
+    for attempt in range(1, 3):
+        try:
+            with Session(engine) as s:
+                origin_lat = origin_lon = None
+                # Umkreissuche funktioniert mit PLZ ODER Ort (Stadtname)
+                if radius_km is not None:
+                    if zip_filter:
+                        # PLZ hat Priorität
+                        origin_lat, origin_lon = geocode_cached(s, zip_filter, None)
+                    elif city_q:
+                        # Falls keine PLZ, verwende Ortsname
+                        origin_lat, origin_lon = geocode_cached(s, None, city_q)
+                    elif location_raw:
+                        # Fallback: versuche location_raw als PLZ oder Stadt
+                        if location_raw.isdigit() and len(location_raw) == 5:
+                            origin_lat, origin_lon = geocode_cached(s, location_raw, None)
+                        else:
+                            origin_lat, origin_lon = geocode_cached(s, None, location_raw)
 
-        bq = (
-            select(Booking.slot_id, func.count().label("booked"))
-            .where(Booking.status.in_(["hold", "confirmed"]))
-            .group_by(Booking.slot_id)
-            .subquery()
-        )
+                bq = (
+                    select(Booking.slot_id, func.count().label("booked"))
+                    .where(Booking.status.in_(["hold", "confirmed"]))
+                    .group_by(Booking.slot_id)
+                    .subquery()
+                )
 
-        sq = (
-            select(
-                Slot,
-                Provider,
-                func.coalesce(bq.c.booked, 0).label("booked"),
-            )
-            .join(Provider, Provider.id == Slot.provider_id)
-            .outerjoin(bq, bq.c.slot_id == Slot.id)
-            .where(Slot.status == SLOT_STATUS_PUBLISHED)
-        )
-
-        if start_from is not None:
-            sq = sq.where(Slot.start_at >= _to_db_utc_naive(start_from))
-        if end_until is not None:
-            sq = sq.where(Slot.start_at < _to_db_utc_naive(end_until))
-
-        if category:
-            if category in BRANCHES:
-                sq = sq.where(Slot.category == category)
-            else:
-                sq = sq.where(Slot.category.ilike(f"%{category}%"))
-
-        if radius_km is None:
-            loc_for_filter = location_raw or city_q or zip_filter
-            if loc_for_filter:
-                pattern_loc = f"%{loc_for_filter}%"
-                # Suche in Slot.location ODER Slot.zip ODER Slot.city ODER Provider.zip/city
-                if zip_filter and zip_filter.isdigit() and len(zip_filter) == 5:
-                    # Wenn es eine PLZ ist, suche nach Slot.zip ODER Provider.zip ODER location
-                    sq = sq.where(
-                        or_(
-                            Slot.zip == zip_filter,
-                            Provider.zip == zip_filter,
-                            Slot.location.ilike(pattern_loc),
-                        )
+                sq = (
+                    select(
+                        Slot,
+                        Provider,
+                        func.coalesce(bq.c.booked, 0).label("booked"),
                     )
-                elif city_q:
-                    # Wenn es eine Stadt ist, suche nach Slot.city ODER Provider.city ODER location
-                    sq = sq.where(
-                        or_(
-                            Slot.city.ilike(f"%{city_q}%"),
-                            Provider.city.ilike(f"%{city_q}%"),
-                            Slot.location.ilike(pattern_loc),
-                        )
-                    )
-                else:
-                    # Fallback: location ODER Provider Adressfelder
-                    sq = sq.where(
-                        or_(
-                            Slot.location.ilike(pattern_loc),
-                            Slot.zip.ilike(pattern_loc),
-                            Slot.city.ilike(pattern_loc),
-                            Provider.zip.ilike(pattern_loc),
-                            Provider.city.ilike(pattern_loc),
-                        )
-                    )
+                    .join(Provider, Provider.id == Slot.provider_id)
+                    .outerjoin(bq, bq.c.slot_id == Slot.id)
+                    .where(Slot.status == SLOT_STATUS_PUBLISHED)
+                )
 
-        if search_term:
-            pattern = f"%{search_term}%"
-            sq = sq.where(or_(Slot.title.ilike(pattern), Slot.category.ilike(pattern)))
+                if start_from is not None:
+                    sq = sq.where(Slot.start_at >= _to_db_utc_naive(start_from))
+                if end_until is not None:
+                    sq = sq.where(Slot.start_at < _to_db_utc_naive(end_until))
 
-        sq = sq.order_by(Slot.start_at.asc()).limit(300)
+                if category:
+                    if category in BRANCHES:
+                        sq = sq.where(Slot.category == category)
+                    else:
+                        sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
-        rows = s.execute(sq).all()
+                if radius_km is None:
+                    loc_for_filter = location_raw or city_q or zip_filter
+                    if loc_for_filter:
+                        pattern_loc = f"%{loc_for_filter}%"
+                        # Suche in Slot.location ODER Slot.zip ODER Slot.city ODER Provider.zip/city
+                        if zip_filter and zip_filter.isdigit() and len(zip_filter) == 5:
+                            # Wenn es eine PLZ ist, suche nach Slot.zip ODER Provider.zip ODER location
+                            sq = sq.where(
+                                or_(
+                                    Slot.zip == zip_filter,
+                                    Provider.zip == zip_filter,
+                                    Slot.location.ilike(pattern_loc),
+                                )
+                            )
+                        elif city_q:
+                            # Wenn es eine Stadt ist, suche nach Slot.city ODER Provider.city ODER location
+                            sq = sq.where(
+                                or_(
+                                    Slot.city.ilike(f"%{city_q}%"),
+                                    Provider.city.ilike(f"%{city_q}%"),
+                                    Slot.location.ilike(pattern_loc),
+                                )
+                            )
+                        else:
+                            # Fallback: location ODER Provider Adressfelder
+                            sq = sq.where(
+                                or_(
+                                    Slot.location.ilike(pattern_loc),
+                                    Slot.zip.ilike(pattern_loc),
+                                    Slot.city.ilike(pattern_loc),
+                                    Provider.zip.ilike(pattern_loc),
+                                    Provider.city.ilike(pattern_loc),
+                                )
+                            )
 
-        out = []
-        for slot, provider, booked in rows:
-            cap = slot.capacity or 1
-            available = max(0, cap - int(booked or 0))
-            if not include_full and available <= 0:
+                if search_term:
+                    pattern = f"%{search_term}%"
+                    sq = sq.where(or_(Slot.title.ilike(pattern), Slot.category.ilike(pattern)))
+
+                sq = sq.order_by(Slot.start_at.asc()).limit(300)
+
+                rows = s.execute(sq).all()
+
+                out = []
+                for slot, provider, booked in rows:
+                    cap = slot.capacity or 1
+                    available = max(0, cap - int(booked or 0))
+                    if not include_full and available <= 0:
+                        continue
+
+                    p_zip = provider.zip
+                    p_city = provider.city
+
+                    if radius_km is not None:
+                        if origin_lat is None or origin_lon is None:
+                            continue
+                        
+                        # Verwende zuerst Slot-Adresse, dann Provider-Adresse als Fallback
+                        slot_zip = getattr(slot, "zip", None) or p_zip
+                        slot_city = getattr(slot, "city", None) or p_city
+                        
+                        plat, plon = geocode_cached(s, slot_zip, slot_city)
+                        if plat is None or plon is None:
+                            continue
+                            
+                        distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
+                        if distance_km > radius_km:
+                            continue
+
+                    item = slot_to_json(slot)
+                    item["available"] = available
+
+                    try:
+                        provider_dict = provider.to_public_dict()
+                    except Exception:
+                        provider_dict = {
+                            "id": provider.id,
+                            "name": getattr(provider, "public_name", None)
+                            or provider.company_name
+                            or provider.email,
+                            "street": provider.street,
+                            "zip": provider.zip,
+                            "city": provider.city,
+                            "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(", "),
+                            "branch": provider.branch,
+                            "phone": provider.phone,
+                            "whatsapp": provider.whatsapp,
+                        }
+
+                    item["provider"] = provider_dict
+                    item["provider_zip"] = p_zip
+                    item["provider_city"] = p_city
+
+                    out.append(item)
+
+                return jsonify(out)
+        except OperationalError as e:
+            if attempt < 2:
+                app.logger.warning(f"public_slots: DB connection error (attempt {attempt}), retrying...")
+                time.sleep(0.1 * attempt)  # Kurze Verzögerung vor Retry
                 continue
-
-            p_zip = provider.zip
-            p_city = provider.city
-
-            if radius_km is not None:
-                if origin_lat is None or origin_lon is None:
-                    continue
-                
-                # Verwende zuerst Slot-Adresse, dann Provider-Adresse als Fallback
-                slot_zip = getattr(slot, "zip", None) or p_zip
-                slot_city = getattr(slot, "city", None) or p_city
-                
-                plat, plon = geocode_cached(s, slot_zip, slot_city)
-                if plat is None or plon is None:
-                    continue
-                    
-                distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
-                if distance_km > radius_km:
-                    continue
-
-            item = slot_to_json(slot)
-            item["available"] = available
-
-            try:
-                provider_dict = provider.to_public_dict()
-            except Exception:
-                provider_dict = {
-                    "id": provider.id,
-                    "name": getattr(provider, "public_name", None)
-                    or provider.company_name
-                    or provider.email,
-                    "street": provider.street,
-                    "zip": provider.zip,
-                    "city": provider.city,
-                    "address": f"{provider.street or ''}, {provider.zip or ''} {provider.city or ''}".strip(", "),
-                    "branch": provider.branch,
-                    "phone": provider.phone,
-                    "whatsapp": provider.whatsapp,
-                }
-
-            item["provider"] = provider_dict
-            item["provider_zip"] = p_zip
-            item["provider_city"] = p_city
-
-            out.append(item)
-
-        return jsonify(out)
+            else:
+                app.logger.exception("public_slots: DB connection error after retries")
+                return jsonify({"error": "DB connection error"}), 500
+        except SQLAlchemyError as e:
+            app.logger.exception("public_slots: DB error")
+            return jsonify({"error": "DB error"}), 500
+        except Exception as e:
+            app.logger.exception("public_slots: Unexpected error")
+            return jsonify({"error": "server_error"}), 500
 
 
 @app.post("/public/book")
