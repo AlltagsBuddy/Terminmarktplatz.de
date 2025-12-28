@@ -140,33 +140,61 @@
       overflow-y: auto;
     }
 
-    /* Fallback Overlay für Browser ohne Dialog-Support */
-    .book-backdrop-fallback {
+    /* Fallback Overlay - Überschreibt style.css .loading-backdrop */
+    /* Höchste Spezifität um sicherzustellen, dass unsere Styles greifen */
+    #book-backdrop.book-backdrop-fallback,
+    div#book-backdrop.book-backdrop-fallback,
+    #book-backdrop.book-backdrop-fallback.loading-backdrop,
+    body #book-backdrop.book-backdrop-fallback {
       position: fixed !important;
       inset: 0 !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
       z-index: 99999 !important;
       display: flex !important;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      /* Überschreibe display: grid aus style.css .loading-backdrop */
+      grid: none !important;
+      grid-template: none !important;
+      grid-template-columns: none !important;
+      grid-template-rows: none !important;
+      place-items: unset !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      margin: 0 !important;
       background: rgba(20,16,40,.75) !important;
-      backdrop-filter: blur(4px) saturate(130%);
-      -webkit-backdrop-filter: blur(4px) saturate(130%);
+      backdrop-filter: blur(4px) saturate(130%) !important;
+      -webkit-backdrop-filter: blur(4px) saturate(130%) !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
-    .book-backdrop-fallback[hidden] {
+    #book-backdrop.book-backdrop-fallback[hidden],
+    div#book-backdrop.book-backdrop-fallback[hidden],
+    #book-backdrop.book-backdrop-fallback.loading-backdrop[hidden],
+    body #book-backdrop.book-backdrop-fallback[hidden] {
       display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
     }
-    .book-backdrop-fallback .book-dialog-content {
+    #book-backdrop.book-backdrop-fallback .book-dialog-content,
+    div#book-backdrop.book-backdrop-fallback .book-dialog-content,
+    body #book-backdrop.book-backdrop-fallback .book-dialog-content {
       background: #fff !important;
       color: #111 !important;
-      border-radius: 18px;
-      padding: 28px 24px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.25);
-      max-width: 480px;
-      width: 100%;
-      max-height: calc(100vh - 32px);
-      overflow-y: auto;
-      box-sizing: border-box;
+      border-radius: 18px !important;
+      padding: 28px 24px !important;
+      box-shadow: 0 10px 40px rgba(0,0,0,.25) !important;
+      max-width: 480px !important;
+      width: 100% !important;
+      max-height: calc(100vh - 32px) !important;
+      overflow-y: auto !important;
+      box-sizing: border-box !important;
+      position: relative !important;
+      margin: 0 !important;
     }
 
     /* Mobile Optimierungen */
@@ -279,19 +307,43 @@
         padding-bottom: max(24px, env(safe-area-inset-bottom));
       }
       
-      /* Fallback Overlay Mobile */
-      .book-backdrop-fallback {
-        padding: 0;
-        align-items: flex-end;
+      /* Fallback Overlay Mobile - Bottom Sheet - Höchste Spezifität */
+      #book-backdrop.book-backdrop-fallback,
+      div#book-backdrop.book-backdrop-fallback,
+      #book-backdrop.book-backdrop-fallback.loading-backdrop,
+      body #book-backdrop.book-backdrop-fallback {
+        padding: 0 !important;
+        align-items: flex-end !important;
+        justify-content: center !important;
+        /* Überschreibe display: grid aus style.css .loading-backdrop */
+        display: flex !important;
+        grid: none !important;
+        grid-template: none !important;
+        place-items: unset !important;
       }
-      .book-backdrop-fallback .book-dialog-content {
-        width: 100%;
-        max-width: 100%;
-        border-radius: 18px 18px 0 0;
-        margin: 0;
-        padding: 24px 20px;
-        padding-bottom: max(24px, env(safe-area-inset-bottom));
-        max-height: 90vh;
+      #book-backdrop.book-backdrop-fallback .book-dialog-content,
+      div#book-backdrop.book-backdrop-fallback .book-dialog-content,
+      body #book-backdrop.book-backdrop-fallback .book-dialog-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 18px 18px 0 0 !important;
+        margin: 0 !important;
+        padding: 24px 20px !important;
+        padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+        max-height: 90vh !important;
+        position: relative !important;
+        animation: slideUp 0.3s ease-out;
+      }
+      
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
       }
 
       .book-actions {
@@ -892,7 +944,7 @@
                 </p>` : ''}
             </div>
             <div>
-              <button class="btn primary" data-book="${x.id}">Buchen</button>
+              <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">Buchen</button>
             </div>
           </div>
         `;
@@ -911,21 +963,47 @@
         clearMarkers();
       }
 
-      // Buchen-Buttons - Event Delegation für bessere mobile Kompatibilität
+      // Buchen-Buttons - Robuste Event-Behandlung für Mobile
       const resultsContainer = document.getElementById('results');
       if (resultsContainer) {
-        // Entferne alte Listener
-        resultsContainer.replaceWith(resultsContainer.cloneNode(true));
-        const newResults = document.getElementById('results');
-        // Neue Event Delegation
-        newResults.addEventListener('click', (e) => {
-          const btn = e.target.closest('[data-book]');
-          if (btn && btn.dataset.book) {
-            e.preventDefault();
-            e.stopPropagation();
-            openBook(btn.dataset.book);
-          }
+        // Verwende Event Delegation auf dem Container (funktioniert auch bei dynamisch geladenen Inhalten)
+        // Unterstützt sowohl Click als auch Touch-Events
+        ['click', 'touchend'].forEach(eventType => {
+          resultsContainer.addEventListener(eventType, (e) => {
+            const btn = e.target.closest('[data-book]');
+            if (btn && btn.dataset.book) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              const slotId = btn.dataset.book;
+              console.log('Booking button clicked, slotId:', slotId); // Debug
+              openBook(slotId);
+              return false;
+            }
+          }, { passive: false });
         });
+        
+        // Direkte Event-Listener auf Buttons für zusätzliche Sicherheit
+        setTimeout(() => {
+          const bookButtons = resultsContainer.querySelectorAll('[data-book]');
+          bookButtons.forEach(btn => {
+            // Entferne alte Listener falls vorhanden
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            // Füge neue Listener hinzu
+            ['click', 'touchend'].forEach(eventType => {
+              newBtn.addEventListener(eventType, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const slotId = newBtn.dataset.book;
+                console.log('Direct button event, slotId:', slotId); // Debug
+                openBook(slotId);
+                return false;
+              }, { passive: false });
+            });
+          });
+        }, 100);
       }
 
       // Resort on change
@@ -942,8 +1020,10 @@
     const bookFormFallback = document.getElementById('book-form-fallback');
     
     function openBook(slotId){
+      console.log('openBook called with slotId:', slotId); // Debug
       if (!slotId) {
         console.error('openBook called without slotId');
+        alert('Fehler: Keine Slot-ID gefunden. Bitte versuchen Sie es erneut.');
         return;
       }
       
@@ -962,46 +1042,90 @@
         emailInput.blur();
       }
       
-      // Verwende HTML5 dialog wenn verfügbar
-      if (useDialog && bookDialog) {
+      // Für Android Chrome: Immer Fallback verwenden (zuverlässiger)
+      // HTML5 dialog kann auf mobilen Chrome manchmal Probleme haben
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (!isMobile && useDialog && bookDialog) {
         try {
+          console.log('Trying to show HTML5 dialog (Desktop)');
           bookDialog.showModal();
-          // Fokus auf erstes Eingabefeld setzen (nach kurzer Verzögerung für mobile Browser)
+          bookDialog.style.display = 'block';
+          // Fokus auf erstes Eingabefeld setzen
           setTimeout(() => {
-            if (nameInput && document.activeElement !== nameInput) {
-              nameInput.focus();
-              // Für mobile Browser: Scroll zum Eingabefeld
-              nameInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (nameInput) {
+              try {
+                nameInput.focus();
+              } catch (err) {
+                console.warn('Could not focus name input:', err);
+              }
             }
-          }, 150);
+          }, 200);
         } catch (err) {
           console.warn('Dialog.showModal() failed, using fallback:', err);
-          // Fallback zu Overlay
           openBookFallback(nameInput);
         }
       } else {
-        // Fallback Overlay
+        console.log('Using fallback overlay (Mobile or dialog not available)');
+        // Fallback Overlay - bevorzugt für mobile Geräte
         openBookFallback(nameInput);
       }
     }
     
     function openBookFallback(nameInput) {
+      console.log('openBookFallback called'); // Debug
       if (bookBackdrop) {
+        // Entferne alle versteckten Attribute
         bookBackdrop.removeAttribute('hidden');
-        bookBackdrop.style.display = 'flex';
-        bookBackdrop.style.visibility = 'visible';
-        bookBackdrop.style.opacity = '1';
+        bookBackdrop.removeAttribute('aria-hidden');
+        
+        // Setze alle Styles explizit per inline-Styles (höchste Priorität)
+        bookBackdrop.style.cssText = `
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          z-index: 99999 !important;
+          display: flex !important;
+          grid: none !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 16px !important;
+          margin: 0 !important;
+          background: rgba(20,16,40,.75) !important;
+          backdrop-filter: blur(4px) saturate(130%) !important;
+          -webkit-backdrop-filter: blur(4px) saturate(130%) !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        `;
+        
         document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        
         // Scroll zum Top für mobile
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        
         setTimeout(() => {
           if (nameInput) {
-            nameInput.focus();
-            nameInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            try {
+              nameInput.focus();
+              // Für mobile Browser: Zeige virtuelles Keyboard
+              nameInput.click();
+            } catch (err) {
+              console.warn('Could not focus input:', err);
+            }
           }
-        }, 200);
+          console.log('Fallback modal should now be visible');
+          console.log('Modal computed style display:', window.getComputedStyle(bookBackdrop).display);
+          console.log('Modal computed style visibility:', window.getComputedStyle(bookBackdrop).visibility);
+        }, 100);
       } else {
-        console.error('Neither dialog nor backdrop available for booking modal');
+        console.error('bookBackdrop not found');
+        alert('Buchungsfenster konnte nicht geöffnet werden. Bitte laden Sie die Seite neu.');
       }
     }
     
