@@ -120,16 +120,26 @@
 
     /* Popup-Dialog zentrieren und begrenzen */
     .loading-backdrop {
-      display: flex;
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 9999 !important;
+      display: flex !important;
       align-items: center;
       justify-content: center;
       padding: 16px;
+      background: rgba(20,16,40,.55) !important;
+      backdrop-filter: blur(4px) saturate(130%);
     }
 
     .loading-dialog {
       max-width: 480px;
       width: 100%;
       box-sizing: border-box;
+      background: #fff !important;
+      color: #111 !important;
+      border-radius: 18px;
+      padding: 28px 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.25);
     }
 
     /* Mobile Optimierungen */
@@ -222,11 +232,14 @@
       }
 
       /* Popup auf Mobil full-width und Buttons untereinander */
+      .loading-backdrop {
+        padding: 12px;
+      }
       .loading-dialog {
-        max-width: 420px;
-        width: 100%;
+        max-width: 100%;
+        width: calc(100% - 24px);
         margin: 0;
-        padding: 16px 14px;
+        padding: 20px 16px;
         border-radius: 18px;
       }
 
@@ -843,9 +856,21 @@
       document.getElementById('book-slot-id').value = slotId;
       document.getElementById('book-name').value = '';
       document.getElementById('book-email').value = '';
-      bookBackdrop.hidden = false;
+      if (bookBackdrop) {
+        bookBackdrop.removeAttribute('hidden');
+        bookBackdrop.style.display = 'flex';
+        // Verhindere Scrollen im Hintergrund
+        document.body.style.overflow = 'hidden';
+      }
     }
-    function closeBook(){ bookBackdrop.hidden = true; }
+    function closeBook(){ 
+      if (bookBackdrop) {
+        bookBackdrop.setAttribute('hidden', '');
+        bookBackdrop.style.display = 'none';
+        // Erlaube Scrollen wieder
+        document.body.style.overflow = '';
+      }
+    }
     bookCancel.addEventListener('click', closeBook);
     bookBackdrop.addEventListener('click', (e)=>{ if (e.target === bookBackdrop) closeBook(); });
 
