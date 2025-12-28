@@ -118,28 +118,55 @@
       margin-top: 6px;
     }
 
-    /* Popup-Dialog zentrieren und begrenzen */
-    .loading-backdrop {
+    /* HTML5 Dialog Element - Moderner Ansatz */
+    #book-dialog {
+      border: none;
+      border-radius: 18px;
+      padding: 0;
+      max-width: 480px;
+      width: calc(100% - 32px);
+      max-height: calc(100vh - 32px);
+      background: #fff;
+      color: #111;
+      box-shadow: 0 10px 40px rgba(0,0,0,.25);
+    }
+    #book-dialog::backdrop {
+      background: rgba(20,16,40,.55);
+      backdrop-filter: blur(4px) saturate(130%);
+    }
+    .book-dialog-content {
+      padding: 28px 24px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+    }
+
+    /* Fallback Overlay für Browser ohne Dialog-Support */
+    .book-backdrop-fallback {
       position: fixed !important;
       inset: 0 !important;
-      z-index: 9999 !important;
+      z-index: 99999 !important;
       display: flex !important;
       align-items: center;
       justify-content: center;
       padding: 16px;
-      background: rgba(20,16,40,.55) !important;
+      background: rgba(20,16,40,.75) !important;
       backdrop-filter: blur(4px) saturate(130%);
+      -webkit-backdrop-filter: blur(4px) saturate(130%);
     }
-
-    .loading-dialog {
-      max-width: 480px;
-      width: 100%;
-      box-sizing: border-box;
+    .book-backdrop-fallback[hidden] {
+      display: none !important;
+    }
+    .book-backdrop-fallback .book-dialog-content {
       background: #fff !important;
       color: #111 !important;
       border-radius: 18px;
       padding: 28px 24px;
       box-shadow: 0 10px 40px rgba(0,0,0,.25);
+      max-width: 480px;
+      width: 100%;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      box-sizing: border-box;
     }
 
     /* Mobile Optimierungen */
@@ -231,16 +258,40 @@
         padding: 12px;
       }
 
-      /* Popup auf Mobil full-width und Buttons untereinander */
-      .loading-backdrop {
-        padding: 12px;
-      }
-      .loading-dialog {
+      /* Mobile: Bottom Sheet Style für Dialog */
+      #book-dialog {
+        width: 100%;
         max-width: 100%;
-        width: calc(100% - 24px);
         margin: 0;
-        padding: 20px 16px;
-        border-radius: 18px;
+        border-radius: 18px 18px 0 0;
+        max-height: 90vh;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        right: 0;
+      }
+      #book-dialog::backdrop {
+        background: rgba(20,16,40,.75);
+      }
+      .book-dialog-content {
+        padding: 24px 20px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+      }
+      
+      /* Fallback Overlay Mobile */
+      .book-backdrop-fallback {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .book-backdrop-fallback .book-dialog-content {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 18px 18px 0 0;
+        margin: 0;
+        padding: 24px 20px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+        max-height: 90vh;
       }
 
       .book-actions {
@@ -505,22 +556,43 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
-  <!-- Quick-Book Modal -->
-  <div id="book-backdrop" class="loading-backdrop" hidden aria-live="polite" aria-atomic="true">
-    <div class="loading-dialog" role="dialog" aria-modal="true" aria-labelledby="book-title">
+  <!-- Quick-Book Modal - HTML5 Dialog für moderne Browser -->
+  <dialog id="book-dialog" aria-labelledby="book-title">
+    <div class="book-dialog-content">
       <h3 id="book-title" style="margin-top:0">Termin buchen</h3>
       <p id="book-sub" class="subtext" style="margin-bottom:10px">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
       <form id="book-form" style="display:grid; gap:10px; text-align:left">
         <input type="hidden" id="book-slot-id" />
         <label>Dein Name
-          <input id="book-name" type="text" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px">
+          <input id="book-name" type="text" required autocomplete="name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
         <label>E-Mail
-          <input id="book-email" type="email" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px">
+          <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
         <div class="book-actions">
           <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
           <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Fallback Overlay für Browser ohne Dialog-Support -->
+  <div id="book-backdrop" class="book-backdrop-fallback" hidden aria-live="polite" aria-atomic="true">
+    <div class="book-dialog-content" role="dialog" aria-modal="true" aria-labelledby="book-title-fallback">
+      <h3 id="book-title-fallback" style="margin-top:0">Termin buchen</h3>
+      <p id="book-sub-fallback" class="subtext" style="margin-bottom:10px">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+      <form id="book-form-fallback" style="display:grid; gap:10px; text-align:left">
+        <input type="hidden" id="book-slot-id-fallback" />
+        <label>Dein Name
+          <input id="book-name-fallback" type="text" required autocomplete="name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <label>E-Mail
+          <input id="book-email-fallback" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <div class="book-actions">
+          <button type="button" class="btn booking-cancel-btn" id="book-cancel-fallback">Abbrechen</button>
+          <button type="submit" class="btn primary" id="book-submit-fallback">Buchung anfragen</button>
         </div>
       </form>
     </div>
@@ -839,50 +911,145 @@
         clearMarkers();
       }
 
-      // Buchen-Buttons
-      $$('#results [data-book]').forEach(btn => {
-        btn.addEventListener('click', () => openBook(btn.dataset.book));
-      });
+      // Buchen-Buttons - Event Delegation für bessere mobile Kompatibilität
+      const resultsContainer = document.getElementById('results');
+      if (resultsContainer) {
+        // Entferne alte Listener
+        resultsContainer.replaceWith(resultsContainer.cloneNode(true));
+        const newResults = document.getElementById('results');
+        // Neue Event Delegation
+        newResults.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-book]');
+          if (btn && btn.dataset.book) {
+            e.preventDefault();
+            e.stopPropagation();
+            openBook(btn.dataset.book);
+          }
+        });
+      }
 
       // Resort on change
       sortSel.onchange = () => load();
     }
 
-    // Quick-Book Modal
+    // Quick-Book Modal - Unterstützt HTML5 dialog und Fallback
+    const bookDialog = document.getElementById('book-dialog');
     const bookBackdrop = document.getElementById('book-backdrop');
-    const bookForm     = document.getElementById('book-form');
-    const bookCancel   = document.getElementById('book-cancel');
+    const useDialog = bookDialog && typeof bookDialog.showModal === 'function';
+    
+    // Formulare und Buttons für beide Systeme
+    const bookForm = document.getElementById('book-form') || document.getElementById('book-form-fallback');
+    const bookFormFallback = document.getElementById('book-form-fallback');
+    
     function openBook(slotId){
-      document.getElementById('book-slot-id').value = slotId;
-      document.getElementById('book-name').value = '';
-      document.getElementById('book-email').value = '';
+      if (!slotId) {
+        console.error('openBook called without slotId');
+        return;
+      }
+      
+      // Setze Slot-ID in beiden Systemen
+      const slotIdInput = document.getElementById('book-slot-id') || document.getElementById('book-slot-id-fallback');
+      const nameInput = document.getElementById('book-name') || document.getElementById('book-name-fallback');
+      const emailInput = document.getElementById('book-email') || document.getElementById('book-email-fallback');
+      
+      if (slotIdInput) slotIdInput.value = slotId;
+      if (nameInput) {
+        nameInput.value = '';
+        nameInput.blur(); // Stelle sicher, dass Feld nicht fokussiert ist
+      }
+      if (emailInput) {
+        emailInput.value = '';
+        emailInput.blur();
+      }
+      
+      // Verwende HTML5 dialog wenn verfügbar
+      if (useDialog && bookDialog) {
+        try {
+          bookDialog.showModal();
+          // Fokus auf erstes Eingabefeld setzen (nach kurzer Verzögerung für mobile Browser)
+          setTimeout(() => {
+            if (nameInput && document.activeElement !== nameInput) {
+              nameInput.focus();
+              // Für mobile Browser: Scroll zum Eingabefeld
+              nameInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          }, 150);
+        } catch (err) {
+          console.warn('Dialog.showModal() failed, using fallback:', err);
+          // Fallback zu Overlay
+          openBookFallback(nameInput);
+        }
+      } else {
+        // Fallback Overlay
+        openBookFallback(nameInput);
+      }
+    }
+    
+    function openBookFallback(nameInput) {
       if (bookBackdrop) {
         bookBackdrop.removeAttribute('hidden');
         bookBackdrop.style.display = 'flex';
-        // Verhindere Scrollen im Hintergrund
+        bookBackdrop.style.visibility = 'visible';
+        bookBackdrop.style.opacity = '1';
         document.body.style.overflow = 'hidden';
+        // Scroll zum Top für mobile
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+          if (nameInput) {
+            nameInput.focus();
+            nameInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 200);
+      } else {
+        console.error('Neither dialog nor backdrop available for booking modal');
       }
     }
+    
     function closeBook(){ 
+      if (useDialog && bookDialog) {
+        bookDialog.close();
+      }
       if (bookBackdrop) {
         bookBackdrop.setAttribute('hidden', '');
         bookBackdrop.style.display = 'none';
-        // Erlaube Scrollen wieder
-        document.body.style.overflow = '';
       }
+      document.body.style.overflow = '';
     }
-    bookCancel.addEventListener('click', closeBook);
-    bookBackdrop.addEventListener('click', (e)=>{ if (e.target === bookBackdrop) closeBook(); });
+    
+    // Event Listener für Dialog
+    if (bookDialog) {
+      const cancelBtn = document.getElementById('book-cancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', closeBook);
+      // Dialog schließen bei Klick außerhalb
+      bookDialog.addEventListener('click', (e) => {
+        if (e.target === bookDialog) closeBook();
+      });
+      // ESC-Taste
+      bookDialog.addEventListener('cancel', closeBook);
+    }
+    
+    // Event Listener für Fallback
+    if (bookBackdrop) {
+      const cancelBtnFallback = document.getElementById('book-cancel-fallback');
+      if (cancelBtnFallback) cancelBtnFallback.addEventListener('click', closeBook);
+      bookBackdrop.addEventListener('click', (e) => {
+        if (e.target === bookBackdrop) closeBook();
+      });
+    }
 
-    bookForm.addEventListener('submit', async (e)=>{
+    // Form Submit Handler - funktioniert für beide Systeme
+    async function handleBookSubmit(e, formId, slotIdId, nameId, emailId, submitId) {
       e.preventDefault();
-      const slot_id = document.getElementById('book-slot-id').value;
-      const name = document.getElementById('book-name').value.trim();
-      const email = document.getElementById('book-email').value.trim();
+      const slot_id = document.getElementById(slotIdId)?.value;
+      const name = document.getElementById(nameId)?.value.trim();
+      const email = document.getElementById(emailId)?.value.trim();
       if (!slot_id || !name || !email) return;
 
-      const btn = document.getElementById('book-submit');
-      btn.classList.add('loading'); btn.disabled = true;
+      const btn = document.getElementById(submitId);
+      if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+      }
 
       try{
         const r = await fetch(`${API}/public/book`, {
@@ -900,9 +1067,24 @@
       } catch (err){
         alert('Netzwerkfehler – bitte später erneut versuchen.');
       } finally {
-        btn.classList.remove('loading'); btn.disabled = false;
+        if (btn) {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }
       }
-    });
+    }
+
+    // Event Listener für beide Formulare
+    if (bookForm) {
+      bookForm.addEventListener('submit', (e) => 
+        handleBookSubmit(e, 'book-form', 'book-slot-id', 'book-name', 'book-email', 'book-submit')
+      );
+    }
+    if (bookFormFallback) {
+      bookFormFallback.addEventListener('submit', (e) => 
+        handleBookSubmit(e, 'book-form-fallback', 'book-slot-id-fallback', 'book-name-fallback', 'book-email-fallback', 'book-submit-fallback')
+      );
+    }
 
     // Start
     load();
