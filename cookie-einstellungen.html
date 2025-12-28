@@ -1,0 +1,406 @@
+<!-- FILE: cookie-einstellungen.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cookie-Einstellungen | Terminmarktplatz</title>
+  <meta name="description" content="Verwalte deine Cookie-Einstellungen für Terminmarktplatz. Ändere deine Einwilligung für Google Analytics jederzeit." />
+  <meta name="theme-color" content="#6f53ff" />
+
+  <!-- OG -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Cookie-Einstellungen | Terminmarktplatz" />
+  <meta property="og:description" content="Verwalte deine Cookie-Einstellungen." />
+  <meta property="og:site_name" content="Terminmarktplatz" />
+  <meta property="og:image" content="/static/og-cover.png" />
+
+  <base href="/" />
+  <link rel="icon" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+  <style>
+    .legal h2{margin-top:8px}
+    .legal h3{margin:14px 0 8px}
+    .legal p{margin:8px 0}
+    .legal ul{margin:6px 0 12px 18px}
+    .legal li{margin:4px 0}
+    .note{font-size:14px; color:var(--ink-dim)}
+
+    /* Cookie-Einstellungen spezifisch */
+    .cookie-settings {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .cookie-option {
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+    .cookie-option h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .cookie-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+    .cookie-toggle label {
+      flex: 1;
+      cursor: pointer;
+    }
+    .cookie-toggle input[type="checkbox"] {
+      width: 48px;
+      height: 24px;
+      appearance: none;
+      background: rgba(255,255,255,.2);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .cookie-toggle input[type="checkbox"]:checked {
+      background: var(--c-mint);
+    }
+    .cookie-toggle input[type="checkbox"]::before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+    }
+    .cookie-toggle input[type="checkbox"]:checked::before {
+      transform: translateX(24px);
+    }
+    .cookie-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 12px;
+    }
+    .cookie-status.active {
+      background: rgba(16,185,129,.2);
+      color: var(--c-mint);
+      border: 1px solid var(--c-mint);
+    }
+    .cookie-status.inactive {
+      background: rgba(255,255,255,.1);
+      color: var(--ink-dim);
+      border: 1px solid var(--border);
+    }
+
+    /* auth-in zunächst ausblenden */
+    .auth-in {
+      display: none;
+    }
+
+    /* HEADER + MENÜ */
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px;
+    }
+    header .nav-links{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:auto;
+    }
+
+    /* Mobile-Optimierung */
+    @media (max-width: 768px){
+      header .nav{
+        flex-wrap:wrap;
+        gap:8px;
+        padding-inline:16px;
+        align-items:flex-start;
+      }
+      header .brand{
+        margin-bottom:4px;
+      }
+      header .user-menu{
+        margin-left:auto;
+      }
+      header .nav-links{
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
+        gap:8px;
+        width:100%;
+        margin-left:0;
+        margin-top:4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding:40px 0 18px">
+      <div class="container">
+        <span class="badge">Datenschutz</span>
+        <h1>Cookie-Einstellungen</h1>
+        <p class="lead">
+          Hier kannst du deine Cookie-Einstellungen jederzeit ändern und deine Einwilligung für Analyse-Cookies widerrufen.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container legal cookie-settings">
+        <div class="panel">
+          <h2>Cookie-Präferenzen</h2>
+          
+          <div class="cookie-option">
+            <h3>Notwendige Cookies <span class="cookie-status active" id="necessary-status">Immer aktiv</span></h3>
+            <p>
+              Diese Cookies sind für die Grundfunktionen der Website erforderlich (z. B. Login, Sessions, Cookie-Einstellungen). 
+              Diese können nicht deaktiviert werden.
+            </p>
+          </div>
+
+          <div class="cookie-option">
+            <h3>Google Analytics <span class="cookie-status" id="analytics-status">Inaktiv</span></h3>
+            <p>
+              Google Analytics hilft uns, die Nutzung der Website zu analysieren und zu verbessern. 
+              Diese Cookies werden nur mit deiner Einwilligung gesetzt.
+            </p>
+            <p class="note">
+              <strong>Verarbeitete Daten:</strong> IP-Adresse (anonymisiert), Nutzungsdaten, Geräteinformationen. 
+              <a href="/datenschutz.html#google-analytics">Weitere Informationen</a>
+            </p>
+            <div class="cookie-toggle">
+              <label for="analytics-toggle">
+                Google Analytics erlauben
+              </label>
+              <input type="checkbox" id="analytics-toggle" aria-label="Google Analytics aktivieren/deaktivieren">
+            </div>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <button class="btn primary" id="save-cookies">Einstellungen speichern</button>
+            <a href="/datenschutz.html" class="btn" style="margin-left: 12px;">Zur Datenschutzerklärung</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <script>
+    // Copyright-Jahr
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Cookie-Einstellungen
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      const analyticsToggle = document.getElementById('analytics-toggle');
+      const analyticsStatus = document.getElementById('analytics-status');
+      const saveBtn = document.getElementById('save-cookies');
+
+      // Aktuellen Status laden
+      function loadCurrentSettings() {
+        const consent = localStorage.getItem(cookieKey);
+        const isAccepted = consent === 'accepted';
+        
+        analyticsToggle.checked = isAccepted;
+        if (isAccepted) {
+          analyticsStatus.textContent = 'Aktiv';
+          analyticsStatus.className = 'cookie-status active';
+        } else {
+          analyticsStatus.textContent = 'Inaktiv';
+          analyticsStatus.className = 'cookie-status inactive';
+        }
+      }
+
+      // Einstellungen speichern
+      function saveSettings() {
+        const isAccepted = analyticsToggle.checked;
+        localStorage.setItem(cookieKey, isAccepted ? 'accepted' : 'declined');
+        
+        // Wenn aktiviert, GA laden (falls noch nicht geladen)
+        if (isAccepted && !window.gtag) {
+          const script1 = document.createElement('script');
+          script1.async = true;
+          script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+          document.head.appendChild(script1);
+          
+          const script2 = document.createElement('script');
+          script2.innerHTML = `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-YNZ8GW523R');
+          `;
+          document.head.appendChild(script2);
+        }
+        
+        // Wenn deaktiviert, GA stoppen (Cookie löschen wäre ideal, aber GA läuft clientseitig)
+        // Hinweis: GA lädt keine neuen Daten mehr, wenn der Consent zurückgezogen wird
+        
+        loadCurrentSettings();
+        alert('Einstellungen gespeichert!');
+      }
+
+      loadCurrentSettings();
+      saveBtn.addEventListener('click', saveSettings);
+    })();
+
+    // User-Menü Logik
+    (function(){
+      const API = (typeof window.API === 'string')
+        ? window.API
+        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
+
+      const btn  = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if(!btn || !menu) return;
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        openMenu(menu.hidden);
+      });
+
+      document.addEventListener('click', ()=> openMenu(false));
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
+
+      menu.addEventListener('click', async (e)=>{
+        const el = e.target.closest('.item');
+        if(!el) return;
+        const action = el.dataset.action;
+
+        if(action === 'logout'){
+          try{
+            await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+          }catch(_){}
+          location.href = '/login.html';
+        }
+      });
+
+      // Auth-Status prüfen
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${API}/me`, { credentials:'include' });
+          const loggedIn = res.ok;
+          document.querySelectorAll('.auth-in').forEach(el => el.style.display = loggedIn ? '' : 'none');
+          document.querySelectorAll('.auth-out').forEach(el => el.style.display = loggedIn ? 'none' : '');
+        }catch(e){}
+      }
+      checkAuth();
+    })();
+  </script>
+
+  <!-- Google Analytics - nur nach Consent laden -->
+  <script>
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      if (localStorage.getItem(cookieKey) === 'accepted') {
+        const script1 = document.createElement('script');
+        script1.async = true;
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        document.head.appendChild(script1);
+        
+        const script2 = document.createElement('script');
+        script2.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-YNZ8GW523R');
+        `;
+        document.head.appendChild(script2);
+      }
+    })();
+  </script>
+</body>
+</html>
+
