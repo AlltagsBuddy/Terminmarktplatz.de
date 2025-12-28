@@ -4108,26 +4108,36 @@ def public_slots():
             loc_for_filter = location_raw or city_q or zip_filter
             if loc_for_filter:
                 pattern_loc = f"%{loc_for_filter}%"
-                # Suche in Slot.location ODER Slot.zip ODER Slot.city
+                # Suche in Slot.location ODER Slot.zip ODER Slot.city ODER Provider.zip/city
                 if zip_filter and zip_filter.isdigit() and len(zip_filter) == 5:
-                    # Wenn es eine PLZ ist, suche direkt nach zip
+                    # Wenn es eine PLZ ist, suche nach Slot.zip ODER Provider.zip ODER location
                     sq = sq.where(
                         or_(
                             Slot.zip == zip_filter,
+                            Provider.zip == zip_filter,
                             Slot.location.ilike(pattern_loc),
                         )
                     )
                 elif city_q:
-                    # Wenn es eine Stadt ist, suche nach city oder location
+                    # Wenn es eine Stadt ist, suche nach Slot.city ODER Provider.city ODER location
                     sq = sq.where(
                         or_(
                             Slot.city.ilike(f"%{city_q}%"),
+                            Provider.city.ilike(f"%{city_q}%"),
                             Slot.location.ilike(pattern_loc),
                         )
                     )
                 else:
-                    # Fallback: nur location
-                    sq = sq.where(Slot.location.ilike(pattern_loc))
+                    # Fallback: location ODER Provider Adressfelder
+                    sq = sq.where(
+                        or_(
+                            Slot.location.ilike(pattern_loc),
+                            Slot.zip.ilike(pattern_loc),
+                            Slot.city.ilike(pattern_loc),
+                            Provider.zip.ilike(pattern_loc),
+                            Provider.city.ilike(pattern_loc),
+                        )
+                    )
 
         if search_term:
             pattern = f"%{search_term}%"
