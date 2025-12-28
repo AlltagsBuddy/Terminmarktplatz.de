@@ -967,48 +967,24 @@
         clearMarkers();
       }
 
-      // Buchen-Buttons - Robuste Event-Behandlung für Mobile
-      const resultsContainer = document.getElementById('results');
-      if (resultsContainer) {
-        // Verwende Event Delegation auf dem Container (funktioniert auch bei dynamisch geladenen Inhalten)
-        // Unterstützt sowohl Click als auch Touch-Events
-        ['click', 'touchend'].forEach(eventType => {
-          resultsContainer.addEventListener(eventType, (e) => {
-            const btn = e.target.closest('[data-book]');
-            if (btn && btn.dataset.book) {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-              const slotId = btn.dataset.book;
-              console.log('Booking button clicked, slotId:', slotId); // Debug
-              openBook(slotId);
-              return false;
-            }
-          }, { passive: false });
-        });
-        
-        // Direkte Event-Listener auf Buttons für zusätzliche Sicherheit
-        setTimeout(() => {
-          const bookButtons = resultsContainer.querySelectorAll('[data-book]');
-          bookButtons.forEach(btn => {
-            // Entferne alte Listener falls vorhanden
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            
-            // Füge neue Listener hinzu
-            ['click', 'touchend'].forEach(eventType => {
-              newBtn.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const slotId = newBtn.dataset.book;
-                console.log('Direct button event, slotId:', slotId); // Debug
-                openBook(slotId);
-                return false;
-              }, { passive: false });
-            });
-          });
-        }, 100);
-      }
+      // Buchen-Buttons - Einfache Event-Delegation (garantiert funktioniert)
+      // Verwende Event-Delegation auf dem Container - funktioniert auch bei dynamischen Buttons
+      resultsContainer.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-book]');
+        if (btn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const slotId = btn.getAttribute('data-book');
+          console.log('Booking button clicked via delegation, slotId:', slotId);
+          if (slotId && typeof openBook === 'function') {
+            openBook(slotId);
+          } else {
+            console.error('openBook function not available or slotId missing');
+            alert('Buchungsfunktion nicht verfügbar. Bitte laden Sie die Seite neu.');
+          }
+          return false;
+        }
+      }, true); // useCapture = true für frühere Erfassung
 
       // Resort on change
       sortSel.onchange = () => load();
