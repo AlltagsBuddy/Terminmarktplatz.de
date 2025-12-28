@@ -108,6 +108,17 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
+      position: relative;
+    }
+    /* Stelle sicher, dass Buttons in Cards klickbar sind */
+    .results-grid .card button[data-book],
+    .card button[data-book],
+    button[data-book] {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      position: relative !important;
+      z-index: 10 !important;
+      touch-action: manipulation !important;
     }
 
     /* Actions im Buchungsdialog */
@@ -281,9 +292,27 @@
       .results-grid {
         grid-template-columns: 1fr;
       }
+      
+      /* Stelle sicher, dass Buttons in Cards auf Mobile klickbar sind */
+      .card button[data-book],
+      button[data-book] {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        position: relative !important;
+        z-index: 10 !important;
+        touch-action: manipulation !important;
+      }
 
       .card {
         padding: 12px;
+        position: relative;
+        pointer-events: auto; /* Stelle sicher, dass Cards klickbar sind */
+      }
+      .card button[data-book] {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        position: relative !important;
+        z-index: 10 !important;
       }
 
       /* Mobile: Bottom Sheet Style für Dialog */
@@ -948,7 +977,7 @@
                 </p>` : ''}
             </div>
             <div>
-              <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">Buchen</button>
+              <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
             </div>
           </div>
         `;
@@ -967,24 +996,51 @@
         clearMarkers();
       }
 
-      // Buchen-Buttons - Einfache Event-Delegation (garantiert funktioniert)
-      // Verwende Event-Delegation auf dem Container - funktioniert auch bei dynamischen Buttons
-      resultsContainer.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-book]');
-        if (btn) {
-          e.preventDefault();
-          e.stopPropagation();
-          const slotId = btn.getAttribute('data-book');
-          console.log('Booking button clicked via delegation, slotId:', slotId);
-          if (slotId && typeof openBook === 'function') {
-            openBook(slotId);
-          } else {
-            console.error('openBook function not available or slotId missing');
-            alert('Buchungsfunktion nicht verfügbar. Bitte laden Sie die Seite neu.');
-          }
-          return false;
+      // Buchen-Buttons - Mehrfacher Event-Handler für maximale Kompatibilität
+      // Verwende sowohl click, pointerup, touchstart und touchend
+      function handleBookingClick(e, btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        const slotId = btn.getAttribute('data-book');
+        console.log('Booking button activated, slotId:', slotId);
+        if (slotId && typeof openBook === 'function') {
+          openBook(slotId);
+        } else {
+          console.error('openBook function not available or slotId missing');
+          alert('Buchungsfunktion nicht verfügbar. Bitte laden Sie die Seite neu.');
         }
-      }, true); // useCapture = true für frühere Erfassung
+        return false;
+      }
+      
+      // Event-Delegation auf Container mit mehreren Event-Typen
+      ['click', 'pointerup', 'touchend'].forEach(eventType => {
+        resultsContainer.addEventListener(eventType, function(e) {
+          const btn = e.target.closest('[data-book]');
+          if (btn) {
+            handleBookingClick(e, btn);
+          }
+        }, { passive: false, capture: true });
+      });
+      
+      // Zusätzlich: Direkte Listener auf Buttons (nach kurzer Verzögerung)
+      setTimeout(() => {
+        const bookButtons = resultsContainer.querySelectorAll('[data-book]');
+        bookButtons.forEach(btn => {
+          // Stelle sicher, dass Button klickbar ist
+          btn.style.pointerEvents = 'auto';
+          btn.style.cursor = 'pointer';
+          btn.style.position = 'relative';
+          btn.style.zIndex = '10';
+          
+          // Mehrere Event-Typen für maximale Kompatibilität
+          ['click', 'pointerup', 'touchend'].forEach(eventType => {
+            btn.addEventListener(eventType, function(e) {
+              handleBookingClick(e, this);
+            }, { passive: false });
+          });
+        });
+      }, 300);
 
       // Resort on change
       sortSel.onchange = () => load();
