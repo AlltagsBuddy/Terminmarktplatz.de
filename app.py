@@ -279,7 +279,7 @@ CORS(
 
         # ✅ Ohne Cookies (public / alerts)
         r"/api/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
-        r"/public/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/public/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},  # credentials erlaubt für CORS-Kompatibilität
         r"/alerts/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
 
         # Webhooks / health / assets
