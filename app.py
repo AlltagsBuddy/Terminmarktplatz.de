@@ -491,7 +491,9 @@ def _from_db_as_iso_utc(dt: datetime) -> str:
     return dt.isoformat().replace("+00:00", "Z")
 
 
+# Kategorien mit Unterkategorien für Ärzte und Ämter
 BRANCHES = {
+    # Bestehende Kategorien
     "Friseur",
     "Kosmetik",
     "Physiotherapie",
@@ -504,7 +506,125 @@ BRANCHES = {
     "Tierarzt",
     "Behörde",
     "Sonstiges",
+    # Ärzte - Unterkategorien
+    "Hausärzte",
+    "Orthopäden",
+    "Gynäkologen",
+    "Hautärzte",
+    "Psychotherapeuten",
+    "Zahnärzte",
+    "Kinderärzte",
+    # Ämter - Unterkategorien
+    "Bürgeramt",
+    "Kfz-Zulassungsstelle",
+    "Finanzamt",
+    "Ausländerbehörde",
+    "Jobcenter",
 }
+
+# Mapping für Fuzzy-Search: Varianten -> Standard-Kategorie
+CATEGORY_VARIANTS = {
+    # Ärzte-Varianten
+    "hausarzt": "Hausärzte",
+    "hausärzte": "Hausärzte",
+    "allgemeinarzt": "Hausärzte",
+    "allgemeinärzte": "Hausärzte",
+    "orthopäde": "Orthopäden",
+    "orthopäden": "Orthopäden",
+    "orthopaede": "Orthopäden",
+    "orthopaeden": "Orthopäden",
+    "gynäkologe": "Gynäkologen",
+    "gynäkologen": "Gynäkologen",
+    "frauenarzt": "Gynäkologen",
+    "frauenärzte": "Gynäkologen",
+    "hautarzt": "Hautärzte",
+    "hautärzte": "Hautärzte",
+    "dermatologe": "Hautärzte",
+    "dermatologen": "Hautärzte",
+    "psychotherapeut": "Psychotherapeuten",
+    "psychotherapeuten": "Psychotherapeuten",
+    "psychologe": "Psychotherapeuten",
+    "psychologen": "Psychotherapeuten",
+    "zahnarzt": "Zahnärzte",
+    "zahnärzte": "Zahnärzte",
+    "zahnaerzt": "Zahnärzte",
+    "zahnaerzte": "Zahnärzte",
+    "kinderarzt": "Kinderärzte",
+    "kinderärzte": "Kinderärzte",
+    "paediatrie": "Kinderärzte",
+    "pädiatrie": "Kinderärzte",
+    "arzt": "Hausärzte",  # Fallback
+    "ärzte": "Hausärzte",
+    # Ämter-Varianten
+    "buergeramt": "Bürgeramt",
+    "bürgeramt": "Bürgeramt",
+    "einwohnermeldeamt": "Bürgeramt",
+    "kfz": "Kfz-Zulassungsstelle",
+    "kfz-zulassung": "Kfz-Zulassungsstelle",
+    "kfz-zulassungsstelle": "Kfz-Zulassungsstelle",
+    "zulassungsstelle": "Kfz-Zulassungsstelle",
+    "finanzamt": "Finanzamt",
+    "steueramt": "Finanzamt",
+    "auslaenderbehoerde": "Ausländerbehörde",
+    "ausländerbehörde": "Ausländerbehörde",
+    "auslaenderamt": "Ausländerbehörde",
+    "ausländeramt": "Ausländerbehörde",
+    "jobcenter": "Jobcenter",
+    "arbeitsamt": "Jobcenter",
+    "arbeitsagentur": "Jobcenter",
+    "amt": "Bürgeramt",  # Fallback
+    "ämter": "Bürgeramt",
+    # Weitere Varianten
+    "friseur": "Friseur",
+    "frisör": "Friseur",
+    "frisoer": "Friseur",
+    "kosmetik": "Kosmetik",
+    "physiotherapie": "Physiotherapie",
+    "physio": "Physiotherapie",
+    "nagelstudio": "Nagelstudio",
+    "handwerk": "Handwerk",
+    "fitness": "Fitness",
+    "coaching": "Coaching",
+    "tierarzt": "Tierarzt",
+    "tierärzte": "Tierarzt",
+    "behoerde": "Behörde",
+    "behörde": "Behörde",
+}
+
+
+def find_matching_categories(search_term: str) -> list[str]:
+    """
+    Findet passende Kategorien basierend auf Suchbegriff.
+    Unterstützt Fuzzy-Search und Varianten.
+    """
+    if not search_term:
+        return []
+    
+    search_lower = search_term.lower().strip()
+    
+    # 1. Exakte Übereinstimmung (case-insensitive)
+    exact_matches = [cat for cat in BRANCHES if cat.lower() == search_lower]
+    if exact_matches:
+        return exact_matches
+    
+    # 2. Varianten-Mapping
+    if search_lower in CATEGORY_VARIANTS:
+        return [CATEGORY_VARIANTS[search_lower]]
+    
+    # 3. Teilstring-Suche in Kategorien
+    partial_matches = [cat for cat in BRANCHES if search_lower in cat.lower() or cat.lower() in search_lower]
+    
+    # 4. Teilstring-Suche in Varianten
+    variant_matches = []
+    for variant, standard in CATEGORY_VARIANTS.items():
+        if search_lower in variant or variant in search_lower:
+            if standard not in variant_matches:
+                variant_matches.append(standard)
+    
+    # Kombiniere und entferne Duplikate
+    all_matches = list(set(exact_matches + partial_matches + variant_matches))
+    
+    return all_matches
 
 
 def normalize_category(raw: str | None) -> str:
@@ -4034,8 +4154,14 @@ def public_slots():
             city_q = location_raw
 
     search_term = q_text
-    if not category and q_text in BRANCHES:
-        category = q_text
+    # Prüfe ob q_text eine passende Kategorie ist (mit Fuzzy-Search)
+    if not category and q_text:
+        matching_cats = find_matching_categories(q_text)
+        if matching_cats:
+            # Wenn exakt eine Kategorie gefunden wurde, verwende diese
+            if len(matching_cats) == 1:
+                category = matching_cats[0]
+            # Ansonsten bleibt search_term aktiv für die erweiterte Suche
 
     try:
         radius_km = float(radius_raw) if radius_raw else None
@@ -4110,10 +4236,14 @@ def public_slots():
                 if end_until is not None:
                     sq = sq.where(Slot.start_at < _to_db_utc_naive(end_until))
 
+                # Kategorie-Filterung mit Fuzzy-Search
                 if category:
-                    if category in BRANCHES:
-                        sq = sq.where(Slot.category == category)
+                    matching_categories = find_matching_categories(category)
+                    if matching_categories:
+                        # Suche nach exakten Übereinstimmungen
+                        sq = sq.where(Slot.category.in_(matching_categories))
                     else:
+                        # Fallback: Teilstring-Suche
                         sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
                 if radius_km is None:
@@ -4151,9 +4281,24 @@ def public_slots():
                                 )
                             )
 
+                # Erweiterte Suche: Titel UND Kategorie mit Fuzzy-Matching
                 if search_term:
                     pattern = f"%{search_term}%"
-                    sq = sq.where(or_(Slot.title.ilike(pattern), Slot.category.ilike(pattern)))
+                    
+                    # Finde passende Kategorien für den Suchbegriff
+                    matching_categories = find_matching_categories(search_term)
+                    
+                    # Baue OR-Bedingung: Titel ODER Kategorie (exakt) ODER Kategorie (Teilstring)
+                    conditions = [Slot.title.ilike(pattern)]
+                    
+                    if matching_categories:
+                        # Exakte Kategorie-Übereinstimmungen
+                        conditions.append(Slot.category.in_(matching_categories))
+                    else:
+                        # Fallback: Teilstring-Suche in Kategorie
+                        conditions.append(Slot.category.ilike(pattern))
+                    
+                    sq = sq.where(or_(*conditions))
 
                 sq = sq.order_by(Slot.start_at.asc()).limit(300)
 

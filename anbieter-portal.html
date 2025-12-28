@@ -506,11 +506,21 @@
               </div>
 
               <div class="field">
-                <label for="sl-cat">Kategorie <span class="req">*</span></label>
-                <select id="sl-cat" name="category" required aria-required="true">
+                <label for="sl-cat-main">Kategorie <span class="req">*</span></label>
+                <select id="sl-cat-main" required aria-required="true">
                   <option value="" disabled selected>Bitte wählen …</option>
                 </select>
               </div>
+
+              <div class="field" id="sl-cat-sub-container" style="display:none;">
+                <label for="sl-cat-sub">Unterkategorie <span class="req">*</span></label>
+                <select id="sl-cat-sub">
+                  <option value="" disabled selected>Bitte wählen …</option>
+                </select>
+              </div>
+
+              <!-- Verstecktes Feld für die finale Kategorie, die ans Backend gesendet wird -->
+              <input type="hidden" id="sl-cat" name="category" required aria-required="true"/>
 
               <div class="field">
                 <label for="sl-date">Datum <span class="req">*</span></label>
@@ -733,16 +743,134 @@
       return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // ---------- Kategorien ----------
-    const CATEGORIES = [
-      "Friseur","Kosmetik","Physiotherapie","Nagelstudio","Zahnarzt",
-      "Handwerk","KFZ-Service","Fitness","Coaching","Tierarzt","Behörde","Sonstiges"
-    ];
+    // ---------- Kategorien mit Unterkategorien ----------
+    const CATEGORIES = {
+      // Einfache Kategorien (ohne Unterkategorien)
+      "Friseur": null,
+      "Kosmetik": null,
+      "Physiotherapie": null,
+      "Nagelstudio": null,
+      "Handwerk": null,
+      "KFZ-Service": null,
+      "Fitness": null,
+      "Coaching": null,
+      "Tierarzt": null,
+      "Sonstiges": null,
+      // Ärzte mit Unterkategorien
+      "Ärzte": [
+        "Hausärzte",
+        "Orthopäden",
+        "Gynäkologen",
+        "Hautärzte",
+        "Psychotherapeuten",
+        "Zahnärzte",
+        "Kinderärzte"
+      ],
+      // Ämter mit Unterkategorien
+      "Ämter": [
+        "Bürgeramt",
+        "Kfz-Zulassungsstelle",
+        "Finanzamt",
+        "Ausländerbehörde",
+        "Jobcenter"
+      ],
+      // Legacy-Kategorien (für Kompatibilität)
+      "Zahnarzt": null,
+      "Behörde": null
+    };
+
+    // Hauptkategorie-Select
+    const mainCatSel = document.getElementById('sl-cat-main');
+    // Unterkategorie-Select
+    const subCatSel = document.getElementById('sl-cat-sub');
+    // Verstecktes Feld für die finale Kategorie
+    const finalCatInput = document.getElementById('sl-cat');
+
+    // Event-Listener nur einmal registrieren
+    let categoryListenersInitialized = false;
+
     function fillCategoryOptions(){
-      const sel = $('#sl-cat');
-      if(!sel) return;
-      sel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
-        + CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+      // Hauptkategorie-Select füllen
+      if(mainCatSel) {
+        const mainCategories = Object.keys(CATEGORIES).filter(key => key !== 'Zahnarzt' && key !== 'Behörde');
+        mainCatSel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
+          + mainCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+
+      // Event-Listener nur einmal registrieren
+      if(mainCatSel && subCatSel && finalCatInput && !categoryListenersInitialized) {
+        categoryListenersInitialized = true;
+
+        // Wenn Hauptkategorie ausgewählt wird, Unterkategorien anzeigen
+        mainCatSel.addEventListener('change', function() {
+          const selectedMain = this.value;
+          const subCats = CATEGORIES[selectedMain];
+
+          // Unterkategorie-Container anzeigen/verstecken
+          const subCatContainer = document.getElementById('sl-cat-sub-container');
+          if(subCatContainer) {
+            if(subCats && subCats.length > 0) {
+              subCatContainer.style.display = 'block';
+              subCatSel.required = true;
+              subCatSel.innerHTML = `<option value="" disabled selected>Bitte Unterkategorie wählen …</option>`
+                + subCats.map(c => `<option value="${c}">${c}</option>`).join('');
+              finalCatInput.value = '';
+            } else {
+              subCatContainer.style.display = 'none';
+              subCatSel.required = false;
+              subCatSel.innerHTML = '';
+              finalCatInput.value = selectedMain;
+            }
+          }
+        });
+
+        // Wenn Unterkategorie ausgewählt wird, finale Kategorie setzen
+        subCatSel.addEventListener('change', function() {
+          finalCatInput.value = this.value;
+        });
+      }
+
+      // Legacy: Falls nur ein Select-Feld existiert, alle Kategorien anzeigen
+      const legacySel = document.getElementById('sl-cat');
+      if(legacySel && !mainCatSel && legacySel.tagName === 'SELECT') {
+        const allCategories = [];
+        Object.keys(CATEGORIES).forEach(main => {
+          if(CATEGORIES[main] === null) {
+            allCategories.push(main);
+          } else {
+            allCategories.push(...CATEGORIES[main]);
+          }
+        });
+        legacySel.innerHTML = `<option value="" disabled selected>Bitte wählen …</option>`
+          + allCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+    }
+
+    // Hilfsfunktion: Kategorie aus dem versteckten Feld setzen (beim Bearbeiten)
+    function setCategoryFromValue(categoryValue) {
+      if(!categoryValue) return;
+
+      // Prüfe ob es eine Unterkategorie ist
+      let found = false;
+      Object.keys(CATEGORIES).forEach(main => {
+        const subCats = CATEGORIES[main];
+        if(subCats && subCats.includes(categoryValue)) {
+          // Es ist eine Unterkategorie
+          if(mainCatSel) mainCatSel.value = main;
+          if(mainCatSel) mainCatSel.dispatchEvent(new Event('change'));
+          setTimeout(() => {
+            if(subCatSel) subCatSel.value = categoryValue;
+            if(finalCatInput) finalCatInput.value = categoryValue;
+          }, 0);
+          found = true;
+        } else if(main === categoryValue) {
+          // Es ist eine Hauptkategorie ohne Unterkategorien
+          if(mainCatSel) mainCatSel.value = main;
+          if(mainCatSel) mainCatSel.dispatchEvent(new Event('change'));
+          if(finalCatInput) finalCatInput.value = categoryValue;
+          found = true;
+        }
+      });
     }
 
     // ---------- Validierungen ----------
@@ -1238,6 +1366,20 @@
       EDITING_SLOT = null;
       const form = document.getElementById('form-slot');
       if (form) form.reset();
+      
+      // Kategorie-Felder zurücksetzen
+      const mainCatSel = document.getElementById('sl-cat-main');
+      const subCatSel = document.getElementById('sl-cat-sub');
+      const subCatContainer = document.getElementById('sl-cat-sub-container');
+      const finalCatInput = document.getElementById('sl-cat');
+      if (mainCatSel) mainCatSel.value = '';
+      if (subCatSel) {
+        subCatSel.value = '';
+        subCatSel.required = false;
+      }
+      if (subCatContainer) subCatContainer.style.display = 'none';
+      if (finalCatInput) finalCatInput.value = '';
+      
       const dur = document.getElementById('sl-duration');
       const unit = document.getElementById('sl-unit');
       if (dur) dur.value = 30;
@@ -1257,8 +1399,10 @@
       const title = document.getElementById('sl-title');
       if (title) title.value = slot.title || '';
 
-      const cat = document.getElementById('sl-cat');
-      if (cat && slot.category) cat.value = slot.category;
+      // Kategorie setzen mit hierarchischer Struktur
+      if (slot.category) {
+        setCategoryFromValue(slot.category);
+      }
 
       const dt = isoToLocalDateTime(slot.start_at);
       const dateInput = document.getElementById('sl-date');
