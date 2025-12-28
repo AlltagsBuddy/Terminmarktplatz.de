@@ -683,7 +683,12 @@
       }
 
       const isExactCategory = q2 && KATS.has(q2);
-      if (isExactCategory) params.set('category', q2);
+      if (isExactCategory) {
+        params.set('category', q2);
+      } else if (q2) {
+        // Wenn q2 kein exakte Kategorie ist, als Freitext-Suche senden
+        params.set('q', q2);
+      }
 
       // WICHTIG: Suche über den Ort aus dem SLOT: ?location=
       if (ort2) {
