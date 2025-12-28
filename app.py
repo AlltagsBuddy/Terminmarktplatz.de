@@ -8,6 +8,7 @@ import json
 import hmac
 import hashlib
 import base64
+import re
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
@@ -579,6 +580,18 @@ def is_profile_complete(p: Provider) -> bool:
             _is_valid_phone(p.phone),
         ]
     )
+
+
+def split_street_and_number(street_value: str | None) -> tuple[str, str]:
+    """Trennt Straße und Hausnummer (z.B. 'Musterstraße 12a' -> ('Musterstraße', '12a'))."""
+    if not street_value:
+        return ("", "")
+    street_value = street_value.strip()
+    # Regex: Straße (mind. 2 Zeichen) + Leerzeichen + Hausnummer (1-4 Ziffern + optional Buchstaben/Ziffern)
+    match = re.match(r"^(.{2,}?)\s+(\d{1,4}[a-zA-Z0-9\-\/]*)$", street_value)
+    if not match:
+        return (street_value, "")
+    return (match.group(1).strip(), match.group(2).strip())
 
 
 # --------------------------------------------------------
@@ -1772,6 +1785,9 @@ def me():
 
         slots_left = None if unlimited else max(0, int(eff_limit) - int(slots_used))
 
+        # Trenne street und house_number für Frontend-Kompatibilität
+        street, house_number = split_street_and_number(p.street)
+
         return jsonify(
             {
                 "id": p.id,
@@ -1780,7 +1796,8 @@ def me():
                 "is_admin": p.is_admin,
                 "company_name": p.company_name,
                 "branch": p.branch,
-                "street": p.street,
+                "street": street,
+                "house_number": house_number,
                 "zip": p.zip,
                 "city": p.city,
                 "phone": p.phone,
@@ -1812,7 +1829,18 @@ def me_update():
             v = str(v).strip()
             return v or None
 
+        # house_number akzeptieren und verarbeiten
+        house_number = clean(data.get("house_number"))
+        
         upd = {k: clean(v) for k, v in data.items() if k in allowed}
+
+        # Wenn house_number vorhanden ist, mit street kombinieren
+        if house_number:
+            if "street" in upd and upd["street"]:
+                # Kombiniere street und house_number
+                upd["street"] = f"{upd['street']} {house_number}".strip()
+            # Wenn house_number vorhanden, aber kein street im Update,
+            # wird die bestehende street aus der DB geholt (siehe unten)
 
         if "zip" in upd and upd["zip"] is not None:
             z = upd["zip"]
@@ -1823,6 +1851,12 @@ def me_update():
             p = s.get(Provider, request.provider_id)
             if not p:
                 return _json_error("not_found", 404)
+
+            # Wenn house_number vorhanden, aber kein street im Update, bestehende street verwenden
+            if house_number and "street" not in upd and p.street:
+                upd["street"] = f"{p.street} {house_number}".strip()
+            elif house_number and "street" not in upd:
+                upd["street"] = house_number
 
             for k, v in upd.items():
                 setattr(p, k, v)
