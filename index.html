@@ -1,13 +1,5 @@
 <!doctype html> 
 <html lang="de">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-YNZ8GW523R');
-  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -504,7 +496,7 @@
   <!-- Cookie Banner -->
   <div class="cookie" id="cookie">
     <div class="wrap">
-      <p>Wir verwenden nur notwendige Cookies, um die Funktion der Seite zu gewährleisten. <a href="/datenschutz.html">Mehr erfahren</a></p>
+      <p>Wir verwenden Cookies, um die Funktion der Seite zu gewährleisten und die Nutzung zu analysieren (Google Analytics). <a href="/datenschutz.html">Mehr erfahren</a></p>
       <div class="btns">
         <button class="btn" id="cookie-decline">Ablehnen</button>
         <button class="btn primary" id="cookie-accept">Akzeptieren</button>
@@ -519,26 +511,58 @@
       if (yEl) yEl.textContent = new Date().getFullYear();
     })();
 
+    // Google Analytics - nur nach Consent laden
+    function loadGoogleAnalytics() {
+      if (window.gtag) return; // Bereits geladen
+      
+      // Script laden
+      const script1 = document.createElement('script');
+      script1.async = true;
+      script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+      document.head.appendChild(script1);
+      
+      // Config-Script
+      const script2 = document.createElement('script');
+      script2.innerHTML = `
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-YNZ8GW523R');
+      `;
+      document.head.appendChild(script2);
+    }
+
     // Cookie consent
     (function(){
       const cookieKey = 'tm_cookie_consent_v8';
       const $cookie = document.getElementById('cookie');
-      if(!$cookie) return;
-      if(!localStorage.getItem(cookieKey)) {
+      const consent = localStorage.getItem(cookieKey);
+      
+      // Wenn bereits Consent gegeben wurde, GA laden
+      if (consent === 'accepted') {
+        loadGoogleAnalytics();
+        if($cookie) $cookie.style.display = 'none';
+      } else if(!consent && $cookie) {
+        // Banner anzeigen wenn noch kein Consent
         $cookie.style.display = 'block';
       }
+      
       const acceptBtn  = document.getElementById('cookie-accept');
       const declineBtn = document.getElementById('cookie-decline');
+      
       if (acceptBtn) {
         acceptBtn.onclick = ()=>{
           localStorage.setItem(cookieKey,'accepted');
-          $cookie.remove();
+          loadGoogleAnalytics(); // Jetzt GA laden
+          if($cookie) $cookie.remove();
         };
       }
+      
       if (declineBtn) {
         declineBtn.onclick = ()=>{
           localStorage.setItem(cookieKey,'declined');
-          $cookie.remove();
+          // GA wird NICHT geladen
+          if($cookie) $cookie.remove();
         };
       }
     })();

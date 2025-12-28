@@ -14,14 +14,6 @@
   <meta property="og:image" content="static/og-cover.png"/>
   <meta name="twitter:card" content="summary_large_image"/>
 
-  <!-- GA4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-YNZ8GW523R');
-  </script>
 
   <!-- Assets -->
   <link rel="icon" href="static/favicon.png"/>
@@ -1945,5 +1937,27 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
     <script>document.getElementById('y').textContent=new Date().getFullYear();</script>
   </footer>
+
+  <!-- Google Analytics - nur nach Consent laden -->
+  <script>
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      if (localStorage.getItem(cookieKey) === 'accepted') {
+        const script1 = document.createElement('script');
+        script1.async = true;
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        document.head.appendChild(script1);
+        
+        const script2 = document.createElement('script');
+        script2.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-YNZ8GW523R');
+        `;
+        document.head.appendChild(script2);
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -1,14 +1,6 @@
 <!-- FILE: datenschutz.html -->
 <!doctype html>
 <html lang="de">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-YNZ8GW523R');
-  </script>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -434,6 +426,11 @@
               (z. B. für Anbieter-Pakete). In diesem Fall werden Zahlungsdaten direkt vom Zahlungsdienstleister
               verarbeitet; wir erhalten in der Regel keine vollständigen Zahlungsdetails.
             </li>
+            <li>
+              <strong>Google Analytics</strong> (nur nach Einwilligung): Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland; 
+              Muttergesellschaft: Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA. 
+              Zweck: Analyse der Websitenutzung, Reichweitenmessung. Datenübertragung in die USA erfolgt auf Basis der Standardvertragsklauseln.
+            </li>
           </ul>
 
           <h2>8. Datenübermittlung in Drittländer</h2>
@@ -634,6 +631,28 @@
       });
 
       updateAuthUI();
+    })();
+  </script>
+
+  <!-- Google Analytics - nur nach Consent laden -->
+  <script>
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      if (localStorage.getItem(cookieKey) === 'accepted') {
+        const script1 = document.createElement('script');
+        script1.async = true;
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        document.head.appendChild(script1);
+        
+        const script2 = document.createElement('script');
+        script2.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-YNZ8GW523R');
+        `;
+        document.head.appendChild(script2);
+      }
     })();
   </script>
 </body>
