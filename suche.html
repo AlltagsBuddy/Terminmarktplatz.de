@@ -996,52 +996,6 @@
         clearMarkers();
       }
 
-      // Buchen-Buttons - Mehrfacher Event-Handler für maximale Kompatibilität
-      // Verwende sowohl click, pointerup, touchstart und touchend
-      function handleBookingClick(e, btn) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const slotId = btn.getAttribute('data-book');
-        console.log('Booking button activated, slotId:', slotId);
-        if (slotId && typeof openBook === 'function') {
-          openBook(slotId);
-        } else {
-          console.error('openBook function not available or slotId missing');
-          alert('Buchungsfunktion nicht verfügbar. Bitte laden Sie die Seite neu.');
-        }
-        return false;
-      }
-      
-      // Event-Delegation auf Container mit mehreren Event-Typen
-      ['click', 'pointerup', 'touchend'].forEach(eventType => {
-        resultsContainer.addEventListener(eventType, function(e) {
-          const btn = e.target.closest('[data-book]');
-          if (btn) {
-            handleBookingClick(e, btn);
-          }
-        }, { passive: false, capture: true });
-      });
-      
-      // Zusätzlich: Direkte Listener auf Buttons (nach kurzer Verzögerung)
-      setTimeout(() => {
-        const bookButtons = resultsContainer.querySelectorAll('[data-book]');
-        bookButtons.forEach(btn => {
-          // Stelle sicher, dass Button klickbar ist
-          btn.style.pointerEvents = 'auto';
-          btn.style.cursor = 'pointer';
-          btn.style.position = 'relative';
-          btn.style.zIndex = '10';
-          
-          // Mehrere Event-Typen für maximale Kompatibilität
-          ['click', 'pointerup', 'touchend'].forEach(eventType => {
-            btn.addEventListener(eventType, function(e) {
-              handleBookingClick(e, this);
-            }, { passive: false });
-          });
-        });
-      }, 300);
-
       // Resort on change
       sortSel.onchange = () => load();
     }
@@ -1055,6 +1009,7 @@
     const bookForm = document.getElementById('book-form') || document.getElementById('book-form-fallback');
     const bookFormFallback = document.getElementById('book-form-fallback');
     
+    // openBook Funktion - vor Event-Listenern definieren
     function openBook(slotId){
       if (!slotId) {
         alert('Fehler: Keine Slot-ID gefunden.');
@@ -1098,19 +1053,42 @@
     }
     
     function closeBook(){ 
-      if (bookDialog) bookDialog.close();
-      if (bookModalMobile) bookModalMobile.style.display = 'none';
+      if (bookDialog) {
+        try {
+          bookDialog.close();
+        } catch (err) {
+          console.warn('Error closing dialog:', err);
+        }
+      }
+      if (bookModalMobile) {
+        bookModalMobile.style.display = 'none';
+        bookModalMobile.style.visibility = 'hidden';
+      }
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
+      document.body.style.height = '';
     }
     
-    // Event Listener für Mobile-Modal
+    // Event Listener für Mobile-Modal - Event-Delegation verwenden
     if (bookModalMobile) {
-      const cancelBtn = document.getElementById('book-cancel-mobile');
-      if (cancelBtn) cancelBtn.addEventListener('click', closeBook);
-      bookModalMobile.addEventListener('click', (e) => {
-        if (e.target === bookModalMobile) closeBook();
+      // Event-Delegation: Höre auf alle Clicks im Modal-Container
+      bookModalMobile.addEventListener('click', function(e) {
+        // Prüfe ob Abbrechen-Button geklickt wurde
+        const cancelBtn = e.target.closest('#book-cancel-mobile');
+        if (cancelBtn || e.target.id === 'book-cancel-mobile') {
+          e.preventDefault();
+          e.stopPropagation();
+          closeBook();
+          return false;
+        }
+        
+        // Schließen bei Klick auf Hintergrund (außerhalb des weißen Dialogs)
+        if (e.target === bookModalMobile) {
+          e.preventDefault();
+          closeBook();
+          return false;
+        }
       });
       
       const bookFormMobile = document.getElementById('book-form-mobile');
@@ -1153,14 +1131,28 @@
       }
     }
     
-    // Event Listener für Desktop-Dialog
+    // Event Listener für Desktop-Dialog - Event-Delegation verwenden
     if (bookDialog) {
-      const cancelBtn = document.getElementById('book-cancel');
-      if (cancelBtn) cancelBtn.addEventListener('click', closeBook);
-      bookDialog.addEventListener('click', (e) => {
-        if (e.target === bookDialog) closeBook();
+      // Event-Delegation für Abbrechen-Button und Hintergrund-Klick
+      bookDialog.addEventListener('click', function(e) {
+        // Prüfe ob Abbrechen-Button geklickt wurde
+        if (e.target.id === 'book-cancel' || e.target.closest('#book-cancel')) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeBook();
+          return false;
+        }
+        
+        // Schließen bei Klick auf Hintergrund
+        if (e.target === bookDialog) {
+          closeBook();
+        }
       });
-      bookDialog.addEventListener('cancel', closeBook);
+      
+      // ESC-Taste
+      bookDialog.addEventListener('cancel', function(e) {
+        closeBook();
+      });
       
       const bookForm = document.getElementById('book-form');
       if (bookForm) {
@@ -1200,6 +1192,23 @@
           }
         });
       }
+    }
+
+    // Event-Listener für Buchen-Buttons - NUR EINMAL registrieren (außerhalb von load())
+    const resultsContainer = document.getElementById('results');
+    if (resultsContainer) {
+      resultsContainer.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-book]');
+        if (btn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const slotId = btn.getAttribute('data-book');
+          if (slotId && typeof openBook === 'function') {
+            openBook(slotId);
+          }
+          return false;
+        }
+      }, true);
     }
 
     // Start
