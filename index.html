@@ -20,8 +20,21 @@
   <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
   <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
   <meta property="og:site_name" content="Terminmarktplatz">
-  <meta property="og:url" content="http://terminmarktplatz.de/">
-  <meta property="og:image" content="http://terminmarktplatz.de/static/og-cover.png">
+  <meta property="og:url" content="https://terminmarktplatz.de/">
+  <meta property="og:image" content="https://terminmarktplatz.de/static/og-cover.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="de_DE">
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://terminmarktplatz.de/">
+  
+  <!-- Weitere SEO Meta-Tags -->
+  <meta name="keywords" content="Terminmarktplatz, freie Termine, Terminbörse, Friseur Termine, Kosmetik Termine, Physiotherapie Termine, Termine finden, kurzfristige Termine, Terminlücken, Termin-Sofortbörse">
+  <meta name="author" content="Terminmarktplatz">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+  <meta name="bingbot" content="index, follow">
 
   <meta name="twitter:card" content="summary_large_image">
 
@@ -250,18 +263,60 @@
 
   </style>
 
-  <!-- Structured Data (mit http-URLs) -->
+  <!-- Structured Data (Schema.org) für bessere SEO -->
   <script type="application/ld+json">
 {
-  "@context":"https://schema.org",
-  "@type":"WebSite",
-  "name":"Terminmarktplatz",
-  "url":"http://terminmarktplatz.de/",
-  "potentialAction":{
-    "@type":"SearchAction",
-    "target":"http://terminmarktplatz.de/suche.html?q={q}",
-    "query-input":"required name=q"
-  }
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://terminmarktplatz.de/#website",
+      "url": "https://terminmarktplatz.de/",
+      "name": "Terminmarktplatz",
+      "description": "Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe – Friseur, Kosmetik, Therapie, Handwerk & mehr.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://terminmarktplatz.de/suche.html?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      },
+      "inLanguage": "de-DE"
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://terminmarktplatz.de/#organization",
+      "name": "Terminmarktplatz",
+      "url": "https://terminmarktplatz.de/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://terminmarktplatz.de/static/og-cover.png",
+        "width": 1200,
+        "height": 630
+      },
+      "sameAs": [],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "info@terminmarktplatz.de",
+        "contactType": "customer service",
+        "availableLanguage": "de"
+      }
+    },
+    {
+      "@type": "Service",
+      "serviceType": "Terminmarktplatz",
+      "provider": {
+        "@id": "https://terminmarktplatz.de/#organization"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Deutschland"
+      },
+      "description": "Plattform zum Finden und Buchen von kurzfristig freigewordenen Terminen bei Dienstleistern wie Friseuren, Kosmetikstudios, Physiotherapeuten, Handwerkern und mehr.",
+      "category": ["Terminbuchung", "Dienstleistungen", "Online-Marktplatz"]
+    }
+  ]
 }
   </script>
 </head>

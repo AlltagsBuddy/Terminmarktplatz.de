@@ -1,135 +1,100 @@
-<?xml version="1.0" encoding="UTF-8"?> 
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"> 
-<url>
-  <loc>http://terminmarktplatz.de/index.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/login.html?tab=login</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined--2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/anbieter-portal.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/anbieter-portal.html#step-3</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/kontakt.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/anbieter.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/suchende.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/preise.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/impressum.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/datenschutz.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/agb.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/widerruf.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/preise.html#pakete</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/login.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/technik.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/preise.html#benachrichtigungen</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/suche.html</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/login.html?tab=register</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/paket-buchen?plan=starter</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>http://terminmarktplatz.de/suchende.html#alarm</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>https://terminmarktplatz.de</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
-<url>
-  <loc>https://terminmarktplatz.de</loc>
-  <priority>0.5</priority>
-  <changefreq>daily</changefreq>
-  <lastmod>undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-undefined-2025-06-25</lastmod>
-</url>
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  
+  <!-- Startseite - Höchste Priorität -->
+  <url>
+    <loc>https://terminmarktplatz.de/</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Suche - Sehr wichtig -->
+  <url>
+    <loc>https://terminmarktplatz.de/suche.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- Für Suchende -->
+  <url>
+    <loc>https://terminmarktplatz.de/suchende.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Für Anbieter -->
+  <url>
+    <loc>https://terminmarktplatz.de/anbieter.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Preise -->
+  <url>
+    <loc>https://terminmarktplatz.de/preise.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Kategorien -->
+  <url>
+    <loc>https://terminmarktplatz.de/kategorien.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Kontakt -->
+  <url>
+    <loc>https://terminmarktplatz.de/kontakt.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- Login -->
+  <url>
+    <loc>https://terminmarktplatz.de/login.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Rechtliche Seiten -->
+  <url>
+    <loc>https://terminmarktplatz.de/impressum.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>https://terminmarktplatz.de/datenschutz.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>https://terminmarktplatz.de/agb.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>https://terminmarktplatz.de/widerruf.html</loc>
+    <lastmod>2025-12-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
 </urlset>

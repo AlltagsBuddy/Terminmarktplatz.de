@@ -1,0 +1,29 @@
+# robots.txt für Terminmarktplatz.de
+# Erlaubt Suchmaschinen das Crawling der gesamten Website
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://terminmarktplatz.de/sitemap.xml
+
+# Spezielle Regeln für wichtige Crawler
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# API-Endpunkte nicht crawlen
+Disallow: /api/
+Disallow: /auth/
+Disallow: /me
+Disallow: /slots
+Disallow: /alerts/
+
+# Admin-Bereiche nicht crawlen
+Disallow: /admin/
+
+# Crawl-Delay (optional, für freundlicheres Crawling)
+Crawl-delay: 1
+

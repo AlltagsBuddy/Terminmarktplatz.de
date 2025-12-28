@@ -40,6 +40,7 @@ from flask import (
     render_template,
     url_for,
     abort,
+    send_from_directory,
 )
 from flask_cors import CORS
 from argon2 import PasswordHasher
@@ -1421,6 +1422,12 @@ def favicon():
 @app.get("/robots.txt")
 def robots():
     return redirect(url_for("static", filename="robots.txt"), code=302)
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    """Sitemap für Suchmaschinen"""
+    return send_from_directory(app.root_path, "sitemap.xml", mimetype="application/xml")
 
 
 @app.get("/healthz")
