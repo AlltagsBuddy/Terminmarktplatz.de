@@ -4068,12 +4068,20 @@ def public_slots():
 
     with Session(engine) as s:
         origin_lat = origin_lon = None
-        if radius_km is not None and (zip_filter or city_q):
-            origin_lat, origin_lon = geocode_cached(
-                s,
-                zip_filter if zip_filter else None,
-                None if zip_filter else city_q,
-            )
+        # Umkreissuche funktioniert mit PLZ ODER Ort (Stadtname)
+        if radius_km is not None:
+            if zip_filter:
+                # PLZ hat Priorität
+                origin_lat, origin_lon = geocode_cached(s, zip_filter, None)
+            elif city_q:
+                # Falls keine PLZ, verwende Ortsname
+                origin_lat, origin_lon = geocode_cached(s, None, city_q)
+            elif location_raw:
+                # Fallback: versuche location_raw als PLZ oder Stadt
+                if location_raw.isdigit() and len(location_raw) == 5:
+                    origin_lat, origin_lon = geocode_cached(s, location_raw, None)
+                else:
+                    origin_lat, origin_lon = geocode_cached(s, None, location_raw)
 
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
@@ -4160,10 +4168,17 @@ def public_slots():
             if radius_km is not None:
                 if origin_lat is None or origin_lon is None:
                     continue
-                plat, plon = geocode_cached(s, p_zip, p_city)
+                
+                # Verwende zuerst Slot-Adresse, dann Provider-Adresse als Fallback
+                slot_zip = getattr(slot, "zip", None) or p_zip
+                slot_city = getattr(slot, "city", None) or p_city
+                
+                plat, plon = geocode_cached(s, slot_zip, slot_city)
                 if plat is None or plon is None:
                     continue
-                if _haversine_km(origin_lat, origin_lon, plat, plon) > radius_km:
+                    
+                distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
+                if distance_km > radius_km:
                     continue
 
             item = slot_to_json(slot)
