@@ -23,55 +23,48 @@
   <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Main CSS (mit Cache-Buster) -->
+  <!-- Main CSS -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Mobile-Optimierung & Menü-Styles -->
+  <!-- Page-spezifische Styles -->
   <style>
-    /* Grundlegende Begrenzung, damit mobil nichts horizontal scrollt */
     html, body {
       max-width: 100%;
       overflow-x: hidden;
     }
 
-    /* Standard: auth-in zunächst ausblenden – JS zeigt sie bei Login */
     .auth-in {
       display: none;
     }
 
-    /* Weißer Menü-Button wie auf agb/preise/suche */
     .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
     }
 
-    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts */
+    /* Header / Navigation */
     header .nav{
       display:flex;
       align-items:center;
       gap:16px;
     }
-
     header .brand{
       display:flex;
       align-items:center;
       gap:12px;
     }
-
-    /* Menü-Button direkt hinter „Terminmarktplatz“ */
     header .user-menu{
       display:block;
       position:relative;
       z-index:60;
-      margin-left:12px; /* Abstand hinter Brand */
+      margin-left:12px;
     }
-
-    /* Hauptnavigation rechtsbündig */
     header .nav-links{
       display:flex;
       gap:12px;
@@ -85,7 +78,72 @@
       margin-left:auto;
     }
 
-    /* NEU: Paket-CTA Block */
+    /* Hero-Erweiterungen */
+    .hero-stats {
+      display:flex;
+      gap:24px;
+      justify-content:center;
+      margin-top:24px;
+      flex-wrap:wrap;
+    }
+
+    .hero-stat {
+      text-align:center;
+    }
+
+    .hero-stat strong {
+      display:block;
+      font-size:28px;
+      font-weight:900;
+      background:linear-gradient(135deg, var(--c-pink), var(--c-cyan));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .hero-stat small {
+      display:block;
+      margin-top:4px;
+      color:var(--ink-dim);
+      font-size:14px;
+    }
+
+    /* Feature-Icons */
+    .feature-icon {
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      margin-bottom:12px;
+      background:linear-gradient(135deg, var(--c-purple), var(--c-cyan));
+    }
+
+    /* Benefits-Grid */
+    .benefits-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+      gap:20px;
+      margin-top:24px;
+    }
+
+    .benefit-card {
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius:var(--r-2xl);
+      padding:24px;
+      box-shadow:var(--shadow-1);
+      transition:transform .16s, box-shadow .16s;
+    }
+
+    .benefit-card:hover {
+      transform:translateY(-4px);
+      box-shadow:var(--shadow-2);
+    }
+
+    /* Alarm-CTA */
     .alarm-cta{
       margin-top:12px;
       display:flex;
@@ -101,8 +159,8 @@
       opacity:.9;
     }
 
+    /* Mobile-Optimierung */
     @media (max-width: 768px) {
-      /* Header / Navigation */
       header .nav {
         flex-wrap: wrap;
         gap: 8px;
@@ -114,14 +172,12 @@
         font-size: 1.05rem;
       }
 
-      /* Brand links, Menü rechts in der ersten Zeile */
       header .user-menu{
         margin-left:auto;
       }
 
-      /* Drei Links auch mobil sichtbar, zweite Zeile */
       header .nav-links {
-        display: flex;
+        display: flex !important;
         flex-wrap: wrap;
         justify-content: center;
         gap: 8px;
@@ -136,14 +192,12 @@
         padding: 4px 8px;
       }
 
-      /* CTA-Gruppe auf Mobile ausblenden (falls vorhanden) */
       .cta-group {
         display:none !important;
       }
 
-      /* Hero / Intro */
       .hero {
-        padding: 28px 0 16px !important;
+        padding: 32px 0 20px !important;
       }
 
       .hero h1 {
@@ -155,7 +209,14 @@
         font-size: 0.95rem;
       }
 
-      /* Suchkarte im Hero */
+      .hero-stats {
+        gap:16px;
+      }
+
+      .hero-stat strong {
+        font-size:24px;
+      }
+
       .search-card {
         padding: 12px;
       }
@@ -180,7 +241,11 @@
         justify-content: center;
       }
 
-      /* Ablauf ("So funktioniert's") */
+      .benefits-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
       .how {
         display: grid;
         grid-template-columns: 1fr;
@@ -191,15 +256,12 @@
         padding: 10px 12px;
       }
 
-      /* Vorteile-Karten */
-      .container.features,
       .features {
         display: grid;
         grid-template-columns: 1fr;
         gap: 12px;
       }
 
-      /* Ergebnisliste-Beispiel – auf schmalen Screens nicht als 4-Spalten-Zeile quetschen */
       .table [role="row"] {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -211,7 +273,6 @@
         grid-column: 1 / -1;
       }
 
-      /* Footer-Spalten untereinander */
       .foot-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -243,40 +304,31 @@
 <body>
   <!-- Header -->
   <header>
-    <div class="container nav"
-         role="navigation"
-         aria-label="Hauptnavigation">
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <!-- Logo / Brand -->
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="/static/terminmarktplatz-logo.png"
-               alt="Terminmarktplatz Logo"
-               width="50" height="50">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
+      <!-- User-Menü -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- nur sichtbar, wenn NICHT eingeloggt -->
           <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-          <!-- immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
 
-      <!-- Hauptnavigation rechts -->
+      <!-- Hauptnavigation -->
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
@@ -287,36 +339,32 @@
 
   <main>
     <!-- HERO -->
-    <section class="hero" style="padding:40px 0 18px">
+    <section class="hero">
       <div class="container">
         <span class="badge">Für Suchende</span>
         <h1>Freie Termine finden – ohne Anmeldung.</h1>
-        <br>
         <p class="lead">
           Suche spontan oder geplant nach freien Terminen in deiner Nähe.
           Wähle Kategorie, Ort, Datum und gewünschte Dauer – und buche direkt.
           <strong>Ohne Konto</strong>, mit E-Mail-Bestätigung.
         </p>
 
-        <!-- NEU: Hinweis + CTA zu Benachrichtigungen -->
-        <div class="panel" style="margin-top:14px">
-          <h3 style="margin:0 0 6px">Termin-Alarm: Benachrichtigungen, wenn etwas frei wird</h3>
-          <p class="muted" style="margin:0">
-            Du willst nicht dauernd nachsehen? Hol dir das Benachrichtigungspaket:
-            <strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
-          </p>
-          <div class="alarm-cta">
-            <a class="btn primary"
-               href="https://copecart.com/products/17de1924/checkout"
-               target="_blank" rel="noopener">
-              Benachrichtigungspaket buchen
-            </a>
-            <a class="btn" href="preise.html#benachrichtigungen">Details ansehen</a>
-            <span class="muted alarm-note">Nach dem Kauf wird dein Kontingent freigeschaltet.</span>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <strong>100%</strong>
+            <small>Kostenlos suchen</small>
+          </div>
+          <div class="hero-stat">
+            <strong>0 Min</strong>
+            <small>Anmeldung nötig</small>
+          </div>
+          <div class="hero-stat">
+            <strong>Direkt</strong>
+            <small>Buchbar ohne Konto</small>
           </div>
         </div>
 
-        <!-- Mini-Suchkarte (führt zu suche.html mit GET-Parametern) -->
+        <!-- Mini-Suchkarte -->
         <form class="search-card" action="suche.html" method="get" aria-label="Schnellsuche">
           <div class="searchbar">
             <div class="input">
@@ -329,16 +377,15 @@
             </div>
             <label class="input" aria-label="Umkreis">
               <select name="radius" id="f-radius" title="Umkreis um PLZ">
-                  <option value="">Umkreis (optional)</option>
-                  <option value="5">5 km</option>
-                  <option value="10">10 km</option>
-                  <option value="25">25 km</option>
-                  <option value="50">50 km</option>
-                  <option value="75">75 km</option>
-                  <option value="100">100 km</option>
+                <option value="">Umkreis</option>
+                <option value="5">5 km</option>
+                <option value="10">10 km</option>
+                <option value="25" selected>25 km</option>
+                <option value="50">50 km</option>
+                <option value="75">75 km</option>
+                <option value="100">100 km</option>
               </select>
             </label>
-
             <div class="input">
               <input type="date" name="day" />
             </div>
@@ -356,77 +403,178 @@
           </div>
           <div class="trust">Sichtbar nur verfügbare Slots – keine Karteileichen.</div>
         </form>
+
+        <!-- Benachrichtigungs-Hinweis -->
+        <div class="panel" style="margin-top:20px">
+          <h3 style="margin:0 0 8px; font-size:18px">🔔 Termin-Alarm: Benachrichtigungen, wenn etwas frei wird</h3>
+          <p class="muted" style="margin:0 0 12px">
+            Du willst nicht dauernd nachsehen? Hol dir das Benachrichtigungspaket:
+            <strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
+          </p>
+          <div class="alarm-cta">
+            <a class="btn primary" href="https://copecart.com/products/17de1924/checkout" target="_blank" rel="noopener">
+              Benachrichtigungspaket buchen
+            </a>
+            <a class="btn" href="preise.html#benachrichtigungen">Details ansehen</a>
+            <span class="muted alarm-note">Nach dem Kauf wird dein Kontingent freigeschaltet.</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Wie funktioniert die Suche ohne Anmeldung -->
+    <!-- Hauptvorteile -->
     <section>
       <div class="container">
-        <h2>So funktioniert’s ohne Anmeldung</h2>
-        <div class="how" style="margin-top:10px">
+        <h2>Warum Terminmarktplatz?</h2>
+        <div class="benefits-grid">
+          <div class="benefit-card">
+            <div class="feature-icon">🚀</div>
+            <h3>Sofort & kostenlos</h3>
+            <p class="muted">
+              Suche komplett kostenlos, ohne Anmeldung oder Konto. 
+              Nur wirklich freie Termine werden angezeigt – keine Wartezeit, keine versteckten Kosten.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">🎯</div>
+            <h3>Präzise Filterung</h3>
+            <p class="muted">
+              Filtere nach Kategorie, Ort, Datum und exakter Dauer. 
+              Finde genau den passenden Termin, der zu deiner gewünschten Leistung passt.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">📧</div>
+            <h3>E-Mail-Bestätigung</h3>
+            <p class="muted">
+              Buchungen werden per E-Mail bestätigt – einfach, sicher und zuverlässig. 
+              Kein kompliziertes System, keine App nötig.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">🔔</div>
+            <h3>Benachrichtigungen</h3>
+            <p class="muted">
+              Mit dem Benachrichtigungspaket wirst du sofort informiert, 
+              wenn neue passende Termine verfügbar werden. Nie wieder verpassen.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">📱</div>
+            <h3>Mobil optimiert</h3>
+            <p class="muted">
+              Funktioniert perfekt auf Smartphone, Tablet und Desktop. 
+              Suche und buche unterwegs – einfach und schnell.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">🔒</div>
+            <h3>DSGVO-konform</h3>
+            <p class="muted">
+              Deine Daten sind sicher. Hosting in der EU, klare Datenschutzerklärung, 
+              transparente Datenverarbeitung. Details siehe <a href="datenschutz.html" style="color:var(--c-blue)">Datenschutz</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- So funktioniert's -->
+    <section>
+      <div class="container">
+        <h2>So funktioniert's ohne Anmeldung</h2>
+        <div class="how" style="margin-top:24px">
           <div class="step">
             <b>1</b> Suchen<br>
-            <span class="muted">Wähle <strong>Kategorie</strong> (z. B. Friseur), gib <strong>PLZ/Ort</strong>, <strong>Datum</strong> und (optional) die <strong>Dauer</strong> der Leistung an.</span>
+            <span class="muted">
+              Wähle <strong>Kategorie</strong> (z. B. Friseur), gib <strong>PLZ/Ort</strong>, 
+              <strong>Datum</strong> und (optional) die <strong>Dauer</strong> der Leistung an.
+            </span>
           </div>
           <div class="step">
             <b>2</b> Slot wählen<br>
-            <span class="muted">Dir werden <strong>nur passende, freie Zeitfenster</strong> angezeigt – mit Titel, Dauer, Ort und optional Preis.</span>
+            <span class="muted">
+              Dir werden <strong>nur passende, freie Zeitfenster</strong> angezeigt – 
+              mit Titel, Dauer, Ort und optional Preis.
+            </span>
           </div>
           <div class="step">
             <b>3</b> Direkt buchen<br>
-            <span class="muted">Ohne Registrierung: Name & E-Mail eintragen, Bestätigungs-Link in der E-Mail anklicken – fertig.</span>
+            <span class="muted">
+              Ohne Registrierung: Name & E-Mail eintragen, Bestätigungs-Link in der E-Mail anklicken – fertig.
+            </span>
           </div>
           <div class="step">
             <b>4</b> Erinnerungen & Alarm<br>
             <span class="muted">
               Du erhältst eine Buchungsbestätigung und (optional) eine Erinnerung vor dem Termin.
-              Extra: Mit dem <strong>Benachrichtigungspaket</strong> bekommst du Alerts, sobald neue passende Slots online gehen.
-              <a href="https://copecart.com/products/17de1924/checkout" target="_blank" rel="noopener">Paket buchen</a>.
+              Extra: Mit dem <strong>Benachrichtigungspaket</strong> bekommst du Alerts, 
+              sobald neue passende Slots online gehen.
             </span>
           </div>
         </div>
 
-        <div class="panel" style="margin-top:16px">
+        <div class="panel" style="margin-top:24px">
           <p class="muted">
             <strong>Wichtig:</strong> Deine E-Mail wird nur für die Buchung verwendet. Es gibt kein Pflicht-Konto.
             Wenn ein Anbieter statt Direktbuchung lieber einen <em>externen Link</em> nutzt, führen wir dich dorthin.
           </p>
         </div>
+
+        <div style="margin-top:24px; text-align:center">
+          <a class="btn primary" href="suche.html">Jetzt Termine suchen</a>
+        </div>
       </div>
     </section>
 
-    <!-- Vorteile für Suchende -->
+    <!-- Features -->
     <section>
-      <div class="container features">
-        <div class="card">
-          <h3>Sofort & transparent</h3>
-          <p class="muted">Nur wirklich freie Slots – gefiltert nach Dauer, Datum und Nähe. Keine versteckten Gebühren.</p>
-        </div>
-        <div class="card">
-          <h3>Kein Konto nötig</h3>
-          <p class="muted">Buchen mit E-Mail-Bestätigung. Auf Wunsch später Konto anlegen, um Buchungen zu verwalten.</p>
-        </div>
-        <div class="card">
-          <h3>DSGVO & EU-Hosting</h3>
-          <p class="muted">Datensparsam, klare Hinweise, Server in der EU. Details siehe <a href="datenschutz.html">Datenschutz</a>.</p>
+      <div class="container">
+        <h2>Features für Suchende</h2>
+        <div class="features" style="margin-top:24px">
+          <div class="card">
+            <h3>⚡ Sofort & transparent</h3>
+            <p class="muted">
+              Nur wirklich freie Slots – gefiltert nach Dauer, Datum und Nähe. 
+              Keine versteckten Gebühren, keine Wartezeit.
+            </p>
+          </div>
+          <div class="card">
+            <h3>🚫 Kein Konto nötig</h3>
+            <p class="muted">
+              Buchen mit E-Mail-Bestätigung. Auf Wunsch später Konto anlegen, 
+              um Buchungen zu verwalten – aber nicht erforderlich.
+            </p>
+          </div>
+          <div class="card">
+            <h3>🔐 DSGVO & EU-Hosting</h3>
+            <p class="muted">
+              Datensparsam, klare Hinweise, Server in der EU. 
+              Details siehe <a href="datenschutz.html" style="color:var(--c-blue)">Datenschutz</a>.
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- NEU: eigener Abschnitt „Benachrichtigungspaket“ -->
+    <!-- Benachrichtigungspaket -->
     <section id="benachrichtigungen">
       <div class="container">
         <div class="panel">
           <h2>Benachrichtigungspaket für Suchende</h2>
-          <p class="muted">
+          <p class="muted" style="margin-bottom:16px">
             Wenn du bestimmte Kategorien/Orte im Blick hast, kannst du dich benachrichtigen lassen,
-            sobald passende Slots verfügbar werden.
+            sobald passende Slots verfügbar werden. Perfekt, wenn du regelmäßig nach Terminen suchst 
+            oder einen speziellen Anbieter im Auge hast.
             <br><strong>10 Benachrichtigungen (E-Mail/SMS) = 1,99&nbsp;€</strong>.
           </p>
-          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
-            <a class="btn primary"
-               href="https://copecart.com/products/17de1924/checkout"
-               target="_blank" rel="noopener">
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <a class="btn primary" href="https://copecart.com/products/17de1924/checkout" target="_blank" rel="noopener">
               Benachrichtigungspaket buchen
             </a>
             <a class="btn" href="preise.html">Preise ansehen</a>
@@ -435,11 +583,11 @@
       </div>
     </section>
 
-    <!-- Beispiel: Ergebnisliste (statisch als Demo) -->
+    <!-- Beispiel: Ergebnisliste -->
     <section>
       <div class="container">
         <h2>So sieht eine Ergebnisliste aus</h2>
-        <div class="table" role="table" aria-label="Beispielhafte Trefferliste">
+        <div class="table" role="table" aria-label="Beispielhafte Trefferliste" style="margin-top:24px">
           <div role="rowgroup">
             <div role="row" class="muted" style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:0 8px; padding:12px 14px; background:rgba(255,255,255,.06); font-weight:800;">
               <div role="columnheader">Titel</div>
@@ -463,10 +611,10 @@
             </div>
           </div>
         </div>
-        <p class="muted" style="margin-top:10px">
+        <p class="muted" style="margin-top:16px">
           Ein Klick auf einen Treffer öffnet die Detailansicht – dort kannst du direkt buchen oder den Kontaktweg wählen.
         </p>
-        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+        <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
           <a class="btn primary" href="suche.html">Zur Suche</a>
           <a class="btn" href="login.html?tab=register">Anbieter vorschlagen</a>
         </div>
@@ -477,27 +625,50 @@
     <section>
       <div class="container">
         <h2>Häufige Fragen</h2>
-        <div class="faq">
+        <div class="faq" style="margin-top:24px">
           <details>
             <summary>Brauche ich ein Konto zum Buchen?</summary>
-            <p class="muted">Nein. Du buchst ohne Anmeldung. Wir senden dir einen Bestätigungs-Link per E-Mail. Erst nach Klick ist die Buchung fix.</p>
+            <p class="muted">
+              Nein, absolut nicht! Du buchst ohne Anmeldung. Wir senden dir einen Bestätigungs-Link per E-Mail. 
+              Erst nach Klick auf den Link ist die Buchung fix. Kein Konto erforderlich – einfach und schnell.
+            </p>
           </details>
           <details>
             <summary>Warum muss ich meine E-Mail bestätigen?</summary>
-            <p class="muted">Damit Termine nicht versehentlich oder missbräuchlich gebucht werden. Außerdem können wir dich so erinnern oder informieren, falls sich etwas ändert.</p>
+            <p class="muted">
+              Die E-Mail-Bestätigung verhindert, dass Termine versehentlich oder missbräuchlich gebucht werden. 
+              Außerdem können wir dich so erinnern oder informieren, falls sich etwas ändert. 
+              Deine E-Mail wird nur für die Buchung verwendet.
+            </p>
           </details>
           <details>
             <summary>Was passiert mit meinen Daten?</summary>
-            <p class="muted">Wir speichern nur, was für die Buchung nötig ist, und löschen Daten gemäß unserer <a href="datenschutz.html">Datenschutzerklärung</a>.</p>
+            <p class="muted">
+              Wir speichern nur, was für die Buchung nötig ist, und löschen Daten gemäß unserer 
+              <a href="datenschutz.html" style="color:var(--c-blue)">Datenschutzerklärung</a>. 
+              Hosting erfolgt in der EU, deine Daten sind sicher.
+            </p>
           </details>
           <details>
             <summary>Kann ich eine Buchung stornieren?</summary>
-            <p class="muted">Ja. Im Bestätigungs-Mail findest du einen Storno-Link. Beachte ggf. Stornofristen des Anbieters.</p>
+            <p class="muted">
+              Ja, selbstverständlich! Im Bestätigungs-Mail findest du einen Storno-Link. 
+              Beachte ggf. Stornofristen des Anbieters – diese werden dir bei der Buchung mitgeteilt.
+            </p>
+          </details>
+          <details>
+            <summary>Was ist das Benachrichtigungspaket?</summary>
+            <p class="muted">
+              Mit dem Benachrichtigungspaket (1,99€ für 10 Benachrichtigungen) wirst du per E-Mail oder SMS 
+              informiert, sobald neue passende Termine verfügbar werden. Perfekt, wenn du regelmäßig 
+              nach bestimmten Kategorien oder Orten suchst. <a href="preise.html#benachrichtigungen" style="color:var(--c-blue)">Mehr Details</a>.
+            </p>
           </details>
         </div>
 
-        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+        <div style="margin-top:32px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
           <a class="btn primary" href="suche.html">Jetzt freie Termine suchen</a>
+          <a class="btn" href="preise.html">Preise & Pakete</a>
         </div>
       </div>
     </section>
@@ -517,19 +688,19 @@
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-        <a class="foot-link" href="/anbieter.html">Für Anbieter</a>
-        <a class="foot-link" href="/suchende.html">Für Suchende</a>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
-        <a class="foot-link" href="/impressum.html">Impressum</a>
-        <a class="foot-link" href="/datenschutz.html">Datenschutz</a>
-        <a class="foot-link" href="/agb.html">AGB</a>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
-        <a class="foot-link" href="/kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
@@ -540,7 +711,7 @@
     // Footer-Jahr
     document.getElementById('y').textContent = new Date().getFullYear();
 
-    // User-Menü Logik (mobil) inkl. Auth-Status – EINMAL, sauber
+    // User-Menü Logik
     (function(){
       const APIforMenu = ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
 
