@@ -23,12 +23,13 @@
   <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Main CSS (mit Cache-Buster) -->
+  <!-- Main CSS -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-  <!-- Page-spezifische Mobile-Optimierung + HEADER / USER-MENÜ FIX -->
+  <!-- Page-spezifische Styles -->
   <style>
     .user-menu .btn {
       background:#ffffff !important;
@@ -38,10 +39,7 @@
       background-image:none !important;
     }
 
-    /* ===================================================
-       HEADER / USER-MENÜ – Menü direkt hinter Brand
-       (gleiches Muster wie anbieter-portal.html)
-       =================================================== */
+    /* Header / Navigation */
     header .nav{
       display:flex;
       align-items:center;
@@ -56,10 +54,9 @@
       display:block;
       position:relative;
       z-index:60;
-      margin-left:12px; /* direkt hinter "Terminmarktplatz" */
+      margin-left:12px;
     }
 
-    /* Desktop: Nav-Links nach rechts schieben */
     @media (min-width:769px){
       header .nav{
         justify-content:flex-start;
@@ -72,7 +69,6 @@
       }
     }
 
-    /* Mobile: Brand links, Menü rechts, Links darunter */
     @media (max-width:768px){
       header .nav{
         flex-wrap:wrap;
@@ -101,13 +97,83 @@
       }
     }
 
-    /* ===================================================
-       Seiten-spezifische Mobile-Optimierung
-       =================================================== */
+    /* Hero-Erweiterungen */
+    .hero-actions {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:16px;
+    }
+
+    .hero-stats {
+      display:flex;
+      gap:24px;
+      justify-content:center;
+      margin-top:32px;
+      flex-wrap:wrap;
+    }
+
+    .hero-stat {
+      text-align:center;
+    }
+
+    .hero-stat strong {
+      display:block;
+      font-size:28px;
+      font-weight:900;
+      background:linear-gradient(135deg, var(--c-pink), var(--c-cyan));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .hero-stat small {
+      display:block;
+      margin-top:4px;
+      color:var(--ink-dim);
+      font-size:14px;
+    }
+
+    /* Feature-Icons */
+    .feature-icon {
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      margin-bottom:12px;
+      background:linear-gradient(135deg, var(--c-purple), var(--c-cyan));
+    }
+
+    /* Benefits-Grid */
+    .benefits-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+      gap:20px;
+      margin-top:24px;
+    }
+
+    .benefit-card {
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius:var(--r-2xl);
+      padding:24px;
+      box-shadow:var(--shadow-1);
+      transition:transform .16s, box-shadow .16s;
+    }
+
+    .benefit-card:hover {
+      transform:translateY(-4px);
+      box-shadow:var(--shadow-2);
+    }
+
+    /* Mobile-Optimierung */
     @media (max-width: 768px) {
-      /* HERO */
       .hero {
-        padding: 28px 0 16px !important;
+        padding: 32px 0 20px !important;
       }
 
       .hero h1 {
@@ -119,15 +185,24 @@
         font-size: 0.96rem;
       }
 
-      /* Hero-Buttons: vollbreit untereinander */
-      .hero .btn {
-        min-width: 0;
-        flex: 1 1 100%;
-        text-align: center;
-        justify-content: center;
+      .hero-actions {
+        flex-direction:column;
+        align-items:stretch;
       }
 
-      /* Provider-CTA Bereich */
+      .hero-actions .btn {
+        width:100%;
+        justify-content:center;
+      }
+
+      .hero-stats {
+        gap:16px;
+      }
+
+      .hero-stat strong {
+        font-size:24px;
+      }
+
       .cta-provider {
         display: flex;
         flex-direction: column;
@@ -138,23 +213,17 @@
         width: 100%;
       }
 
-      .cta-provider .grid-2 {
-        display: grid;
+      .benefits-grid {
         grid-template-columns: 1fr;
+        gap: 12px;
       }
 
-      .cta-provider ul {
-        padding-left: 18px;
-      }
-
-      /* Features-Karten untereinander */
       .features {
         display: grid;
         grid-template-columns: 1fr;
         gap: 12px;
       }
 
-      /* Ablauf-Kacheln untereinander */
       .how {
         display: flex;
         flex-direction: column;
@@ -165,20 +234,14 @@
         padding: 10px 12px;
       }
 
-      /* FAQ etwas kompakter */
       .faq details summary {
         font-size: 0.95rem;
       }
 
-      /* Footer-Spalten stapeln */
       .foot-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: 16px;
-      }
-
-      .foot-col {
-        margin-top: 4px;
       }
     }
   </style>
@@ -187,40 +250,31 @@
 <body>
   <!-- Header -->
   <header>
-    <div class="container nav"
-         role="navigation"
-         aria-label="Hauptnavigation">
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
       <!-- Logo / Brand -->
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
-          <img src="/static/terminmarktplatz-logo.png"
-               alt="Terminmarktplatz Logo"
-               width="50" height="50">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
         </div>
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
+      <!-- User-Menü -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- nur sichtbar, wenn NICHT eingeloggt -->
           <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-
-          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-
-          <!-- immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
         </div>
       </div>
 
-      <!-- Hauptnavigation rechts -->
+      <!-- Hauptnavigation -->
       <nav class="nav-links">
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
@@ -231,29 +285,168 @@
 
   <main>
     <!-- HERO -->
-    <section class="hero" style="padding:40px 0 20px">
+    <section class="hero">
       <div class="container">
         <span class="badge">Für Anbieter:innen</span>
-        <h1>Lücken füllen statt Umsatz verlieren.</h1><br>
-        <p class="lead">Veröffentliche freie Zeiten in Sekunden – sichtbar für Menschen, die genau dann Zeit haben. </p><br>  
+        <h1>Lücken füllen statt Umsatz verlieren.</h1>
+        <p class="lead">
+          Veröffentliche freie Zeiten in Sekunden – sichtbar für Menschen, die genau dann Zeit haben. 
+          Ohne komplizierte Einrichtung, ohne Abo-Pflicht, einfach und direkt.
+        </p>
         
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+        <div class="hero-actions">
           <a class="btn primary" href="login.html">Jetzt kostenlos starten</a>
           <a class="btn" href="preise.html">Preise ansehen</a>
           <a class="btn" href="technik.html">Technik & Integration</a>
         </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <strong>0€</strong>
+            <small>Bis zur ersten Buchung</small>
+          </div>
+          <div class="hero-stat">
+            <strong>3 Slots</strong>
+            <small>Gratis pro Monat</small>
+          </div>
+          <div class="hero-stat">
+            <strong>DSGVO</strong>
+            <small>Konform & EU-Hosting</small>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- PROVIDER CTA -->
+    <!-- Hauptvorteile -->
+    <section>
+      <div class="container">
+        <h2>Warum Terminmarktplatz?</h2>
+        <div class="benefits-grid">
+          <div class="benefit-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Sofort online</h3>
+            <p class="muted">
+              Slots in unter 60 Sekunden veröffentlicht – keine langwierige Einrichtung, 
+              keine komplizierte Konfiguration. Einfach loslegen.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">💰</div>
+            <h3>Keine versteckten Kosten</h3>
+            <p class="muted">
+              Kostenlos starten, nur bei Erfolg zahlen. 3 Slots pro Monat gratis, 
+              danach kleine Provision nur bei erfolgreicher Buchung.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">📧</div>
+            <h3>Weniger No-Shows</h3>
+            <p class="muted">
+              Automatische Bestätigungs- und Erinnerungs-E-Mails reduzieren 
+              Ausfälle deutlich und sorgen für zuverlässigere Termine.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">🔗</div>
+            <h3>Flexible Integration</h3>
+            <p class="muted">
+              Nutze bestehende Systeme weiter oder integriere per Link, 
+              Button oder API. Du behältst die volle Kontrolle.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">📅</div>
+            <h3>Kalender-Sync</h3>
+            <p class="muted">
+              Synchronisiere mit Google Calendar, Outlook oder iCal. 
+              Keine doppelte Buchungen, alles bleibt übersichtlich.
+            </p>
+          </div>
+
+          <div class="benefit-card">
+            <div class="feature-icon">🔒</div>
+            <h3>DSGVO-konform</h3>
+            <p class="muted">
+              Hosting in der EU, klare Datenschutzerklärung, 
+              transparente Datenverarbeitung. Alles rechtskonform.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- So funktioniert's -->
+    <section>
+      <div class="container">
+        <h2>So einfach funktioniert's</h2>
+        <div class="how" style="margin-top:24px">
+          <div class="step">
+            <b>1</b> Konto anlegen<br>
+            <span class="muted">E-Mail bestätigen, Profil ausfüllen – dauert 2 Minuten</span>
+          </div>
+          <div class="step">
+            <b>2</b> Slot erfassen<br>
+            <span class="muted">Titel, Kategorie, Start & Dauer, optional Preis/Ort/Kontakt</span>
+          </div>
+          <div class="step">
+            <b>3</b> Veröffentlichen<br>
+            <span class="muted">Kurz prüfen, auf "Veröffentlichen" klicken – fertig!</span>
+          </div>
+          <div class="step">
+            <b>4</b> Buchungen erhalten<br>
+            <span class="muted">Per Mail, Telefon oder externem Link – du entscheidest</span>
+          </div>
+        </div>
+
+        <div style="margin-top:32px; text-align:center">
+          <a class="btn primary" href="login.html">Jetzt kostenlos starten</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features & Technik -->
+    <section>
+      <div class="container">
+        <h2>Features & Technik</h2>
+        <div class="features" style="margin-top:24px">
+          <div class="card">
+            <h3>📅 Kalender & Website</h3>
+            <p class="muted">
+              iCal/Google/Outlook-Sync, Einbettung per Link oder Button. 
+              API/Webhooks für fortgeschrittene Workflows und eigene Integrationen.
+            </p>
+          </div>
+          <div class="card">
+            <h3>📊 Status & Duplikate</h3>
+            <p class="muted">
+              Slots duplizieren, archivieren, exportieren. Volle Transparenz über 
+              veröffentlichte Zeiten und Buchungsstatus auf einen Blick.
+            </p>
+          </div>
+          <div class="card">
+            <h3>🔐 DSGVO & EU-Hosting</h3>
+            <p class="muted">
+              Opt-ins, klare Benachrichtigungen und Server in der EU. 
+              Details siehe <a href="datenschutz.html" style="color:var(--c-blue)">Datenschutz</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Provider -->
     <section>
       <div class="container cta-provider">
         <div class="panel">
-          <h2>Für Anbieter:innen: Lücken füllen statt Umsatz verlieren</h2>
+          <h2>Lücken füllen statt Umsatz verlieren</h2>
           <p class="sub">Freie Zeiten in Sekunden veröffentlichen – ohne Abo, DSGVO-konform und mit EU-Hosting.</p>
 
           <div class="grid-2">
-            <ul>
+            <ul style="list-style:none; padding:0; margin:0; display:grid; gap:10px">
               <li>✔️ No-Shows reduzieren durch Bestätigungs- & Erinnerungs-Mails</li>
               <li>✔️ Smarte Preissteuerung (Last-Minute-Rabatte optional)</li>
               <li>✔️ Kalender-Sync (iCal/Google/Outlook) & Webhooks/API</li>
@@ -263,55 +456,26 @@
             </ul>
           </div>
 
-          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap">
+          <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap">
             <a class="btn primary" href="login.html">Jetzt Anbieter:in werden</a>
+            <a class="btn" href="preise.html">Preise im Detail</a>
           </div>
         </div>
 
         <div class="panel">
           <h3>Buchungsdauer passend zur Leistung</h3>
-          <p class="muted"><br>
+          <p class="muted">
             Damit Zeitblöcke wirklich passen: Beim Veröffentlichen gibst du Leistung & Dauer an
-            (z.&nbsp;B. „Waschen-Schneiden-Föhnen 60′ “, „Farbe 120′ “). Die Suche zeigt nur Slots,
-            die zur gewünschten Dauer passen.
+            (z.&nbsp;B. „Waschen-Schneiden-Föhnen 60′ " oder „Farbe 120′ "). Die Suche zeigt nur Slots,
+            die zur gewünschten Dauer passen – keine falschen Erwartungen, keine enttäuschten Kunden.
           </p>
-          <div class="card" style="margin-top:10px">
-            <b>Beispiel</b>
-            <p class="muted">
-              Slot 60′ → sichtbar für: Haarschnitt <br> <i>nicht sichtbar</i> für: Farbe 120′
+          <div class="card" style="margin-top:16px; background:#fff; border:1px solid var(--border); color:var(--fg)">
+            <b style="color:var(--fg)">Beispiel</b>
+            <p class="muted" style="color:var(--text-2); margin-top:8px">
+              Slot 60′ → sichtbar für: Haarschnitt <br> 
+              <i>nicht sichtbar</i> für: Farbe 120′
             </p>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Ablauf für Anbieter -->
-    <section>
-      <div class="container">
-        <h2>So einfach funktioniert’s</h2>
-        <div class="how" style="margin-top:10px">
-          <div class="step"><b>1</b> Konto anlegen<br><span class="muted">E-Mail bestätigen, Profil ausfüllen</span></div>
-          <div class="step"><b>2</b> Slot erfassen<br><span class="muted">Titel, Kategorie, Start & Dauer, optional Preis/Ort/Kontakt</span></div>
-          <div class="step"><b>3</b> Freigabe<br><span class="muted">Kurz prüfen & veröffentlichen</span></div>
-          <div class="step"><b>4</b> Buchungen erhalten<br><span class="muted">Per Mail, Telefon oder externem Link – du entscheidest</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features / Technik -->
-    <section>
-      <div class="container features">
-        <div class="card">
-          <h3>Kalender & Website</h3>
-          <p class="muted">iCal/Google/Outlook-Sync, Einbettung per Link oder Button. API/Webhooks für fortgeschrittene Workflows.</p>
-        </div>
-        <div class="card">
-          <h3>Status & Duplikate</h3>
-          <p class="muted">Slots duplizieren, archivieren, exportieren. Volle Transparenz über veröffentlichte Zeiten.</p>
-        </div>
-        <div class="card">
-          <h3>DSGVO & EU-Hosting</h3>
-          <p class="muted">Opt-ins, klare Benachrichtigungen und EU-Server. Details siehe <a href="datenschutz.html">Datenschutz</a>.</p>
         </div>
       </div>
     </section>
@@ -320,24 +484,52 @@
     <section>
       <div class="container">
         <h2>Häufige Fragen</h2>
-        <div class="faq">
+        <div class="faq" style="margin-top:24px">
           <details>
             <summary>Kann ich bestehende Buchungssysteme weiter nutzen?</summary>
-            <p class="muted">Ja. Wähle beim Slot den Kontaktweg „Externer Link“ und verweise auf dein System. Alternativ Mail/Telefon.</p>
+            <p class="muted">
+              Ja, absolut! Wähle beim Slot den Kontaktweg „Externer Link" und verweise auf dein System. 
+              Alternativ kannst du auch Mail oder Telefon als Kontaktweg wählen. Terminmarktplatz 
+              ergänzt deine bestehende Infrastruktur, ersetzt sie nicht.
+            </p>
           </details>
           <details>
             <summary>Wie reduziere ich No-Shows?</summary>
-            <p class="muted">Bestätigungs- und Erinnerungs-E-Mails senken Ausfälle signifikant. Optional lässt sich eine Anzahlung ergänzen.</p>
+            <p class="muted">
+              Bestätigungs- und Erinnerungs-E-Mails senken Ausfälle signifikant. Unsere automatischen 
+              Benachrichtigungen sorgen dafür, dass deine Kunden ihre Termine nicht vergessen. 
+              Optional lässt sich auch eine Anzahlung ergänzen.
+            </p>
           </details>
           <details>
             <summary>Welche Daten sehen Kund:innen?</summary>
-            <p class="muted">Titel, Dauer, Kategorie, Ort (optional), Preis (optional) und Kontaktweg. Du behältst die Kontrolle.</p>
+            <p class="muted">
+              Titel, Dauer, Kategorie, Ort (optional), Preis (optional) und Kontaktweg. 
+              Du behältst die volle Kontrolle über die Sichtbarkeit deiner Daten. 
+              Persönliche Informationen werden nicht geteilt.
+            </p>
+          </details>
+          <details>
+            <summary>Was kostet die Nutzung?</summary>
+            <p class="muted">
+              Die ersten 3 Slots pro Monat sind komplett kostenlos. Danach zahlst du nur eine 
+              kleine Provision bei erfolgreicher Buchung. Keine monatliche Grundgebühr, 
+              keine versteckten Kosten. Details findest du auf der <a href="preise.html" style="color:var(--c-blue)">Preisseite</a>.
+            </p>
+          </details>
+          <details>
+            <summary>Funktioniert das auch mobil?</summary>
+            <p class="muted">
+              Ja, Terminmarktplatz ist vollständig mobil optimiert. Du kannst Slots auch 
+              unterwegs vom Smartphone aus erstellen und verwalten. Einfach, schnell und intuitiv.
+            </p>
           </details>
         </div>
 
-        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+        <div style="margin-top:32px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
           <a class="btn primary" href="login.html">Jetzt starten</a>
           <a class="btn" href="preise.html">Preise ansehen</a>
+          <a class="btn" href="kontakt.html">Fragen? Kontakt aufnehmen</a>
         </div>
       </div>
     </section>
@@ -382,7 +574,7 @@
     if (yEl) yEl.textContent = new Date().getFullYear();
   </script>
 
-  <!-- User-Menü Logik (gleich wie auf den anderen Seiten) -->
+  <!-- User-Menü Logik -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -406,12 +598,11 @@
       document.addEventListener('click', ()=> openMenu(false));
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
 
-      // Login-Status prüfen und Menü-Einträge steuern
       async function updateAuthUI(){
         let loggedIn = false;
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
-          loggedIn = res.ok; // 200 = eingeloggt
+          loggedIn = res.ok;
         }catch(e){
           loggedIn = false;
         }
@@ -453,7 +644,6 @@
         }
       });
 
-      // Direkt beim Laden prüfen
       updateAuthUI();
     })();
   </script>
