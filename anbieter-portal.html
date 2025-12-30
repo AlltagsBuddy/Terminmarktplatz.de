@@ -611,6 +611,10 @@
             <h2 style="margin:0">Meine Slots</h2>
             <div class="slot-filter">
               <input id="slot-search" type="text" placeholder="Suche Titel oder Kategorie …">
+              <div class="seg" style="gap:8px">
+                <button class="btn" id="btn-show-active" data-filter="active">Aktive Termine</button>
+                <button class="btn" id="btn-show-archived" data-filter="archived">Archivierte Termine</button>
+              </div>
               <div class="seg">
                 <label class="check">
                   <input type="checkbox" id="chk-all"> Alle auswählen
@@ -1486,6 +1490,8 @@
         const isDraft    = rawStatus === 'DRAFT';
         const isPublished= rawStatus === 'PUBLISHED';
         const isCanceled = rawStatus === 'CANCELED';
+        const isExpired  = rawStatus === 'EXPIRED';
+        const isArchived = s.archived === true;
 
         const endDate = s.end_at ? parseApiDate(s.end_at) : null;
         const isPast  = !!(endDate && endDate < now);
@@ -1500,12 +1506,13 @@
         const isBooked    = bookedCount > 0;
 
         const stClass =
-          isPublished ? 'st-pub'
+          isArchived ? 'st-arch'
+          : isPublished ? 'st-pub'
           : isCanceled ? 'st-canceled'
           : 'st-pending';
 
-        const canPublish = isDraft;
-        const canEdit = !isCanceled && !isBooked;
+        const canPublish = isDraft && !isArchived;
+        const canEdit = !isCanceled && !isBooked && !isArchived;
 
         let rowClass = '';
         if (isPast) rowClass += ' slot-past';
@@ -1591,7 +1598,7 @@
           `;
         }
 
-        const statusLabelMap = { DRAFT:'Entwurf', PUBLISHED:'Veröffentlicht', CANCELED:'Storniert' };
+        const statusLabelMap = { DRAFT:'Entwurf', PUBLISHED:'Veröffentlicht', CANCELED:'Storniert', EXPIRED:'Abgelaufen' };
         const statusLabel = statusLabelMap[rawStatus] || (s.status || '');
 
         // ✅ Anzeige-Ort robust (DB-Felder > location)
@@ -1610,10 +1617,11 @@
           <td data-label="Kapazität">${capacity}</td>
           <td data-label="Status"><span class="badge-st ${stClass}">${statusLabel}</span></td>
           <td data-label="Aktionen" class="nowrap">
-            ${canPublish ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : ''}
-            ${isPublished ? `<button class="btn" data-arch="${s.id}" data-status="DRAFT">Archivieren</button>` : ''}
-            ${canEdit ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : ''}
-            <button class="btn danger" data-del="${s.id}">Löschen</button>
+            ${canPublish && !isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : ''}
+            ${isPublished && !isArchived ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : ''}
+            ${canEdit && !isArchived ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : ''}
+            ${!isArchived ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : ''}
+            ${isArchived ? `<span class="muted" style="font-size:12px">Archiviert</span>` : ''}
             ${cancelHtml}
           </td>
         `;
@@ -1638,6 +1646,13 @@
       $$('#tbl-slots [data-arch]').forEach(b =>
         b.addEventListener('click', async ()=>{
           await setStatus(b.dataset.arch, b.dataset.status);
+          await loadSlots();
+        })
+      );
+
+      $$('#tbl-slots [data-archive]').forEach(b =>
+        b.addEventListener('click', async ()=>{
+          await archiveSlot(b.dataset.archive);
           await loadSlots();
         })
       );
@@ -1685,8 +1700,10 @@
       updateBulkButtons(items);
     }
 
+    let CURRENT_FILTER = 'active'; // 'active' oder 'archived'
+
     async function loadSlots(){
-      hideSlotLimitAlert(); // ✅ FIX: Alert nicht „kleben“ lassen
+      hideSlotLimitAlert(); // ✅ FIX: Alert nicht „kleben" lassen
       const tbody = $('#tbl-slots tbody');
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Lade …</td></tr>`;
       SELECTED.clear();
@@ -1694,7 +1711,10 @@
       if (master) master.checked = false;
 
       try{
-        const r = await fetch(`${API}/slots`, {credentials:'include'});
+        const url = CURRENT_FILTER === 'archived' 
+          ? `${API}/slots?archived=true`
+          : `${API}/slots?archived=false`;
+        const r = await fetch(url, {credentials:'include'});
         if(!r.ok){
           tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`;
           return;
@@ -1703,6 +1723,22 @@
         renderTable(LAST_ITEMS);
       }catch(e){
         tbody.innerHTML = `<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>`;
+      }
+    }
+
+    async function archiveSlot(id){
+      if(!confirm('Diesen Slot wirklich archivieren? Archivierte Termine können nicht mehr bearbeitet werden.')) return;
+      try{
+        const r = await fetch(`${API}/slots/${id}/archive`, {method:'POST', credentials:'include'});
+        if(!r.ok){
+          const data = await r.json().catch(() => ({}));
+          showMsg('msg-slots', data.error ? `Konnte Slot nicht archivieren: ${data.error}` : 'Konnte Slot nicht archivieren.');
+        } else {
+          showMsg('msg-slots', 'Slot wurde archiviert.', true);
+          await loadSlots();
+        }
+      }catch(e){
+        showMsg('msg-slots','Netzwerkfehler.');
       }
     }
 
@@ -1817,6 +1853,31 @@
       await loadSlots();
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
+
+    // Filter-Buttons für Aktive/Archivierte Termine
+    const btnShowActive = $('#btn-show-active');
+    const btnShowArchived = $('#btn-show-archived');
+    
+    if (btnShowActive) {
+      btnShowActive.addEventListener('click', () => {
+        CURRENT_FILTER = 'active';
+        btnShowActive.classList.add('primary');
+        if (btnShowArchived) btnShowArchived.classList.remove('primary');
+        loadSlots();
+      });
+    }
+    
+    if (btnShowArchived) {
+      btnShowArchived.addEventListener('click', () => {
+        CURRENT_FILTER = 'archived';
+        btnShowArchived.classList.add('primary');
+        if (btnShowActive) btnShowActive.classList.remove('primary');
+        loadSlots();
+      });
+    }
+
+    // Initial: Aktive Termine anzeigen
+    if (btnShowActive) btnShowActive.classList.add('primary');
 
     (async function init(){
       await requireAuth();

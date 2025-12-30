@@ -3625,17 +3625,39 @@ def slots_unpublish(slot_id):
         return jsonify({"error": "server_error"}), 500
 
 
+@app.post("/slots/<slot_id>/archive")
+@auth_required()
+def slots_archive(slot_id):
+    """
+    Archiviert einen Slot (setzt archived=True und Status=EXPIRED).
+    Archivierte Slots sind read-only und können nicht gelöscht werden.
+    """
+    with Session(engine) as s:
+        slot = s.get(Slot, slot_id)
+        if not slot or slot.provider_id != request.provider_id:
+            return _json_error("not_found", 404)
+        
+        slot.archived = True
+        slot.status = SLOT_STATUS_EXPIRED
+        s.commit()
+        return jsonify({"ok": True, "archived": True})
+
+
 @app.delete("/slots/<slot_id>")
 @auth_required()
 def slots_delete(slot_id):
     """
-    Archiviert einen Slot statt ihn zu löschen (Aufbewahrungspflicht).
+    Löscht oder archiviert einen Slot je nach Situation (Aufbewahrungspflicht).
     Hard-Delete ist nicht erlaubt für abgerechnete Termine.
     """
     with Session(engine) as s:
         slot = s.get(Slot, slot_id)
         if not slot or slot.provider_id != request.provider_id:
             return _json_error("not_found", 404)
+        
+        # Wenn bereits archiviert: kann nicht gelöscht werden
+        if getattr(slot, "archived", False):
+            return _json_error("already_archived", 409)
         
         # Prüfe ob Slot bereits abgerechnet wurde (Buchungen vorhanden)
         has_bookings = (
@@ -3663,11 +3685,10 @@ def slots_delete(slot_id):
             s.commit()
             return jsonify({"ok": True, "archived": True, "message": "Termin wurde archiviert (Aufbewahrungspflicht)"})
         else:
-            # Für zukünftige, ungebuchte Slots: Status auf EXPIRED setzen, aber nicht archivieren
-            # (kann noch bearbeitet werden falls nötig)
-            slot.status = SLOT_STATUS_EXPIRED
+            # Für zukünftige, ungebuchte Slots ohne Buchungen: physisches Löschen erlaubt
+            s.delete(slot)
             s.commit()
-            return jsonify({"ok": True, "status": "expired"})
+            return jsonify({"ok": True, "deleted": True})
 
 
 # --------------------------------------------------------
