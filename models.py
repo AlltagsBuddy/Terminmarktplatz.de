@@ -177,6 +177,9 @@ class Slot(Base):
     # ✅ wird von deinem Quota-Code gesetzt/geleert
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
+    # Archivierung: Termine werden archiviert statt gelöscht (Aufbewahrungspflicht)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
@@ -390,6 +393,10 @@ class Invoice(Base):
     total_eur: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
     status: Mapped[str] = mapped_column(Text, default="open")
+
+    # Archivierung & Export (Aufbewahrungspflicht 8 Jahre)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),

@@ -376,6 +376,40 @@ _ensure_alert_deleted_at()
 
 
 # --------------------------------------------------------
+# Archivierungs-Felder für Slots und Invoices hinzufügen
+# --------------------------------------------------------
+def _ensure_archive_fields():
+    """
+    Fügt archived Flag zu Slots und archived_at/exported_at zu Invoices hinzu (Aufbewahrungspflicht).
+    """
+    ddl_slot_archived = """
+    ALTER TABLE public.slot
+      ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
+    """
+    
+    ddl_invoice_archived_at = """
+    ALTER TABLE public.invoice
+      ADD COLUMN IF NOT EXISTS archived_at timestamp without time zone;
+    """
+    
+    ddl_invoice_exported_at = """
+    ALTER TABLE public.invoice
+      ADD COLUMN IF NOT EXISTS exported_at timestamp without time zone;
+    """
+    
+    with engine.begin() as conn:
+        try:
+            conn.exec_driver_sql(ddl_slot_archived)
+            conn.exec_driver_sql(ddl_invoice_archived_at)
+            conn.exec_driver_sql(ddl_invoice_exported_at)
+        except Exception as e:
+            print(f"[migration] ensure_archive_fields failed: {e}", flush=True)
+
+
+_ensure_archive_fields()
+
+
+# --------------------------------------------------------
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
 def _ensure_publish_quota_tables():
@@ -716,6 +750,7 @@ def slot_to_json(x: Slot):
         "price_cents": x.price_cents,
         "notes": x.notes,
         "status": x.status,
+        "archived": getattr(x, "archived", False),
         "published_at": _from_db_as_iso_utc(published_at) if published_at else None,
         "created_at": _from_db_as_iso_utc(x.created_at),
         "street": getattr(x, "street", None),
@@ -773,7 +808,8 @@ def split_street_and_number(street_value: str | None) -> tuple[str, str]:
 # --------------------------------------------------------
 SLOT_STATUS_DRAFT = "DRAFT"
 SLOT_STATUS_PUBLISHED = "PUBLISHED"
-VALID_STATUSES = {SLOT_STATUS_DRAFT, SLOT_STATUS_PUBLISHED}
+SLOT_STATUS_EXPIRED = "EXPIRED"
+VALID_STATUSES = {SLOT_STATUS_DRAFT, SLOT_STATUS_PUBLISHED, SLOT_STATUS_EXPIRED}
 
 
 def _effective_monthly_limit(raw_limit) -> tuple[int, bool]:
@@ -3142,6 +3178,8 @@ def debug_alert_by_token():
 def slots_list():
     status = request.args.get("status")
     status = status.strip().upper() if status else None
+    archived = request.args.get("archived")
+    show_archived = archived and archived.lower() in ("true", "1", "yes")
 
     with Session(engine) as s:
         bq = (
@@ -3162,6 +3200,13 @@ def slots_list():
 
         if status:
             q = q.where(Slot.status == status)
+        
+        # Archiv-Filter: Standard nur nicht-archivierte, explizit archived=true zeigt nur archivierte
+        if show_archived:
+            q = q.where(Slot.archived == True)
+        else:
+            # Standard: nur nicht-archivierte Slots
+            q = q.where(Slot.archived == False)
 
         rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
@@ -3583,13 +3628,46 @@ def slots_unpublish(slot_id):
 @app.delete("/slots/<slot_id>")
 @auth_required()
 def slots_delete(slot_id):
+    """
+    Archiviert einen Slot statt ihn zu löschen (Aufbewahrungspflicht).
+    Hard-Delete ist nicht erlaubt für abgerechnete Termine.
+    """
     with Session(engine) as s:
         slot = s.get(Slot, slot_id)
         if not slot or slot.provider_id != request.provider_id:
             return _json_error("not_found", 404)
-        s.delete(slot)
-        s.commit()
-        return jsonify({"ok": True})
+        
+        # Prüfe ob Slot bereits abgerechnet wurde (Buchungen vorhanden)
+        has_bookings = (
+            s.scalar(
+                select(func.count())
+                .select_from(Booking)
+                .where(
+                    Booking.slot_id == slot.id,
+                    Booking.status == "confirmed",
+                )
+            )
+            or 0
+        ) > 0
+        
+        # Wenn Slot bereits stattgefunden hat (end_at in Vergangenheit) oder Buchungen vorhanden:
+        # Nur archivieren, niemals löschen
+        now = _now()
+        slot_end_aware = _as_utc_aware(slot.end_at)
+        has_ended = slot_end_aware < now
+        
+        if has_ended or has_bookings:
+            # Archivieren statt löschen
+            slot.archived = True
+            slot.status = SLOT_STATUS_EXPIRED
+            s.commit()
+            return jsonify({"ok": True, "archived": True, "message": "Termin wurde archiviert (Aufbewahrungspflicht)"})
+        else:
+            # Für zukünftige, ungebuchte Slots: Status auf EXPIRED setzen, aber nicht archivieren
+            # (kann noch bearbeitet werden falls nötig)
+            slot.status = SLOT_STATUS_EXPIRED
+            s.commit()
+            return jsonify({"ok": True, "status": "expired"})
 
 
 # --------------------------------------------------------
