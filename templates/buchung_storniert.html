@@ -178,31 +178,65 @@
 
     <section class="booking-success-card">
       <div class="booking-success-summary">
-        {% if slot and slot.start_at %}
-          <div class="booking-success-row">
-            <div class="booking-success-label">Ursprünglicher Termin</div>
-            <div class="booking-success-value">
-              {{ slot.start_at.strftime('%d.%m.%Y %H:%M') }}
-            </div>
+        {% if slot and slot.title %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Termin</div>
+          <div class="booking-success-value">
+            {{ slot.title }}
           </div>
+        </div>
         {% endif %}
 
-        {% if provider %}
-          <div class="booking-success-row">
-            <div class="booking-success-label">Anbieter</div>
-            <div class="booking-success-value">
-              {{ provider.company_name }}
-            </div>
+        {% if slot and slot.category %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Kategorie</div>
+          <div class="booking-success-value">
+            {{ slot.category }}
           </div>
+        </div>
+        {% endif %}
 
-          {% if provider.zip or provider.city %}
-            <div class="booking-success-row">
-              <div class="booking-success-label">Ort</div>
-              <div class="booking-success-value">
-                {{ provider.zip }} {{ provider.city }}
-              </div>
-            </div>
-          {% endif %}
+        {% if slot and slot.start_at %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Datum & Zeit</div>
+          <div class="booking-success-value">
+            {{ slot.start_at.strftime('%d.%m.%Y %H:%M') }} - {{ slot.end_at.strftime('%H:%M') }} Uhr
+          </div>
+        </div>
+        {% endif %}
+
+        {% if slot and (slot.address or slot.location) %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Ort</div>
+          <div class="booking-success-value">
+            {{ slot.address or slot.location }}
+          </div>
+        </div>
+        {% elif provider and (provider.zip or provider.city) %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Ort</div>
+          <div class="booking-success-value">
+            {% if provider.street %}{{ provider.street }}, {% endif %}{{ provider.zip }} {{ provider.city }}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if provider and provider.company_name %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Anbieter</div>
+          <div class="booking-success-value">
+            {{ provider.company_name }}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if slot and slot.price_euro %}
+        <div class="booking-success-row">
+          <div class="booking-success-label">Preis</div>
+          <div class="booking-success-value">
+            {{ slot.price_euro }} €
+          </div>
+        </div>
         {% endif %}
       </div>
     </section>

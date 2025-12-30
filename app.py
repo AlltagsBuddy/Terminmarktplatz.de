@@ -4440,14 +4440,40 @@ def public_book():
         base = _external_base()
         confirm_link = f"{base}{url_for('public_confirm')}?token={token}"
         cancel_link = f"{base}{url_for('public_cancel')}?token={token}"
+        
+        # Slot-Details für E-Mail formatieren
+        slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+        slot_end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
+        start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+        end_str = slot_end_local.strftime("%H:%M")
+        
+        slot_address = slot.public_address() if hasattr(slot, 'public_address') else (slot.location or "")
+        if not slot_address and provider:
+            provider_address = f"{provider.zip or ''} {provider.city or ''}".strip()
+            if provider.street:
+                provider_address = f"{provider.street}, {provider_address}".strip()
+            slot_address = provider_address
+        
+        email_body = f"Hallo {name},\n\n"
+        email_body += f"du hast einen Termin gebucht:\n\n"
+        email_body += f"Termin: {slot.title}\n"
+        email_body += f"Kategorie: {slot.category}\n"
+        email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+        if slot_address:
+            email_body += f"Ort: {slot_address}\n"
+        if provider:
+            email_body += f"Anbieter: {provider.company_name or 'Unbekannt'}\n"
+        if slot.price_cents:
+            price_euro = float(slot.price_cents) / 100
+            email_body += f"Preis: {price_euro:.2f} €\n"
+        email_body += f"\n"
+        email_body += f"Bitte bestätige deine Buchung:\n{confirm_link}\n\n"
+        email_body += f"Stornieren:\n{cancel_link}\n"
+        
         send_mail(
             email,
             "Bitte Terminbuchung bestätigen",
-            text=(
-                f"Hallo {name},\n\n"
-                f"bitte bestätige deine Buchung:\n{confirm_link}\n\n"
-                f"Stornieren:\n{cancel_link}\n"
-            ),
+            text=email_body,
             tag="booking_request",
             metadata={"slot_id": str(slot.id)},
         )
@@ -4506,13 +4532,78 @@ def public_confirm():
                 b.confirmed_at = _now()
                 s.commit()
 
+                # Slot-Details für Bestätigungs-E-Mail formatieren
+                slot_start_local = _as_utc_aware(slot_obj.start_at).astimezone(BERLIN)
+                slot_end_local = _as_utc_aware(slot_obj.end_at).astimezone(BERLIN)
+                start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+                end_str = slot_end_local.strftime("%H:%M")
+                
+                slot_address = slot_obj.public_address() if hasattr(slot_obj, 'public_address') else (slot_obj.location or "")
+                if not slot_address and provider_obj:
+                    provider_address = f"{provider_obj.zip or ''} {provider_obj.city or ''}".strip()
+                    if provider_obj.street:
+                        provider_address = f"{provider_obj.street}, {provider_address}".strip()
+                    slot_address = provider_address
+                
+                confirm_email_body = f"Hallo {b.customer_name},\n\n"
+                confirm_email_body += f"dein Termin ist bestätigt:\n\n"
+                confirm_email_body += f"Termin: {slot_obj.title}\n"
+                confirm_email_body += f"Kategorie: {slot_obj.category}\n"
+                confirm_email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+                if slot_address:
+                    confirm_email_body += f"Ort: {slot_address}\n"
+                if provider_obj:
+                    confirm_email_body += f"Anbieter: {provider_obj.company_name or 'Unbekannt'}\n"
+                if slot_obj.price_cents:
+                    price_euro = float(slot_obj.price_cents) / 100
+                    confirm_email_body += f"Preis: {price_euro:.2f} €\n"
+                confirm_email_body += f"\n"
+                confirm_email_body += f"Wir freuen uns auf deinen Besuch!\n"
+
                 send_mail(
                     b.customer_email,
                     "Termin bestätigt",
-                    text="Dein Termin ist bestätigt.",
+                    text=confirm_email_body,
                     tag="booking_confirmed",
                     metadata={"slot_id": str(slot_obj.id)},
                 )
+
+                # E-Mail an Provider senden
+                if provider_obj and provider_obj.email:
+                    try:
+                        provider_email_body = f"Hallo {provider_obj.company_name or 'Anbieter'},\n\n"
+                        provider_email_body += f"Es wurde eine neue Buchung für einen deiner Termine bestätigt:\n\n"
+                        provider_email_body += f"Termin-Details:\n"
+                        provider_email_body += f"Titel: {slot_obj.title}\n"
+                        if slot_obj.category:
+                            provider_email_body += f"Kategorie: {slot_obj.category}\n"
+                        provider_email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+                        if slot_address:
+                            provider_email_body += f"Ort: {slot_address}\n"
+                        if slot_obj.price_cents:
+                            price_euro = float(slot_obj.price_cents) / 100
+                            provider_email_body += f"Preis: {price_euro:.2f} €\n"
+                        provider_email_body += f"\n"
+                        provider_email_body += f"Kunden-Details:\n"
+                        provider_email_body += f"Name: {b.customer_name}\n"
+                        provider_email_body += f"E-Mail: {b.customer_email}\n"
+                        provider_email_body += f"\n"
+                        provider_email_body += f"Viele Grüße\n"
+                        provider_email_body += f"Terminmarktplatz"
+
+                        send_mail(
+                            provider_obj.email,
+                            "Neue Buchung bestätigt",
+                            text=provider_email_body,
+                            tag="booking_confirmed_notify_provider",
+                            metadata={
+                                "booking_id": str(b.id),
+                                "slot_id": str(slot_obj.id),
+                                "provider_id": str(provider_obj.id),
+                            },
+                        )
+                    except Exception as e:
+                        app.logger.warning("public_confirm: send_mail to provider failed: %r", e)
 
             elif b.status == "canceled":
                 return _json_error("booking_canceled", 409)
@@ -4528,12 +4619,26 @@ def public_confirm():
 
             slot = None
             if slot_obj is not None:
+                slot_address = slot_obj.public_address() if hasattr(slot_obj, 'public_address') else (slot_obj.location or "")
+                price_euro_str = None
+                if slot_obj.price_cents:
+                    price_euro = float(slot_obj.price_cents) / 100
+                    price_euro_str = f"{price_euro:.2f}"
                 slot = {
                     "id": slot_obj.id,
                     "title": slot_obj.title,
+                    "category": slot_obj.category,
                     "start_at": slot_obj.start_at,
                     "end_at": slot_obj.end_at,
                     "location": slot_obj.location,
+                    "street": slot_obj.street,
+                    "house_number": slot_obj.house_number,
+                    "zip": slot_obj.zip,
+                    "city": slot_obj.city,
+                    "address": slot_address,
+                    "price_cents": slot_obj.price_cents,
+                    "price_euro": price_euro_str,
+                    "notes": slot_obj.notes,
                 }
 
             provider = None
@@ -4542,6 +4647,7 @@ def public_confirm():
                     "company_name": provider_obj.company_name,
                     "zip": provider_obj.zip,
                     "city": provider_obj.city,
+                    "street": provider_obj.street,
                 }
 
         return render_template(
@@ -4608,12 +4714,26 @@ def public_cancel():
 
             slot = None
             if slot_obj is not None:
+                slot_address = slot_obj.public_address() if hasattr(slot_obj, 'public_address') else (slot_obj.location or "")
+                price_euro_str = None
+                if slot_obj.price_cents:
+                    price_euro = float(slot_obj.price_cents) / 100
+                    price_euro_str = f"{price_euro:.2f}"
                 slot = {
                     "id": slot_obj.id,
                     "title": slot_obj.title,
+                    "category": slot_obj.category,
                     "start_at": slot_obj.start_at,
                     "end_at": slot_obj.end_at,
                     "location": slot_obj.location,
+                    "street": slot_obj.street,
+                    "house_number": slot_obj.house_number,
+                    "zip": slot_obj.zip,
+                    "city": slot_obj.city,
+                    "address": slot_address,
+                    "price_cents": slot_obj.price_cents,
+                    "price_euro": price_euro_str,
+                    "notes": slot_obj.notes,
                 }
 
             provider = None
@@ -4622,18 +4742,48 @@ def public_cancel():
                     "company_name": provider_obj.company_name,
                     "zip": provider_obj.zip,
                     "city": provider_obj.city,
+                    "street": provider_obj.street,
                 }
 
         if just_canceled:
             try:
                 if customer_email:
-                    body_cust = (
-                        f"Hallo {customer_name},\n\n"
-                        f"deine Buchung für '{slot_title}' am {slot_time_iso} wurde storniert.\n\n"
-                        "Wenn du möchtest, kannst du einen neuen Termin buchen.\n\n"
-                        "Viele Grüße\n"
-                        "Terminmarktplatz"
-                    )
+                    # Slot-Details für E-Mail formatieren
+                    slot_detail_lines = []
+                    if slot_obj:
+                        slot_start_local = _as_utc_aware(slot_obj.start_at).astimezone(BERLIN)
+                        slot_end_local = _as_utc_aware(slot_obj.end_at).astimezone(BERLIN)
+                        start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+                        end_str = slot_end_local.strftime("%H:%M")
+                        
+                        slot_detail_lines.append(f"Termin: {slot_obj.title}")
+                        if slot_obj.category:
+                            slot_detail_lines.append(f"Kategorie: {slot_obj.category}")
+                        slot_detail_lines.append(f"Datum & Zeit: {start_str} - {end_str} Uhr")
+                        
+                        slot_address = slot_obj.public_address() if hasattr(slot_obj, 'public_address') else (slot_obj.location or "")
+                        if not slot_address and provider_obj:
+                            provider_address = f"{provider_obj.zip or ''} {provider_obj.city or ''}".strip()
+                            if provider_obj.street:
+                                provider_address = f"{provider_obj.street}, {provider_address}".strip()
+                            slot_address = provider_address
+                        if slot_address:
+                            slot_detail_lines.append(f"Ort: {slot_address}")
+                        if provider_obj:
+                            slot_detail_lines.append(f"Anbieter: {provider_obj.company_name or 'Unbekannt'}")
+                        if slot_obj.price_cents:
+                            price_euro = float(slot_obj.price_cents) / 100
+                            slot_detail_lines.append(f"Preis: {price_euro:.2f} €")
+                    
+                    body_cust = f"Hallo {customer_name},\n\n"
+                    body_cust += f"deine Buchung wurde storniert:\n\n"
+                    if slot_detail_lines:
+                        body_cust += "\n".join(slot_detail_lines)
+                        body_cust += "\n\n"
+                    body_cust += "Wenn du möchtest, kannst du einen neuen Termin buchen.\n\n"
+                    body_cust += "Viele Grüße\n"
+                    body_cust += "Terminmarktplatz"
+                    
                     send_mail(
                         customer_email,
                         "Termin storniert",
@@ -4649,13 +4799,39 @@ def public_cancel():
 
             try:
                 if provider_email:
-                    body_prov = (
-                        f"Hallo {provider_name},\n\n"
-                        f"die Buchung von {customer_name} für '{slot_title}' am {slot_time_iso} "
-                        "wurde von der Kundin / dem Kunden storniert.\n\n"
-                        "Viele Grüße\n"
-                        "Terminmarktplatz"
-                    )
+                    # Slot-Details für E-Mail formatieren
+                    slot_detail_lines = []
+                    if slot_obj:
+                        slot_start_local = _as_utc_aware(slot_obj.start_at).astimezone(BERLIN)
+                        slot_end_local = _as_utc_aware(slot_obj.end_at).astimezone(BERLIN)
+                        start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+                        end_str = slot_end_local.strftime("%H:%M")
+                        
+                        slot_detail_lines.append(f"Termin: {slot_obj.title}")
+                        if slot_obj.category:
+                            slot_detail_lines.append(f"Kategorie: {slot_obj.category}")
+                        slot_detail_lines.append(f"Datum & Zeit: {start_str} - {end_str} Uhr")
+                        
+                        slot_address = slot_obj.public_address() if hasattr(slot_obj, 'public_address') else (slot_obj.location or "")
+                        if not slot_address and provider_obj:
+                            provider_address = f"{provider_obj.zip or ''} {provider_obj.city or ''}".strip()
+                            if provider_obj.street:
+                                provider_address = f"{provider_obj.street}, {provider_address}".strip()
+                            slot_address = provider_address
+                        if slot_address:
+                            slot_detail_lines.append(f"Ort: {slot_address}")
+                        if slot_obj.price_cents:
+                            price_euro = float(slot_obj.price_cents) / 100
+                            slot_detail_lines.append(f"Preis: {price_euro:.2f} €")
+                    
+                    body_prov = f"Hallo {provider_name},\n\n"
+                    body_prov += f"die Buchung von {customer_name} wurde storniert:\n\n"
+                    if slot_detail_lines:
+                        body_prov += "\n".join(slot_detail_lines)
+                        body_prov += "\n\n"
+                    body_prov += "Viele Grüße\n"
+                    body_prov += "Terminmarktplatz"
+                    
                     send_mail(
                         provider_email,
                         "Buchung storniert",

@@ -297,13 +297,13 @@
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div class="brand">
+      <a href="/" class="brand" style="text-decoration:none; color:inherit;">
         <img class="logoImg" src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" />
         <div>
           <div style="font-size:15px; line-height:1;">Terminmarktplatz</div>
           <div style="font-size:12px; color:rgba(232,236,255,0.65); font-weight:600;">Benachrichtigung einrichten</div>
         </div>
-      </div>
+      </a>
       <div class="pill">🔔 Limit: <b>10 Benachrichtigungen</b> (E-Mail)</div>
     </div>
 
@@ -314,6 +314,8 @@
           <p class="sub">
             Du hast das Benachrichtigungspaket gekauft. Damit du Termine bekommst, musst du jetzt deinen
             <b>Termin-Alarm</b> konfigurieren und anschließend deine E-Mail bestätigen (Double-Opt-In).
+            <br><br>
+            <a href="/" style="color:#b9adff; text-decoration:underline;">Zurück zur Startseite</a>
           </p>
 
           <div class="infoBox">
@@ -352,16 +354,10 @@
       <div class="card">
         <div class="inner">
           <div style="font-weight:800; margin-bottom:8px;">Was wird gesucht?</div>
-          <div style="color:var(--muted); font-size:13px;">
-            Je genauer du es einstellst, desto weniger Spam bekommst du. Du kannst die Kategorie auch leer lassen –
-            dann zählt nur die PLZ.
-          </div>
-          <div class="divider"></div>
-          <div style="color:rgba(232,236,255,0.8); font-size:13px;">
-            Technisch passiert danach:
-            <div class="mono" style="margin-top:8px; font-size:12px; color:rgba(232,236,255,0.75);">
-              POST /api/alerts → Bestätigungsmail → /alerts/verify/&lt;token&gt;
-            </div>
+          <div style="color:var(--muted); font-size:13px; line-height:1.5;">
+            Gib die PLZ (Pflicht) und optional eine Kategorie an. Je genauer du es einstellst, 
+            desto relevanter sind die Benachrichtigungen. Wenn du keine Kategorie wählst, 
+            wirst du über alle freien Termine in der gewählten PLZ informiert.
           </div>
         </div>
       </div>
@@ -399,19 +395,20 @@
           <div style="margin-top:14px;">
             <label>Kategorie (optional)</label>
             <div class="cats" id="cats">
-              <label class="chip"><input type="checkbox" value="Friseur">Friseur</label>
-              <label class="chip"><input type="checkbox" value="Kosmetik">Kosmetik</label>
-              <label class="chip"><input type="checkbox" value="Physiotherapie">Physiotherapie</label>
-              <label class="chip"><input type="checkbox" value="Nagelstudio">Nagelstudio</label>
-              <label class="chip"><input type="checkbox" value="Zahnarzt">Zahnarzt</label>
-              <label class="chip"><input type="checkbox" value="Handwerk">Handwerk</label>
-              <label class="chip"><input type="checkbox" value="KFZ-Service">KFZ-Service</label>
-              <label class="chip"><input type="checkbox" value="Fitness">Fitness</label>
-              <label class="chip"><input type="checkbox" value="Coaching">Coaching</label>
-              <label class="chip"><input type="checkbox" value="Tierarzt">Tierarzt</label>
-              <label class="chip"><input type="checkbox" value="Behörde">Behörde</label>
+              <label class="chip"><input type="radio" name="category" value="">Keine Kategorie</label>
+              <label class="chip"><input type="radio" name="category" value="Friseur">Friseur</label>
+              <label class="chip"><input type="radio" name="category" value="Kosmetik">Kosmetik</label>
+              <label class="chip"><input type="radio" name="category" value="Physiotherapie">Physiotherapie</label>
+              <label class="chip"><input type="radio" name="category" value="Nagelstudio">Nagelstudio</label>
+              <label class="chip"><input type="radio" name="category" value="Zahnarzt">Zahnarzt</label>
+              <label class="chip"><input type="radio" name="category" value="Handwerk">Handwerk</label>
+              <label class="chip"><input type="radio" name="category" value="KFZ-Service">KFZ-Service</label>
+              <label class="chip"><input type="radio" name="category" value="Fitness">Fitness</label>
+              <label class="chip"><input type="radio" name="category" value="Coaching">Coaching</label>
+              <label class="chip"><input type="radio" name="category" value="Tierarzt">Tierarzt</label>
+              <label class="chip"><input type="radio" name="category" value="Behörde">Behörde</label>
             </div>
-            <div class="hint">Kategorie ist optional. Das <b>Limit (10)</b> zählt unabhängig von Kategorien.</div>
+            <div class="hint">Nur eine Kategorie pro Benachrichtigung auswählbar. Das <b>Limit (10)</b> zählt unabhängig von Kategorien.</div>
           </div>
 
           <input type="hidden" name="via_email" value="true" />
@@ -503,10 +500,10 @@
     }
 
     function collectCategories(){
-      const checked = Array.from(document.querySelectorAll("#cats input[type=checkbox]:checked"))
-        .map(x => x.value.trim())
-        .filter(Boolean);
-      return checked.length ? checked.join(",") : null;
+      const selected = document.querySelector("#cats input[name='category']:checked");
+      if (!selected) return null;
+      const value = (selected.value || "").trim();
+      return value || null;
     }
 
     // ✅ manageKey aus URL: ?k= oder ?manage_key=
@@ -717,7 +714,11 @@
     resetBtn.addEventListener("click", () => {
       document.querySelectorAll("input").forEach(i => {
         if (i.type === "checkbox") i.checked = false;
+        if (i.type === "radio") i.checked = false;
       });
+      // Setze "Keine Kategorie" als Standard
+      const noCategoryRadio = document.querySelector("#cats input[name='category'][value='']");
+      if (noCategoryRadio) noCategoryRadio.checked = true;
       emailEl.value = preEmail || "";
       zipEl.value = "";
       cityEl.value = "";
