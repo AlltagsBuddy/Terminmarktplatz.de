@@ -445,6 +445,9 @@ class AlertSubscription(Base):
     )
     last_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
+    # ✅ Soft-Delete: Gelöschte Benachrichtigungen zählen weiterhin zum Limit
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+
     # ✅ NEU: Umkreis-Zentrum (Koordinaten) – passend zu DB-Spalten search_lat/search_lng
     # In DB: numeric. Hier: Numeric(10,7) reicht für Geo in DE locker.
     search_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))

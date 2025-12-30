@@ -354,6 +354,28 @@ _remove_category_constraint()
 
 
 # --------------------------------------------------------
+# AlertSubscription: deleted_at Feld hinzufügen (Soft-Delete)
+# --------------------------------------------------------
+def _ensure_alert_deleted_at():
+    """
+    Fügt das deleted_at Feld zur alert_subscription Tabelle hinzu, falls es noch nicht existiert.
+    Ermöglicht Soft-Delete, damit gelöschte Benachrichtigungen weiterhin zum Limit zählen.
+    """
+    ddl_add_deleted_at = """
+    ALTER TABLE public.alert_subscription
+      ADD COLUMN IF NOT EXISTS deleted_at timestamp without time zone;
+    """
+    with engine.begin() as conn:
+        try:
+            conn.exec_driver_sql(ddl_add_deleted_at)
+        except Exception as e:
+            app.logger.warning("ensure_alert_deleted_at failed: %r", e)
+
+
+_ensure_alert_deleted_at()
+
+
+# --------------------------------------------------------
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
 def _ensure_publish_quota_tables():
@@ -2321,7 +2343,8 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                     s.execute(
                         select(AlertSubscription).where(
                             AlertSubscription.active.is_(True),
-                            AlertSubscription.email_confirmed.is_(True), 
+                            AlertSubscription.email_confirmed.is_(True),
+                            AlertSubscription.deleted_at.is_(None),  # Nur nicht-gelöschte
                         )
                     )
                     .scalars()
@@ -2456,8 +2479,8 @@ def alert_subscriptions_by_manage_key():
         )
         s.commit()
         
-        # Jetzt: Hole alle Alerts für diese E-Mail-Adresse
-        rows = s.execute(
+        # Jetzt: Hole alle Alerts für diese E-Mail-Adresse (inkl. gelöschte für Limit-Berechnung)
+        all_rows = s.execute(
             text("""
                 SELECT
                   id, email, phone, via_email, via_sms,
@@ -2465,17 +2488,21 @@ def alert_subscriptions_by_manage_key():
                   active, email_confirmed, sms_confirmed,
                   package_name, sms_quota_month, sms_sent_this_month,
                   last_reset_quota, created_at, last_notified_at,
-                  email_sent_total, notification_limit
+                  email_sent_total, notification_limit, deleted_at
                 FROM public.alert_subscription
                 WHERE email = :email
                 ORDER BY created_at DESC
             """),
             {"email": email},
         ).mappings().all()
+        
+        # Für die Anzeige: nur nicht-gelöschte
+        rows = [r for r in all_rows if not r.get("deleted_at")]
 
     # Limit: nimm max(notification_limit), fallback auf ALERT_MAX_PER_EMAIL
+    # Verwende all_rows für Limit-Berechnung (inkl. gelöschte)
     limit_candidates = []
-    for r in rows:
+    for r in all_rows:
         try:
             if r["notification_limit"] is not None:
                 limit_candidates.append(int(r["notification_limit"]))
@@ -2483,14 +2510,9 @@ def alert_subscriptions_by_manage_key():
             pass
     limit_val = max(limit_candidates) if limit_candidates else ALERT_MAX_PER_EMAIL
 
-    # "used": wirksam aktive (active==true UND bestätigter Kanal)
-    used = 0
-    for r in rows:
-        is_active = bool(r["active"])
-        ok_email = bool(r["via_email"]) and bool(r["email_confirmed"])
-        ok_sms = bool(r["via_sms"]) and bool(r["sms_confirmed"])
-        if is_active and (ok_email or ok_sms):
-            used += 1
+    # "used": WICHTIG - zähle ALLE Benachrichtigungen, auch gelöschte und deaktivierte
+    # Das Limit zählt für alle, nicht nur für aktive
+    used = len(all_rows)  # Alle Benachrichtigungen zählen zum Limit (inkl. gelöschte)
 
     remaining = max(0, int(limit_val) - int(used))
 
@@ -2532,9 +2554,14 @@ def delete_alert_subscription(alert_id: str):
         if not row:
             return _json_error("not_found", 404)
 
+        # Soft-Delete: Markiere als gelöscht statt zu löschen, damit es zum Limit zählt
         s.execute(
-            text("DELETE FROM public.alert_subscription WHERE id = :id AND manage_key = :k"),
-            {"id": str(alert_id), "k": k},
+            text("""
+                UPDATE public.alert_subscription 
+                SET deleted_at = :deleted_at, active = false
+                WHERE id = :id AND manage_key = :k AND deleted_at IS NULL
+            """),
+            {"id": str(alert_id), "k": k, "deleted_at": _now()},
         )
         s.commit()
 
@@ -2560,6 +2587,7 @@ def toggle_alert_subscription(alert_id: str):
                 FROM public.alert_subscription
                 WHERE id = :id
                   AND manage_key = :k
+                  AND deleted_at IS NULL
                 LIMIT 1
             """),
             {"id": str(alert_id), "k": k},
@@ -2572,7 +2600,7 @@ def toggle_alert_subscription(alert_id: str):
             text("""
                 UPDATE public.alert_subscription
                 SET active = :active
-                WHERE id = :id AND manage_key = :k
+                WHERE id = :id AND manage_key = :k AND deleted_at IS NULL
             """),
             {"id": str(alert_id), "k": k, "active": bool(active)},
         )
@@ -2755,6 +2783,7 @@ def create_alert():
 
         with Session(engine) as s:
             # Limit check (bei dir pro E-Mail)
+            # WICHTIG: Zähle ALLE Benachrichtigungen, auch gelöschte und deaktivierte
             existing_count = int(
                 s.scalar(
                     select(func.count())
