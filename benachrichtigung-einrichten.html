@@ -319,7 +319,7 @@
           </p>
 
           <div class="infoBox">
-            <b>Wichtig:</b> Du bekommst <b>max. 10 Benachrichtigungen</b> per E-Mail. Kategorie ist egal – das Limit zählt insgesamt.
+            <b>Wichtig:</b> Du bekommst <b>max. 10 Benachrichtigungen</b> per E-Mail. Das Limit zählt insgesamt.
             <small>Wenn du die Bestätigungsmail nicht findest: bitte auch im Spam-Ordner schauen.</small>
           </div>
 
@@ -337,7 +337,7 @@
           <div class="steps">
             <div class="step">
               <b>1) Daten eintragen</b>
-              <span>PLZ/Ort + optional Kategorie wählen.</span>
+              <span>PLZ/Ort + Kategorie wählen.</span>
             </div>
             <div class="step">
               <b>2) E-Mail bestätigen</b>
@@ -355,9 +355,8 @@
         <div class="inner">
           <div style="font-weight:800; margin-bottom:8px;">Was wird gesucht?</div>
           <div style="color:var(--muted); font-size:13px; line-height:1.5;">
-            Gib die PLZ (Pflicht) und optional eine Kategorie an. Je genauer du es einstellst, 
-            desto relevanter sind die Benachrichtigungen. Wenn du keine Kategorie wählst, 
-            wirst du über alle freien Termine in der gewählten PLZ informiert.
+            Gib die PLZ (Pflicht) und eine Kategorie (Pflicht) an. Je genauer du es einstellst, 
+            desto relevanter sind die Benachrichtigungen.
           </div>
         </div>
       </div>
@@ -393,22 +392,24 @@
           </div>
 
           <div style="margin-top:14px;">
-            <label>Kategorie (optional)</label>
+            <label>Kategorie (Pflicht)</label>
             <div class="cats" id="cats">
-              <label class="chip"><input type="radio" name="category" value="">Keine Kategorie</label>
-              <label class="chip"><input type="radio" name="category" value="Friseur">Friseur</label>
-              <label class="chip"><input type="radio" name="category" value="Kosmetik">Kosmetik</label>
-              <label class="chip"><input type="radio" name="category" value="Physiotherapie">Physiotherapie</label>
-              <label class="chip"><input type="radio" name="category" value="Nagelstudio">Nagelstudio</label>
-              <label class="chip"><input type="radio" name="category" value="Zahnarzt">Zahnarzt</label>
-              <label class="chip"><input type="radio" name="category" value="Handwerk">Handwerk</label>
-              <label class="chip"><input type="radio" name="category" value="KFZ-Service">KFZ-Service</label>
-              <label class="chip"><input type="radio" name="category" value="Fitness">Fitness</label>
-              <label class="chip"><input type="radio" name="category" value="Coaching">Coaching</label>
-              <label class="chip"><input type="radio" name="category" value="Tierarzt">Tierarzt</label>
-              <label class="chip"><input type="radio" name="category" value="Behörde">Behörde</label>
+              <label class="chip"><input type="radio" name="category" value="Friseur" required>Friseur</label>
+              <label class="chip"><input type="radio" name="category" value="Kosmetik" required>Kosmetik</label>
+              <label class="chip"><input type="radio" name="category" value="Physiotherapie" required>Physiotherapie</label>
+              <label class="chip"><input type="radio" name="category" value="Nagelstudio" required>Nagelstudio</label>
+              <label class="chip"><input type="radio" name="category" value="Zahnarzt" required>Zahnarzt</label>
+              <label class="chip"><input type="radio" name="category" value="Handwerk" required>Handwerk</label>
+              <label class="chip"><input type="radio" name="category" value="KFZ-Service" required>KFZ-Service</label>
+              <label class="chip"><input type="radio" name="category" value="Fitness" required>Fitness</label>
+              <label class="chip"><input type="radio" name="category" value="Coaching" required>Coaching</label>
+              <label class="chip"><input type="radio" name="category" value="Tierarzt" required>Tierarzt</label>
+              <label class="chip"><input type="radio" name="category" value="Behörde" required>Behörde</label>
+              <label class="chip"><input type="radio" name="category" value="Rechtsanwalt" required>Rechtsanwalt</label>
+              <label class="chip"><input type="radio" name="category" value="Notar" required>Notar</label>
+              <label class="chip"><input type="radio" name="category" value="Tätowierer" required>Tätowierer</label>
             </div>
-            <div class="hint">Nur eine Kategorie pro Benachrichtigung auswählbar. Das <b>Limit (10)</b> zählt unabhängig von Kategorien.</div>
+            <div class="hint">Eine Kategorie muss ausgewählt werden. Das <b>Limit (10)</b> zählt unabhängig von Kategorien.</div>
           </div>
 
           <input type="hidden" name="via_email" value="true" />
@@ -503,7 +504,8 @@
       const selected = document.querySelector("#cats input[name='category']:checked");
       if (!selected) return null;
       const value = (selected.value || "").trim();
-      return value || null;
+      if (!value) return null; // Kategorie ist jetzt Pflicht
+      return value;
     }
 
     // ✅ manageKey aus URL: ?k= oder ?manage_key=
@@ -627,6 +629,11 @@
         showStatus("err","Fehler","Bitte eine gültige 5-stellige PLZ eingeben.");
         return;
       }
+      const category = collectCategories();
+      if (!category){
+        showStatus("err","Fehler","Bitte eine Kategorie auswählen.");
+        return;
+      }
       if (!consentEl.checked){
         showStatus("err","Fehler","Bitte die Einwilligung bestätigen, sonst dürfen wir keine Mails senden.");
         return;
@@ -644,7 +651,7 @@
         zip,
         city,
         radius_km,
-        categories: collectCategories(),
+        categories: category,
         via_email: true,
         via_sms: false,
         package_name: pkg,
@@ -716,9 +723,7 @@
         if (i.type === "checkbox") i.checked = false;
         if (i.type === "radio") i.checked = false;
       });
-      // Setze "Keine Kategorie" als Standard
-      const noCategoryRadio = document.querySelector("#cats input[name='category'][value='']");
-      if (noCategoryRadio) noCategoryRadio.checked = true;
+      // Keine Kategorie mehr als Standard, da Kategorie jetzt Pflicht ist
       emailEl.value = preEmail || "";
       zipEl.value = "";
       cityEl.value = "";

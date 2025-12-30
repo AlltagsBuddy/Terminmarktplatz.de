@@ -506,6 +506,9 @@ BRANCHES = {
     "Coaching",
     "Tierarzt",
     "Behörde",
+    "Rechtsanwalt",
+    "Notar",
+    "Tätowierer",
     "Sonstiges",
     # Ärzte - Unterkategorien
     "Hausärzte",
@@ -2182,6 +2185,14 @@ def _send_notifications_for_alert_and_slot(
         body_lines.append("")
         body_lines.append("Wenn du diesen Alarm nicht mehr erhalten möchtest, kannst du ihn hier deaktivieren:")
         body_lines.append(cancel_url)
+        
+        # Link zu "Meine Benachrichtigungen" hinzufügen
+        manage_key = getattr(alert, "manage_key", None)
+        if manage_key:
+            manage_url = f"{FRONTEND_URL}/meine-benachrichtigungen.html?k={manage_key}"
+            body_lines.append("")
+            body_lines.append("Alle deine Benachrichtigungen verwalten:")
+            body_lines.append(manage_url)
 
         body = "\n".join(body_lines)
 
@@ -2686,6 +2697,8 @@ def create_alert():
 
         categories_raw = data.get("categories") or ""
         categories = categories_raw.lower().strip() or None
+        if not categories:
+            return _json_error("category_required", 400)
 
         package_name = (data.get("package_name") or "alert_email").strip().lower()
         sms_quota_month = int(ALERT_PLANS.get(package_name, {}).get("sms_quota_month", 0))
