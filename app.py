@@ -326,6 +326,34 @@ _ensure_geo_tables()
 
 
 # --------------------------------------------------------
+# Kategorie-Constraint entfernen (ermöglicht alle Kategorien)
+# --------------------------------------------------------
+def _remove_category_constraint():
+    """
+    Entfernt den alten CHECK-Constraint für Kategorien, damit alle Kategorien aus BRANCHES erlaubt sind.
+    Die Validierung erfolgt jetzt in der Anwendung (normalize_category).
+    """
+    ddl_remove_constraint = """
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'slot_category_check'
+      ) THEN
+        ALTER TABLE public.slot DROP CONSTRAINT slot_category_check;
+      END IF;
+    END $$;
+    """
+    with engine.begin() as conn:
+        try:
+            conn.exec_driver_sql(ddl_remove_constraint)
+        except Exception as e:
+            app.logger.warning("remove_category_constraint failed: %r", e)
+
+
+_remove_category_constraint()
+
+
+# --------------------------------------------------------
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
 def _ensure_publish_quota_tables():
