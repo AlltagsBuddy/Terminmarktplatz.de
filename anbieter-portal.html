@@ -1497,7 +1497,7 @@
         const isPast  = !!(endDate && endDate < now);
 
         const allBookings      = Array.isArray(s.bookings) ? s.bookings : [];
-        const activeBookings   = allBookings.filter(b => b.status !== 'canceled');
+        const activeBookings   = allBookings.filter(b => b.status === 'confirmed');
         const canceledBookings = allBookings.filter(b => b.status === 'canceled');
 
         const capacity    = s.capacity || 1;

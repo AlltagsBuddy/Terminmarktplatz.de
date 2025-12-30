@@ -3237,7 +3237,7 @@ def slots_list():
     with Session(engine) as s:
         bq = (
             select(Booking.slot_id, func.count().label("booked"))
-            .where(Booking.status.in_(["hold", "confirmed"]))
+            .where(Booking.status == "confirmed")
             .group_by(Booking.slot_id)
             .subquery()
         )
@@ -3273,7 +3273,7 @@ def slots_list():
                     select(Booking)
                     .where(
                         Booking.slot_id.in_(slot_ids),
-                        Booking.status.in_(["hold", "confirmed", "canceled"]),
+                        Booking.status.in_(["confirmed", "canceled"]),
                     )
                     .order_by(Booking.created_at.asc())
                 )
@@ -4444,7 +4444,7 @@ def public_slots():
 
                 bq = (
                     select(Booking.slot_id, func.count().label("booked"))
-                    .where(Booking.status.in_(["hold", "confirmed"]))
+                    .where(Booking.status == "confirmed")
                     .group_by(Booking.slot_id)
                     .subquery()
                 )
