@@ -64,6 +64,11 @@
       gap:10px;
       font-weight:800;
       letter-spacing:0.2px;
+      cursor:pointer;
+    }
+    
+    a.brand:hover{
+      opacity:0.9;
     }
 
     .logoImg{
@@ -844,6 +849,11 @@
 
     // Event delegation for delete and toggle buttons
     document.addEventListener("click", (e) => {
+      // Ignoriere Clicks auf Links (z.B. Brand-Link zur Startseite)
+      if (e.target.closest("a")) {
+        return;
+      }
+      
       const btn = e.target.closest("[data-action='delete']");
       if (btn) {
         const id = btn.getAttribute("data-id");
