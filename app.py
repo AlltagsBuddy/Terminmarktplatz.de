@@ -410,6 +410,59 @@ _ensure_archive_fields()
 
 
 # --------------------------------------------------------
+# Slot Status Constraint: EXPIRED und CANCELED erlauben
+# --------------------------------------------------------
+def _ensure_slot_status_constraint():
+    """
+    Aktualisiert die CHECK-Constraint für slot.status, um EXPIRED und CANCELED zu erlauben.
+    Entfernt die alte Constraint und erstellt eine neue mit allen erlaubten Statuswerten.
+    """
+    # Schritt 1: Entferne alte Constraint falls vorhanden
+    ddl_drop_constraint = """
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ck_slot_status'
+      ) THEN
+        ALTER TABLE public.slot DROP CONSTRAINT ck_slot_status;
+      END IF;
+      
+      -- Entferne auch slot_status_check falls vorhanden
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'slot_status_check'
+      ) THEN
+        ALTER TABLE public.slot DROP CONSTRAINT slot_status_check;
+      END IF;
+    END $$;
+    """
+    
+    # Schritt 2: Erstelle neue Constraint mit allen erlaubten Statuswerten
+    ddl_add_constraint = """
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ck_slot_status'
+      ) THEN
+        ALTER TABLE public.slot 
+          ADD CONSTRAINT ck_slot_status 
+          CHECK (status IN ('DRAFT', 'PUBLISHED', 'CANCELED', 'EXPIRED'));
+      END IF;
+    END $$;
+    """
+    
+    with engine.begin() as conn:
+        try:
+            conn.exec_driver_sql(ddl_drop_constraint)
+            conn.exec_driver_sql(ddl_add_constraint)
+            app.logger.info("Slot status constraint updated successfully")
+        except Exception as e:
+            app.logger.warning("ensure_slot_status_constraint failed: %r", e)
+
+
+_ensure_slot_status_constraint()
+
+
+# --------------------------------------------------------
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
 def _ensure_publish_quota_tables():
