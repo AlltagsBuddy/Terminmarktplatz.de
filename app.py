@@ -280,7 +280,8 @@ CORS(
 
         # ✅ Ohne Cookies (public / alerts)
         r"/api/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
-        r"/public/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": True},  # credentials erlaubt für CORS-Kompatibilität
+        # Public API: Alle Origins erlauben für Facebook in-app Browser & andere Embeddings
+        r"/public/*": {"origins": "*", "supports_credentials": False},
         r"/alerts/*": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
 
         # Webhooks / health / assets
@@ -301,8 +302,9 @@ CORS(
 def add_headers(resp):
     resp.headers.setdefault("Cache-Control", "no-store")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-    resp.headers.setdefault("X-Frame-Options", "DENY")
-    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    # SAMEORIGIN statt DENY für Facebook in-app Browser Kompatibilität
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
     return resp
 
 

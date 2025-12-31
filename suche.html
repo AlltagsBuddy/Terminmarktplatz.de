@@ -876,7 +876,8 @@
       let data = [];
       try {
         const url = `${API}/public/slots` + (params.toString() ? `?${params.toString()}` : '');
-        const res = await fetch(url, { credentials:'include' });
+        // credentials nicht nötig für public API (besser für Facebook in-app Browser Kompatibilität)
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`API ${res.status}`);
         data = await res.json();
       } catch (e) {
