@@ -784,9 +784,15 @@ def _json_error(msg, code=400):
 
 
 def _cookie_flags():
+    """Flags für set_cookie (alle Parameter)."""
     if IS_RENDER:
         return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
     return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
+
+
+def _cookie_delete_flags():
+    """Flags für delete_cookie (nur path, da samesite/httponly/secure nicht unterstützt werden)."""
+    return {"path": "/"}
 
 
 def slot_to_json(x: Slot):
@@ -1960,9 +1966,13 @@ def auth_login_form():
 @auth_required()
 def auth_logout():
     resp = make_response(jsonify({"ok": True}))
-    flags = _cookie_flags()
+    flags = _cookie_delete_flags()
     resp.delete_cookie("access_token", **flags)
     resp.delete_cookie("refresh_token", **flags)
+    # Zusätzlich: Cookies mit expiring max_age setzen (Fallback für Browser-Kompatibilität)
+    set_flags = _cookie_flags()
+    resp.set_cookie("access_token", "", max_age=0, **set_flags)
+    resp.set_cookie("refresh_token", "", max_age=0, **set_flags)
     return resp
 
 
@@ -2005,9 +2015,13 @@ def delete_me():
             s.commit()
 
         resp = make_response(jsonify({"ok": True, "deleted": True}))
-        flags = _cookie_flags()
+        flags = _cookie_delete_flags()
         resp.delete_cookie("access_token", **flags)
         resp.delete_cookie("refresh_token", **flags)
+        # Zusätzlich: Cookies mit expiring max_age setzen (Fallback für Browser-Kompatibilität)
+        set_flags = _cookie_flags()
+        resp.set_cookie("access_token", "", max_age=0, **set_flags)
+        resp.set_cookie("refresh_token", "", max_age=0, **set_flags)
         return resp
     except Exception:
         app.logger.exception("delete_me failed")
