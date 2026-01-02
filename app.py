@@ -41,6 +41,7 @@ from flask import (
     url_for,
     abort,
     send_from_directory,
+    Response,
 )
 from flask_cors import CORS
 from argon2 import PasswordHasher
@@ -1642,6 +1643,16 @@ if _html_enabled():
     @app.get("/anbieter-portal.html")
     def anbieter_portal_page_html():
         return render_template("anbieter-portal.html")
+
+    @app.get("/admin-rechnungen")
+    @auth_required(admin=True)
+    def admin_rechnungen_page():
+        return render_template("admin-rechnungen.html")
+
+    @app.get("/admin-rechnungen.html")
+    @auth_required(admin=True)
+    def admin_rechnungen_page_html():
+        return render_template("admin-rechnungen.html")
 
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
@@ -4007,6 +4018,433 @@ def admin_run_billing():
         s.commit()
 
     return jsonify(result)
+
+
+# --------------------------------------------------------
+# Admin: Rechnungen (Invoices)
+# --------------------------------------------------------
+@app.get("/admin/invoices/all")
+@auth_required(admin=True)
+def admin_invoices_all():
+    """Gibt alle Rechnungen aller Provider zurück (nur für Super-Admin)."""
+    with Session(engine) as s:
+        invoices = (
+            s.execute(
+                select(Invoice, Provider.email, Provider.company_name)
+                .join(Provider, Invoice.provider_id == Provider.id)
+                .order_by(Invoice.created_at.desc())
+            )
+            .all()
+        )
+
+        result = []
+        for row in invoices:
+            inv = row[0]  # Invoice-Objekt
+            provider_email = row[1]  # Provider.email
+            provider_company_name = row[2]  # Provider.company_name
+            result.append(
+                {
+                    "id": inv.id,
+                    "provider_id": inv.provider_id,
+                    "provider_email": provider_email,
+                    "provider_company_name": provider_company_name,
+                    "period_start": inv.period_start.isoformat(),
+                    "period_end": inv.period_end.isoformat(),
+                    "total_eur": float(inv.total_eur),
+                    "status": inv.status,
+                    "created_at": inv.created_at.isoformat() if inv.created_at else None,
+                    "archived_at": inv.archived_at.isoformat() if inv.archived_at else None,
+                    "exported_at": inv.exported_at.isoformat() if inv.exported_at else None,
+                }
+            )
+
+        return jsonify(result)
+
+
+@app.get("/admin/invoices/<invoice_id>")
+@auth_required(admin=True)
+def admin_invoice_detail(invoice_id):
+    """Gibt Details einer Rechnung inkl. Buchungen zurück."""
+    with Session(engine) as s:
+        inv = s.get(Invoice, invoice_id)
+        if not inv:
+            return _json_error("not_found", 404)
+
+        provider = s.get(Provider, inv.provider_id)
+        bookings = (
+            s.execute(
+                select(Booking, Slot.title, Slot.start_at, Slot.end_at)
+                .join(Slot, Booking.slot_id == Slot.id)
+                .where(Booking.invoice_id == invoice_id)
+                .order_by(Booking.created_at.asc())
+            )
+            .all()
+        )
+
+        booking_list = []
+        for row in bookings:
+            b = row[0]
+            slot_title = row[1]
+            slot_start = row[2]
+            slot_end = row[3]
+            booking_list.append(
+                {
+                    "id": b.id,
+                    "customer_name": b.customer_name,
+                    "customer_email": b.customer_email,
+                    "slot_title": slot_title,
+                    "slot_start": slot_start.isoformat() if slot_start else None,
+                    "slot_end": slot_end.isoformat() if slot_end else None,
+                    "provider_fee_eur": float(b.provider_fee_eur),
+                    "created_at": b.created_at.isoformat() if b.created_at else None,
+                }
+            )
+
+        return jsonify(
+            {
+                "id": inv.id,
+                "provider_id": inv.provider_id,
+                "provider_email": provider.email if provider else None,
+                "provider_company_name": provider.company_name if provider else None,
+                "period_start": inv.period_start.isoformat(),
+                "period_end": inv.period_end.isoformat(),
+                "total_eur": float(inv.total_eur),
+                "status": inv.status,
+                "created_at": inv.created_at.isoformat() if inv.created_at else None,
+                "bookings": booking_list,
+            }
+        )
+
+
+# PDF-Generierung für Rechnungen (reportlab)
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    from io import BytesIO
+
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
+
+def generate_invoice_pdf(invoice: Invoice, provider: Provider, bookings: list[Booking], session: Session | None = None) -> bytes:
+    """Generiert ein PDF für eine Rechnung."""
+    if not REPORTLAB_AVAILABLE:
+        raise Exception("reportlab nicht installiert")
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    story = []
+    styles = getSampleStyleSheet()
+
+    # Custom Styles
+    title_style = ParagraphStyle(
+        "CustomTitle",
+        parent=styles["Heading1"],
+        fontSize=18,
+        textColor=colors.HexColor("#1e293b"),
+        spaceAfter=30,
+        alignment=TA_LEFT,
+    )
+
+    heading_style = ParagraphStyle(
+        "CustomHeading",
+        parent=styles["Heading2"],
+        fontSize=12,
+        textColor=colors.HexColor("#334155"),
+        spaceAfter=12,
+        alignment=TA_LEFT,
+    )
+
+    normal_style = styles["Normal"]
+    normal_style.fontSize = 10
+    normal_style.textColor = colors.HexColor("#475569")
+
+    # Header
+    story.append(Paragraph("Terminmarktplatz", title_style))
+    story.append(Paragraph("Rechnung", heading_style))
+    story.append(Spacer(1, 0.5*cm))
+
+    # Rechnungsinformationen
+    invoice_data = [
+        ["Rechnungsnummer:", invoice.id[:8].upper()],
+        ["Rechnungsdatum:", invoice.created_at.strftime("%d.%m.%Y") if invoice.created_at else "-"],
+        ["Zeitraum:", f"{invoice.period_start.strftime('%d.%m.%Y')} - {invoice.period_end.strftime('%d.%m.%Y')}"],
+        ["Status:", invoice.status],
+    ]
+
+    invoice_table = Table(invoice_data, colWidths=[5*cm, 10*cm])
+    invoice_table.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
+                ("ALIGN", (0, 0), (0, -1), "LEFT"),
+                ("ALIGN", (1, 0), (1, -1), "LEFT"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(invoice_table)
+    story.append(Spacer(1, 0.8*cm))
+
+    # Anbieter-Informationen
+    story.append(Paragraph("Anbieter", heading_style))
+    provider_info = []
+    if provider.company_name:
+        provider_info.append(["Firma:", provider.company_name])
+    provider_info.append(["E-Mail:", provider.email])
+    if provider.street:
+        provider_info.append(["Straße:", provider.street])
+    if provider.zip and provider.city:
+        provider_info.append(["PLZ/Ort:", f"{provider.zip} {provider.city}"])
+
+    provider_table = Table(provider_info, colWidths=[5*cm, 10*cm])
+    provider_table.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
+                ("ALIGN", (0, 0), (0, -1), "LEFT"),
+                ("ALIGN", (1, 0), (1, -1), "LEFT"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(provider_table)
+    story.append(Spacer(1, 0.8*cm))
+
+    # Buchungsdetails
+    story.append(Paragraph("Buchungsdetails", heading_style))
+    booking_data = [["Datum", "Termin", "Kunde", "Betrag"]]
+
+    for b in bookings:
+        # Slot-Informationen laden falls Session verfügbar
+        slot_title = "Termin"
+        if session and hasattr(b, "slot_id") and b.slot_id:
+            slot = session.get(Slot, b.slot_id)
+            if slot:
+                slot_title = slot.title or "Termin"
+
+        booking_date = b.created_at.strftime("%d.%m.%Y") if b.created_at else "-"
+        customer = b.customer_name or (b.customer_email[:30] + "..." if b.customer_email and len(b.customer_email) > 30 else b.customer_email) or "N/A"
+        amount = f"{float(b.provider_fee_eur):.2f} €"
+        booking_data.append([booking_date, slot_title[:40], customer[:40], amount])
+
+    # Gesamtbetrag
+    booking_data.append(["", "", "Gesamtbetrag:", f"{float(invoice.total_eur):.2f} €"])
+
+    booking_table = Table(booking_data, colWidths=[3.5*cm, 5*cm, 4*cm, 2.5*cm])
+    booking_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("TOPPADDING", (0, 0), (-1, 0), 12),
+                ("BACKGROUND", (0, 1), (-1, -2), colors.white),
+                ("TEXTCOLOR", (0, 1), (-1, -2), colors.HexColor("#475569")),
+                ("FONTNAME", (0, 1), (-1, -2), "Helvetica"),
+                ("FONTSIZE", (0, 1), (-1, -2), 9),
+                ("GRID", (0, 0), (-1, -2), 1, colors.HexColor("#e2e8f0")),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                # Gesamtbetrag-Zeile
+                ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#f8fafc")),
+                ("FONTNAME", (0, -1), (-2, -1), "Helvetica"),
+                ("FONTNAME", (-1, -1), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, -1), (-1, -1), 10),
+                ("TEXTCOLOR", (0, -1), (-1, -1), colors.HexColor("#1e293b")),
+                ("TOPPADDING", (0, -1), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, -1), (-1, -1), 10),
+            ]
+        )
+    )
+    story.append(booking_table)
+
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+@app.get("/admin/invoices/<invoice_id>/pdf")
+@auth_required(admin=True)
+def admin_invoice_pdf(invoice_id):
+    """Lädt eine Rechnung als PDF herunter."""
+    try:
+        with Session(engine) as s:
+            inv = s.get(Invoice, invoice_id)
+            if not inv:
+                return _json_error("not_found", 404)
+
+            provider = s.get(Provider, inv.provider_id)
+            if not provider:
+                return _json_error("provider_not_found", 404)
+
+            bookings = (
+                s.execute(
+                    select(Booking).where(Booking.invoice_id == invoice_id).order_by(Booking.created_at.asc())
+                )
+                .scalars()
+                .all()
+            )
+
+            if not REPORTLAB_AVAILABLE:
+                return jsonify({"error": "pdf_generation_not_available", "detail": "reportlab nicht installiert"}), 503
+
+            pdf_bytes = generate_invoice_pdf(inv, provider, bookings, s)
+            filename = f"Rechnung_{inv.id[:8].upper()}_{inv.period_start.strftime('%Y%m')}.pdf"
+
+            return Response(
+                pdf_bytes,
+                mimetype="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+    except Exception as e:
+        app.logger.exception("admin_invoice_pdf failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
+def send_invoice_email(invoice: Invoice, provider: Provider, bookings: list[Booking], session: Session | None = None) -> tuple[bool, str]:
+    """Sendet eine Rechnung per E-Mail mit PDF-Anhang."""
+    try:
+        if not REPORTLAB_AVAILABLE:
+            return False, "reportlab nicht installiert"
+
+        pdf_bytes = generate_invoice_pdf(invoice, provider, bookings, session)
+        filename = f"Rechnung_{invoice.id[:8].upper()}_{invoice.period_start.strftime('%Y%m')}.pdf"
+
+        # E-Mail-Text
+        subject = f"Rechnung {invoice.id[:8].upper()} - {invoice.period_start.strftime('%B %Y')}"
+        text_body = f"""Hallo {provider.company_name or 'Anbieter/in'},
+
+anbei erhalten Sie Ihre Rechnung für den Zeitraum {invoice.period_start.strftime('%d.%m.%Y')} bis {invoice.period_end.strftime('%d.%m.%Y')}.
+
+Rechnungsnummer: {invoice.id[:8].upper()}
+Rechnungsdatum: {invoice.created_at.strftime('%d.%m.%Y') if invoice.created_at else '-'}
+Betrag: {float(invoice.total_eur):.2f} €
+
+Das PDF finden Sie im Anhang dieser E-Mail.
+
+Bei Fragen stehen wir Ihnen gerne zur Verfügung.
+
+Viele Grüße
+Terminmarktplatz
+"""
+
+        # Für E-Mail-Versand mit Attachment müssen wir send_mail erweitern oder eine spezielle Funktion verwenden
+        # Da send_mail aktuell keine Attachments unterstützt, verwenden wir SMTP direkt für Attachments
+        if MAIL_PROVIDER == "smtp":
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+            from email.mime.base import MIMEBase
+            from email import encoders
+
+            if not SMTP_USER or not SMTP_PASS or not SMTP_HOST:
+                return False, "SMTP nicht konfiguriert"
+
+            msg = MIMEMultipart()
+            msg["From"] = MAIL_FROM or SMTP_USER
+            msg["To"] = provider.email
+            msg["Subject"] = subject
+            if MAIL_REPLY_TO:
+                msg["Reply-To"] = MAIL_REPLY_TO
+
+            msg.attach(MIMEText(text_body, "plain", "utf-8"))
+
+            attachment = MIMEBase("application", "pdf")
+            attachment.set_payload(pdf_bytes)
+            encoders.encode_base64(attachment)
+            attachment.add_header("Content-Disposition", f'attachment; filename="{filename}"')
+            msg.attach(attachment)
+
+            try:
+                if SMTP_USE_TLS:
+                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+                        s.starttls()
+                        s.login(SMTP_USER, SMTP_PASS)
+                        s.send_message(msg, from_addr=SMTP_USER)
+                else:
+                    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+                        s.login(SMTP_USER, SMTP_PASS)
+                        s.send_message(msg, from_addr=SMTP_USER)
+                return True, "smtp"
+            except Exception as e:
+                app.logger.exception("SMTP send_invoice_email failed")
+                return False, str(e)
+        else:
+            # Für Resend/Postmark: PDF als base64 anhängen (falls API es unterstützt)
+            # Oder einfach Text-Mail ohne Attachment senden mit Download-Link
+            send_mail(
+                provider.email,
+                subject,
+                text=text_body + f"\n\nPDF-Download: {BASE_URL}/admin/invoices/{invoice.id}/pdf",
+                tag="invoice",
+                metadata={"invoice_id": invoice.id},
+            )
+            return True, "sent_without_attachment"
+
+    except Exception as e:
+        app.logger.exception("send_invoice_email failed")
+        return False, str(e)
+
+
+@app.post("/admin/invoices/<invoice_id>/send-email")
+@auth_required(admin=True)
+def admin_invoice_send_email(invoice_id):
+    """Sendet eine Rechnung per E-Mail."""
+    try:
+        with Session(engine) as s:
+            inv = s.get(Invoice, invoice_id)
+            if not inv:
+                return _json_error("not_found", 404)
+
+            provider = s.get(Provider, inv.provider_id)
+            if not provider:
+                return _json_error("provider_not_found", 404)
+
+            bookings = (
+                s.execute(
+                    select(Booking).where(Booking.invoice_id == invoice_id).order_by(Booking.created_at.asc())
+                )
+                .scalars()
+                .all()
+            )
+
+            ok, reason = send_invoice_email(inv, provider, bookings, s)
+
+            if ok:
+                return jsonify({"ok": True, "reason": reason})
+            else:
+                return jsonify({"error": "email_send_failed", "detail": reason}), 500
+
+    except Exception as e:
+        app.logger.exception("admin_invoice_send_email failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
 
 
 # --------------------------------------------------------

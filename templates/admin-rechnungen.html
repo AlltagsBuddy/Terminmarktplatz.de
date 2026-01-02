@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin: Rechnungen | Terminmarktplatz</title>
+  <meta name="description" content="Admin-Übersicht: Alle Rechnungen verwalten, PDFs herunterladen und per E-Mail versenden." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <!-- OG/Twitter minimal -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="Admin: Rechnungen | Terminmarktplatz"/>
+  <meta property="og:image" content="static/og-cover.png"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+
+  <!-- Assets -->
+  <link rel="icon" href="static/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Nur EIN Stylesheet-Import -->
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+
+  <!-- Portal-spezifische Button-Overrides -->
+  <style>
+    html, body { width: 100%; margin: 0; padding: 0; }
+
+    .page-portal .container { max-width: 1120px; box-sizing: border-box; }
+
+    .page-portal .panel { width: 100%; box-sizing: border-box; }
+
+    .page-portal .btn,
+    .page-portal .btn.primary,
+    .page-portal .table .btn,
+    .page-portal .table .btn.action {
+      color:#0f172a !important;
+      background:#ffffff !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+
+    .page-portal .panel{ border-radius:var(--r-3xl); box-shadow:var(--shadow-2); }
+
+    .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
+           border-radius:14px; overflow:hidden}
+    .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
+    .table th{background:#f8fafc; color:#0f172a}
+
+    .muted{color:var(--ink-dim)}
+    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+    .badge-st{padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border)}
+    .st-open{background:#fff7ed; color:#7c2d12}
+    .st-paid{background:#dcfce7; color:#065f46}
+    .st-overdue{background:#fee2e2; color:#7f1d1d}
+
+    .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
+    .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
+    .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
+
+    .invoice-search{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+    .invoice-search input{
+      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
+      border-radius:12px; padding:8px 10px; min-width:220px; flex:1;
+    }
+  </style>
+</head>
+
+<body class="page-portal">
+  <!-- Header -->
+  <header>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Anbieter-Portal</a>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding:36px 0 18px">
+      <div class="container">
+        <span class="badge">Admin: Rechnungen</span>
+        <h1>Rechnungsübersicht</h1>
+        <p class="lead">Alle Rechnungen von registrierten Anbietern ansehen, als PDF herunterladen und per E-Mail versenden.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="panel">
+          <h2>Alle Rechnungen</h2>
+
+          <div class="invoice-search">
+            <input type="text" id="invoice-search" placeholder="Suche nach Anbieter, E-Mail oder Rechnungsnummer...">
+            <button class="btn" id="btn-refresh">Aktualisieren</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="tbl-invoices">
+              <thead>
+                <tr>
+                  <th>Rechnungsnr.</th>
+                  <th>Anbieter</th>
+                  <th>E-Mail</th>
+                  <th>Zeitraum</th>
+                  <th>Betrag</th>
+                  <th>Status</th>
+                  <th>Erstellt</th>
+                  <th class="nowrap">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="8" class="muted">Lade …</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="msg-invoices" class="msg"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ---------- API-Basis ----------
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+
+      if (isLocal) {
+        return `${proto}//${h}:5000`;
+      }
+      if (h === 'api.terminmarktplatz.de') {
+        return `${proto}//${h}`;
+      }
+      return 'https://api.terminmarktplatz.de';
+    })();
+    window.API = API;
+
+    const $  = (q, root=document)=>root.querySelector(q);
+    const $$ = (q, root=document)=>Array.from(root.querySelectorAll(q));
+
+    function showMsg(id, text, ok=false){
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'msg ' + (ok ? 'ok' : 'err');
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 4200);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      try {
+        return new Date(dateStr).toLocaleDateString('de-DE');
+      } catch {
+        return dateStr;
+      }
+    }
+
+    function formatEuro(amount) {
+      return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
+    }
+
+    let LAST_INVOICES = [];
+
+    function renderTable(invoices) {
+      const tbody = $('#tbl-invoices tbody');
+      if (!tbody) return;
+
+      if (!invoices || invoices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="muted">Keine Rechnungen gefunden.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      for (const inv of invoices) {
+        const tr = document.createElement('tr');
+        const statusClass = inv.status === 'paid' ? 'st-paid' : inv.status === 'open' ? 'st-open' : 'st-overdue';
+        const statusLabel = inv.status === 'paid' ? 'Bezahlt' : inv.status === 'open' ? 'Offen' : 'Überfällig';
+
+        const periodStr = `${formatDate(inv.period_start)} - ${formatDate(inv.period_end)}`;
+
+        tr.innerHTML = `
+          <td><code>${inv.id.substring(0, 8).toUpperCase()}</code></td>
+          <td>${escapeHtml(inv.provider_company_name || '-')}</td>
+          <td>${escapeHtml(inv.provider_email || '-')}</td>
+          <td>${periodStr}</td>
+          <td><strong>${formatEuro(inv.total_eur)}</strong></td>
+          <td><span class="badge-st ${statusClass}">${statusLabel}</span></td>
+          <td>${formatDate(inv.created_at)}</td>
+          <td class="nowrap">
+            <button class="btn action" data-pdf="${inv.id}">PDF</button>
+            <button class="btn" data-email="${inv.id}">E-Mail</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // Event Listeners
+      $$('#tbl-invoices [data-pdf]').forEach(btn =>
+        btn.addEventListener('click', async ()=>{
+          await downloadPDF(btn.dataset.pdf);
+        })
+      );
+
+      $$('#tbl-invoices [data-email]').forEach(btn =>
+        btn.addEventListener('click', async ()=>{
+          await sendEmail(btn.dataset.email);
+        })
+      );
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function loadInvoices(){
+      const tbody = $('#tbl-invoices tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">Lade …</td></tr>';
+
+      try{
+        const r = await fetch(`${API}/admin/invoices/all`, {credentials:'include'});
+        if(!r.ok){
+          if (r.status === 401 || r.status === 403) {
+            window.location.href = 'login.html?tab=login';
+            return;
+          }
+          tbody.innerHTML = '<tr><td colspan="8" class="muted">Bitte (erneut) anmelden.</td></tr>';
+          return;
+        }
+        LAST_INVOICES = await r.json();
+        renderTable(LAST_INVOICES);
+      }catch(e){
+        tbody.innerHTML = '<tr><td colspan="8" class="muted">Fehler beim Laden.</td></tr>';
+        console.error('loadInvoices error:', e);
+      }
+    }
+
+    async function downloadPDF(invoiceId) {
+      try {
+        const r = await fetch(`${API}/admin/invoices/${invoiceId}/pdf`, {credentials:'include'});
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({}));
+          showMsg('msg-invoices', data.error ? `PDF konnte nicht geladen werden: ${data.error}` : 'PDF konnte nicht geladen werden.');
+          return;
+        }
+        const blob = await r.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rechnung_${invoiceId.substring(0, 8).toUpperCase()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        showMsg('msg-invoices', 'PDF wird heruntergeladen...', true);
+      } catch (e) {
+        showMsg('msg-invoices', 'Fehler beim Download.');
+        console.error('downloadPDF error:', e);
+      }
+    }
+
+    async function sendEmail(invoiceId) {
+      if (!confirm('Rechnung wirklich per E-Mail versenden?')) return;
+      const btn = $(`#tbl-invoices [data-email="${invoiceId}"]`);
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Wird gesendet...';
+      }
+
+      try {
+        const r = await fetch(`${API}/admin/invoices/${invoiceId}/send-email`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const data = await r.json().catch(() => ({}));
+
+        if (!r.ok) {
+          showMsg('msg-invoices', data.error ? `E-Mail konnte nicht gesendet werden: ${data.error}` : 'E-Mail konnte nicht gesendet werden.');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'E-Mail';
+          }
+          return;
+        }
+
+        showMsg('msg-invoices', 'E-Mail wurde gesendet.', true);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'E-Mail';
+        }
+      } catch (e) {
+        showMsg('msg-invoices', 'Fehler beim Senden.');
+        console.error('sendEmail error:', e);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'E-Mail';
+        }
+      }
+    }
+
+    // Suche
+    const invoiceSearch = $('#invoice-search');
+    if (invoiceSearch) {
+      invoiceSearch.addEventListener('input', ()=>{
+        const q = invoiceSearch.value.trim().toLowerCase();
+        if(!q) return renderTable(LAST_INVOICES);
+        const filtered = LAST_INVOICES.filter(inv =>
+          (inv.provider_company_name||'').toLowerCase().includes(q) ||
+          (inv.provider_email||'').toLowerCase().includes(q) ||
+          inv.id.toLowerCase().includes(q)
+        );
+        renderTable(filtered);
+      });
+    }
+
+    $('#btn-refresh')?.addEventListener('click', loadInvoices);
+
+    // Initial load
+    (async function init(){
+      await loadInvoices();
+    })();
+  </script>
+
+  <!-- User-Menü Logik -->
+  <script>
+    (function(){
+      const API_LOCAL = (typeof window.API === 'string')
+        ? window.API
+        : (() => {
+            const h = location.hostname;
+            const proto = location.protocol;
+            const isLocal =
+              h === 'localhost' ||
+              h === '127.0.0.1' ||
+              /^192\.168\./.test(h) ||
+              /^10\./.test(h) ||
+              h.endsWith('.local');
+            return isLocal ? `${proto}//${h}:5000` : 'https://api.terminmarktplatz.de';
+          })();
+
+      const btn = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if (!btn || !menu) return;
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const isHidden = menu.hasAttribute('hidden');
+        if (isHidden) {
+          menu.removeAttribute('hidden');
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          menu.setAttribute('hidden', '');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.addEventListener('click', (e)=>{
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.setAttribute('hidden', '');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // Logout
+      document.querySelector('[data-action="logout"]')?.addEventListener('click', async ()=>{
+        try {
+          await fetch(`${API_LOCAL}/auth/logout`, {method:'POST', credentials:'include'});
+        } catch(e) {}
+        window.location.href = 'login.html?tab=login';
+      });
+    })();
+  </script>
+</body>
+</html>
+
