@@ -1714,6 +1714,10 @@ if _html_enabled():
 
     @app.get("/<path:slug>")
     def any_page(slug: str):
+        # Spezifische Routen sollten bereits abgefangen worden sein
+        # Diese Route ist nur für generische HTML-Dateien
+        if slug.startswith("admin/"):
+            abort(404)  # Admin-Routen müssen explizit definiert sein
         filename = slug if slug.endswith(".html") else f"{slug}.html"
         try:
             return render_template(filename)
