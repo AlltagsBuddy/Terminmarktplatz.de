@@ -118,6 +118,27 @@
         <div class="panel">
           <h2>Alle Rechnungen</h2>
 
+          <!-- Rechnungserstellung Button -->
+          <div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="flex: 1;">
+                <strong>Monatliche Rechnungserstellung</strong>
+                <div style="font-size: 0.9rem; color: #64748b; margin-top: 4px;">
+                  Erstellt Rechnungen für alle bestätigten Buchungen des letzten Monats
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="billing-month" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
+                  <option value="">Letzter Monat (Standard)</option>
+                </select>
+                <button class="btn primary" id="btn-create-invoices" style="white-space: nowrap;">
+                  Rechnungen erstellen
+                </button>
+              </div>
+            </div>
+            <div id="msg-billing" class="msg" style="margin-top: 8px; display: none;"></div>
+          </div>
+
           <div class="invoice-search">
             <input type="text" id="invoice-search" placeholder="Suche nach Anbieter, E-Mail oder Rechnungsnummer...">
             <button class="btn" id="btn-refresh">Aktualisieren</button>
@@ -354,8 +375,124 @@
 
     $('#btn-refresh')?.addEventListener('click', loadInvoices);
 
+    // Rechnungserstellung
+    function populateMonthSelect() {
+      const select = document.getElementById('billing-month');
+      if (!select) return;
+      
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // 1-12
+      
+      // Generiere Optionen für die letzten 6 Monate
+      for (let i = 0; i < 6; i++) {
+        let year = currentYear;
+        let month = currentMonth - i;
+        if (month <= 0) {
+          month += 12;
+          year -= 1;
+        }
+        
+        const monthNames = [
+          'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+          'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+        ];
+        
+        const option = document.createElement('option');
+        option.value = `${year}-${month}`;
+        option.textContent = `${monthNames[month - 1]} ${year}`;
+        if (i === 1) option.selected = true; // Vormonat standardmäßig ausgewählt
+        select.appendChild(option);
+      }
+    }
+
+    async function createInvoices() {
+      const select = document.getElementById('billing-month');
+      const btn = document.getElementById('btn-create-invoices');
+      const msgEl = document.getElementById('msg-billing');
+      
+      if (!select || !btn || !msgEl) return;
+      
+      let year, month;
+      const selectedValue = select.value;
+      
+      if (selectedValue) {
+        // Spezifischer Monat ausgewählt
+        const [y, m] = selectedValue.split('-').map(Number);
+        year = y;
+        month = m;
+      } else {
+        // Standard: Vormonat
+        const now = new Date();
+        year = now.getFullYear();
+        month = now.getMonth(); // 0-11
+        if (month === 0) {
+          month = 12;
+          year -= 1;
+        }
+      }
+      
+      // Bestätigung
+      const monthNames = [
+        'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+        'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+      ];
+      const confirmMsg = `Möchten Sie wirklich Rechnungen für ${monthNames[month - 1]} ${year} erstellen?\n\nDies kann nicht rückgängig gemacht werden.`;
+      if (!confirm(confirmMsg)) return;
+      
+      btn.disabled = true;
+      btn.textContent = 'Wird erstellt...';
+      msgEl.style.display = 'none';
+      
+      try {
+        const r = await fetch(`${API}/admin/run_billing`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ year, month })
+        });
+        
+        const data = await r.json().catch(() => ({}));
+        
+        if (!r.ok) {
+          showMsg('msg-billing', data.error ? `Fehler: ${data.error}` : 'Rechnungserstellung fehlgeschlagen.', false);
+          btn.disabled = false;
+          btn.textContent = 'Rechnungen erstellen';
+          return;
+        }
+        
+        const invoicesCreated = data.invoices_created || 0;
+        const items = data.items || [];
+        let totalSum = 0;
+        for (const item of items) {
+          totalSum += item.total_eur || 0;
+        }
+        
+        let successMsg = `✅ ${invoicesCreated} Rechnung${invoicesCreated !== 1 ? 'en' : ''} erstellt`;
+        if (totalSum > 0) {
+          successMsg += ` (Gesamtsumme: ${totalSum.toFixed(2)} €)`;
+        }
+        showMsg('msg-billing', successMsg, true);
+        
+        // Tabelle aktualisieren
+        setTimeout(() => {
+          loadInvoices();
+        }, 1000);
+        
+      } catch (e) {
+        showMsg('msg-billing', 'Netzwerkfehler beim Erstellen der Rechnungen.', false);
+        console.error('createInvoices error:', e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Rechnungen erstellen';
+      }
+    }
+
+    document.getElementById('btn-create-invoices')?.addEventListener('click', createInvoices);
+
     // Initial load
     (async function init(){
+      populateMonthSelect();
       await loadInvoices();
     })();
   </script>
