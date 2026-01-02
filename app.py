@@ -430,27 +430,31 @@ def _ensure_provider_number_field():
                     WHERE table_name = 'provider' AND column_name = 'provider_number'
                 """))
                 column_exists = result.fetchone() is not None
-            except Exception:
+                app.logger.info(f"provider_number column check (information_schema): {column_exists}")
+            except Exception as e_info:
+                app.logger.debug("information_schema check failed, trying SELECT: %r", e_info)
                 # Fallback: Versuche SELECT
                 try:
                     conn.execute(text("SELECT provider_number FROM provider LIMIT 1"))
                     column_exists = True
-                except Exception:
+                    app.logger.info("provider_number column exists (SELECT check)")
+                except Exception as e_select:
                     column_exists = False
+                    app.logger.debug("provider_number column does not exist: %r", e_select)
             
             if not column_exists:
                 # Spalte existiert nicht, erstellen
                 try:
                     conn.execute(text("ALTER TABLE provider ADD COLUMN provider_number INTEGER"))
-                    app.logger.info("provider_number column created")
+                    app.logger.info("✅ provider_number column created successfully")
                 except Exception as e_col:
-                    app.logger.warning("Could not add provider_number column: %r", e_col)
-                    return  # Abbrechen, wenn Spalte nicht erstellt werden kann
+                    app.logger.error("❌ Could not add provider_number column: %r", e_col)
+                    raise  # Fehler weiterwerfen, damit es nicht stillschweigend fehlschlägt
             
             # Bestehende Provider nummerieren (nur wenn noch nicht nummeriert)
             # PostgreSQL-Syntax mit FROM
             try:
-                conn.execute(text("""
+                result = conn.execute(text("""
                     UPDATE provider
                     SET provider_number = sub.row_num
                     FROM (
@@ -458,8 +462,10 @@ def _ensure_provider_number_field():
                       FROM provider
                     ) AS sub
                     WHERE provider.id = sub.id AND (provider.provider_number IS NULL OR provider.provider_number = 0)
+                    RETURNING provider.id
                 """))
-                app.logger.info("provider_number: numbered existing providers (PostgreSQL)")
+                updated_count = len(result.fetchall())
+                app.logger.info(f"provider_number: numbered {updated_count} existing providers (PostgreSQL)")
             except Exception as e_pg:
                 # SQLite-Syntax (kein FROM in UPDATE) oder andere DB
                 try:
@@ -4442,6 +4448,123 @@ def admin_invoices_all():
             )
 
         return jsonify(result)
+
+
+@app.get("/admin/debug/provider-numbers")
+@auth_required(admin=True)
+def debug_provider_numbers():
+    """Debug-Endpoint: Zeigt Status der provider_number Migration."""
+    with Session(engine) as s:
+        # Prüfe ob Spalte existiert
+        column_exists = False
+        column_error = None
+        try:
+            s.execute(text("SELECT provider_number FROM provider LIMIT 1"))
+            column_exists = True
+        except Exception as e:
+            column_error = str(e)
+        
+        # Zähle Provider
+        total_providers = s.scalar(select(func.count()).select_from(Provider))
+        providers_with_number = 0
+        providers_without_number = 0
+        max_number = None
+        
+        if column_exists:
+            providers_with_number = s.scalar(
+                select(func.count()).select_from(Provider).where(Provider.provider_number.isnot(None))
+            )
+            providers_without_number = total_providers - providers_with_number
+            max_number = s.scalar(select(func.max(Provider.provider_number)))
+        
+        # Zähle Rechnungen
+        total_invoices = s.scalar(select(func.count()).select_from(Invoice))
+        
+        return jsonify({
+            "column_exists": column_exists,
+            "column_error": column_error,
+            "total_providers": total_providers,
+            "providers_with_number": providers_with_number,
+            "providers_without_number": providers_without_number,
+            "max_provider_number": max_number,
+            "total_invoices": total_invoices,
+        })
+
+
+@app.post("/admin/debug/run-provider-number-migration")
+@auth_required(admin=True)
+def run_provider_number_migration():
+    """Führt die provider_number Migration manuell aus."""
+    try:
+        _ensure_provider_number_field()
+        return jsonify({"ok": True, "message": "Migration completed"})
+    except Exception as e:
+        app.logger.exception("Manual migration failed: %r", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.get("/admin/debug/invoices")
+@auth_required(admin=True)
+def debug_invoices():
+    """Debug-Endpoint: Zeigt alle Rechnungen mit Details."""
+    with Session(engine) as s:
+        # Prüfe ob provider_number Spalte existiert
+        provider_number_exists = False
+        try:
+            s.execute(text("SELECT provider_number FROM provider LIMIT 1"))
+            provider_number_exists = True
+        except Exception as e:
+            provider_number_error = str(e)
+        else:
+            provider_number_error = None
+        
+        # Hole alle Rechnungen mit rohem SQL
+        try:
+            if provider_number_exists:
+                invoices_raw = s.execute(text("""
+                    SELECT 
+                        i.id,
+                        i.provider_id,
+                        i.period_start,
+                        i.period_end,
+                        i.total_eur,
+                        i.status,
+                        i.created_at,
+                        p.email as provider_email,
+                        p.company_name as provider_company_name,
+                        p.provider_number
+                    FROM invoice i
+                    JOIN provider p ON i.provider_id = p.id
+                    ORDER BY i.created_at DESC
+                """)).mappings().all()
+            else:
+                invoices_raw = s.execute(text("""
+                    SELECT 
+                        i.id,
+                        i.provider_id,
+                        i.period_start,
+                        i.period_end,
+                        i.total_eur,
+                        i.status,
+                        i.created_at,
+                        p.email as provider_email,
+                        p.company_name as provider_company_name,
+                        NULL as provider_number
+                    FROM invoice i
+                    JOIN provider p ON i.provider_id = p.id
+                    ORDER BY i.created_at DESC
+                """)).mappings().all()
+            
+            invoices = [dict(row) for row in invoices_raw]
+            return jsonify({
+                "provider_number_exists": provider_number_exists,
+                "provider_number_error": provider_number_error,
+                "invoice_count": len(invoices),
+                "invoices": invoices,
+            })
+        except Exception as e:
+            app.logger.exception("debug_invoices failed: %r", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.get("/admin/invoices/<invoice_id>")
