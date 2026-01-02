@@ -3013,6 +3013,30 @@ def alert_stats():
 
     return jsonify({"ok": True, "used": used, "limit": ALERT_MAX_PER_EMAIL, "left": left})
 
+@app.get("/api/alert-subscriptions/email-by-manage-key")
+def get_email_by_manage_key():
+    """Gibt die E-Mail-Adresse für einen manage_key zurück (für Frontend-Vorbelegung)"""
+    k = (request.args.get("k") or "").strip()
+    if not k or len(k) < 20:
+        return _json_error("missing_or_invalid_key", 400)
+
+    with Session(engine) as s:
+        email_row = s.execute(
+            text("""
+                SELECT email
+                FROM public.alert_subscription
+                WHERE manage_key = :k
+                LIMIT 1
+            """),
+            {"k": k},
+        ).mappings().first()
+        
+        if not email_row:
+            return jsonify({"ok": True, "email": None})
+        
+        return jsonify({"ok": True, "email": email_row["email"]})
+
+
 @app.get("/api/alert-subscriptions/by-manage-key")
 def alert_subscriptions_by_manage_key():
     k = (request.args.get("k") or "").strip()
@@ -3346,11 +3370,29 @@ def create_alert():
             ).mappings().first()
             return (row["manage_key"] if row and row.get("manage_key") else None)
 
+        def get_email_for_manage_key(session: Session, key: str) -> str | None:
+            """Holt die E-Mail-Adresse für einen manage_key"""
+            row = session.execute(
+                text("""
+                    SELECT email
+                    FROM public.alert_subscription
+                    WHERE manage_key = :key
+                    LIMIT 1
+                """),
+                {"key": key},
+            ).mappings().first()
+            return (row["email"] if row and row.get("email") else None)
+
         manage_key = None
         verify_token = None
         used = 0  # ✅ immer definiert
 
         with Session(engine) as s:
+            # ✅ WICHTIG: Wenn ein manage_key vorhanden ist, muss die E-Mail-Adresse übereinstimmen
+            if incoming_manage_key:
+                expected_email = get_email_for_manage_key(s, incoming_manage_key)
+                if expected_email and expected_email.lower() != email.lower():
+                    return _json_error("email_mismatch", 400)
             # Limit check (bei dir pro E-Mail)
             # WICHTIG: Zähle ALLE Benachrichtigungen, auch gelöschte und deaktivierte
             existing_count = int(

@@ -606,8 +606,39 @@
     const prePkg = qp("pkg");
     if (prePkg) pkgEl.value = prePkg;
 
+    async function loadEmailForManageKey(){
+      if(!manageKey) return;
+      
+      try{
+        const r = await fetch(`${API_BASE}/api/alert-subscriptions/email-by-manage-key?k=${encodeURIComponent(manageKey)}`, {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+        const js = await r.json().catch(() => null);
+        
+        if(r.ok && js && js.ok && js.email){
+          // E-Mail-Adresse aus dem Paket vorbelegen
+          emailEl.value = js.email;
+          // E-Mail-Feld auf readonly setzen, da es mit dem Paket verknüpft ist
+          emailEl.readOnly = true;
+          emailEl.style.opacity = "0.7";
+          emailEl.style.cursor = "not-allowed";
+          // Hinweis hinzufügen
+          const hint = emailEl.nextElementSibling;
+          if(hint && hint.classList.contains("hint")){
+            hint.textContent = "Diese E-Mail-Adresse ist mit deinem Paket verknüpft und kann nicht geändert werden.";
+          }
+        }
+      }catch(e){
+        // Fehler ignorieren, falls API nicht verfügbar ist
+        console.warn("Konnte E-Mail für manage_key nicht laden:", e);
+      }
+    }
+
     if(manageKey){
       showMyAlertsButton();
+      // E-Mail-Adresse für manage_key laden und Feld sperren
+      loadEmailForManageKey();
       // optional: Stats direkt holen wenn vorhanden
       tryFetchStats();
     }
@@ -676,6 +707,12 @@
           if (err === "alert_limit_reached"){
             showStatus("err","Limit erreicht","Du hast bereits alle 10 Benachrichtigungen genutzt.");
             if (js.stats) setStats(js.stats);
+            submitBtn.disabled = false;
+            return;
+          }
+
+          if (err === "email_mismatch"){
+            showStatus("err","E-Mail-Adresse stimmt nicht überein","Die E-Mail-Adresse muss mit der E-Mail-Adresse deines Pakets übereinstimmen. Bitte verwende die E-Mail-Adresse, mit der du das Paket gekauft hast.");
             submitBtn.disabled = false;
             return;
           }
