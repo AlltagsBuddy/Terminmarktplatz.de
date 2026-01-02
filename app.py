@@ -1727,9 +1727,6 @@ if _html_enabled():
         # Diese Route ist nur für generische HTML-Dateien
         if slug.startswith("admin/"):
             abort(404)  # Admin-Routen müssen explizit definiert sein
-        # Explizite Routen ausschließen
-        if slug in ("admin-rechnungen", "admin-rechnungen.html"):
-            abort(404)  # Diese Route ist explizit definiert
         filename = slug if slug.endswith(".html") else f"{slug}.html"
         try:
             return render_template(filename)
