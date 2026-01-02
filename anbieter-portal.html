@@ -1044,21 +1044,48 @@
         const providerIdDisplay = document.getElementById('provider-id-display');
         if (providerIdDisplay) {
           // Debug: Log was zurückgegeben wird
-          console.log('ME.provider_number:', ME.provider_number, 'ME.id:', ME.id);
+          console.log('🔍 Provider Data:', {
+            provider_number: ME.provider_number,
+            provider_number_type: typeof ME.provider_number,
+            id: ME.id,
+            full_ME: ME
+          });
           
-          // Prüfe ob provider_number existiert und nicht null/undefined ist
-          if (ME.provider_number !== null && ME.provider_number !== undefined && ME.provider_number !== '') {
-            providerIdDisplay.textContent = `#${ME.provider_number}`;
+          // Prüfe ob provider_number existiert und eine gültige Zahl ist
+          const providerNum = ME.provider_number;
+          if (providerNum !== null && providerNum !== undefined && providerNum !== '' && !isNaN(Number(providerNum)) && Number(providerNum) > 0) {
+            providerIdDisplay.textContent = `#${providerNum}`;
             providerIdDisplay.style.fontSize = '1.1rem';
             providerIdDisplay.style.fontWeight = '600';
-          } else if (ME.id) {
-            // Fallback: Zeige UUID-Präfix
-            providerIdDisplay.textContent = ME.id.substring(0, 8).toUpperCase();
-            providerIdDisplay.style.fontSize = '0.85rem';
+            providerIdDisplay.style.color = 'var(--ink)';
+            console.log('✅ Provider-Nummer angezeigt:', providerNum);
           } else {
+            // Keine Nummer vorhanden - zeige Hinweis
             providerIdDisplay.textContent = 'Wird zugewiesen...';
             providerIdDisplay.style.fontSize = '0.9rem';
             providerIdDisplay.style.color = 'var(--ink-dim)';
+            providerIdDisplay.style.fontStyle = 'italic';
+            console.warn('⚠️ Keine Provider-Nummer gefunden. provider_number:', providerNum);
+            
+            // Versuche Migration auszulösen (nur wenn Admin)
+            if (ME.is_admin === true) {
+              console.log('🔄 Versuche Migration auszulösen...');
+              fetch(`${API}/admin/debug/run-provider-number-migration`, {
+                method: 'POST',
+                credentials: 'include'
+              })
+              .then(r => r.json())
+              .then(data => {
+                console.log('Migration Ergebnis:', data);
+                if (data.ok) {
+                  // Seite neu laden, um aktualisierte Daten zu bekommen
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
+                }
+              })
+              .catch(err => console.error('Migration fehlgeschlagen:', err));
+            }
           }
         }
 

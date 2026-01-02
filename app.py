@@ -2486,19 +2486,39 @@ def me():
         # Provider-Nummer sicher abrufen (falls Spalte noch nicht existiert)
         provider_number = None
         try:
+            # Versuche direkt über SQLAlchemy
             provider_number = getattr(p, "provider_number", None)
+            
             # Falls provider_number None ist, versuche Migration auszuführen
             if provider_number is None:
                 app.logger.info(f"Provider {p.id} has no provider_number, running migration...")
                 try:
                     _ensure_provider_number_field()
-                    # Provider neu laden (mit neuem Session-Objekt)
+                    # Provider neu laden
                     s.expire(p)
                     p = s.get(Provider, request.provider_id)
                     provider_number = getattr(p, "provider_number", None)
                     app.logger.info(f"Provider {p.id} now has provider_number: {provider_number}")
+                    
+                    # Falls immer noch None, versuche direkt über SQL
+                    if provider_number is None:
+                        result = s.execute(text("""
+                            SELECT provider_number FROM provider WHERE id = :pid
+                        """), {"pid": str(p.id)}).scalar()
+                        if result is not None:
+                            provider_number = int(result)
+                            app.logger.info(f"Provider {p.id} provider_number from SQL: {provider_number}")
                 except Exception as e_mig:
                     app.logger.warning(f"Migration failed for provider {p.id}: %r", e_mig)
+            
+            # Konvertiere zu Integer, falls es ein String ist
+            if provider_number is not None:
+                try:
+                    provider_number = int(provider_number)
+                except (ValueError, TypeError):
+                    app.logger.warning(f"Provider {p.id} has invalid provider_number: {provider_number}")
+                    provider_number = None
+                    
         except Exception as e:
             app.logger.warning(f"Could not get provider_number for {p.id}: %r", e)
 
@@ -4498,6 +4518,48 @@ def admin_invoices_all():
             )
 
         return jsonify(result)
+
+
+@app.get("/me/debug")
+@auth_required()
+def me_debug():
+    """Debug-Endpoint: Zeigt alle Daten des aktuellen Providers inkl. provider_number."""
+    with Session(engine) as s:
+        try:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            
+            # Direkt aus DB lesen
+            db_result = s.execute(text("""
+                SELECT id, email, provider_number, created_at
+                FROM provider
+                WHERE id = :pid
+            """), {"pid": str(request.provider_id)}).mappings().first()
+            
+            # Prüfe ob Spalte existiert
+            column_exists = False
+            try:
+                s.execute(text("SELECT provider_number FROM provider LIMIT 1"))
+                column_exists = True
+            except Exception as e:
+                column_error = str(e)
+            else:
+                column_error = None
+            
+            return jsonify({
+                "provider_id": str(p.id),
+                "email": p.email,
+                "provider_number_from_model": getattr(p, "provider_number", "ATTRIBUTE_NOT_FOUND"),
+                "provider_number_from_db": db_result["provider_number"] if db_result else None,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "column_exists": column_exists,
+                "column_error": column_error,
+                "db_result": dict(db_result) if db_result else None,
+            })
+        except Exception as e:
+            app.logger.exception("me_debug failed: %r", e)
+            return jsonify({"error": str(e)}), 500
 
 
 @app.get("/admin/debug/provider-numbers")
