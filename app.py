@@ -2433,7 +2433,21 @@ def delete_me():
 @auth_required()
 def me():
     with Session(engine) as s:
-        p = s.get(Provider, request.provider_id)
+        try:
+            p = s.get(Provider, request.provider_id)
+        except Exception as e:
+            # Falls provider_number Spalte fehlt, Migration nochmal versuchen
+            if "provider_number" in str(e).lower() or "undefinedcolumn" in str(e).lower():
+                app.logger.warning("provider_number column missing in /me, running migration...")
+                try:
+                    _ensure_provider_number_field()
+                    p = s.get(Provider, request.provider_id)
+                except Exception as e2:
+                    app.logger.exception("Migration failed during /me: %r", e2)
+                    return _json_error("server_error", 500)
+            else:
+                raise
+        
         if not p:
             return _json_error("not_found", 404)
 
@@ -2477,10 +2491,17 @@ def me():
         # Trenne street und house_number für Frontend-Kompatibilität
         street, house_number = split_street_and_number(p.street)
 
+        # Provider-Nummer sicher abrufen (falls Spalte noch nicht existiert)
+        provider_number = None
+        try:
+            provider_number = getattr(p, "provider_number", None)
+        except Exception:
+            pass
+
         return jsonify(
             {
                 "id": p.id,
-                "provider_number": p.provider_number,
+                "provider_number": provider_number,
                 "email": p.email,
                 "status": p.status,
                 "is_admin": p.is_admin,
