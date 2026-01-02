@@ -451,9 +451,10 @@ def _ensure_provider_number_field():
                     app.logger.error("❌ Could not add provider_number column: %r", e_col)
                     raise  # Fehler weiterwerfen, damit es nicht stillschweigend fehlschlägt
             
-            # Bestehende Provider nummerieren (nur wenn noch nicht nummeriert)
+            # Bestehende Provider nummerieren (nach Registrierungsdatum aufsteigend)
             # PostgreSQL-Syntax mit FROM
             try:
+                # Zuerst alle Provider ohne Nummer nummerieren
                 result = conn.execute(text("""
                     UPDATE provider
                     SET provider_number = sub.row_num
@@ -465,29 +466,53 @@ def _ensure_provider_number_field():
                     RETURNING provider.id
                 """))
                 updated_count = len(result.fetchall())
-                app.logger.info(f"provider_number: numbered {updated_count} existing providers (PostgreSQL)")
+                app.logger.info(f"provider_number: numbered {updated_count} providers without number (PostgreSQL)")
+                
+                # Wenn es bereits nummerierte Provider gibt, müssen wir alle neu nummerieren,
+                # um sicherzustellen, dass die Reihenfolge korrekt ist
+                # Prüfe ob es nummerierte Provider gibt, die nicht in der richtigen Reihenfolge sind
+                all_providers = conn.execute(text("""
+                    SELECT id, provider_number, created_at
+                    FROM provider
+                    ORDER BY created_at ASC
+                """)).fetchall()
+                
+                # Prüfe ob Neu-Nummerierung nötig ist
+                needs_renumbering = False
+                for idx, (pid, pnum, _) in enumerate(all_providers, start=1):
+                    if pnum is None or pnum != idx:
+                        needs_renumbering = True
+                        break
+                
+                if needs_renumbering:
+                    # Alle Provider neu nummerieren nach created_at
+                    conn.execute(text("""
+                        UPDATE provider
+                        SET provider_number = sub.row_num
+                        FROM (
+                          SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
+                          FROM provider
+                        ) AS sub
+                        WHERE provider.id = sub.id
+                    """))
+                    app.logger.info(f"provider_number: renumbered all {len(all_providers)} providers (PostgreSQL)")
             except Exception as e_pg:
                 # SQLite-Syntax (kein FROM in UPDATE) oder andere DB
                 try:
-                    # Alle Provider ohne Nummer holen (mit rohem SQL)
-                    result = conn.execute(text("""
+                    # Alle Provider nach created_at sortiert holen
+                    all_providers = conn.execute(text("""
                         SELECT id, created_at 
                         FROM provider 
-                        WHERE provider_number IS NULL OR provider_number = 0
                         ORDER BY created_at ASC
                     """)).fetchall()
                     
-                    # Max-Nummer finden
-                    max_result = conn.execute(text("SELECT MAX(provider_number) FROM provider")).scalar()
-                    max_num = int(max_result) if max_result else 0
-                    
-                    # Provider nummerieren
-                    for idx, (pid, _) in enumerate(result, start=1):
+                    # Alle Provider neu nummerieren (1, 2, 3, ...)
+                    for idx, (pid, _) in enumerate(all_providers, start=1):
                         conn.execute(
                             text("UPDATE provider SET provider_number = :num WHERE id = :pid"),
-                            {"num": max_num + idx, "pid": str(pid)}
+                            {"num": idx, "pid": str(pid)}
                         )
-                    app.logger.info(f"provider_number: numbered {len(result)} existing providers (SQLite/fallback)")
+                    app.logger.info(f"provider_number: numbered all {len(all_providers)} providers (SQLite/fallback)")
                 except Exception as e2:
                     app.logger.warning("provider_number numbering failed: %r", e2)
             

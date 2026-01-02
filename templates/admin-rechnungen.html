@@ -277,7 +277,7 @@
     async function loadInvoices(){
       const tbody = $('#tbl-invoices tbody');
       if (!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="8" class="muted">Lade …</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="muted">Lade …</td></tr>';
 
       try{
         const r = await fetch(`${API}/admin/invoices/all`, {credentials:'include'});
