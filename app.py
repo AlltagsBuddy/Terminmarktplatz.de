@@ -1516,6 +1516,9 @@ def auth_required(admin: bool = False):
                 if auth.lower().startswith("bearer "):
                     token = auth.split(" ", 1)[1].strip()
             if not token:
+                # Für HTML-Routen: Redirect zu Login
+                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                    return redirect(f"/login.html?next={request.path}")
                 return _json_error("unauthorized", 401)
             try:
                 data = jwt.decode(
@@ -1526,8 +1529,14 @@ def auth_required(admin: bool = False):
                     issuer=JWT_ISS,
                 )
             except Exception:
+                # Für HTML-Routen: Redirect zu Login
+                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                    return redirect(f"/login.html?next={request.path}")
                 return _json_error("unauthorized", 401)
             if admin and not data.get("adm"):
+                # Für HTML-Routen: 403 oder Redirect
+                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                    abort(403)  # 403 Forbidden für HTML-Seiten
                 return _json_error("forbidden", 403)
             request.provider_id = data["sub"]
             request.is_admin = bool(data.get("adm"))
@@ -1718,6 +1727,9 @@ if _html_enabled():
         # Diese Route ist nur für generische HTML-Dateien
         if slug.startswith("admin/"):
             abort(404)  # Admin-Routen müssen explizit definiert sein
+        # Explizite Routen ausschließen
+        if slug in ("admin-rechnungen", "admin-rechnungen.html"):
+            abort(404)  # Diese Route ist explizit definiert
         filename = slug if slug.endswith(".html") else f"{slug}.html"
         try:
             return render_template(filename)

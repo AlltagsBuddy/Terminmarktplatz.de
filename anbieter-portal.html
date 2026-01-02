@@ -991,10 +991,15 @@
         }
         ME = await r.json();
 
-        // Admin-Link anzeigen wenn Admin
+        // Admin-Link anzeigen nur wenn Admin (explizit true)
         const adminInvoicesLink = document.getElementById('admin-invoices-link');
-        if (adminInvoicesLink && ME.is_admin === true) {
-          adminInvoicesLink.style.display = 'block';
+        if (adminInvoicesLink) {
+          // Nur anzeigen wenn is_admin explizit true ist (strict check)
+          if (ME.is_admin === true) {
+            adminInvoicesLink.style.display = 'block';
+          } else {
+            adminInvoicesLink.style.display = 'none'; // Explizit verstecken
+          }
         }
 
         $('#pf-company').value  = ME.company_name || '';
@@ -1940,7 +1945,12 @@
           loggedIn = false;
         }
 
-        document.querySelectorAll('.auth-in').forEach(el => { el.style.display = loggedIn ? '' : 'none'; });
+        document.querySelectorAll('.auth-in').forEach(el => { 
+          // Admin-only Links werden separat von requireAuth() behandelt - hier überspringen
+          if (!el.classList.contains('admin-only')) {
+            el.style.display = loggedIn ? '' : 'none';
+          }
+        });
         document.querySelectorAll('.auth-out').forEach(el => { el.style.display = loggedIn ? 'none' : ''; });
       }
 
