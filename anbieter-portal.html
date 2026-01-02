@@ -387,6 +387,7 @@
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" id="admin-invoices-link" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
@@ -989,6 +990,12 @@
           return;
         }
         ME = await r.json();
+
+        // Admin-Link anzeigen wenn Admin
+        const adminInvoicesLink = document.getElementById('admin-invoices-link');
+        if (adminInvoicesLink && ME.is_admin === true) {
+          adminInvoicesLink.style.display = 'block';
+        }
 
         $('#pf-company').value  = ME.company_name || '';
         $('#pf-branch').value   = ME.branch || '';
