@@ -452,9 +452,20 @@ def _ensure_provider_number_field():
                     raise  # Fehler weiterwerfen, damit es nicht stillschweigend fehlschlägt
             
             # Bestehende Provider nummerieren (nach Registrierungsdatum aufsteigend)
+            # WICHTIG: Immer ALLE Provider neu nummerieren, um sicherzustellen, dass die Reihenfolge korrekt ist
             # PostgreSQL-Syntax mit FROM
             try:
-                # Zuerst alle Provider ohne Nummer nummerieren
+                # Hole alle Provider nach created_at sortiert
+                all_providers = conn.execute(text("""
+                    SELECT id, created_at
+                    FROM provider
+                    ORDER BY created_at ASC
+                """)).fetchall()
+                
+                app.logger.info(f"provider_number: found {len(all_providers)} providers to number")
+                
+                # Alle Provider neu nummerieren nach created_at (1, 2, 3, ...)
+                # Dies stellt sicher, dass die Reihenfolge immer korrekt ist
                 result = conn.execute(text("""
                     UPDATE provider
                     SET provider_number = sub.row_num
@@ -462,40 +473,21 @@ def _ensure_provider_number_field():
                       SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
                       FROM provider
                     ) AS sub
-                    WHERE provider.id = sub.id AND (provider.provider_number IS NULL OR provider.provider_number = 0)
-                    RETURNING provider.id
+                    WHERE provider.id = sub.id
+                    RETURNING provider.id, provider.provider_number
                 """))
-                updated_count = len(result.fetchall())
-                app.logger.info(f"provider_number: numbered {updated_count} providers without number (PostgreSQL)")
+                updated_rows = result.fetchall()
+                app.logger.info(f"provider_number: numbered {len(updated_rows)} providers (PostgreSQL)")
                 
-                # Wenn es bereits nummerierte Provider gibt, müssen wir alle neu nummerieren,
-                # um sicherzustellen, dass die Reihenfolge korrekt ist
-                # Prüfe ob es nummerierte Provider gibt, die nicht in der richtigen Reihenfolge sind
-                all_providers = conn.execute(text("""
-                    SELECT id, provider_number, created_at
-                    FROM provider
-                    ORDER BY created_at ASC
-                """)).fetchall()
+                # Verifiziere, dass alle Provider eine Nummer haben
+                providers_without_number = conn.execute(text("""
+                    SELECT COUNT(*) FROM provider WHERE provider_number IS NULL
+                """)).scalar()
                 
-                # Prüfe ob Neu-Nummerierung nötig ist
-                needs_renumbering = False
-                for idx, (pid, pnum, _) in enumerate(all_providers, start=1):
-                    if pnum is None or pnum != idx:
-                        needs_renumbering = True
-                        break
-                
-                if needs_renumbering:
-                    # Alle Provider neu nummerieren nach created_at
-                    conn.execute(text("""
-                        UPDATE provider
-                        SET provider_number = sub.row_num
-                        FROM (
-                          SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
-                          FROM provider
-                        ) AS sub
-                        WHERE provider.id = sub.id
-                    """))
-                    app.logger.info(f"provider_number: renumbered all {len(all_providers)} providers (PostgreSQL)")
+                if providers_without_number > 0:
+                    app.logger.warning(f"provider_number: {providers_without_number} providers still without number after migration!")
+                else:
+                    app.logger.info("provider_number: ✅ All providers have been numbered successfully")
             except Exception as e_pg:
                 # SQLite-Syntax (kein FROM in UPDATE) oder andere DB
                 try:
@@ -4554,8 +4546,38 @@ def debug_provider_numbers():
 def run_provider_number_migration():
     """Führt die provider_number Migration manuell aus."""
     try:
+        with Session(engine) as s:
+            # Zähle Provider vor Migration
+            total_before = s.scalar(select(func.count()).select_from(Provider))
+            with_number_before = s.scalar(
+                select(func.count()).select_from(Provider).where(Provider.provider_number.isnot(None))
+            )
+        
+        # Migration ausführen
         _ensure_provider_number_field()
-        return jsonify({"ok": True, "message": "Migration completed"})
+        
+        # Zähle Provider nach Migration
+        with Session(engine) as s:
+            total_after = s.scalar(select(func.count()).select_from(Provider))
+            with_number_after = s.scalar(
+                select(func.count()).select_from(Provider).where(Provider.provider_number.isnot(None))
+            )
+            max_number = s.scalar(select(func.max(Provider.provider_number)))
+        
+        return jsonify({
+            "ok": True,
+            "message": "Migration completed",
+            "before": {
+                "total": total_before,
+                "with_number": with_number_before
+            },
+            "after": {
+                "total": total_after,
+                "with_number": with_number_after,
+                "max_number": max_number
+            },
+            "newly_numbered": with_number_after - with_number_before
+        })
     except Exception as e:
         app.logger.exception("Manual migration failed: %r", e)
         return jsonify({"ok": False, "error": str(e)}), 500
