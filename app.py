@@ -2495,8 +2495,20 @@ def me():
         provider_number = None
         try:
             provider_number = getattr(p, "provider_number", None)
-        except Exception:
-            pass
+            # Falls provider_number None ist, versuche Migration auszuführen
+            if provider_number is None:
+                app.logger.info(f"Provider {p.id} has no provider_number, running migration...")
+                try:
+                    _ensure_provider_number_field()
+                    # Provider neu laden (mit neuem Session-Objekt)
+                    s.expire(p)
+                    p = s.get(Provider, request.provider_id)
+                    provider_number = getattr(p, "provider_number", None)
+                    app.logger.info(f"Provider {p.id} now has provider_number: {provider_number}")
+                except Exception as e_mig:
+                    app.logger.warning(f"Migration failed for provider {p.id}: %r", e_mig)
+        except Exception as e:
+            app.logger.warning(f"Could not get provider_number for {p.id}: %r", e)
 
         return jsonify(
             {

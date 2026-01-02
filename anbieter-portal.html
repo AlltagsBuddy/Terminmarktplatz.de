@@ -1043,13 +1043,22 @@
         // Provider-Nummer anzeigen
         const providerIdDisplay = document.getElementById('provider-id-display');
         if (providerIdDisplay) {
-          if (ME.provider_number) {
+          // Debug: Log was zurückgegeben wird
+          console.log('ME.provider_number:', ME.provider_number, 'ME.id:', ME.id);
+          
+          // Prüfe ob provider_number existiert und nicht null/undefined ist
+          if (ME.provider_number !== null && ME.provider_number !== undefined && ME.provider_number !== '') {
             providerIdDisplay.textContent = `#${ME.provider_number}`;
+            providerIdDisplay.style.fontSize = '1.1rem';
+            providerIdDisplay.style.fontWeight = '600';
           } else if (ME.id) {
+            // Fallback: Zeige UUID-Präfix
             providerIdDisplay.textContent = ME.id.substring(0, 8).toUpperCase();
             providerIdDisplay.style.fontSize = '0.85rem';
           } else {
-            providerIdDisplay.textContent = '-';
+            providerIdDisplay.textContent = 'Wird zugewiesen...';
+            providerIdDisplay.style.fontSize = '0.9rem';
+            providerIdDisplay.style.color = 'var(--ink-dim)';
           }
         }
 
