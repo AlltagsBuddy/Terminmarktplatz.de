@@ -418,74 +418,102 @@ def _ensure_provider_number_field():
     """
     Erstellt das provider_number Feld, falls es noch nicht existiert, und nummeriert bestehende Provider.
     """
-    ddl_provider_number = """
-    ALTER TABLE provider ADD COLUMN IF NOT EXISTS provider_number INTEGER;
-    
-    -- Bestehende Provider mit aufsteigenden Nummern versehen (basierend auf created_at)
-    UPDATE provider
-    SET provider_number = sub.row_num
-    FROM (
-      SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
-      FROM provider
-    ) AS sub
-    WHERE provider.id = sub.id AND provider.provider_number IS NULL;
-    
-    -- Eindeutigen Index erstellen
-    CREATE UNIQUE INDEX IF NOT EXISTS provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL;
-    """
     with engine.begin() as conn:
         try:
-            # Prüfen ob Spalte existiert
+            # Prüfen ob Spalte existiert (PostgreSQL-spezifisch)
+            column_exists = False
             try:
-                conn.exec_driver_sql("SELECT provider_number FROM provider LIMIT 1")
-                column_exists = True
+                # PostgreSQL: Prüfe in information_schema
+                result = conn.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'provider' AND column_name = 'provider_number'
+                """))
+                column_exists = result.fetchone() is not None
             except Exception:
+                # Fallback: Versuche SELECT
+                try:
+                    conn.execute(text("SELECT provider_number FROM provider LIMIT 1"))
+                    column_exists = True
+                except Exception:
+                    column_exists = False
+            
+            if not column_exists:
                 # Spalte existiert nicht, erstellen
-                conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN provider_number INTEGER")
-                column_exists = False
+                try:
+                    conn.execute(text("ALTER TABLE provider ADD COLUMN provider_number INTEGER"))
+                    app.logger.info("provider_number column created")
+                except Exception as e_col:
+                    app.logger.warning("Could not add provider_number column: %r", e_col)
+                    return  # Abbrechen, wenn Spalte nicht erstellt werden kann
             
             # Bestehende Provider nummerieren (nur wenn noch nicht nummeriert)
             # PostgreSQL-Syntax mit FROM
             try:
-                conn.exec_driver_sql("""
+                conn.execute(text("""
                     UPDATE provider
                     SET provider_number = sub.row_num
                     FROM (
                       SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
                       FROM provider
                     ) AS sub
-                    WHERE provider.id = sub.id AND provider.provider_number IS NULL
-                """)
-            except Exception:
-                # SQLite-Syntax (kein FROM in UPDATE)
+                    WHERE provider.id = sub.id AND (provider.provider_number IS NULL OR provider.provider_number = 0)
+                """))
+                app.logger.info("provider_number: numbered existing providers (PostgreSQL)")
+            except Exception as e_pg:
+                # SQLite-Syntax (kein FROM in UPDATE) oder andere DB
                 try:
-                    providers = conn.execute(
-                        select(Provider.id, Provider.created_at)
-                        .where(Provider.provider_number.is_(None))
-                        .order_by(Provider.created_at.asc())
-                    ).all()
+                    # Alle Provider ohne Nummer holen (mit rohem SQL)
+                    result = conn.execute(text("""
+                        SELECT id, created_at 
+                        FROM provider 
+                        WHERE provider_number IS NULL OR provider_number = 0
+                        ORDER BY created_at ASC
+                    """)).fetchall()
                     
-                    max_num = conn.scalar(select(func.max(Provider.provider_number))) or 0
-                    for idx, (pid, _) in enumerate(providers, start=1):
+                    # Max-Nummer finden
+                    max_result = conn.execute(text("SELECT MAX(provider_number) FROM provider")).scalar()
+                    max_num = int(max_result) if max_result else 0
+                    
+                    # Provider nummerieren
+                    for idx, (pid, _) in enumerate(result, start=1):
                         conn.execute(
                             text("UPDATE provider SET provider_number = :num WHERE id = :pid"),
                             {"num": max_num + idx, "pid": str(pid)}
                         )
+                    app.logger.info(f"provider_number: numbered {len(result)} existing providers (SQLite/fallback)")
                 except Exception as e2:
                     app.logger.warning("provider_number numbering failed: %r", e2)
             
             # Index erstellen
             try:
-                # PostgreSQL: WHERE-Klausel im Index
-                conn.exec_driver_sql("CREATE UNIQUE INDEX provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL")
-            except Exception:
+                # Prüfe ob Index bereits existiert
+                index_exists = False
                 try:
-                    # SQLite: einfacher Index
-                    conn.exec_driver_sql("CREATE UNIQUE INDEX IF NOT EXISTS provider_number_idx ON provider(provider_number)")
+                    result = conn.execute(text("""
+                        SELECT indexname FROM pg_indexes 
+                        WHERE tablename = 'provider' AND indexname = 'provider_number_idx'
+                    """))
+                    index_exists = result.fetchone() is not None
                 except Exception:
-                    pass  # Index existiert bereits
+                    pass
+                
+                if not index_exists:
+                    try:
+                        # PostgreSQL: WHERE-Klausel im Index
+                        conn.execute(text("CREATE UNIQUE INDEX provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL"))
+                        app.logger.info("provider_number index created (PostgreSQL)")
+                    except Exception:
+                        try:
+                            # SQLite: einfacher Index
+                            conn.execute(text("CREATE UNIQUE INDEX provider_number_idx ON provider(provider_number)"))
+                            app.logger.info("provider_number index created (SQLite)")
+                        except Exception as e_idx:
+                            app.logger.warning("Could not create provider_number index: %r", e_idx)
+            except Exception as e_idx:
+                app.logger.warning("Index creation check failed: %r", e_idx)
         except Exception as e:
-            app.logger.warning("ensure_provider_number_field failed: %r", e)
+            app.logger.exception("ensure_provider_number_field failed: %r", e)
 
 
 _ensure_provider_number_field()
@@ -1938,7 +1966,21 @@ def _authenticate(email: str, password: str):
     email = (email or "").strip().lower()
     pw = password or ""
     with Session(engine) as s:
-        p = s.scalar(select(Provider).where(Provider.email == email))
+        try:
+            p = s.scalar(select(Provider).where(Provider.email == email))
+        except Exception as e:
+            # Falls provider_number Spalte fehlt, Migration nochmal versuchen
+            if "provider_number" in str(e).lower() or "undefinedcolumn" in str(e).lower():
+                app.logger.warning("provider_number column missing, running migration...")
+                try:
+                    _ensure_provider_number_field()
+                    p = s.scalar(select(Provider).where(Provider.email == email))
+                except Exception as e2:
+                    app.logger.exception("Migration failed during auth: %r", e2)
+                    return None, "server_error"
+            else:
+                raise
+        
         if not p:
             return None, "invalid_credentials"
         try:
