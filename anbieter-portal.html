@@ -436,9 +436,9 @@
           <h2>Profil</h2>
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
           <div style="margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px;">
-            <div style="font-size: 0.9rem; color: var(--ink-dim); margin-bottom: 4px;">Deine Anbieter-Nummer:</div>
-            <div style="font-family: monospace; font-size: 1.1rem; font-weight: 600; color: var(--ink);" id="provider-id-display">Lade...</div>
-            <div style="font-size: 0.8rem; color: var(--ink-dim); margin-top: 4px;">Diese Nummer ist eindeutig und wird auf Rechnungen angezeigt.</div>
+            <div style="font-size: 0.9rem; color: #0f172a; font-weight: 600; margin-bottom: 6px;">Deine Anbieter-Nummer:</div>
+            <div style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; min-height: 24px;" id="provider-id-display">Lade...</div>
+            <div style="font-size: 0.85rem; color: #475569; margin-top: 4px;">Diese Nummer ist eindeutig und wird auf Rechnungen angezeigt.</div>
           </div>
           <form id="form-profile" class="grid" novalidate>
             <div class="field">
@@ -1020,6 +1020,9 @@
           return;
         }
         ME = await r.json();
+        
+        // Debug: Log vollständige Antwort
+        console.log('📦 /me Response:', ME);
 
         // Admin-Link anzeigen nur wenn Admin (explizit true)
         const adminInvoicesLink = document.getElementById('admin-invoices-link');
@@ -1040,7 +1043,7 @@
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
 
-        // Provider-Nummer anzeigen
+        // Provider-Nummer anzeigen - MIT RETRY-LOGIK
         const providerIdDisplay = document.getElementById('provider-id-display');
         if (providerIdDisplay) {
           // Debug: Log was zurückgegeben wird
@@ -1048,45 +1051,80 @@
             provider_number: ME.provider_number,
             provider_number_type: typeof ME.provider_number,
             id: ME.id,
-            full_ME: ME
+            email: ME.email
           });
           
-          // Prüfe ob provider_number existiert und eine gültige Zahl ist
-          const providerNum = ME.provider_number;
-          if (providerNum !== null && providerNum !== undefined && providerNum !== '' && !isNaN(Number(providerNum)) && Number(providerNum) > 0) {
-            providerIdDisplay.textContent = `#${providerNum}`;
-            providerIdDisplay.style.fontSize = '1.1rem';
-            providerIdDisplay.style.fontWeight = '600';
-            providerIdDisplay.style.color = 'var(--ink)';
-            console.log('✅ Provider-Nummer angezeigt:', providerNum);
-          } else {
-            // Keine Nummer vorhanden - zeige Hinweis
-            providerIdDisplay.textContent = 'Wird zugewiesen...';
-            providerIdDisplay.style.fontSize = '0.9rem';
-            providerIdDisplay.style.color = 'var(--ink-dim)';
-            providerIdDisplay.style.fontStyle = 'italic';
-            console.warn('⚠️ Keine Provider-Nummer gefunden. provider_number:', providerNum);
-            
-            // Versuche Migration auszulösen (nur wenn Admin)
-            if (ME.is_admin === true) {
-              console.log('🔄 Versuche Migration auszulösen...');
-              fetch(`${API}/admin/debug/run-provider-number-migration`, {
-                method: 'POST',
-                credentials: 'include'
-              })
-              .then(r => r.json())
-              .then(data => {
-                console.log('Migration Ergebnis:', data);
-                if (data.ok) {
-                  // Seite neu laden, um aktualisierte Daten zu bekommen
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 1000);
-                }
-              })
-              .catch(err => console.error('Migration fehlgeschlagen:', err));
+          // Funktion zum Anzeigen der Nummer
+          const displayProviderNumber = (num) => {
+            if (num && num !== null && num !== undefined && num !== '' && !isNaN(Number(num)) && Number(num) > 0) {
+              providerIdDisplay.textContent = `#${num}`;
+              providerIdDisplay.style.fontSize = '1.3rem';
+              providerIdDisplay.style.fontWeight = '700';
+              providerIdDisplay.style.color = '#0f172a';
+              providerIdDisplay.style.fontStyle = 'normal';
+              console.log('✅ Provider-Nummer angezeigt:', num);
+              return true;
             }
+            return false;
+          };
+          
+          // Versuche zuerst die Nummer aus ME anzuzeigen
+          if (displayProviderNumber(ME.provider_number)) {
+            return; // Erfolg, fertig
           }
+          
+          // Falls keine Nummer vorhanden, versuche direkt von API zu holen
+          console.warn('⚠️ Keine Provider-Nummer in /me Response. Versuche direkt von API zu holen...');
+          
+          // Versuche Debug-Endpoint
+          fetch(`${API}/me/debug`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(debugData => {
+              console.log('🔍 Debug-Endpoint Response:', debugData);
+              
+              // Versuche provider_number_from_db
+              if (displayProviderNumber(debugData.provider_number_from_db)) {
+                return;
+              }
+              
+              // Versuche provider_number_from_model
+              if (displayProviderNumber(debugData.provider_number_from_model)) {
+                return;
+              }
+              
+              // Falls immer noch keine Nummer, zeige Hinweis
+              providerIdDisplay.textContent = 'Wird zugewiesen...';
+              providerIdDisplay.style.fontSize = '1rem';
+              providerIdDisplay.style.color = '#64748b';
+              providerIdDisplay.style.fontStyle = 'italic';
+              
+              // Versuche Migration auszulösen (nur wenn Admin)
+              if (ME.is_admin === true) {
+                console.log('🔄 Versuche Migration auszulösen...');
+                fetch(`${API}/admin/debug/run-provider-number-migration`, {
+                  method: 'POST',
+                  credentials: 'include'
+                })
+                .then(r => r.json())
+                .then(data => {
+                  console.log('Migration Ergebnis:', data);
+                  if (data.ok && data.after.with_number > 0) {
+                    // Seite neu laden nach kurzer Verzögerung
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 1500);
+                  }
+                })
+                .catch(err => console.error('Migration fehlgeschlagen:', err));
+              } else {
+                console.error('❌ Keine Provider-Nummer gefunden und kein Admin-Rechte für Migration');
+              }
+            })
+            .catch(err => {
+              console.error('❌ Debug-Endpoint fehlgeschlagen:', err);
+              providerIdDisplay.textContent = 'Fehler beim Laden';
+              providerIdDisplay.style.color = '#ef4444';
+            });
         }
 
         const PLAN_LABELS = { basic:'Basis (Standard)', starter:'Starter', profi:'Profi', business:'Business' };

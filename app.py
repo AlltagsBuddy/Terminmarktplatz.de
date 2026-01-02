@@ -2483,44 +2483,57 @@ def me():
         # Trenne street und house_number für Frontend-Kompatibilität
         street, house_number = split_street_and_number(p.street)
 
-        # Provider-Nummer sicher abrufen (falls Spalte noch nicht existiert)
+        # Provider-Nummer sicher abrufen - IMMER direkt aus DB lesen
         provider_number = None
         try:
-            # Versuche direkt über SQLAlchemy
-            provider_number = getattr(p, "provider_number", None)
+            # ZUERST: Versuche direkt über SQL (zuverlässigster Weg)
+            result = s.execute(text("""
+                SELECT provider_number FROM provider WHERE id = :pid
+            """), {"pid": str(request.provider_id)}).scalar()
             
-            # Falls provider_number None ist, versuche Migration auszuführen
+            if result is not None:
+                try:
+                    provider_number = int(result)
+                    app.logger.info(f"Provider {request.provider_id} provider_number from SQL: {provider_number}")
+                except (ValueError, TypeError):
+                    app.logger.warning(f"Provider {request.provider_id} has invalid provider_number in DB: {result}")
+            
+            # Falls immer noch None, versuche über SQLAlchemy Model
             if provider_number is None:
-                app.logger.info(f"Provider {p.id} has no provider_number, running migration...")
+                try:
+                    provider_number = getattr(p, "provider_number", None)
+                    if provider_number is not None:
+                        provider_number = int(provider_number)
+                        app.logger.info(f"Provider {request.provider_id} provider_number from model: {provider_number}")
+                except (ValueError, TypeError, AttributeError):
+                    pass
+            
+            # Falls immer noch None, führe Migration aus
+            if provider_number is None:
+                app.logger.info(f"Provider {request.provider_id} has no provider_number, running migration...")
                 try:
                     _ensure_provider_number_field()
-                    # Provider neu laden
-                    s.expire(p)
-                    p = s.get(Provider, request.provider_id)
-                    provider_number = getattr(p, "provider_number", None)
-                    app.logger.info(f"Provider {p.id} now has provider_number: {provider_number}")
-                    
-                    # Falls immer noch None, versuche direkt über SQL
-                    if provider_number is None:
-                        result = s.execute(text("""
-                            SELECT provider_number FROM provider WHERE id = :pid
-                        """), {"pid": str(p.id)}).scalar()
-                        if result is not None:
-                            provider_number = int(result)
-                            app.logger.info(f"Provider {p.id} provider_number from SQL: {provider_number}")
+                    # Nochmal direkt aus DB lesen
+                    result = s.execute(text("""
+                        SELECT provider_number FROM provider WHERE id = :pid
+                    """), {"pid": str(request.provider_id)}).scalar()
+                    if result is not None:
+                        provider_number = int(result)
+                        app.logger.info(f"Provider {request.provider_id} provider_number after migration: {provider_number}")
                 except Exception as e_mig:
-                    app.logger.warning(f"Migration failed for provider {p.id}: %r", e_mig)
-            
-            # Konvertiere zu Integer, falls es ein String ist
-            if provider_number is not None:
-                try:
-                    provider_number = int(provider_number)
-                except (ValueError, TypeError):
-                    app.logger.warning(f"Provider {p.id} has invalid provider_number: {provider_number}")
-                    provider_number = None
+                    app.logger.warning(f"Migration failed for provider {request.provider_id}: %r", e_mig)
                     
         except Exception as e:
-            app.logger.warning(f"Could not get provider_number for {p.id}: %r", e)
+            app.logger.warning(f"Could not get provider_number for {request.provider_id}: %r", e)
+            # Fallback: Versuche nochmal direkt aus DB
+            try:
+                result = s.execute(text("""
+                    SELECT provider_number FROM provider WHERE id = :pid
+                """), {"pid": str(request.provider_id)}).scalar()
+                if result is not None:
+                    provider_number = int(result)
+            except Exception:
+                pass
 
         return jsonify(
             {
