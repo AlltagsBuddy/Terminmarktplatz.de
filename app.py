@@ -1784,7 +1784,7 @@ if _html_enabled():
 @app.get("/login")
 @app.get("/login.html")
 def login_page_always():
-    return render_template("login.html")
+    return send_from_directory(APP_ROOT, "login.html")
 
 @app.get("/admin-rechnungen")
 @app.get("/admin-rechnungen.html")
@@ -2076,6 +2076,11 @@ def auth_forgot_password():
                 # Aus Sicherheitsgründen: Immer "ok" zurückgeben, auch wenn E-Mail nicht existiert
                 return jsonify({"ok": True, "message": "Wenn diese E-Mail registriert ist, wurde ein Reset-Link gesendet."})
             
+            # Werte vor Session-Schließung speichern
+            provider_id = provider.id
+            provider_email = provider.email
+            provider_company_name = provider.company_name
+            
             # Token generieren (30 Minuten gültig)
             import secrets
             token = secrets.token_urlsafe(32)
@@ -2088,21 +2093,21 @@ def auth_forgot_password():
                     SET used_at = :now
                     WHERE provider_id = :pid AND used_at IS NULL AND expires_at > :now
                 """),
-                {"pid": str(provider.id), "now": _now()}
+                {"pid": str(provider_id), "now": _now()}
             )
             
             # Neuen Token anlegen
             reset = PasswordReset(
-                provider_id=provider.id,
+                provider_id=provider_id,
                 token=token,
                 expires_at=expires_at,
             )
             s.add(reset)
             s.commit()
         
-        # E-Mail senden
+        # E-Mail senden (außerhalb der Session)
         reset_url = f"{FRONTEND_URL}/reset-password.html?token={token}"
-        email_body = f"""Hallo {provider.company_name or 'Anbieter/in'},
+        email_body = f"""Hallo {provider_company_name or 'Anbieter/in'},
 
 du hast einen Passwort-Reset für dein Terminmarktplatz-Konto angefordert.
 
@@ -2116,7 +2121,7 @@ Falls du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail einfach.
 — Terminmarktplatz
 """
         send_mail(
-            provider.email,
+            provider_email,
             "Passwort zurücksetzen",
             text=email_body,
             tag="password_reset",
