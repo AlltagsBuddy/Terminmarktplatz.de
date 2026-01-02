@@ -4390,21 +4390,40 @@ def admin_run_billing():
 def admin_invoices_all():
     """Gibt alle Rechnungen aller Provider zurück (nur für Super-Admin)."""
     with Session(engine) as s:
-        invoices = (
-            s.execute(
-                select(Invoice, Provider.email, Provider.company_name)
-                .join(Provider, Invoice.provider_id == Provider.id)
-                .order_by(Invoice.created_at.desc())
+        # Prüfe ob provider_number Spalte existiert
+        provider_number_exists = False
+        try:
+            s.execute(text("SELECT provider_number FROM provider LIMIT 1"))
+            provider_number_exists = True
+        except Exception:
+            pass
+        
+        if provider_number_exists:
+            invoices = (
+                s.execute(
+                    select(Invoice, Provider.email, Provider.company_name, Provider.provider_number)
+                    .join(Provider, Invoice.provider_id == Provider.id)
+                    .order_by(Invoice.created_at.desc())
+                )
+                .all()
             )
-            .all()
-        )
+        else:
+            # Fallback: ohne provider_number
+            invoices = (
+                s.execute(
+                    select(Invoice, Provider.email, Provider.company_name)
+                    .join(Provider, Invoice.provider_id == Provider.id)
+                    .order_by(Invoice.created_at.desc())
+                )
+                .all()
+            )
 
         result = []
         for row in invoices:
             inv = row[0]  # Invoice-Objekt
             provider_email = row[1]  # Provider.email
             provider_company_name = row[2]  # Provider.company_name
-            provider_number = row[3]  # Provider.provider_number
+            provider_number = row[3] if provider_number_exists and len(row) > 3 else None
             result.append(
                 {
                     "id": inv.id,
