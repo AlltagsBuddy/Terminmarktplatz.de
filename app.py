@@ -1613,6 +1613,7 @@ def maybe_api_only():
         or request.path.startswith("/auth/")
         or request.path.startswith("/admin/")
         or request.path.startswith("/admin-rechnungen")  # ✅ Admin-Rechnungen Route erlauben
+        or request.path.startswith("/login")  # ✅ Login-Route erlauben für Admin-Auth
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
         or request.path.startswith("/provider/")
@@ -1653,16 +1654,6 @@ if _html_enabled():
     @app.get("/anbieter-portal.html")
     def anbieter_portal_page_html():
         return render_template("anbieter-portal.html")
-
-    @app.get("/admin-rechnungen")
-    @auth_required(admin=True)
-    def admin_rechnungen_page():
-        return render_template("admin-rechnungen.html")
-
-    @app.get("/admin-rechnungen.html")
-    @auth_required(admin=True)
-    def admin_rechnungen_page_html():
-        return render_template("admin-rechnungen.html")
 
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
@@ -1736,8 +1727,13 @@ if _html_enabled():
 
 
 # --------------------------------------------------------
-# Admin-Rechnungen Route (auch im API_ONLY-Modus verfügbar)
+# Login & Admin-Rechnungen Routes (auch im API_ONLY-Modus verfügbar)
 # --------------------------------------------------------
+@app.get("/login")
+@app.get("/login.html")
+def login_page_always():
+    return render_template("login.html")
+
 @app.get("/admin-rechnungen")
 @app.get("/admin-rechnungen.html")
 @auth_required(admin=True)
