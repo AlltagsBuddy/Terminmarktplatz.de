@@ -2167,10 +2167,12 @@ def me_update():
                 return _json_error("db_error", 400)
 
             # optional: geocode-cache auffrischen (best effort)
+            # Läuft in separater Session, damit Fehler hier nicht die Provider-Änderungen rückgängig machen
             try:
-                geocode_cached(s, p.zip, p.city)
+                with Session(engine) as geo_s:
+                    geocode_cached(geo_s, p.zip, p.city)
             except Exception:
-                s.rollback()
+                app.logger.exception("geocode_cached failed for provider profile update")
 
         return jsonify({"ok": True})
     except Exception as e:
