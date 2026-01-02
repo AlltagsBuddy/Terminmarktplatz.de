@@ -1534,9 +1534,9 @@ def auth_required(admin: bool = False):
                     return redirect(f"/login.html?next={request.path}")
                 return _json_error("unauthorized", 401)
             if admin and not data.get("adm"):
-                # Für HTML-Routen: 403 oder Redirect
+                # Für HTML-Routen: Redirect zu Login mit Fehlermeldung
                 if request.path.endswith('.html') or not request.path.startswith('/api/'):
-                    abort(403)  # 403 Forbidden für HTML-Seiten
+                    return redirect(f"/login.html?error=admin_required&next={request.path}")
                 return _json_error("forbidden", 403)
             request.provider_id = data["sub"]
             request.is_admin = bool(data.get("adm"))
@@ -1612,6 +1612,7 @@ def maybe_api_only():
         request.path == "/"  # ✅ Root-Route erlauben für Healthchecks
         or request.path.startswith("/auth/")
         or request.path.startswith("/admin/")
+        or request.path.startswith("/admin-rechnungen")  # ✅ Admin-Rechnungen Route erlauben
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
         or request.path.startswith("/provider/")
@@ -1733,7 +1734,18 @@ if _html_enabled():
         except Exception:
             abort(404)
 
-else:
+
+# --------------------------------------------------------
+# Admin-Rechnungen Route (auch im API_ONLY-Modus verfügbar)
+# --------------------------------------------------------
+@app.get("/admin-rechnungen")
+@app.get("/admin-rechnungen.html")
+@auth_required(admin=True)
+def admin_rechnungen_page_always():
+    return render_template("admin-rechnungen.html")
+
+
+if not _html_enabled():
 
     @app.route("/", methods=["GET", "HEAD"])
     def api_root():
