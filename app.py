@@ -412,6 +412,86 @@ _ensure_password_reset_table()
 
 
 # --------------------------------------------------------
+# Provider-Number Feld sicherstellen
+# --------------------------------------------------------
+def _ensure_provider_number_field():
+    """
+    Erstellt das provider_number Feld, falls es noch nicht existiert, und nummeriert bestehende Provider.
+    """
+    ddl_provider_number = """
+    ALTER TABLE provider ADD COLUMN IF NOT EXISTS provider_number INTEGER;
+    
+    -- Bestehende Provider mit aufsteigenden Nummern versehen (basierend auf created_at)
+    UPDATE provider
+    SET provider_number = sub.row_num
+    FROM (
+      SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
+      FROM provider
+    ) AS sub
+    WHERE provider.id = sub.id AND provider.provider_number IS NULL;
+    
+    -- Eindeutigen Index erstellen
+    CREATE UNIQUE INDEX IF NOT EXISTS provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL;
+    """
+    with engine.begin() as conn:
+        try:
+            # Prüfen ob Spalte existiert
+            try:
+                conn.exec_driver_sql("SELECT provider_number FROM provider LIMIT 1")
+                column_exists = True
+            except Exception:
+                # Spalte existiert nicht, erstellen
+                conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN provider_number INTEGER")
+                column_exists = False
+            
+            # Bestehende Provider nummerieren (nur wenn noch nicht nummeriert)
+            # PostgreSQL-Syntax mit FROM
+            try:
+                conn.exec_driver_sql("""
+                    UPDATE provider
+                    SET provider_number = sub.row_num
+                    FROM (
+                      SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
+                      FROM provider
+                    ) AS sub
+                    WHERE provider.id = sub.id AND provider.provider_number IS NULL
+                """)
+            except Exception:
+                # SQLite-Syntax (kein FROM in UPDATE)
+                try:
+                    providers = conn.execute(
+                        select(Provider.id, Provider.created_at)
+                        .where(Provider.provider_number.is_(None))
+                        .order_by(Provider.created_at.asc())
+                    ).all()
+                    
+                    max_num = conn.scalar(select(func.max(Provider.provider_number))) or 0
+                    for idx, (pid, _) in enumerate(providers, start=1):
+                        conn.execute(
+                            text("UPDATE provider SET provider_number = :num WHERE id = :pid"),
+                            {"num": max_num + idx, "pid": str(pid)}
+                        )
+                except Exception as e2:
+                    app.logger.warning("provider_number numbering failed: %r", e2)
+            
+            # Index erstellen
+            try:
+                # PostgreSQL: WHERE-Klausel im Index
+                conn.exec_driver_sql("CREATE UNIQUE INDEX provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL")
+            except Exception:
+                try:
+                    # SQLite: einfacher Index
+                    conn.exec_driver_sql("CREATE UNIQUE INDEX IF NOT EXISTS provider_number_idx ON provider(provider_number)")
+                except Exception:
+                    pass  # Index existiert bereits
+        except Exception as e:
+            app.logger.warning("ensure_provider_number_field failed: %r", e)
+
+
+_ensure_provider_number_field()
+
+
+# --------------------------------------------------------
 # Archivierungs-Felder für Slots und Invoices hinzufügen
 # --------------------------------------------------------
 def _ensure_archive_fields():
@@ -1906,6 +1986,10 @@ def register():
             if exists:
                 return _json_error("email_exists")
 
+            # Nächste Provider-Nummer vergeben
+            max_number = s.scalar(select(func.max(Provider.provider_number)))
+            next_number = (max_number or 0) + 1
+
             p = Provider(
                 email=email,
                 pw_hash=ph.hash(password),
@@ -1913,11 +1997,13 @@ def register():
                 plan="basic",
                 free_slots_per_month=3,
                 plan_valid_until=None,
+                provider_number=next_number,
             )
 
             s.add(p)
             s.commit()
             provider_id = p.id
+            provider_number = p.provider_number
             reg_email = p.email
 
         try:
@@ -1926,7 +2012,8 @@ def register():
                 subj = "[Terminmarktplatz] Neuer Anbieter registriert"
                 txt = (
                     "Es hat sich ein neuer Anbieter registriert.\n\n"
-                    f"ID: {provider_id}\n"
+                    f"Anbieter-Nr.: {provider_number}\n"
+                    f"UUID: {provider_id}\n"
                     f"E-Mail: {reg_email}\n"
                     f"Zeit: {_now().isoformat()}\n"
                     "Status: pending (E-Mail-Verifizierung ausstehend)\n"
@@ -2320,6 +2407,7 @@ def me():
         return jsonify(
             {
                 "id": p.id,
+                "provider_number": p.provider_number,
                 "email": p.email,
                 "status": p.status,
                 "is_admin": p.is_admin,
@@ -4274,10 +4362,12 @@ def admin_invoices_all():
             inv = row[0]  # Invoice-Objekt
             provider_email = row[1]  # Provider.email
             provider_company_name = row[2]  # Provider.company_name
+            provider_number = row[3]  # Provider.provider_number
             result.append(
                 {
                     "id": inv.id,
                     "provider_id": inv.provider_id,
+                    "provider_number": provider_number,
                     "provider_email": provider_email,
                     "provider_company_name": provider_company_name,
                     "period_start": inv.period_start.isoformat(),
@@ -4433,6 +4523,8 @@ def generate_invoice_pdf(invoice: Invoice, provider: Provider, bookings: list[Bo
     # Anbieter-Informationen
     story.append(Paragraph("Anbieter", heading_style))
     provider_info = []
+    if provider.provider_number:
+        provider_info.append(["Anbieter-Nr.:", str(provider.provider_number)])
     if provider.company_name:
         provider_info.append(["Firma:", provider.company_name])
     provider_info.append(["E-Mail:", provider.email])

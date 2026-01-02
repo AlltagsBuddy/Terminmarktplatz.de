@@ -435,6 +435,11 @@
         <div class="panel">
           <h2>Profil</h2>
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
+          <div style="margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px;">
+            <div style="font-size: 0.9rem; color: var(--ink-dim); margin-bottom: 4px;">Deine Anbieter-Nummer:</div>
+            <div style="font-family: monospace; font-size: 1.1rem; font-weight: 600; color: var(--ink);" id="provider-id-display">Lade...</div>
+            <div style="font-size: 0.8rem; color: var(--ink-dim); margin-top: 4px;">Diese Nummer ist eindeutig und wird auf Rechnungen angezeigt.</div>
+          </div>
           <form id="form-profile" class="grid" novalidate>
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
@@ -1034,6 +1039,19 @@
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
+
+        // Provider-Nummer anzeigen
+        const providerIdDisplay = document.getElementById('provider-id-display');
+        if (providerIdDisplay) {
+          if (ME.provider_number) {
+            providerIdDisplay.textContent = `#${ME.provider_number}`;
+          } else if (ME.id) {
+            providerIdDisplay.textContent = ME.id.substring(0, 8).toUpperCase();
+            providerIdDisplay.style.fontSize = '0.85rem';
+          } else {
+            providerIdDisplay.textContent = '-';
+          }
+        }
 
         const PLAN_LABELS = { basic:'Basis (Standard)', starter:'Starter', profi:'Profi', business:'Business' };
         const planNameEl   = document.getElementById('plan-name');

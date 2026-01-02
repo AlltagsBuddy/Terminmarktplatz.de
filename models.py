@@ -50,6 +50,9 @@ class Provider(Base):
     status: Mapped[str] = mapped_column(Text, default="pending")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Kurze, nummerische Anbieter-ID (aufsteigend, lesbar)
+    provider_number: Mapped[int | None] = mapped_column(Integer, unique=True, nullable=True, index=True)
+
     # ⚠️ app.py arbeitet überwiegend mit UTC-naive Datetimes in DB
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
@@ -114,6 +117,7 @@ class Provider(Base):
     def to_public_dict(self) -> dict:
         return {
             "id": self.id,
+            "provider_number": self.provider_number,
             "name": self.public_name,
             "company_name": self.company_name,
             "street": self.street,

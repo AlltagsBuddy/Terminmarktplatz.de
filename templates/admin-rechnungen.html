@@ -149,6 +149,7 @@
               <thead>
                 <tr>
                   <th>Rechnungsnr.</th>
+                  <th>Anbieter-ID</th>
                   <th>Anbieter</th>
                   <th>E-Mail</th>
                   <th>Zeitraum</th>
@@ -159,7 +160,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="8" class="muted">Lade …</td></tr>
+                <tr><td colspan="9" class="muted">Lade …</td></tr>
               </tbody>
             </table>
           </div>
@@ -224,7 +225,7 @@
       if (!tbody) return;
 
       if (!invoices || invoices.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="muted">Keine Rechnungen gefunden.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="muted">Keine Rechnungen gefunden.</td></tr>';
         return;
       }
 
@@ -238,6 +239,7 @@
 
         tr.innerHTML = `
           <td><code>${inv.id.substring(0, 8).toUpperCase()}</code></td>
+          <td><code style="font-size: 0.9rem; font-weight: 600;">${inv.provider_number || '-'}</code></td>
           <td>${escapeHtml(inv.provider_company_name || '-')}</td>
           <td>${escapeHtml(inv.provider_email || '-')}</td>
           <td>${periodStr}</td>
@@ -284,13 +286,13 @@
             window.location.href = 'login.html?tab=login';
             return;
           }
-          tbody.innerHTML = '<tr><td colspan="8" class="muted">Bitte (erneut) anmelden.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>';
           return;
         }
         LAST_INVOICES = await r.json();
         renderTable(LAST_INVOICES);
       }catch(e){
-        tbody.innerHTML = '<tr><td colspan="8" class="muted">Fehler beim Laden.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>';
         console.error('loadInvoices error:', e);
       }
     }
@@ -367,7 +369,9 @@
         const filtered = LAST_INVOICES.filter(inv =>
           (inv.provider_company_name||'').toLowerCase().includes(q) ||
           (inv.provider_email||'').toLowerCase().includes(q) ||
-          inv.id.toLowerCase().includes(q)
+          inv.id.toLowerCase().includes(q) ||
+          (inv.provider_id||'').toLowerCase().includes(q) ||
+          (inv.provider_number ? String(inv.provider_number) : '').includes(q)
         );
         renderTable(filtered);
       });
