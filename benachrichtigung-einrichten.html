@@ -443,7 +443,7 @@
   </div>
 
 <script>
-  (function(){
+  (async function(){
     // ✅ API_BASE robust (gleich wie die anderen Seiten)
     const API_BASE = (() => {
       const h = location.hostname;
@@ -599,48 +599,84 @@
       }
     }
 
-    // Prefill: ?email=...&pkg=...
-    const preEmail = qp("email");
-    if (preEmail) emailEl.value = preEmail;
-
-    const prePkg = qp("pkg");
-    if (prePkg) pkgEl.value = prePkg;
-
-    async function loadEmailForManageKey(){
-      if(!manageKey) return;
-      
-      try{
-        const r = await fetch(`${API_BASE}/api/alert-subscriptions/email-by-manage-key?k=${encodeURIComponent(manageKey)}`, {
-          method: "GET",
-          headers: { "Accept": "application/json" }
-        });
-        const js = await r.json().catch(() => null);
-        
-        if(r.ok && js && js.ok && js.email){
-          // E-Mail-Adresse aus dem Paket vorbelegen
-          emailEl.value = js.email;
-          // E-Mail-Feld auf readonly setzen, da es mit dem Paket verknüpft ist
-          emailEl.readOnly = true;
-          emailEl.style.opacity = "0.7";
-          emailEl.style.cursor = "not-allowed";
-          // Hinweis hinzufügen
-          const hint = emailEl.nextElementSibling;
-          if(hint && hint.classList.contains("hint")){
-            hint.textContent = "Diese E-Mail-Adresse ist mit deinem Paket verknüpft und kann nicht geändert werden.";
-          }
-        }
-      }catch(e){
-        // Fehler ignorieren, falls API nicht verfügbar ist
-        console.warn("Konnte E-Mail für manage_key nicht laden:", e);
+    function setEmailReadonly(email){
+      // E-Mail-Adresse setzen
+      emailEl.value = email;
+      // E-Mail-Feld auf readonly setzen, da es mit dem Paket verknüpft ist
+      emailEl.readOnly = true;
+      emailEl.setAttribute("readonly", "readonly"); // Auch als Attribut setzen
+      emailEl.style.opacity = "0.7";
+      emailEl.style.cursor = "not-allowed";
+      emailEl.style.backgroundColor = "rgba(255,255,255,0.03)"; // Visuell deutlich machen
+      // Hinweis hinzufügen
+      const hint = emailEl.nextElementSibling;
+      if(hint && hint.classList.contains("hint")){
+        hint.textContent = "Diese E-Mail-Adresse ist mit deinem Paket verknüpft und kann nicht geändert werden.";
+        hint.style.color = "rgba(232,236,255,0.85)";
       }
     }
 
+    async function loadEmailForManageKey(){
+      if(!manageKey) return false;
+      
+      // Versuche zuerst die spezifische Route
+      const endpoints = [
+        `${API_BASE}/api/alert-subscriptions/email-by-manage-key?k=${encodeURIComponent(manageKey)}`,
+        `${API_BASE}/api/alert-subscriptions/by-manage-key?k=${encodeURIComponent(manageKey)}`
+      ];
+      
+      for(const url of endpoints){
+        try{
+          const r = await fetch(url, {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+          });
+          const js = await r.json().catch(() => null);
+          
+          if(r.ok && js && js.ok){
+            // E-Mail-Adresse aus dem Paket vorbelegen (hat Priorität über preEmail)
+            let email = null;
+            if(js.email){
+              email = js.email;
+            } else if(js.alerts && js.alerts.length > 0 && js.alerts[0].email){
+              // Fallback: E-Mail aus dem ersten Alert holen
+              email = js.alerts[0].email;
+            }
+            
+            if(email){
+              setEmailReadonly(email);
+              return true; // E-Mail wurde geladen
+            }
+          }
+        }catch(e){
+          // Weiter zum nächsten Endpoint
+          console.warn("Konnte E-Mail für manage_key nicht laden von", url, ":", e);
+        }
+      }
+      return false; // E-Mail wurde nicht geladen
+    }
+
+    // Prefill: ?email=...&pkg=... (nur wenn kein manage_key vorhanden ist)
+    const prePkg = qp("pkg");
+    if (prePkg) pkgEl.value = prePkg;
+
+    // Wenn manage_key vorhanden ist, E-Mail-Adresse daraus laden (hat Priorität)
     if(manageKey){
       showMyAlertsButton();
-      // E-Mail-Adresse für manage_key laden und Feld sperren
-      loadEmailForManageKey();
+      // E-Mail-Adresse für manage_key laden und Feld sperren (wichtig: sofort!)
+      // Warte auf das Ergebnis, bevor preEmail gesetzt wird
+      const emailLoaded = await loadEmailForManageKey();
+      // Nur wenn E-Mail nicht aus manage_key geladen wurde, preEmail verwenden
+      if(!emailLoaded){
+        const preEmail = qp("email");
+        if (preEmail) emailEl.value = preEmail;
+      }
       // optional: Stats direkt holen wenn vorhanden
       tryFetchStats();
+    } else {
+      // Nur wenn kein manage_key vorhanden ist, preEmail verwenden
+      const preEmail = qp("email");
+      if (preEmail) emailEl.value = preEmail;
     }
 
     $("alertForm").addEventListener("submit", async (e) => {
