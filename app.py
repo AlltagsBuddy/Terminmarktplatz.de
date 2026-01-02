@@ -2156,7 +2156,10 @@ def auth_reset_password():
             if not reset:
                 return _json_error("invalid_token", 400)
             
-            if reset.expires_at < _now():
+            # expires_at ist offset-naive (timestamp without time zone)
+            # _now() ist offset-aware, daher konvertieren wir es zu offset-naive für den Vergleich
+            now_naive = _to_db_utc_naive(_now())
+            if reset.expires_at < now_naive:
                 return _json_error("token_expired", 400)
             
             # Passwort aktualisieren
@@ -2166,8 +2169,8 @@ def auth_reset_password():
             
             provider.pw_hash = ph.hash(new_password)
             
-            # Token als verwendet markieren
-            reset.used_at = _now()
+            # Token als verwendet markieren (offset-naive)
+            reset.used_at = now_naive
             s.commit()
         
         return jsonify({"ok": True, "message": "Passwort wurde erfolgreich zurückgesetzt."})
