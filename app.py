@@ -27,7 +27,7 @@ BERLIN = ZoneInfo("Europe/Berlin")
 import time
 from sqlalchemy import create_engine, select, and_, or_, func, text
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -242,13 +242,15 @@ elif DB_URL and DB_URL.startswith("postgresql://"):
 engine = create_engine(
     DB_URL,
     pool_pre_ping=True,     # prüft Verbindung vor Benutzung
-    pool_recycle=180,       # recycelt Connections regelmäßig (SSL/Proxy zickt oft)
+    pool_recycle=300,       # recycelt Connections alle 5 Minuten (Render PostgreSQL Timeout)
     pool_timeout=30,
     pool_size=5,
     max_overflow=10,
+    echo=False,
     connect_args={
         # bei Render/Supabase/managed Postgres fast immer korrekt:
         "sslmode": os.getenv("PGSSLMODE", "require"),
+        "connect_timeout": 10,  # Timeout für initiale Verbindung
     },
 )
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
@@ -918,21 +920,34 @@ def _month_bounds_utc_naive(month_key: date) -> tuple[datetime, datetime]:
 
 
 def _published_count_for_month(session: Session, provider_id: str, month_key: date) -> int:
+    """Zählt veröffentlichte Slots für einen Monat mit Retry bei SSL-Fehlern."""
     start_db, next_db = _month_bounds_utc_naive(month_key)
-    c = (
-        session.scalar(
-            select(func.count())
-            .select_from(Slot)
-            .where(
-                Slot.provider_id == provider_id,
-                Slot.start_at >= start_db,
-                Slot.start_at < next_db,
-                Slot.status == SLOT_STATUS_PUBLISHED,
+    
+    # Retry-Logik für SSL-Verbindungsfehler
+    for attempt in range(3):
+        try:
+            c = (
+                session.scalar(
+                    select(func.count())
+                    .select_from(Slot)
+                    .where(
+                        Slot.provider_id == provider_id,
+                        Slot.start_at >= start_db,
+                        Slot.start_at < next_db,
+                        Slot.status == SLOT_STATUS_PUBLISHED,
+                    )
+                )
+                or 0
             )
-        )
-        or 0
-    )
-    return int(c)
+            return int(c)
+        except OperationalError as e:
+            if attempt < 2 and ("SSL" in str(e) or "eof" in str(e).lower()):
+                # SSL-Fehler: Session invalidieren und neu versuchen
+                session.rollback()
+                time.sleep(0.1 * (attempt + 1))  # Kurze Pause vor Retry
+                continue
+            raise  # Andere Fehler oder letzter Versuch: weiterwerfen
+    return 0  # Fallback
 
 
 def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> dict:
@@ -2099,7 +2114,12 @@ def me():
         if row:
             slots_used = int(row["used"] or 0)
         else:
-            slots_used = _published_count_for_month(s, str(p.id), month_key)
+            try:
+                slots_used = _published_count_for_month(s, str(p.id), month_key)
+            except OperationalError as e:
+                # SSL-Fehler: Fallback auf 0
+                app.logger.warning("me(): _published_count_for_month failed: %r", e)
+                slots_used = 0
 
         slots_left = None if unlimited else max(0, int(eff_limit) - int(slots_used))
 
