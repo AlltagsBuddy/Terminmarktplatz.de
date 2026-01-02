@@ -54,7 +54,7 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription
+from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -1629,6 +1629,7 @@ def maybe_api_only():
         or request.path.startswith("/admin/")
         or request.path.startswith("/admin-rechnungen")  # ✅ Admin-Rechnungen Route erlauben
         or request.path.startswith("/login")  # ✅ Login-Route erlauben für Admin-Auth
+        or request.path.startswith("/reset-password")  # ✅ Passwort-Reset-Seite erlauben
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
         or request.path.startswith("/provider/")
@@ -1686,6 +1687,11 @@ if _html_enabled():
     @app.get("/datenschutz")
     def datenschutz():
         return render_template("datenschutz.html")
+
+    @app.get("/reset-password")
+    @app.get("/reset-password.html")
+    def reset_password_page():
+        return send_from_directory(APP_ROOT, "reset-password.html")
 
     @app.get("/agb")
     def agb():
@@ -2021,6 +2027,152 @@ def auth_logout():
     resp.set_cookie("access_token", "", max_age=0, **set_flags)
     resp.set_cookie("refresh_token", "", max_age=0, **set_flags)
     return resp
+
+
+@app.post("/auth/forgot-password")
+def auth_forgot_password():
+    """Fordert einen Passwort-Reset-Link per E-Mail an."""
+    try:
+        data = request.get_json(force=True)
+        email = (data.get("email") or "").strip().lower()
+        
+        if not email or "@" not in email:
+            return _json_error("invalid_email", 400)
+        
+        with Session(engine) as s:
+            provider = s.scalar(select(Provider).where(Provider.email == email))
+            if not provider:
+                # Aus Sicherheitsgründen: Immer "ok" zurückgeben, auch wenn E-Mail nicht existiert
+                return jsonify({"ok": True, "message": "Wenn diese E-Mail registriert ist, wurde ein Reset-Link gesendet."})
+            
+            # Token generieren (30 Minuten gültig)
+            import secrets
+            token = secrets.token_urlsafe(32)
+            expires_at = _now() + timedelta(minutes=30)
+            
+            # Alte Tokens für diesen Provider als verwendet markieren
+            s.execute(
+                text("""
+                    UPDATE password_reset
+                    SET used_at = :now
+                    WHERE provider_id = :pid AND used_at IS NULL AND expires_at > :now
+                """),
+                {"pid": str(provider.id), "now": _now()}
+            )
+            
+            # Neuen Token anlegen
+            reset = PasswordReset(
+                provider_id=provider.id,
+                token=token,
+                expires_at=expires_at,
+            )
+            s.add(reset)
+            s.commit()
+        
+        # E-Mail senden
+        reset_url = f"{FRONTEND_URL}/reset-password.html?token={token}"
+        email_body = f"""Hallo {provider.company_name or 'Anbieter/in'},
+
+du hast einen Passwort-Reset für dein Terminmarktplatz-Konto angefordert.
+
+Klicke auf folgenden Link, um dein Passwort zurückzusetzen:
+{reset_url}
+
+Dieser Link ist 30 Minuten gültig.
+
+Falls du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail einfach.
+
+— Terminmarktplatz
+"""
+        send_mail(
+            provider.email,
+            "Passwort zurücksetzen",
+            text=email_body,
+            tag="password_reset",
+        )
+        
+        return jsonify({"ok": True, "message": "Wenn diese E-Mail registriert ist, wurde ein Reset-Link gesendet."})
+    except Exception as e:
+        app.logger.exception("auth_forgot_password failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/auth/reset-password")
+def auth_reset_password():
+    """Setzt das Passwort mit einem gültigen Token zurück."""
+    try:
+        data = request.get_json(force=True)
+        token = (data.get("token") or "").strip()
+        new_password = data.get("password") or ""
+        
+        if not token:
+            return _json_error("missing_token", 400)
+        if len(new_password) < 8:
+            return _json_error("password_too_short", 400)
+        
+        with Session(engine) as s:
+            reset = s.scalar(
+                select(PasswordReset)
+                .where(PasswordReset.token == token)
+                .where(PasswordReset.used_at.is_(None))
+            )
+            
+            if not reset:
+                return _json_error("invalid_token", 400)
+            
+            if reset.expires_at < _now():
+                return _json_error("token_expired", 400)
+            
+            # Passwort aktualisieren
+            provider = s.get(Provider, reset.provider_id)
+            if not provider:
+                return _json_error("provider_not_found", 404)
+            
+            provider.pw_hash = ph.hash(new_password)
+            
+            # Token als verwendet markieren
+            reset.used_at = _now()
+            s.commit()
+        
+        return jsonify({"ok": True, "message": "Passwort wurde erfolgreich zurückgesetzt."})
+    except Exception as e:
+        app.logger.exception("auth_reset_password failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/auth/change-password")
+@auth_required()
+def auth_change_password():
+    """Ändert das Passwort für einen eingeloggten Provider."""
+    try:
+        data = request.get_json(force=True)
+        old_password = data.get("old_password") or ""
+        new_password = data.get("password") or ""
+        
+        if not old_password or not new_password:
+            return _json_error("missing_fields", 400)
+        if len(new_password) < 8:
+            return _json_error("password_too_short", 400)
+        
+        with Session(engine) as s:
+            provider = s.get(Provider, request.provider_id)
+            if not provider:
+                return _json_error("not_found", 404)
+            
+            # Altes Passwort prüfen
+            try:
+                ph.verify(provider.pw_hash, old_password)
+            except Exception:
+                return _json_error("invalid_old_password", 401)
+            
+            # Neues Passwort setzen
+            provider.pw_hash = ph.hash(new_password)
+            s.commit()
+        
+        return jsonify({"ok": True, "message": "Passwort wurde erfolgreich geändert."})
+    except Exception as e:
+        app.logger.exception("auth_change_password failed")
+        return _json_error("server_error", 500)
 
 
 @app.post("/auth/refresh")

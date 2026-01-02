@@ -389,6 +389,7 @@
           <h2>Anmelden</h2>
           <p class="hint">Mit deiner E-Mail und deinem Passwort einloggen. Bei Erfolg geht es ins <strong>Portal</strong>.</p>
           <div class="form-alert" id="login-alert"></div>
+          <div class="form-success" id="forgot-password-success" style="display:none;"></div>
           <form id="login-form" class="form-grid" novalidate>
             <div class="field col-2">
               <label for="login-email">E-Mail</label>
@@ -400,7 +401,10 @@
             </div>
             <div class="form-actions col-2">
               <button class="btn primary" type="submit">Anmelden</button>
-              <span class="form-note">Noch kein Konto? → <a href="#" data-switch="register">Jetzt registrieren</a></span>
+              <span class="form-note">
+                Noch kein Konto? → <a href="#" data-switch="register">Jetzt registrieren</a><br>
+                <a href="#" id="forgot-password-link" style="margin-top: 8px; display: inline-block;">Passwort vergessen?</a>
+              </span>
             </div>
           </form>
         </div>
@@ -436,6 +440,24 @@
 
           <div class="divider"></div>
           <p class="hint">Nach der Anmeldung vervollständigst du dein Profil (Branche, Kontaktdaten, Ort). Zeitfenster/Slots legst du danach im Portal an.</p>
+        </div>
+
+        <!-- FORGOT PASSWORD -->
+        <div class="panel" id="tab-forgot-password" role="tabpanel" hidden>
+          <h2>Passwort vergessen</h2>
+          <p class="hint">Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen deines Passworts (30 Minuten gültig).</p>
+          <div class="form-alert" id="forgot-password-alert"></div>
+          <div class="form-success" id="forgot-password-success-panel" style="display:none;"></div>
+          <form id="forgot-password-form" class="form-grid" novalidate>
+            <div class="field col-2">
+              <label for="forgot-email">E-Mail</label>
+              <input id="forgot-email" name="email" type="email" placeholder="dein@beispiel.de" required autocomplete="email">
+            </div>
+            <div class="form-actions col-2">
+              <button class="btn primary" type="submit">Reset-Link senden</button>
+              <span class="form-note"><a href="#" data-switch="login">Zurück zur Anmeldung</a></span>
+            </div>
+          </form>
         </div>
 
         <!-- PROFILE (optional, nach Login) -->
@@ -554,6 +576,7 @@
       login: document.getElementById('tab-login'),
       register: document.getElementById('tab-register'),
       profile: document.getElementById('tab-profile'),
+      'forgot-password': document.getElementById('tab-forgot-password'),
     };
     function switchTab(name){
       tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
@@ -565,6 +588,15 @@
     document.querySelectorAll('[data-switch]').forEach(a => {
       a.addEventListener('click', (e) => { e.preventDefault(); switchTab(a.dataset.switch); });
     });
+    
+    // Passwort vergessen Link
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    if (forgotPasswordLink) {
+      forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('forgot-password');
+      });
+    }
 
     // Overlay + Button-Loading
     const backdrop    = document.getElementById('loading-backdrop');
@@ -709,10 +741,44 @@
       }
     }
 
+    // ---------- FORGOT PASSWORD ----------
+    (function(){
+      const form = document.getElementById('forgot-password-form');
+      if(!form) return;
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        hideAlert('forgot-password-alert');
+        hideSuccess('forgot-password-success-panel');
+        const email = document.getElementById('forgot-email').value.trim();
+        if(!email){ return showAlert('forgot-password-alert','Bitte E-Mail eingeben.'); }
+
+        showLoading('Sende Reset-Link …'); lockForm(form, true);
+        try{
+          const res = await fetch(`${API}/auth/forgot-password`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify({email})
+          });
+          const data = await res.json().catch(()=>({}));
+          hideLoading(); lockForm(form, false);
+          if(res.ok){
+            showSuccess('forgot-password-success-panel', 'Wenn diese E-Mail registriert ist, wurde ein Reset-Link gesendet. Bitte prüfe dein Postfach.');
+            form.reset();
+          }else{
+            showAlert('forgot-password-alert', data.error || 'Fehler beim Senden des Reset-Links.');
+          }
+        }catch(err){
+          hideLoading(); lockForm(form, false);
+          showAlert('forgot-password-alert','Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      });
+    })();
+
     // URL-Tab voreinstellen: /login.html?tab=register
     const url = new URL(window.location.href);
     const want = url.searchParams.get('tab');
-    if (want && ['login','register','profile'].includes(want)) switchTab(want);
+    if (want && ['login','register','profile','forgot-password'].includes(want)) switchTab(want);
 
     // Verifizierungsbanner (?verified=1|0)
     (function onLoadVerifyBanner(){

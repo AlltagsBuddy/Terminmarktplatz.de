@@ -481,3 +481,35 @@ class AlertSubscription(Base):
             "created_at": self.created_at,
             "last_notified_at": self.last_notified_at,
         }
+
+
+# ------------------------------------------------------------
+# PasswordReset
+# ------------------------------------------------------------
+class PasswordReset(Base):
+    """Passwort-Reset-Token für Provider."""
+    __tablename__ = "password_reset"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
+    provider_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("provider.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    token: Mapped[str] = mapped_column(Text, unique=True, nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+
+    provider: Mapped["Provider"] = relationship("Provider")
