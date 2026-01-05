@@ -288,82 +288,6 @@
     }
   </style>
 
-  <script>
-  (function(){
-    const API = (typeof window.API === 'string')
-      ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
-
-    const btn  = document.getElementById('userMenuBtn');
-    const menu = document.getElementById('userMenu');
-    if (!btn || !menu) return;
-
-    function openMenu(open){
-      menu.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-    }
-
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openMenu(menu.hidden);
-    });
-
-    document.addEventListener('click', ()=> openMenu(false));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
-
-    async function updateAuthUI(){
-      let loggedIn = false;
-      try{
-        const res = await fetch(`${API}/me`, { credentials:'include' });
-        loggedIn = res.ok;
-      }catch(e){
-        loggedIn = false;
-      }
-
-      document.querySelectorAll('.auth-in').forEach(el => {
-        el.style.display = loggedIn ? '' : 'none';
-      });
-      document.querySelectorAll('.auth-out').forEach(el => {
-        el.style.display = loggedIn ? 'none' : '';
-      });
-    }
-
-    menu.addEventListener('click', async (e)=>{
-      const el = e.target.closest('.item');
-      if (!el) return;
-      const action = el.dataset.action;
-
-      if (action === 'logout'){
-        try{
-          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
-        }catch(_){}
-        location.href = '/login.html';
-      }
-
-      if (action === 'delete'){
-        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-        if (!ok) return;
-
-        try{
-          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-          if (res.ok){
-            location.href = '/login.html?deleted=1';
-          }else{
-            const data = await res.json().catch(()=> ({}));
-            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
-          }
-        }catch(err){
-          alert('Netzwerkfehler – bitte später erneut versuchen.');
-        }
-      }
-    });
-
-    updateAuthUI();
-  })();
-  </script>
-
 </head>
 <body>
 
@@ -1040,6 +964,87 @@
         }
       }
     })();
+  </script>
+
+  <!-- User-Menü Logik -->
+  <script>
+  (function(){
+    const API = (typeof window.API === 'string')
+      ? window.API
+      : ((h) => (h === 'localhost' || h === '127.0.0.1')
+            ? 'http://127.0.0.1:5000'
+            : 'https://api.terminmarktplatz.de')(location.hostname);
+
+    const btn  = document.getElementById('userMenuBtn');
+    const menu = document.getElementById('userMenu');
+    if (!btn || !menu) return;
+
+    function openMenu(open){
+      menu.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    }
+
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openMenu(menu.hidden);
+    });
+
+    document.addEventListener('click', (e)=>{
+      if (!menu.contains(e.target) && !btn.contains(e.target)) {
+        openMenu(false);
+      }
+    });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
+
+    async function updateAuthUI(){
+      let loggedIn = false;
+      try{
+        const res = await fetch(`${API}/me`, { credentials:'include' });
+        loggedIn = res.ok;
+      }catch(e){
+        loggedIn = false;
+      }
+
+      document.querySelectorAll('.auth-in').forEach(el => {
+        el.style.display = loggedIn ? '' : 'none';
+      });
+      document.querySelectorAll('.auth-out').forEach(el => {
+        el.style.display = loggedIn ? 'none' : '';
+      });
+    }
+
+    menu.addEventListener('click', async (e)=>{
+      const el = e.target.closest('.item');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'logout'){
+        try{
+          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+        }catch(_){}
+        location.href = '/login.html';
+      }
+
+      if (action === 'delete'){
+        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+        if (!ok) return;
+
+        try{
+          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+          if (res.ok){
+            location.href = '/login.html?deleted=1';
+          }else{
+            const data = await res.json().catch(()=> ({}));
+            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+          }
+        }catch(err){
+          alert('Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      }
+    });
+
+    updateAuthUI();
+  })();
   </script>
 
   <!-- Google Analytics - nur nach Consent laden -->

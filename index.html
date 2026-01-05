@@ -591,9 +591,9 @@
           el.style.display = isLoggedIn ? 'none' : '';
         });
         authInEls.forEach(el => {
-          el.style.display = isLoggedIn ? '' : '';
+          el.style.display = isLoggedIn ? '' : 'none';
         });
-        // Kontakt bleibt immer sichtbar
+        // Kontakt und Hilfe bleiben immer sichtbar
       }
 
       async function checkAuth(){
