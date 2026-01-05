@@ -1,0 +1,1131 @@
+<!-- FILE: hilfe.html -->
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hilfe & FAQ | Terminmarktplatz</title>
+  <meta name="description" content="Hilfe, Anleitungen und Antworten auf häufige Fragen zu Terminmarktplatz – für Anbieter und Suchende.">
+  <meta name="theme-color" content="#6f53ff" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Hilfe & FAQ | Terminmarktplatz">
+  <meta property="og:description" content="Hilfe, Anleitungen und Antworten auf häufige Fragen.">
+  <meta property="og:site_name" content="Terminmarktplatz">
+  <meta property="og:url" content="https://terminmarktplatz.de/hilfe.html">
+  <meta property="og:image" content="/static/og-cover.png">
+
+  <base href="/" />
+  <link rel="icon" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20251010" />
+
+  <style>
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+
+    header .nav{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    header .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    header .user-menu{
+      display:block;
+      position:relative;
+      z-index:60;
+      margin-left:12px;
+    }
+    header .nav-links{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin-left:auto;
+    }
+
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header .nav{
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        padding-inline: 16px;
+      }
+      .brand-title {
+        font-size: 1.05rem;
+      }
+      header .user-menu{
+        margin-left:auto;
+      }
+      header .nav-links {
+        display:flex !important;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+        margin-top: 4px;
+      }
+      .nav-links a {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+      }
+    }
+
+    /* Hilfe-spezifische Styles */
+    .help-nav {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 32px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .help-nav h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+      color: #0f172a;
+    }
+
+    .help-nav-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .help-nav-links a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #0f172a;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+    }
+
+    .help-nav-links a:hover {
+      border-color: #6f53ff;
+      background: #f5f3ff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(111, 83, 255, 0.1);
+    }
+
+    .help-nav-links a::before {
+      content: "→";
+      font-weight: 600;
+      color: #6f53ff;
+    }
+
+    .help-section {
+      margin-bottom: 48px;
+    }
+
+    .help-section h2 {
+      margin-top: 0;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .help-section h2::before {
+      content: "";
+      width: 4px;
+      height: 32px;
+      background: linear-gradient(135deg, #6f53ff, #8b5cf6);
+      border-radius: 2px;
+    }
+
+    .faq-item {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .faq-item:hover {
+      border-color: #6f53ff;
+      box-shadow: 0 4px 12px rgba(111, 83, 255, 0.1);
+    }
+
+    .faq-question {
+      padding: 20px 24px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      color: #0f172a;
+      user-select: none;
+    }
+
+    .faq-question::after {
+      content: "▼";
+      font-size: 0.8rem;
+      color: #6f53ff;
+      transition: transform 0.3s;
+    }
+
+    .faq-item.active .faq-question::after {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 1000px;
+    }
+
+    .faq-answer-content {
+      padding: 0 24px 20px 24px;
+      color: #475569;
+      line-height: 1.7;
+    }
+
+    .faq-answer-content p {
+      margin: 0 0 12px 0;
+    }
+
+    .faq-answer-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .faq-answer-content ul,
+    .faq-answer-content ol {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+
+    .faq-answer-content li {
+      margin-bottom: 8px;
+    }
+
+    .help-search {
+      margin-bottom: 32px;
+    }
+
+    .help-search input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .help-search input:focus {
+      outline: none;
+      border-color: #6f53ff;
+      box-shadow: 0 0 0 3px rgba(111, 83, 255, 0.1);
+    }
+
+    .help-tip {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border-left: 4px solid #0ea5e9;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+
+    .help-tip strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #0c4a6e;
+    }
+
+    .help-warning {
+      background: linear-gradient(135deg, #fff7ed, #ffedd5);
+      border-left: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+
+    .help-warning strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #92400e;
+    }
+
+    .help-success {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border-left: 4px solid #22c55e;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+
+    .help-success strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #166534;
+    }
+
+    .help-step {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 48px;
+      margin-bottom: 24px;
+    }
+
+    .help-steps {
+      counter-reset: step-counter;
+    }
+
+    .help-step::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #6f53ff, #8b5cf6);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .help-step h4 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .help-nav {
+        padding: 16px;
+      }
+      .help-nav-links {
+        grid-template-columns: 1fr;
+      }
+      .faq-question {
+        padding: 16px;
+        font-size: 0.95rem;
+      }
+      .faq-answer-content {
+        padding: 0 16px 16px 16px;
+      }
+    }
+  </style>
+
+  <script>
+  (function(){
+    const API = (typeof window.API === 'string')
+      ? window.API
+      : ((h) => (h === 'localhost' || h === '127.0.0.1')
+            ? 'http://127.0.0.1:5000'
+            : 'https://api.terminmarktplatz.de')(location.hostname);
+
+    const btn  = document.getElementById('userMenuBtn');
+    const menu = document.getElementById('userMenu');
+    if (!btn || !menu) return;
+
+    function openMenu(open){
+      menu.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    }
+
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openMenu(menu.hidden);
+    });
+
+    document.addEventListener('click', ()=> openMenu(false));
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
+
+    async function updateAuthUI(){
+      let loggedIn = false;
+      try{
+        const res = await fetch(`${API}/me`, { credentials:'include' });
+        loggedIn = res.ok;
+      }catch(e){
+        loggedIn = false;
+      }
+
+      document.querySelectorAll('.auth-in').forEach(el => {
+        el.style.display = loggedIn ? '' : 'none';
+      });
+      document.querySelectorAll('.auth-out').forEach(el => {
+        el.style.display = loggedIn ? 'none' : '';
+      });
+    }
+
+    menu.addEventListener('click', async (e)=>{
+      const el = e.target.closest('.item');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'logout'){
+        try{
+          await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
+        }catch(_){}
+        location.href = '/login.html';
+      }
+
+      if (action === 'delete'){
+        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+        if (!ok) return;
+
+        try{
+          const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+          if (res.ok){
+            location.href = '/login.html?deleted=1';
+          }else{
+            const data = await res.json().catch(()=> ({}));
+            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+          }
+        }catch(err){
+          alert('Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      }
+    });
+
+    updateAuthUI();
+  })();
+  </script>
+
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav"
+         role="navigation"
+         aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png"
+               alt="Terminmarktplatz Logo"
+               width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+          ☰ Menü
+        </button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" style="padding:40px 0 18px">
+      <div class="container">
+        <span class="badge">Hilfe & Support</span>
+        <h1>Wie können wir dir helfen?</h1>
+        <p class="lead">Finde Antworten auf häufige Fragen, Anleitungen und Tipps für die Nutzung von Terminmarktplatz.</p>
+      </div>
+    </section>
+
+    <!-- SUCHFELD -->
+    <section>
+      <div class="container" style="max-width:860px">
+        <div class="help-search">
+          <input type="text" id="helpSearch" placeholder="🔍 Suche in der Hilfe (z.B. 'Slot erstellen', 'Buchung stornieren', 'Preise')..." />
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVIGATION -->
+    <section>
+      <div class="container" style="max-width:860px">
+        <div class="help-nav">
+          <h3>Schnellnavigation</h3>
+          <div class="help-nav-links">
+            <a href="#fuer-anbieter">Für Anbieter</a>
+            <a href="#fuer-suchende">Für Suchende</a>
+            <a href="#preise-kosten">Preise & Kosten</a>
+            <a href="#technik-probleme">Technik & Probleme</a>
+            <a href="#allgemein">Allgemeine Fragen</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FÜR ANBIETER -->
+    <section id="fuer-anbieter" class="help-section">
+      <div class="container" style="max-width:860px">
+        <h2>Für Anbieter</h2>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie registriere ich mich als Anbieter?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Die Registrierung ist einfach und kostenlos:</p>
+              <ol>
+                <li>Gehe auf die Seite <a href="anbieter.html">Für Anbieter</a> und klicke auf "Jetzt registrieren"</li>
+                <li>Fülle das Registrierungsformular aus (E-Mail, Passwort, Firmenname, etc.)</li>
+                <li>Bestätige deine E-Mail-Adresse über den Link, den wir dir per E-Mail senden</li>
+                <li>Nach der manuellen Freischaltung durch unser Team kannst du sofort loslegen</li>
+              </ol>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Die Freischaltung erfolgt in der Regel innerhalb von 24 Stunden. Du erhältst eine E-Mail, sobald dein Account aktiviert wurde.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie erstelle ich einen Slot?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>So erstellst du einen neuen Terminslot:</p>
+              <div class="help-steps">
+                <div class="help-step">
+                  <h4>Im Portal anmelden</h4>
+                  <p>Logge dich in dein Anbieter-Portal ein.</p>
+                </div>
+                <div class="help-step">
+                  <h4>Slot anlegen</h4>
+                  <p>Klicke auf "Slot anlegen" oder gehe direkt zu <a href="anbieter-portal.html#step-3">deinem Portal</a>.</p>
+                </div>
+                <div class="help-step">
+                  <h4>Daten eingeben</h4>
+                  <p>Fülle alle Pflichtfelder aus: Titel, Kategorie, Datum & Uhrzeit, Adresse, Kontaktmethode.</p>
+                </div>
+                <div class="help-step">
+                  <h4>Veröffentlichen</h4>
+                  <p>Wähle "Veröffentlichen" aus, damit der Slot in der Suche sichtbar wird.</p>
+                </div>
+              </div>
+              <div class="help-warning">
+                <strong>⚠️ Wichtig:</strong> Slots müssen in der Zukunft liegen. Vergangene Termine können nicht veröffentlicht werden.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie viele Slots kann ich kostenlos veröffentlichen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>In der Basisversion kannst du <strong>bis zu 3 Slots pro Monat kostenlos</strong> veröffentlichen.</p>
+              <p>Diese Slots werden in der Suche angezeigt und können von Suchenden gebucht werden. Sobald eine Buchung zustande kommt, fällt eine Erfolgsprovision von 2€ an.</p>
+              <div class="help-success">
+                <strong>✅ Vorteil:</strong> Du zahlst nur, wenn eine Vermittlung erfolgreich ist. Keine monatlichen Gebühren, keine versteckten Kosten.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie funktioniert die Buchungsbestätigung?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Wenn jemand einen deiner Slots bucht:</p>
+              <ul>
+                <li>Du erhältst eine E-Mail-Benachrichtigung mit den Kontaktdaten des Suchenden</li>
+                <li>Der Suchende erhält ebenfalls eine Bestätigungs-E-Mail</li>
+                <li>24 Stunden vor dem Termin senden wir automatisch eine Erinnerungs-E-Mail an beide Parteien</li>
+                <li>Im Portal siehst du alle deine Buchungen und deren Status</li>
+              </ul>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Die automatischen Erinnerungen reduzieren No-Shows deutlich und sorgen für zuverlässigere Termine.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Kann ich einen Slot bearbeiten oder löschen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Ja, du kannst deine Slots jederzeit bearbeiten oder löschen:</p>
+              <ul>
+                <li><strong>Bearbeiten:</strong> Öffne den Slot in deinem Portal und klicke auf "Bearbeiten". Du kannst alle Daten ändern, solange der Slot noch nicht gebucht wurde.</li>
+                <li><strong>Löschen:</strong> Klicke auf "Löschen" im Slot-Menü. Bereits gebuchte Slots können nicht gelöscht, aber storniert werden.</li>
+                <li><strong>Stornieren:</strong> Bei gebuchten Slots kannst du eine Stornierung vornehmen. Der Suchende wird automatisch benachrichtigt.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Was passiert, wenn ein Suchender nicht erscheint (No-Show)?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Bei einem No-Show:</p>
+              <ul>
+                <li>Du zahlst keine Provision – die Gebühr fällt nur bei erfolgreicher Vermittlung an</li>
+                <li>Du kannst den Slot erneut veröffentlichen, wenn du möchtest</li>
+                <li>Wir empfehlen, den Suchenden direkt zu kontaktieren (Kontaktdaten findest du in der Buchungsbestätigung)</li>
+              </ul>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Die automatischen Erinnerungs-E-Mails reduzieren No-Shows erheblich. In der Regel liegt die Ausfallquote deutlich unter 10%.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie kann ich mein Profil bearbeiten?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Im Anbieter-Portal kannst du jederzeit dein Profil aktualisieren:</p>
+              <ol>
+                <li>Logge dich in dein Portal ein</li>
+                <li>Gehe zum Bereich "Profil"</li>
+                <li>Bearbeite deine Daten (Firmenname, Adresse, Telefon, etc.)</li>
+                <li>Speichere die Änderungen</li>
+              </ol>
+              <p>Änderungen an deinem Profil wirken sich sofort auf alle zukünftigen Slots aus.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FÜR SUCHENDE -->
+    <section id="fuer-suchende" class="help-section">
+      <div class="container" style="max-width:860px">
+        <h2>Für Suchende</h2>
+
+        <div class="faq-item">
+          <div class="faq-question">Muss ich mich registrieren, um Termine zu buchen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p><strong>Nein!</strong> Du kannst Termine auch ohne Registrierung suchen und buchen.</p>
+              <p>Für die Buchung benötigst du nur:</p>
+              <ul>
+                <li>Deine E-Mail-Adresse</li>
+                <li>Deinen Namen</li>
+                <li>Optional: Telefonnummer für Rückfragen</li>
+              </ul>
+              <div class="help-success">
+                <strong>✅ Vorteil:</strong> Keine langwierige Registrierung nötig – einfach suchen und buchen!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie suche ich nach Terminen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Die Suche ist einfach und flexibel:</p>
+              <div class="help-steps">
+                <div class="help-step">
+                  <h4>Auf der Startseite suchen</h4>
+                  <p>Gib deine Postleitzahl oder Stadt ein und wähle optional eine Kategorie (z.B. Friseur, Kosmetik, Physiotherapie).</p>
+                </div>
+                <div class="help-step">
+                  <h4>Filter anwenden</h4>
+                  <p>Du kannst nach Datum, Kategorie, Entfernung und weiteren Kriterien filtern.</p>
+                </div>
+                <div class="help-step">
+                  <h4>Ergebnisse durchsuchen</h4>
+                  <p>Die verfügbaren Termine werden dir übersichtlich angezeigt mit allen wichtigen Informationen.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie buche ich einen Termin?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>So buchst du einen Termin:</p>
+              <ol>
+                <li>Finde einen passenden Slot in der Suche</li>
+                <li>Klicke auf "Jetzt buchen"</li>
+                <li>Fülle das Buchungsformular aus (Name, E-Mail, optional Telefon)</li>
+                <li>Bestätige die Buchung</li>
+                <li>Du erhältst sofort eine Bestätigungs-E-Mail mit allen Details</li>
+              </ol>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Prüfe deinen Spam-Ordner, falls du keine E-Mail erhältst. Die Bestätigung enthält alle wichtigen Informationen zum Termin.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Kann ich einen gebuchten Termin stornieren?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Ja, du kannst deine Buchung stornieren:</p>
+              <ul>
+                <li>In der Bestätigungs-E-Mail findest du einen Link zur Stornierung</li>
+                <li>Klicke auf "Termin stornieren" und bestätige die Stornierung</li>
+                <li>Der Anbieter wird automatisch benachrichtigt</li>
+              </ul>
+              <div class="help-warning">
+                <strong>⚠️ Wichtig:</strong> Bitte storniere so früh wie möglich, damit der Anbieter den Slot neu vergeben kann. Bei kurzfristigen Stornierungen kontaktiere den Anbieter am besten direkt.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Was sind Benachrichtigungen und wie funktionieren sie?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Mit Benachrichtigungen wirst du sofort informiert, wenn neue Termine verfügbar werden, die deinen Suchkriterien entsprechen.</p>
+              <p>So richtest du eine Benachrichtigung ein:</p>
+              <ol>
+                <li>Gehe zu <a href="benachrichtigung-einrichten.html">Benachrichtigungen einrichten</a></li>
+                <li>Gib deine Suchkriterien ein (Ort, Kategorie, optional Radius)</li>
+                <li>Wähle, ob du E-Mail- oder SMS-Benachrichtigungen erhalten möchtest</li>
+                <li>Bestätige die Einrichtung</li>
+              </ol>
+              <p>Du erhältst dann automatisch eine Nachricht, sobald ein passender Termin verfügbar wird.</p>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Benachrichtigungen sind besonders nützlich für begehrte Termine (z.B. beim Zahnarzt oder Friseur), die schnell weg sind.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Kosten die Termine etwas?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Die Nutzung der Plattform ist für Suchende kostenlos. Die Preise für die Termine selbst legt der Anbieter fest.</p>
+              <p>In der Slot-Beschreibung siehst du, ob und wie viel der Termin kostet. Manche Anbieter bieten auch Rabatte für Last-Minute-Termine an.</p>
+              <p>Die Zahlung erfolgt direkt beim Anbieter – wir vermitteln nur den Termin.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PREISE & KOSTEN -->
+    <section id="preise-kosten" class="help-section">
+      <div class="container" style="max-width:860px">
+        <h2>Preise & Kosten</h2>
+
+        <div class="faq-item">
+          <div class="faq-question">Was kostet die Nutzung für Anbieter?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Für Anbieter gilt folgendes Preismodell:</p>
+              <ul>
+                <li><strong>Basisversion: Kostenlos</strong> – 3 Slots pro Monat kostenlos veröffentlichen</li>
+                <li><strong>Erfolgsprovision: 2€ pro erfolgreicher Buchung</strong> – du zahlst nur, wenn eine Vermittlung zustande kommt</li>
+                <li><strong>Keine monatlichen Gebühren</strong> – keine versteckten Kosten, keine Abo-Pflicht</li>
+              </ul>
+              <div class="help-success">
+                <strong>✅ Fair & transparent:</strong> Du zahlst nur bei Erfolg. Keine Buchung = keine Kosten.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Was kosten Benachrichtigungen für Suchende?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Benachrichtigungen sind optional und kosten <strong>1,99€ für 10 Benachrichtigungen</strong> (E-Mail oder SMS).</p>
+              <p>Das Paket kannst du <a href="preise.html#alarm-paket">hier buchen</a>. Die Benachrichtigungen verfallen nicht und können jederzeit genutzt werden.</p>
+              <p>Die Suche und Buchung von Terminen ist für Suchende komplett kostenlos.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wann wird die Provision abgebucht?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Die Erfolgsprovision von 2€ wird erst abgebucht, wenn:</p>
+              <ul>
+                <li>Ein Suchender deinen Slot gebucht hat</li>
+                <li>Der Termin stattgefunden hat (oder nicht storniert wurde)</li>
+              </ul>
+              <p>Du erhältst monatlich eine Rechnung über alle erfolgreichen Buchungen des Vormonats.</p>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Bei Stornierungen oder No-Shows fällt keine Provision an.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TECHNIK & PROBLEME -->
+    <section id="technik-probleme" class="help-section">
+      <div class="container" style="max-width:860px">
+        <h2>Technik & Probleme</h2>
+
+        <div class="faq-item">
+          <div class="faq-question">Ich habe keine Bestätigungs-E-Mail erhalten. Was tun?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Wenn du keine E-Mail erhalten hast:</p>
+              <ol>
+                <li>Prüfe deinen Spam- oder Junk-Ordner</li>
+                <li>Warte einige Minuten – E-Mails können manchmal verzögert ankommen</li>
+                <li>Prüfe, ob die E-Mail-Adresse korrekt eingegeben wurde</li>
+                <li>Falls weiterhin Probleme bestehen, kontaktiere uns über das <a href="kontakt.html">Kontaktformular</a></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Ich kann mich nicht anmelden. Was ist das Problem?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Mögliche Ursachen und Lösungen:</p>
+              <ul>
+                <li><strong>Falsches Passwort:</strong> Nutze die "Passwort zurücksetzen"-Funktion auf der Login-Seite</li>
+                <li><strong>Account nicht aktiviert:</strong> Prüfe deine E-Mails auf die Aktivierungsmail und klicke auf den Bestätigungslink</li>
+                <li><strong>Account noch nicht freigeschaltet:</strong> Neue Anbieter-Accounts werden manuell freigeschaltet. Dies kann bis zu 24 Stunden dauern</li>
+                <li><strong>Browser-Cache:</strong> Leere den Cache oder versuche es in einem anderen Browser</li>
+              </ul>
+              <p>Falls nichts hilft, kontaktiere uns bitte über das <a href="kontakt.html">Kontaktformular</a>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Die Seite lädt nicht oder zeigt Fehler. Was kann ich tun?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Versuche folgende Schritte:</p>
+              <ol>
+                <li><strong>Seite neu laden:</strong> Drücke F5 oder Strg+R (Windows) / Cmd+R (Mac)</li>
+                <li><strong>Cache leeren:</strong> Leere den Browser-Cache oder nutze den Inkognito-Modus</li>
+                <li><strong>Anderen Browser testen:</strong> Versuche es mit Chrome, Firefox, Safari oder Edge</li>
+                <li><strong>Internetverbindung prüfen:</strong> Stelle sicher, dass deine Internetverbindung funktioniert</li>
+                <li><strong>JavaScript aktivieren:</strong> Stelle sicher, dass JavaScript in deinem Browser aktiviert ist</li>
+              </ol>
+              <p>Falls das Problem weiterhin besteht, melde es uns bitte über das <a href="kontakt.html">Kontaktformular</a>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie kann ich mein Passwort zurücksetzen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>So setzt du dein Passwort zurück:</p>
+              <ol>
+                <li>Gehe zur <a href="login.html">Login-Seite</a></li>
+                <li>Klicke auf "Passwort vergessen?" oder "Passwort zurücksetzen"</li>
+                <li>Gib deine E-Mail-Adresse ein</li>
+                <li>Du erhältst eine E-Mail mit einem Link zum Zurücksetzen</li>
+                <li>Klicke auf den Link und wähle ein neues Passwort</li>
+              </ol>
+              <div class="help-warning">
+                <strong>⚠️ Wichtig:</strong> Der Link ist nur für eine begrenzte Zeit gültig. Falls du keine E-Mail erhältst, prüfe deinen Spam-Ordner.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ALLGEMEINE FRAGEN -->
+    <section id="allgemein" class="help-section">
+      <div class="container" style="max-width:860px">
+        <h2>Allgemeine Fragen</h2>
+
+        <div class="faq-item">
+          <div class="faq-question">Was ist Terminmarktplatz?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Terminmarktplatz ist eine Plattform, die freigewordene Termine von Dienstleistern mit Suchenden zusammenbringt.</p>
+              <p><strong>Für Anbieter:</strong> Veröffentliche kurzfristig freigewordene Termine und fülle Leerlaufzeiten. Mehr Umsatz, weniger Terminlücken.</p>
+              <p><strong>Für Suchende:</strong> Finde spontan verfügbare Termine in deiner Nähe – ohne langwierige Registrierung, mit 1-Klick-Buchung.</p>
+              <p>Die Plattform ist DSGVO-konform, nutzt EU-Hosting und funktioniert auf allen Geräten.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Welche Kategorien werden unterstützt?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Wir unterstützen eine Vielzahl von Kategorien:</p>
+              <ul>
+                <li><strong>Gesundheit:</strong> Arzt, Zahnarzt, Physiotherapie, etc.</li>
+                <li><strong>Beauty & Wellness:</strong> Friseur, Kosmetik, Nagelstudio, etc.</li>
+                <li><strong>Handwerk:</strong> Elektriker, Klempner, Maler, etc.</li>
+                <li><strong>KFZ-Service:</strong> Werkstatt, Reifenservice, etc.</li>
+                <li><strong>Fitness & Coaching:</strong> Personal Trainer, Beratung, etc.</li>
+                <li><strong>Behörden & Ämter:</strong> Termine bei öffentlichen Stellen</li>
+                <li><strong>Sonstiges:</strong> Alle anderen Dienstleistungen</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie sicher sind meine Daten?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Datenschutz und Sicherheit haben für uns höchste Priorität:</p>
+              <ul>
+                <li><strong>DSGVO-konform:</strong> Wir halten uns strikt an die Datenschutz-Grundverordnung</li>
+                <li><strong>EU-Hosting:</strong> Alle Daten werden in der EU gespeichert</li>
+                <li><strong>Verschlüsselte Verbindung:</strong> Die gesamte Kommunikation erfolgt über HTTPS</li>
+                <li><strong>Minimale Datenerhebung:</strong> Wir sammeln nur die Daten, die für den Service notwendig sind</li>
+                <li><strong>Keine Weitergabe:</strong> Deine Daten werden nicht an Dritte verkauft oder weitergegeben</li>
+              </ul>
+              <p>Mehr Details findest du in unserer <a href="datenschutz.html">Datenschutzerklärung</a>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Wie kann ich euch kontaktieren?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Du erreichst uns auf verschiedenen Wegen:</p>
+              <ul>
+                <li><strong>Kontaktformular:</strong> Nutze unser <a href="kontakt.html">Kontaktformular</a> für allgemeine Anfragen</li>
+                <li><strong>E-Mail:</strong> Schreib uns direkt an <a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a></li>
+                <li><strong>Support:</strong> Für technische Probleme nutze bitte das Kontaktformular mit dem Betreff "Technischer Support"</li>
+              </ul>
+              <p>Wir bemühen uns, alle Anfragen innerhalb von 24 Stunden zu beantworten.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Kann ich mein Konto löschen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Ja, du kannst dein Konto jederzeit löschen:</p>
+              <ol>
+                <li>Logge dich in dein Anbieter-Portal ein</li>
+                <li>Öffne das Menü (☰) und wähle "Konto löschen"</li>
+                <li>Bestätige die Löschung</li>
+              </ol>
+              <div class="help-warning">
+                <strong>⚠️ Wichtig:</strong> Die Löschung ist endgültig und kann nicht rückgängig gemacht werden. Alle deine Slots, Buchungen und Daten werden unwiderruflich gelöscht.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- KONTAKT CTA -->
+    <section>
+      <div class="container" style="max-width:860px">
+        <div class="panel" style="text-align: center; padding: 40px 24px;">
+          <h3 style="margin-top: 0;">Weitere Fragen?</h3>
+          <p class="muted" style="margin-bottom: 24px;">Wir helfen dir gerne weiter. Kontaktiere uns einfach!</p>
+          <a href="kontakt.html" class="btn primary">Kontakt aufnehmen</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="hilfe.html">Hilfe & FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Copyright-Jahr
+    (function(){
+      const yEl = document.getElementById('y');
+      if (yEl) yEl.textContent = new Date().getFullYear();
+    })();
+
+    // FAQ Accordion
+    (function(){
+      const faqItems = document.querySelectorAll('.faq-item');
+      faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        if (!question) return;
+
+        question.addEventListener('click', () => {
+          const isActive = item.classList.contains('active');
+          // Schließe alle anderen
+          faqItems.forEach(other => {
+            if (other !== item) {
+              other.classList.remove('active');
+            }
+          });
+          // Toggle aktuelles Item
+          item.classList.toggle('active', !isActive);
+        });
+      });
+    })();
+
+    // Suchfunktion
+    (function(){
+      const searchInput = document.getElementById('helpSearch');
+      if (!searchInput) return;
+
+      function performSearch(query) {
+        const lowerQuery = query.toLowerCase().trim();
+        if (!lowerQuery) {
+          // Zeige alle Items
+          document.querySelectorAll('.faq-item').forEach(item => {
+            item.style.display = '';
+          });
+          document.querySelectorAll('.help-section').forEach(section => {
+            section.style.display = '';
+          });
+          return;
+        }
+
+        let foundAny = false;
+        document.querySelectorAll('.faq-item').forEach(item => {
+          const question = item.querySelector('.faq-question')?.textContent || '';
+          const answer = item.querySelector('.faq-answer-content')?.textContent || '';
+          const text = (question + ' ' + answer).toLowerCase();
+
+          if (text.includes(lowerQuery)) {
+            item.style.display = '';
+            item.classList.add('active'); // Öffne gefundene Items
+            foundAny = true;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        // Zeige/Verstecke Sections basierend auf gefundenen Items
+        document.querySelectorAll('.help-section').forEach(section => {
+          const visibleItems = section.querySelectorAll('.faq-item[style=""]').length;
+          if (visibleItems > 0 || !foundAny) {
+            section.style.display = '';
+          } else {
+            section.style.display = 'none';
+          }
+        });
+
+        // Scroll zum ersten gefundenen Item
+        if (foundAny) {
+          const firstFound = document.querySelector('.faq-item[style=""]');
+          if (firstFound) {
+            firstFound.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }
+
+      let searchTimeout;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          performSearch(e.target.value);
+        }, 300);
+      });
+
+      // URL Hash für direkte Navigation
+      if (location.hash) {
+        const target = document.querySelector(location.hash);
+        if (target) {
+          setTimeout(() => {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
+      }
+    })();
+  </script>
+
+  <!-- Google Analytics - nur nach Consent laden -->
+  <script>
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      if (localStorage.getItem(cookieKey) === 'accepted') {
+        const script1 = document.createElement('script');
+        script1.async = true;
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        document.head.appendChild(script1);
+        
+        const script2 = document.createElement('script');
+        script2.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-YNZ8GW523R');
+        `;
+        document.head.appendChild(script2);
+      }
+    })();
+  </script>
+</body>
+</html>
+

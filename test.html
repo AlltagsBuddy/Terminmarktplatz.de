@@ -1,4 +1,758 @@
-<!doctype html><title>CSS Test</title>
-<link rel="stylesheet" href="/static/style.css?v=5">
-<div class="probe">Wenn dieser Text groß und farbig ist, lädt CSS.</div>
-<style>.probe{font-size:22px;color:#d00}</style>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hilfe & FAQ | Terminmarktplatz</title>
+  <meta name="description" content="Hilfe, FAQ und Anleitungen für Suchende und Anbieter auf Terminmarktplatz." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.10);
+      --text: #e8ecff;
+      --muted: rgba(232,236,255,0.70);
+      --brand: #6f53ff;
+      --brand2:#a78bfa;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+      --r: 18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(111,83,255,0.35), transparent 60%),
+        radial-gradient(900px 600px at 90% 0%, rgba(167,139,250,0.25), transparent 55%),
+        radial-gradient(900px 600px at 50% 110%, rgba(34,197,94,0.10), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    a{color:inherit; text-decoration:none}
+    a:hover{color:var(--brand2)}
+    .wrap{max-width:1100px; margin:0 auto; padding:22px 16px 60px}
+
+    header{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      padding:14px 14px;
+      border:1px solid var(--stroke);
+      background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border-radius: calc(var(--r) + 6px);
+      box-shadow: var(--shadow);
+      position:sticky; top:10px; z-index:20;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand{
+      display:flex; gap:12px; align-items:center; min-width: 220px;
+    }
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background: radial-gradient(circle at 30% 30%, var(--brand2), var(--brand));
+      box-shadow: 0 10px 30px rgba(111,83,255,0.35);
+      border:1px solid rgba(255,255,255,0.18);
+      flex: 0 0 auto;
+    }
+    .brand h1{font-size:14px; margin:0}
+    .brand p{margin:0; color:var(--muted); font-size:12px}
+
+    .topnav{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .chip{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.04);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .chip:hover{border-color:rgba(111,83,255,0.55); color:var(--text)}
+    .chip.primary{color:var(--text); border-color:rgba(111,83,255,0.55); background:rgba(111,83,255,0.10)}
+
+    .hero{
+      padding:26px 6px 10px;
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap:16px;
+      align-items:stretch;
+    }
+    .heroCard{
+      border:1px solid var(--stroke);
+      background:linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+      border-radius: calc(var(--r) + 10px);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .hero h2{margin:0 0 10px; font-size:22px}
+    .hero p{margin:0 0 14px; color:var(--muted)}
+    .searchRow{display:flex; gap:10px; align-items:center}
+    .search{
+      flex:1;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,0.18);
+      border-radius: 14px;
+      padding:12px 12px;
+      color:var(--text);
+      outline:none;
+    }
+    .search:focus{border-color:rgba(111,83,255,0.55); box-shadow:0 0 0 4px rgba(111,83,255,0.12)}
+    .btn{
+      border:1px solid rgba(111,83,255,0.55);
+      background: linear-gradient(180deg, rgba(111,83,255,0.35), rgba(111,83,255,0.18));
+      color:var(--text);
+      padding:11px 14px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .btn:hover{filter:brightness(1.05)}
+    .mini{
+      margin-top:10px;
+      display:flex; gap:8px; flex-wrap:wrap;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .mini a{color:var(--brand2)}
+    .side{
+      display:flex; flex-direction:column; gap:12px;
+    }
+    .note{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.04);
+      border-radius: calc(var(--r) + 6px);
+      padding:14px;
+    }
+    .note b{display:block; margin-bottom:6px}
+    .note p{margin:0; color:var(--muted)}
+    .note .tag{
+      display:inline-flex; align-items:center; gap:8px;
+      margin-top:10px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,0.14);
+      color:var(--muted);
+      font-size:12px;
+    }
+    .dot{width:8px; height:8px; border-radius:999px; background:var(--ok)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+
+    .grid{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+    .card{
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.04);
+      border-radius: calc(var(--r) + 8px);
+      padding:16px;
+    }
+    .card h3{margin:0 0 6px; font-size:16px}
+    .card p{margin:0 0 10px; color:var(--muted)}
+    .links{display:flex; gap:10px; flex-wrap:wrap}
+    .link{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:8px 10px;
+      border-radius: 12px;
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,0.14);
+      color:var(--text);
+      font-size:13px;
+    }
+    .link:hover{border-color:rgba(111,83,255,0.55)}
+    .kbd{
+      font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      color:var(--muted);
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.03);
+      padding:2px 6px;
+      border-radius:8px;
+    }
+
+    .section{
+      margin-top:16px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.03);
+      border-radius: calc(var(--r) + 10px);
+      overflow:hidden;
+    }
+    .sectionHead{
+      padding:14px 16px;
+      display:flex; justify-content:space-between; align-items:center;
+      background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border-bottom:1px solid var(--stroke);
+    }
+    .sectionHead h3{margin:0; font-size:15px}
+    .sectionHead span{color:var(--muted); font-size:13px}
+
+    .faq{padding:8px}
+    .qa{
+      border:1px solid var(--stroke);
+      background:rgba(0,0,0,0.14);
+      border-radius: 16px;
+      margin:10px;
+      overflow:hidden;
+    }
+    .q{
+      width:100%;
+      text-align:left;
+      border:0;
+      outline:0;
+      background:transparent;
+      color:var(--text);
+      padding:14px 14px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .q small{display:block; margin-top:4px; color:var(--muted); font-weight:500}
+    .chev{
+      width:26px; height:26px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.03);
+      display:grid; place-items:center;
+      flex:0 0 auto;
+      transition: transform .15s ease;
+    }
+    .a{
+      display:none;
+      padding:0 14px 14px;
+      color:var(--muted);
+    }
+    .qa.open .a{display:block}
+    .qa.open .chev{transform: rotate(180deg)}
+    .a ul{margin:10px 0 0 18px}
+    .a li{margin:6px 0}
+
+    footer{
+      margin-top:18px;
+      color:var(--muted);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 4px;
+    }
+
+    .muted{color:var(--muted)}
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:7px 10px; border-radius:999px;
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,0.03);
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    @media (max-width: 920px){
+      .hero{grid-template-columns: 1fr; }
+      .grid{grid-template-columns:1fr}
+      header{gap:10px; flex-wrap:wrap}
+      .brand{min-width:unset}
+      .topnav{justify-content:flex-start}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Terminmarktplatz – Hilfe</h1>
+          <p>FAQ, Anleitungen & Problemlösungen</p>
+        </div>
+      </div>
+
+      <nav class="topnav" aria-label="Schnellnavigation">
+        <a class="chip" href="/index.html">Start</a>
+        <a class="chip" href="/suche.html">Suche</a>
+        <a class="chip" href="/anbieter.html">Für Anbieter</a>
+        <a class="chip primary" href="/hilfe.html">Hilfe</a>
+        <a class="chip" href="/kontakt.html">Kontakt</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <div class="heroCard">
+        <h2>Schnell Hilfe finden</h2>
+        <p>Suche nach Stichworten wie <span class="kbd">buchen</span>, <span class="kbd">Benachrichtigung</span>, <span class="kbd">Storno</span>, <span class="kbd">Rechnung</span>, <span class="kbd">Anbieter</span>.</p>
+
+        <div class="searchRow">
+          <input id="helpSearch" class="search" type="search" placeholder="Was funktioniert nicht? (z.B. 'Mail kommt nicht', 'mobil buchen')" autocomplete="off" />
+          <button class="btn" type="button" id="clearBtn">Zurücksetzen</button>
+        </div>
+
+        <div class="mini">
+          <span class="muted">Direkt zu:</span>
+          <a href="#suchende">Suchende</a> ·
+          <a href="#anbieter">Anbieter</a> ·
+          <a href="#alerts">Benachrichtigungen</a> ·
+          <a href="#buchung">Buchung</a> ·
+          <a href="#abrechnung">Abrechnung</a> ·
+          <a href="#technik">Technik</a>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="note">
+          <b>Status & typische Ursachen</b>
+          <p>Wenn etwas „plötzlich“ nicht geht, sind es in 80% der Fälle: falscher Browser/In-App-Browser, Adblocker, Cache, oder fehlende Bestätigung (E-Mail/Alarm).</p>
+          <span class="tag"><span class="dot"></span> Plattform erreichbar</span>
+          <span class="tag"><span class="dot warn"></span> E-Mail kann verzögert sein</span>
+          <span class="tag"><span class="dot bad"></span> In-App-Browser machen Ärger</span>
+        </div>
+
+        <div class="note">
+          <b>Kontakt</b>
+          <p>Wenn du uns schreibst, pack bitte dazu: Gerät, Browser, Uhrzeit, Seite/Link, Screenshot und was genau du erwartet hast.</p>
+          <div class="links" style="margin-top:10px">
+            <a class="link" href="/kontakt.html">Kontaktformular</a>
+            <a class="link" href="mailto:info@terminmarktplatz.de">E-Mail</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Für Suchende</h3>
+        <p>Termine finden, buchen, stornieren, Benachrichtigungen verstehen.</p>
+        <div class="links">
+          <a class="link" href="#suchende">FAQ Suchende</a>
+          <a class="link" href="#buchung">Buchung</a>
+          <a class="link" href="#alerts">Benachrichtigungen</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Für Anbieter</h3>
+        <p>Slots einstellen, verwalten, Status, Abrechnung & Archiv.</p>
+        <div class="links">
+          <a class="link" href="#anbieter">FAQ Anbieter</a>
+          <a class="link" href="#abrechnung">Abrechnung</a>
+          <a class="link" href="#technik">Technik</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUCHENDE -->
+    <section id="suchende" class="section" data-section>
+      <div class="sectionHead">
+        <h3>FAQ für Suchende</h3>
+        <span>Suche · Buchung · Storno · Bestätigung</span>
+      </div>
+      <div class="faq">
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Ich finde keine Termine – obwohl es welche geben müsste.
+              <small>Typisch: Filter zu eng, falsche Kategorie, falscher Radius.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Prüfe systematisch:
+            <ul>
+              <li>Radius/PLZ/Ort: ist der Radius realistisch (z.B. 10 km ist oft zu wenig)?</li>
+              <li>Kategorie: stimmt sie wirklich? (Friseur ≠ Kosmetik, Arzt ≠ Facharzt)</li>
+              <li>Datum: hast du einen Zeitraum gesetzt, der schon vorbei ist?</li>
+              <li>Browser-Cache: Seite einmal hart neu laden (<span class="kbd">Strg</span> + <span class="kbd">F5</span>).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Buchen geht mobil nicht, am Desktop schon.
+              <small>Sehr oft: In-App-Browser (Facebook/Instagram) blockt Scripts.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Das ist fast immer der In-App-Browser. Lösung:
+            <ul>
+              <li>Link im externen Browser öffnen (Chrome/Safari/Firefox).</li>
+              <li>Adblocker testweise deaktivieren.</li>
+              <li>Wenn du iOS nutzt: „Website-Einstellungen“/„Inhaltsblocker“ prüfen.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Ich habe gebucht, aber keine Bestätigung bekommen.
+              <small>Spam/Promotion-Ordner, Tippfehler, Verzögerung.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            <ul>
+              <li>Spam/Unbekannt/Promotions prüfen.</li>
+              <li>E-Mail-Adresse auf Tippfehler checken.</li>
+              <li>Warte 5–10 Minuten (E-Mail kann verzögert sein).</li>
+              <li>Wenn gar nichts kommt: Kontakt, inkl. Uhrzeit und verwendeter Adresse.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Kann ich stornieren?
+              <small>Kommt auf den Termin/Anbieter-Regeln an.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Wenn eine Storno-Option angeboten wird, nutze sie dort. Wenn nicht, gilt: direkt beim Anbieter klären.
+            (Terminmarktplatz vermittelt – der Termin selbst liegt beim Anbieter.)
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BUCHUNG -->
+    <section id="buchung" class="section" data-section>
+      <div class="sectionHead">
+        <h3>Buchung & Ablauf</h3>
+        <span>Wie es typischerweise läuft</span>
+      </div>
+      <div class="faq">
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Wie läuft eine Buchung ab?
+              <small>Suche → Termin auswählen → Daten → Bestätigung.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Typischer Ablauf:
+            <ul>
+              <li>Termin über Suche finden</li>
+              <li>Buchen klicken</li>
+              <li>Daten eingeben</li>
+              <li>Bestätigung/Info per E-Mail</li>
+            </ul>
+            Wenn ein Schritt hängt: Browser wechseln / Cache leeren / externen Browser nutzen.
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Warum ist ein Termin plötzlich weg?
+              <small>Jemand war schneller, Anbieter hat deaktiviert, Termin abgelaufen.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Mögliche Gründe:
+            <ul>
+              <li>Der Slot wurde gebucht.</li>
+              <li>Der Anbieter hat ihn storniert/entfernt.</li>
+              <li>Der Termin ist abgelaufen.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ALERTS -->
+    <section id="alerts" class="section" data-section>
+      <div class="sectionHead">
+        <h3>Benachrichtigungen (Termin-Alarm)</h3>
+        <span>Einrichten · Bestätigen · Regeln</span>
+      </div>
+      <div class="faq">
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Ich habe einen Termin-Alarm erstellt – warum kommt keine Mail?
+              <small>Alarm muss oft erst bestätigt werden, sonst bleibt er inaktiv.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Checkliste:
+            <ul>
+              <li>Hast du die Bestätigungs-Mail geöffnet und bestätigt?</li>
+              <li>Ist die Kategorie/Radius korrekt?</li>
+              <li>Spam/Promotions prüfen.</li>
+              <li>Wenn du mehrere Alarme hast: prüfe Überschneidungen / Limits.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Ich bekomme Benachrichtigungen, die nicht passen.
+              <small>Dann matcht dein Alarm zu breit (z.B. Standort/Radius/Kategorie).</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Typische Fehler:
+            <ul>
+              <li>Radius zu groß gewählt.</li>
+              <li>Kategorie zu allgemein.</li>
+              <li>Ort/PLZ falsch oder uneindeutig.</li>
+            </ul>
+            Wenn du sicher bist, dass es ein Bug ist: schick uns den Alarm (Kategorie, Radius, Ort) + Beispiel-Slot.
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Der Bestätigungslink führt auf die falsche Seite.
+              <small>Dann stimmt der Link-Pfad in der Mail/Route nicht.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Das ist ein technisches Thema (Routing). Wenn du mir sagst, welche URL der Link öffnet, sag ich dir exakt,
+            welcher Pfad in der Mail auf <span class="kbd">/benachrichtigung-bestaetigung.html</span> zeigen muss.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ANBIETER -->
+    <section id="anbieter" class="section" data-section>
+      <div class="sectionHead">
+        <h3>FAQ für Anbieter</h3>
+        <span>Slots · Status · Verwaltung</span>
+      </div>
+      <div class="faq">
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Welche Slot-Status gibt es?
+              <small>Entwurf / Aktiv / Storniert / Abgelaufen / Archiviert (Beispiel-Logik).</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Üblich (je nach eurer Implementierung):
+            <ul>
+              <li><b>Entwurf</b>: noch nicht sichtbar, nicht buchbar.</li>
+              <li><b>Aktiv</b>: sichtbar & buchbar.</li>
+              <li><b>Storniert</b>: wird nicht abgerechnet.</li>
+              <li><b>Abgelaufen</b>: Terminzeitpunkt vorbei.</li>
+              <li><b>Archiviert</b>: bleibt zur Nachvollziehbarkeit (z.B. für Rechnungen).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Kann ich alte Termine löschen?
+              <small>Wenn Abrechnung/Belege relevant sind: lieber archivieren statt löschen.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Empfehlung: Abgerechnete/abgelaufene Termine nur archivieren, nicht löschen. Sonst fehlt später die Nachvollziehbarkeit.
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Muss ich Rechnungen selbst aufbewahren?
+              <small>In der Regel ja (als Unternehmen). Details sind Rechts-/Steuer-Thema.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Als Anbieter bist du i.d.R. selbst für Aufbewahrungspflichten verantwortlich. Was Terminmarktplatz speichert/anzeigt ist extra.
+            (Kein Steuer-/Rechtsrat – im Zweifel Steuerberater.)
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ABRECHNUNG -->
+    <section id="abrechnung" class="section" data-section>
+      <div class="sectionHead">
+        <h3>Abrechnung</h3>
+        <span>Erfolgsprovision · Rechnung · Archiv</span>
+      </div>
+      <div class="faq">
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Wann wird ein Termin abgerechnet?
+              <small>Beispiel: nur wenn stattgefunden + 1h vorbei + nicht storniert.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Sinnvolle Logik (wie ihr es schon diskutiert habt):
+            <ul>
+              <li>Nur Status, die wirklich stattgefunden haben / abgelaufen sind.</li>
+              <li>Erst <b>eine Stunde nach Terminzeit</b> abrechnen (Puffer).</li>
+              <li><b>Stornierte</b> oder <b>Entwürfe</b> niemals abrechnen.</li>
+              <li>Abgerechnete Slots danach <b>archivieren</b> (nicht löschen).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Wo sehe ich abgerechnete/archivierte Termine?
+              <small>Am besten als eigener Bereich „Archiv“ mit Filter.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Wenn du einen „Archiv“-Link in der Anbieterübersicht hast, findest du dort alle abgerechneten/abgelaufenen Slots.
+            Falls nicht: das ist ein UX-ToDo – lohnt sich.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TECHNIK -->
+    <section id="technik" class="section" data-section>
+      <div class="sectionHead">
+        <h3>Technik & Browser</h3>
+        <span>Cache · In-App-Browser · Cookies</span>
+      </div>
+      <div class="faq">
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Facebook/Instagram Browser: Warum geht da was nicht?
+              <small>In-App-Browser sind eingeschränkt und blocken oft JS/Storage.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            In-App-Browser sind notorisch buggy. Lösung: „Im Browser öffnen“ (Chrome/Safari).
+          </div>
+        </div>
+
+        <div class="qa" data-q>
+          <button class="q" type="button">
+            <div>
+              Was soll ich bei Bugs schicken?
+              <small>Damit wir es reproduzieren können.</small>
+            </div>
+            <span class="chev">⌄</span>
+          </button>
+          <div class="a">
+            Bitte immer:
+            <ul>
+              <li>Gerät + Betriebssystem (z.B. iPhone iOS 17, Android 14)</li>
+              <li>Browser + Version</li>
+              <li>Uhrzeit + Seite (URL)</li>
+              <li>Schritte zum Reproduzieren</li>
+              <li>Screenshot/Video</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer>
+      <div class="pill">© <span id="year"></span> Terminmarktplatz</div>
+      <div class="muted">
+        <a href="/datenschutz.html">Datenschutz</a> ·
+        <a href="/impressum.html">Impressum</a> ·
+        <a href="/kontakt.html">Kontakt</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Accordion
+    document.querySelectorAll('[data-q] .q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const box = btn.closest('.qa');
+        box.classList.toggle('open');
+      });
+    });
+
+    // Search filter (matches Q/A text)
+    const input = document.getElementById('helpSearch');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function normalize(s){
+      return (s || "").toLowerCase().trim();
+    }
+
+    function applyFilter(){
+      const q = normalize(input.value);
+      const sections = document.querySelectorAll('[data-section]');
+      let anyVisible = false;
+
+      sections.forEach(sec => {
+        let secVisible = false;
+        sec.querySelectorAll('.qa').forEach(card => {
+          const text = normalize(card.innerText);
+          const match = !q || text.includes(q);
+          card.style.display = match ? '' : 'none';
+          if(match) secVisible = true;
+        });
+        sec.style.display = secVisible ? '' : 'none';
+        if(secVisible) anyVisible = true;
+      });
+
+      // If no results, show all sections but hide cards (optional). Here: just keep "none results" state.
+      // You can add a "no results" message if you want.
+    }
+
+    input.addEventListener('input', applyFilter);
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      applyFilter();
+      input.focus();
+    });
+
+    // Start state
+    applyFilter();
+  </script>
+</body>
+</html>
