@@ -89,10 +89,17 @@
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- nur sichtbar, wenn NICHT eingeloggt -->
+          <a href="https://terminmarktplatz.de/login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="https://terminmarktplatz.de/anbieter-portal.html" class="item auth-in" role="menuitem">Anbieter-Portal</a>
           <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in" role="menuitem">Rechnungen (Admin)</a>
+
+          <!-- immer sichtbar -->
           <a href="https://terminmarktplatz.de/kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <a href="https://terminmarktplatz.de/hilfe.html" class="item" role="menuitem">Hilfe</a>
         </div>
       </div>
 

@@ -319,12 +319,18 @@
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- nur sichtbar, wenn NICHT eingeloggt -->
           <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+          <!-- immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <a href="hilfe.html" class="item" role="menuitem">Hilfe</a>
         </div>
       </div>
 

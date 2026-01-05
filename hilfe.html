@@ -91,54 +91,6 @@
     }
 
     /* Hilfe-spezifische Styles */
-    .help-nav {
-      background: #f8fafc;
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 32px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .help-nav h3 {
-      margin-top: 0;
-      margin-bottom: 16px;
-      font-size: 1.1rem;
-      color: #0f172a;
-    }
-
-    .help-nav-links {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-    }
-
-    .help-nav-links a {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      text-decoration: none;
-      color: #0f172a;
-      transition: all 0.2s;
-      font-size: 0.95rem;
-    }
-
-    .help-nav-links a:hover {
-      border-color: #6f53ff;
-      background: #f5f3ff;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(111, 83, 255, 0.1);
-    }
-
-    .help-nav-links a::before {
-      content: "→";
-      font-weight: 600;
-      color: #6f53ff;
-    }
-
     .help-section {
       margin-bottom: 48px;
     }
@@ -326,12 +278,6 @@
     }
 
     @media (max-width: 768px) {
-      .help-nav {
-        padding: 16px;
-      }
-      .help-nav-links {
-        grid-template-columns: 1fr;
-      }
       .faq-question {
         padding: 16px;
         font-size: 0.95rem;
@@ -440,12 +386,18 @@
           ☰ Menü
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
+          <!-- nur sichtbar, wenn NICHT eingeloggt -->
           <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+
+          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+
+          <!-- immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <a href="hilfe.html" class="item" role="menuitem">Hilfe</a>
         </div>
       </div>
 
@@ -476,21 +428,6 @@
       </div>
     </section>
 
-    <!-- NAVIGATION -->
-    <section>
-      <div class="container" style="max-width:860px">
-        <div class="help-nav">
-          <h3>Schnellnavigation</h3>
-          <div class="help-nav-links">
-            <a href="#fuer-anbieter">Für Anbieter</a>
-            <a href="#fuer-suchende">Für Suchende</a>
-            <a href="#preise-kosten">Preise & Kosten</a>
-            <a href="#technik-probleme">Technik & Probleme</a>
-            <a href="#allgemein">Allgemeine Fragen</a>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- FÜR ANBIETER -->
     <section id="fuer-anbieter" class="help-section">
