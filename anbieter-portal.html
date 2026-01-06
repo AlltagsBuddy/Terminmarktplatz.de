@@ -1434,6 +1434,44 @@
       const priceVal = $('#sl-price').value;
       const notes    = $('#sl-notes').value.trim();
 
+      // Prüfe monatliches Slot-Limit vor dem Erstellen
+      if (ME && !ME.slots_unlimited && typeof ME.slots_used_this_month === 'number' && typeof ME.free_slots_per_month === 'number') {
+        const used = ME.slots_used_this_month || 0;
+        const limit = ME.free_slots_per_month || 3;
+        const left = ME.slots_left_this_month !== undefined ? ME.slots_left_this_month : Math.max(0, limit - used);
+        
+        // Berechne, wie viel nach diesem Slot noch übrig wäre
+        const wouldBeUsed = used + capacity;
+        
+        if (wouldBeUsed > limit) {
+          // Monat aus dem Datum extrahieren
+          const monthDate = new Date(startDt);
+          const monthName = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+          
+          const overBy = wouldBeUsed - limit;
+          const msg = `⚠️ Monatliches Limit überschritten!\n\n` +
+                     `Für ${monthName} hast du bereits ${used} von ${limit} Slots verbraucht.\n` +
+                     `Mit diesem Slot (Kapazität: ${capacity}) würdest du ${wouldBeUsed} Slots benötigen.\n` +
+                     `Das überschreitet dein Limit um ${overBy} Slot${overBy > 1 ? 's' : ''}.\n\n` +
+                     `Verfügbares Kontingent: ${left} Slot${left !== 1 ? 's' : ''}`;
+          
+          if (!confirm(msg + '\n\nMöchtest du trotzdem fortfahren? (Der Slot kann nicht veröffentlicht werden, bis du dein Limit erhöhst.)')) {
+            return;
+          }
+        } else if (wouldBeUsed === limit) {
+          // Warnung, wenn genau das Limit erreicht wird
+          const monthDate = new Date(startDt);
+          const monthName = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+          
+          if (!confirm(`⚠️ Monatliches Limit erreicht!\n\n` +
+                      `Für ${monthName} hast du bereits ${used} von ${limit} Slots verbraucht.\n` +
+                      `Mit diesem Slot (Kapazität: ${capacity}) würdest du dein Limit von ${limit} Slots genau erreichen.\n\n` +
+                      `Möchtest du fortfahren?`)) {
+            return;
+          }
+        }
+      }
+
       // ✅ splitten -> DB-Felder
       const parsed = splitStreetAndNumber(streetCombined);
 
@@ -1492,8 +1530,17 @@
           showMsg('msg-slot', msg, true);
           resetSlotForm();
           await loadSlots();
+          // Aktualisiere Profil-Daten, um die neuen Slot-Zähler zu bekommen
+          await requireAuth();
         } else {
-          showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
+          // Prüfe spezifische Fehler
+          if (data.error === 'monthly_publish_limit_reached') {
+            const monthDate = new Date(startDt);
+            const monthName = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+            showMsg('msg-slot', `❌ Monatliches Limit für ${monthName} erreicht. Der Slot wurde angelegt, kann aber nicht veröffentlicht werden.`);
+          } else {
+            showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
+          }
         }
       } catch (err) {
         showMsg('msg-slot', 'Netzwerkfehler – Slot konnte nicht gespeichert werden.');

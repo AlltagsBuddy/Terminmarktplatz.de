@@ -1216,7 +1216,10 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
     ).mappings().first()
 
     if not bumped:
-        raise PublishLimitReached("monthly_publish_limit_reached")
+        # Berechne, wie viel noch verfügbar ist
+        remaining = max(0, plan_limit - actual_used)
+        error_msg = f"monthly_publish_limit_reached: {actual_used}/{plan_limit} used, {remaining} remaining, need {cap}"
+        raise PublishLimitReached(error_msg)
 
     session.execute(
         text(
