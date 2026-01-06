@@ -6040,10 +6040,126 @@ def public_confirm():
             provider=provider,
             bereits_bestaetigt=already_confirmed,
             frontend_url=FRONTEND_URL,
+            base_url=BASE_URL,  # Backend-URL für Kalender-Download
+            booking_token=token,  # Token für Kalender-Download
         )
     except Exception:
         app.logger.exception("public_confirm failed")
         return jsonify({"error": "server_error"}), 500
+
+
+@app.get("/public/booking/<booking_id>/calendar.ics")
+def public_booking_calendar(booking_id):
+    """Generiert eine .ics Datei für den gebuchten Termin."""
+    token = request.args.get("token")
+    verified_booking_id = _verify_booking_token(token) if token else None
+    
+    if not verified_booking_id or str(verified_booking_id) != str(booking_id):
+        return _json_error("invalid_token", 400)
+    
+    try:
+        with Session(engine) as s:
+            b = s.get(Booking, booking_id)
+            if not b:
+                return _json_error("not_found", 404)
+            
+            slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+            provider_obj = s.get(Provider, slot_obj.provider_id) if slot_obj else None
+            
+            if not slot_obj:
+                return _json_error("slot_missing", 404)
+            
+            # Datum/Zeit konvertieren (DB speichert UTC-naive)
+            start_dt = _as_utc_aware(slot_obj.start_at)
+            end_dt = _as_utc_aware(slot_obj.end_at)
+            
+            # iCalendar Format (RFC 5545)
+            # Datum/Zeit im UTC-Format für .ics
+            start_utc = start_dt.strftime("%Y%m%dT%H%M%SZ")
+            end_utc = end_dt.strftime("%Y%m%dT%H%M%SZ")
+            created_utc = _now().strftime("%Y%m%dT%H%M%SZ")
+            
+            # Titel und Beschreibung
+            title = slot_obj.title or "Termin"
+            description = f"Termin: {title}\n"
+            if slot_obj.category:
+                description += f"Kategorie: {slot_obj.category}\n"
+            if provider_obj and provider_obj.company_name:
+                description += f"Anbieter: {provider_obj.company_name}\n"
+            if slot_obj.notes:
+                description += f"Hinweise: {slot_obj.notes}\n"
+            
+            # Ort
+            location = ""
+            if slot_obj.location:
+                location = slot_obj.location
+            elif slot_obj.street or slot_obj.zip or slot_obj.city:
+                parts = []
+                if slot_obj.street:
+                    parts.append(slot_obj.street)
+                if slot_obj.house_number:
+                    parts.append(slot_obj.house_number)
+                if slot_obj.zip:
+                    parts.append(slot_obj.zip)
+                if slot_obj.city:
+                    parts.append(slot_obj.city)
+                location = ", ".join(parts)
+            elif provider_obj:
+                parts = []
+                if provider_obj.street:
+                    parts.append(provider_obj.street)
+                if provider_obj.zip:
+                    parts.append(provider_obj.zip)
+                if provider_obj.city:
+                    parts.append(provider_obj.city)
+                location = ", ".join(parts)
+            
+            # UID für den Termin (eindeutig)
+            uid = f"booking-{booking_id}@terminmarktplatz.de"
+            
+            # .ics Datei generieren (RFC 5545)
+            # Escape-Spezialzeichen für iCalendar
+            def escape_ical_text(text):
+                if not text:
+                    return ""
+                # iCalendar-Escape-Regeln
+                text = str(text).replace("\\", "\\\\")
+                text = text.replace(",", "\\,")
+                text = text.replace(";", "\\;")
+                text = text.replace("\n", "\\n")
+                return text
+            
+            # Zeilenenden müssen CRLF sein (\r\n)
+            lines = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//Terminmarktplatz//Terminbuchung//DE",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
+                "BEGIN:VEVENT",
+                f"UID:{uid}",
+                f"DTSTAMP:{created_utc}",
+                f"DTSTART:{start_utc}",
+                f"DTEND:{end_utc}",
+                f"SUMMARY:{escape_ical_text(title)}",
+                f"DESCRIPTION:{escape_ical_text(description)}",
+                f"LOCATION:{escape_ical_text(location)}",
+                "STATUS:CONFIRMED",
+                "SEQUENCE:0",
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ]
+            
+            ics_content = "\r\n".join(lines)
+            
+            response = make_response(ics_content)
+            response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+            response.headers['Content-Disposition'] = f'inline; filename="termin-{booking_id[:8]}.ics"'
+            return response
+            
+    except Exception as e:
+        app.logger.exception("public_booking_calendar failed")
+        return _json_error("server_error", 500)
 
 
 @app.get("/public/cancel")

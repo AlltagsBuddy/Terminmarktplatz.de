@@ -161,6 +161,20 @@
       color: #4b5563;
       border: 1px solid #e5e7eb;
     }
+
+    .btn-secondary-booking:hover {
+      background: #f9fafb;
+    }
+
+    .btn-calendar {
+      background: #10b981 !important;
+      color: #ffffff !important;
+    }
+
+    .btn-calendar:hover {
+      background: #059669 !important;
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -255,7 +269,12 @@
     </p>
 
             <div class="booking-success-actions">
-        <a href="{{ frontend_url }}/suche.html" class="btn-primary-booking">
+        {% if booking_token and slot and slot.start_at %}
+        <a href="{{ base_url }}/public/booking/{{ booking.id }}/calendar.ics?token={{ booking_token }}" class="btn-primary-booking btn-calendar" style="display: inline-flex; align-items: center; gap: 6px;">
+          📅 Zu Kalender hinzufügen
+        </a>
+        {% endif %}
+        <a href="{{ frontend_url }}/suche.html" class="btn-secondary-booking">
           Weitere freie Termine finden
         </a>
         <a href="{{ frontend_url }}/" class="btn-secondary-booking">
