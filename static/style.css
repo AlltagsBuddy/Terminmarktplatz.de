@@ -1322,6 +1322,46 @@ fieldset[disabled]{
     overflow-x:visible;
   }
 
+  /* Desktop: Tabelle mit horizontalem Scrollen */
+  @media (min-width: 769px) {
+    .page-portal .table-wrap{
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .page-portal #tbl-slots{
+      min-width: 1000px; /* Mindestbreite für alle Spalten */
+      width: 100%;
+    }
+    
+    .page-portal #tbl-slots thead{
+      display: table-header-group; /* Header auf Desktop anzeigen */
+    }
+    
+    .page-portal #tbl-slots tbody tr{
+      display: table-row; /* Normale Tabellenzeilen auf Desktop */
+    }
+    
+    .page-portal #tbl-slots tbody tr td{
+      display: table-cell;
+      padding: 10px 12px;
+      white-space: nowrap;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .page-portal #tbl-slots tbody tr td:nth-child(1) { width: 34px; } /* Checkbox */
+    .page-portal #tbl-slots tbody tr td:nth-child(2) { width: 140px; } /* Start */
+    .page-portal #tbl-slots tbody tr td:nth-child(3) { width: 140px; } /* Ende */
+    .page-portal #tbl-slots tbody tr td:nth-child(4) { width: 180px; min-width: 150px; white-space: normal; } /* Titel */
+    .page-portal #tbl-slots tbody tr td:nth-child(5) { width: 120px; } /* Kategorie */
+    .page-portal #tbl-slots tbody tr td:nth-child(6) { width: 200px; min-width: 180px; white-space: normal; } /* Ort */
+    .page-portal #tbl-slots tbody tr td:nth-child(7) { width: 60px; text-align: center; } /* Kapazität */
+    .page-portal #tbl-slots tbody tr td:nth-child(8) { width: 100px; } /* Status */
+    .page-portal #tbl-slots tbody tr td:nth-child(9) { width: 120px; } /* Aktionen */
+  }
+
   .page-portal #tbl-slots{
     width:100%;
     border-collapse:separate;
@@ -1329,21 +1369,64 @@ fieldset[disabled]{
     min-width:0;
   }
 
-  .page-portal #tbl-slots thead{
-    display:none;
+  /* Desktop: Tabelle mit horizontalem Scrollen */
+  @media (min-width: 769px) {
+    .page-portal .table-wrap{
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .page-portal #tbl-slots{
+      min-width: 1000px; /* Mindestbreite für alle Spalten */
+      width: 100%;
+    }
+    
+    .page-portal #tbl-slots thead{
+      display: table-header-group; /* Header auf Desktop anzeigen */
+    }
+    
+    .page-portal #tbl-slots tbody tr{
+      display: table-row; /* Normale Tabellenzeilen auf Desktop */
+    }
+    
+    .page-portal #tbl-slots tbody tr td{
+      display: table-cell;
+      padding: 10px 12px;
+      white-space: nowrap;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .page-portal #tbl-slots tbody tr td:nth-child(1) { width: 34px; } /* Checkbox */
+    .page-portal #tbl-slots tbody tr td:nth-child(2) { width: 140px; } /* Start */
+    .page-portal #tbl-slots tbody tr td:nth-child(3) { width: 140px; } /* Ende */
+    .page-portal #tbl-slots tbody tr td:nth-child(4) { width: 180px; min-width: 150px; white-space: normal; } /* Titel */
+    .page-portal #tbl-slots tbody tr td:nth-child(5) { width: 120px; } /* Kategorie */
+    .page-portal #tbl-slots tbody tr td:nth-child(6) { width: 200px; min-width: 180px; white-space: normal; } /* Ort */
+    .page-portal #tbl-slots tbody tr td:nth-child(7) { width: 60px; text-align: center; } /* Kapazität */
+    .page-portal #tbl-slots tbody tr td:nth-child(8) { width: 100px; } /* Status */
+    .page-portal #tbl-slots tbody tr td:nth-child(9) { width: 120px; } /* Aktionen */
   }
 
-  .page-portal #tbl-slots tbody tr{
-    display:grid;
-    grid-template-columns:minmax(0,1.7fr) auto;
-    align-items:flex-start;
-    gap:4px;
-    padding:6px 6px;
-    border-bottom:1px solid var(--border);
-    border-radius:10px;
-    background:#ffffff;
-    color:#0f172a;
-    margin-bottom:6px;
+  /* Mobile: Grid-Layout */
+  @media (max-width: 768px) {
+    .page-portal #tbl-slots thead{
+      display:none;
+    }
+
+    .page-portal #tbl-slots tbody tr{
+      display:grid;
+      grid-template-columns:minmax(0,1.7fr) auto;
+      align-items:flex-start;
+      gap:4px;
+      padding:6px 6px;
+      border-bottom:1px solid var(--border);
+      border-radius:10px;
+      background:#ffffff;
+      color:#0f172a;
+      margin-bottom:6px;
+    }
   }
 
   /* Past/booked Klassen sollen Hintergrund vom Row übernehmen */

@@ -736,7 +736,17 @@
       el.className = 'msg ' + (ok ? 'ok' : 'err');
       el.textContent = text;
       el.style.display = 'block';
-      setTimeout(()=>{ el.style.display='none'; }, ok ? 1800 : 4200);
+      
+      // Scroll zur Meldung, damit sie sichtbar ist
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      
+      // Längere Anzeigedauer, besonders für Fehlermeldungen
+      const duration = ok ? 5000 : 8000; // 5s für Erfolg, 8s für Fehler
+      setTimeout(()=>{ 
+        if (el.textContent === text) { // Nur verstecken, wenn Text nicht geändert wurde
+          el.style.display='none'; 
+        }
+      }, duration);
     }
 
     function showSlotLimitAlert(){
@@ -1537,9 +1547,24 @@
           if (data.error === 'monthly_publish_limit_reached') {
             const monthDate = new Date(startDt);
             const monthName = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-            showMsg('msg-slot', `❌ Monatliches Limit für ${monthName} erreicht. Der Slot wurde angelegt, kann aber nicht veröffentlicht werden.`);
+            const errorMsg = `❌ Monatliches Limit für ${monthName} erreicht. Der Slot wurde angelegt, kann aber nicht veröffentlicht werden.`;
+            showMsg('msg-slot', errorMsg, false);
+            // Scroll zum Formular, damit die Meldung sichtbar ist
+            const formEl = document.getElementById('form-slot');
+            if (formEl) {
+              setTimeout(() => {
+                formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 100);
+            }
           } else {
-            showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.');
+            showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.', false);
+            // Scroll zum Formular, damit die Meldung sichtbar ist
+            const formEl = document.getElementById('form-slot');
+            if (formEl) {
+              setTimeout(() => {
+                formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 100);
+            }
           }
         }
       } catch (err) {
