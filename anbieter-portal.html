@@ -1027,6 +1027,7 @@
         
         // Debug: Log vollständige Antwort
         console.log('📦 /me Response:', ME);
+        console.log('📦 profile_complete in Response?', 'profile_complete' in ME, 'Wert:', ME.profile_complete);
 
         // Admin-Link anzeigen nur wenn Admin (explizit true)
         const adminInvoicesLink = document.getElementById('admin-invoices-link');
@@ -1074,7 +1075,7 @@
           
           // Versuche zuerst die Nummer aus ME anzuzeigen
           if (displayProviderNumber(ME.provider_number)) {
-            return; // Erfolg, fertig
+            // Erfolg, aber KEIN return - wir müssen weiter machen für die Profil-Prüfung!
           }
           
           // Falls keine Nummer vorhanden, versuche direkt von API zu holen
@@ -1220,7 +1221,7 @@
         if (typeof ME.profile_complete === 'boolean') {
           // Verwende direkt den Wert vom Server - das ist die autoritative Quelle
           complete = ME.profile_complete;
-          console.log('[Profil] profile_complete vom Server:', complete);
+          console.log('[Profil] ✅ profile_complete vom Server verwendet:', complete);
         } else {
           // Fallback: Prüfe direkt mit ME-Daten (nicht Formular-Werte, da diese möglicherweise noch nicht befüllt sind)
           // Verwende die gleiche Logik wie im Backend (is_profile_complete)
@@ -1234,13 +1235,29 @@
             phone: isValidPhone(ME.phone)
           };
           complete = !!(checks.company_name && checks.branch && checks.street && checks.zip && checks.city && checks.phone);
-          console.log('[Profil] profile_complete nicht in Response, berechnet aus ME-Daten:', complete, checks);
+          console.log('[Profil] ⚠️ profile_complete nicht in Response, berechnet aus ME-Daten:', complete);
+          console.log('[Profil] Einzelprüfungen:', checks);
+          console.log('[Profil] ME-Daten:', {
+            company_name: ME.company_name,
+            branch: ME.branch,
+            street: ME.street,
+            house_number: ME.house_number,
+            streetCombined: streetCombined,
+            zip: ME.zip,
+            city: ME.city,
+            phone: ME.phone
+          });
         }
         
-        console.log('[Profil] Slot-Lock wird gesetzt auf:', !complete ? 'GESPERRT' : 'FREIGEGEBEN');
+        console.log('[Profil] 🔓 Slot-Lock wird gesetzt auf:', !complete ? 'GESPERRT ❌' : 'FREIGEGEBEN ✅');
         setSlotLock(!complete);
 
-        if (complete) copyProfileAddressToSlot(false);
+        if (complete) {
+          console.log('[Profil] ✅ Profil vollständig - Slot-Formular freigegeben');
+          copyProfileAddressToSlot(false);
+        } else {
+          console.log('[Profil] ❌ Profil unvollständig - Slot-Formular gesperrt');
+        }
 
       }catch(err){
         showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
