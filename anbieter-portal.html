@@ -1213,16 +1213,31 @@
           }
         }
 
-        // Verwende profile_complete aus Server-Response (zuverlässiger als Formular-Werte)
-        // Falls nicht vorhanden, prüfe mit Formular-Werten als Fallback
+        // Prüfe Profilvollständigkeit: ME.profile_complete ist die autoritative Quelle
+        // Wenn es nicht vorhanden ist, prüfe mit ME-Daten (nicht Formular-Werte!)
         let complete = false;
+        
         if (typeof ME.profile_complete === 'boolean') {
+          // Verwende direkt den Wert vom Server - das ist die autoritative Quelle
           complete = ME.profile_complete;
+          console.log('[Profil] profile_complete vom Server:', complete);
         } else {
-          // Fallback: Prüfe mit Formular-Werten
-          complete = isProfileCompleteFromValues(getProfileValuesFromForm());
+          // Fallback: Prüfe direkt mit ME-Daten (nicht Formular-Werte, da diese möglicherweise noch nicht befüllt sind)
+          // Verwende die gleiche Logik wie im Backend (is_profile_complete)
+          const streetCombined = `${(ME.street || '').trim()}${ME.house_number ? ' ' + ME.house_number.trim() : ''}`.trim();
+          const checks = {
+            company_name: !!ME.company_name,
+            branch: !!ME.branch,
+            street: !!streetCombined,
+            zip: isValidZip(ME.zip),
+            city: !!ME.city,
+            phone: isValidPhone(ME.phone)
+          };
+          complete = !!(checks.company_name && checks.branch && checks.street && checks.zip && checks.city && checks.phone);
+          console.log('[Profil] profile_complete nicht in Response, berechnet aus ME-Daten:', complete, checks);
         }
         
+        console.log('[Profil] Slot-Lock wird gesetzt auf:', !complete ? 'GESPERRT' : 'FREIGEGEBEN');
         setSlotLock(!complete);
 
         if (complete) copyProfileAddressToSlot(false);
