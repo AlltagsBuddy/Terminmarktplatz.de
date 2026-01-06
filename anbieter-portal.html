@@ -1213,7 +1213,16 @@
           }
         }
 
-        const complete = isProfileCompleteFromValues(getProfileValuesFromForm());
+        // Verwende profile_complete aus Server-Response (zuverlässiger als Formular-Werte)
+        // Falls nicht vorhanden, prüfe mit Formular-Werten als Fallback
+        let complete = false;
+        if (typeof ME.profile_complete === 'boolean') {
+          complete = ME.profile_complete;
+        } else {
+          // Fallback: Prüfe mit Formular-Werten
+          complete = isProfileCompleteFromValues(getProfileValuesFromForm());
+        }
+        
         setSlotLock(!complete);
 
         if (complete) copyProfileAddressToSlot(false);
