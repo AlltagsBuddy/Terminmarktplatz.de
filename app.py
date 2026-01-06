@@ -6033,6 +6033,89 @@ def public_confirm():
                     "street": provider_obj.street,
                 }
 
+        # Kalender-Links vorbereiten
+        calendar_links = None
+        if slot and slot.get("start_at") and slot.get("end_at"):
+            try:
+                from urllib.parse import quote
+                # Datum/Zeit für Kalender-Links
+                # slot ist ein Dictionary, start_at/end_at sind datetime-Objekte
+                start_dt = _as_utc_aware(slot["start_at"])
+                end_dt = _as_utc_aware(slot["end_at"])
+                
+                # Titel und Ort
+                title = quote(slot.get("title") or "Termin")
+                location = ""
+                if slot.get("address"):
+                    location = quote(slot["address"])
+                elif slot.get("location"):
+                    location = quote(slot["location"])
+                elif provider:
+                    parts = []
+                    if provider.get("street"):
+                        parts.append(provider["street"])
+                    if provider.get("zip"):
+                        parts.append(provider["zip"])
+                    if provider.get("city"):
+                        parts.append(provider["city"])
+                    if parts:
+                        location = quote(", ".join(parts))
+                
+                # Beschreibung
+                desc_parts = [f"Termin: {slot.get('title', 'Termin')}"]
+                if slot.get("category"):
+                    desc_parts.append(f"Kategorie: {slot['category']}")
+                if provider and provider.get("company_name"):
+                    desc_parts.append(f"Anbieter: {provider['company_name']}")
+                description = quote("\n".join(desc_parts))
+                
+                # Google Calendar Link (direkter Link)
+                # Format: YYYYMMDDTHHMMSSZ
+                start_google = start_dt.strftime("%Y%m%dT%H%M%SZ")
+                end_google = end_dt.strftime("%Y%m%dT%H%M%SZ")
+                google_cal_url = (
+                    f"https://calendar.google.com/calendar/render?"
+                    f"action=TEMPLATE"
+                    f"&text={title}"
+                    f"&dates={start_google}/{end_google}"
+                    f"&details={description}"
+                    f"&location={location}"
+                )
+                
+                # Outlook Calendar Link
+                start_outlook = start_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                end_outlook = end_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                outlook_cal_url = (
+                    f"https://outlook.live.com/calendar/0/deeplink/compose?"
+                    f"subject={title}"
+                    f"&startdt={start_outlook}"
+                    f"&enddt={end_outlook}"
+                    f"&body={description}"
+                    f"&location={location}"
+                )
+                
+                # Yahoo Calendar Link
+                start_yahoo = start_dt.strftime("%Y%m%dT%H%M%SZ")
+                end_yahoo = end_dt.strftime("%Y%m%dT%H%M%SZ")
+                yahoo_cal_url = (
+                    f"https://calendar.yahoo.com/?v=60&view=d&type=20"
+                    f"&title={title}"
+                    f"&st={start_yahoo}"
+                    f"&dur={int((end_dt - start_dt).total_seconds() / 60)}"
+                    f"&desc={description}"
+                    f"&in_loc={location}"
+                )
+                
+                calendar_links = {
+                    "google": google_cal_url,
+                    "outlook": outlook_cal_url,
+                    "yahoo": yahoo_cal_url,
+                    "ics": f"{BASE_URL}/public/booking/{booking['id']}/calendar.ics?token={token}",
+                }
+            except Exception as e:
+                app.logger.exception("Error generating calendar links: %r", e)
+                calendar_links = None
+        
         return render_template(
             "buchung_erfolg.html",
             booking=booking,
@@ -6042,6 +6125,7 @@ def public_confirm():
             frontend_url=FRONTEND_URL,
             base_url=BASE_URL,  # Backend-URL für Kalender-Download
             booking_token=token,  # Token für Kalender-Download
+            calendar_links=calendar_links,  # Kalender-Links
         )
     except Exception:
         app.logger.exception("public_confirm failed")

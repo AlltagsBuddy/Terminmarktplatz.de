@@ -268,12 +268,37 @@
       Dort finden Sie alle weiteren Informationen zu Ihrer Buchung.
     </p>
 
+            {% if calendar_links %}
+            <div class="booking-success-calendar-section" style="margin-bottom: 24px;">
+              <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #111827;">📅 Termin zu Kalender hinzufügen</h3>
+              <div class="booking-success-calendar-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                {% if calendar_links.google %}
+                <a href="{{ calendar_links.google }}" target="_blank" rel="noopener" class="btn-primary-booking btn-calendar" style="display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
+                  <span style="font-size: 18px;">📅</span>
+                  <span>Google Kalender</span>
+                </a>
+                {% endif %}
+                {% if calendar_links.outlook %}
+                <a href="{{ calendar_links.outlook }}" target="_blank" rel="noopener" class="btn-primary-booking" style="display: inline-flex; align-items: center; gap: 8px; justify-content: center; background: #0078d4;">
+                  <span style="font-size: 18px;">📧</span>
+                  <span>Outlook Kalender</span>
+                </a>
+                {% endif %}
+                {% if calendar_links.ics %}
+                <a href="{{ calendar_links.ics }}" class="btn-secondary-booking" style="display: inline-flex; align-items: center; gap: 8px; justify-content: center;">
+                  <span style="font-size: 18px;">📥</span>
+                  <span>iCalendar (.ics) herunterladen</span>
+                  <span style="font-size: 12px; opacity: 0.7;">(Apple, Thunderbird, etc.)</span>
+                </a>
+                {% endif %}
+              </div>
+              <p style="font-size: 12px; color: #6b7280; margin-top: 8px; margin-bottom: 0;">
+                💡 Tipp: Google Kalender öffnet direkt den Kalender. Die .ics Datei funktioniert mit Apple Calendar, Outlook Desktop und anderen Kalendern.
+              </p>
+            </div>
+            {% endif %}
+
             <div class="booking-success-actions">
-        {% if booking_token and slot and slot.start_at %}
-        <a href="{{ base_url }}/public/booking/{{ booking.id }}/calendar.ics?token={{ booking_token }}" class="btn-primary-booking btn-calendar" style="display: inline-flex; align-items: center; gap: 6px;">
-          📅 Zu Kalender hinzufügen
-        </a>
-        {% endif %}
         <a href="{{ frontend_url }}/suche.html" class="btn-secondary-booking">
           Weitere freie Termine finden
         </a>
