@@ -2043,6 +2043,7 @@ def register():
             return _json_error("password_too_short")
 
         with Session(engine) as s:
+            # Prüfung: Existiert die E-Mail bereits?
             exists = s.scalar(
                 select(func.count())
                 .select_from(Provider)
@@ -2066,7 +2067,19 @@ def register():
             )
 
             s.add(p)
-            s.commit()
+            try:
+                s.commit()
+            except IntegrityError as e:
+                s.rollback()
+                # Prüfe, ob es ein UNIQUE Constraint Verstoß für email ist
+                error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+                if 'email' in error_msg.lower() or 'unique' in error_msg.lower():
+                    # E-Mail existiert bereits (Race Condition abgefangen)
+                    return _json_error("email_exists")
+                # Anderer Constraint-Fehler
+                app.logger.warning(f"Registration IntegrityError (non-email): {error_msg}")
+                return _json_error("registration_failed")
+            
             provider_id = p.id
             provider_number = p.provider_number
             reg_email = p.email
