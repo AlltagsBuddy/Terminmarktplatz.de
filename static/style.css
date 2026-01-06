@@ -1359,7 +1359,19 @@ fieldset[disabled]{
     .page-portal #tbl-slots tbody tr td:nth-child(6) { width: 200px; min-width: 180px; white-space: normal; } /* Ort */
     .page-portal #tbl-slots tbody tr td:nth-child(7) { width: 60px; text-align: center; } /* Kapazität */
     .page-portal #tbl-slots tbody tr td:nth-child(8) { width: 100px; } /* Status */
-    .page-portal #tbl-slots tbody tr td:nth-child(9) { width: 120px; } /* Aktionen */
+    .page-portal #tbl-slots tbody tr td:nth-child(9) { 
+      width: 120px; 
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-start;
+      white-space: normal;
+    } /* Aktionen */
+    
+    .page-portal #tbl-slots tbody tr td:nth-child(9) .btn {
+      width: 100%;
+      white-space: nowrap;
+    }
   }
 
   .page-portal #tbl-slots{

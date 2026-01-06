@@ -1444,39 +1444,32 @@
       const priceVal = $('#sl-price').value;
       const notes    = $('#sl-notes').value.trim();
 
-      // Prüfe monatliches Slot-Limit vor dem Erstellen
+      // Prüfe monatliches Slot-Limit vor dem Erstellen/Bearbeiten
       if (ME && !ME.slots_unlimited && typeof ME.slots_used_this_month === 'number' && typeof ME.free_slots_per_month === 'number') {
         const used = ME.slots_used_this_month || 0;
         const limit = ME.free_slots_per_month || 3;
-        const left = ME.slots_left_this_month !== undefined ? ME.slots_left_this_month : Math.max(0, limit - used);
+        
+        // Beim Bearbeiten: Alte Kapazität abziehen, wenn der Slot bereits veröffentlicht ist
+        let oldCapacity = 0;
+        if (EDITING_SLOT && EDITING_SLOT.id && EDITING_SLOT.status === 'PUBLISHED') {
+          // Prüfe, ob der Slot im selben Monat liegt
+          const oldStartDt = EDITING_SLOT.start_at ? new Date(EDITING_SLOT.start_at) : null;
+          if (oldStartDt) {
+            const oldMonth = oldStartDt.getFullYear() * 12 + oldStartDt.getMonth();
+            const newMonth = startDt.getFullYear() * 12 + startDt.getMonth();
+            // Nur abziehen, wenn im selben Monat
+            if (oldMonth === newMonth) {
+              oldCapacity = parseInt(EDITING_SLOT.capacity || '1', 10);
+            }
+          }
+        }
         
         // Berechne, wie viel nach diesem Slot noch übrig wäre
-        const wouldBeUsed = used + capacity;
+        // Beim Bearbeiten: Alte Kapazität abziehen, beim Erstellen: einfach addieren
+        const wouldBeUsed = used - oldCapacity + capacity;
         
         if (wouldBeUsed > limit) {
-          // Monat aus dem Datum extrahieren
-          const monthDate = new Date(startDt);
-          const monthName = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-          
-          const overBy = wouldBeUsed - limit;
-          const msg = `⚠️ Monatliches Limit überschritten!\n\n` +
-                     `Für ${monthName} hast du bereits ${used} von ${limit} Slots verbraucht.\n` +
-                     `Mit diesem Slot (Kapazität: ${capacity}) würdest du ${wouldBeUsed} Slots benötigen.\n` +
-                     `Das überschreitet dein Limit um ${overBy} Slot${overBy > 1 ? 's' : ''}.\n\n` +
-                     `Verfügbares Kontingent: ${left} Slot${left !== 1 ? 's' : ''}`;
-          
-          if (!confirm(msg + '\n\nMöchtest du trotzdem fortfahren? (Der Slot kann nicht veröffentlicht werden, bis du dein Limit erhöhst.)')) {
-            return;
-          }
-        } else if (wouldBeUsed === limit) {
-          // Warnung, wenn genau das Limit erreicht wird
-          const monthDate = new Date(startDt);
-          const monthName = monthDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-          
-          if (!confirm(`⚠️ Monatliches Limit erreicht!\n\n` +
-                      `Für ${monthName} hast du bereits ${used} von ${limit} Slots verbraucht.\n` +
-                      `Mit diesem Slot (Kapazität: ${capacity}) würdest du dein Limit von ${limit} Slots genau erreichen.\n\n` +
-                      `Möchtest du fortfahren?`)) {
+          if (!confirm('⚠️ Dein Slot-Kontingent ist überschritten.\n\nMöchtest du trotzdem fortfahren? (Der Slot kann nicht veröffentlicht werden, bis du dein Limit erhöhst.)')) {
             return;
           }
         }
@@ -1904,11 +1897,11 @@
           <td data-label="Ort">${place || ''}</td>
           <td data-label="Kapazität">${capacity}</td>
           <td data-label="Status"><span class="badge-st ${stClass}">${statusLabel}</span></td>
-          <td data-label="Aktionen" class="nowrap">
+          <td data-label="Aktionen" class="nowrap" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
             ${canPublish && !isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : ''}
-            ${isPublished && !isArchived ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : ''}
             ${canEdit && !isArchived ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : ''}
             ${!isArchived ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : ''}
+            ${isPublished && !isArchived ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : ''}
             ${isArchived ? `<span class="muted" style="font-size:12px">Archiviert</span>` : ''}
             ${cancelHtml}
           </td>
