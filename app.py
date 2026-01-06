@@ -1082,15 +1082,20 @@ def _month_bounds_utc_naive(month_key: date) -> tuple[datetime, datetime]:
 
 
 def _published_count_for_month(session: Session, provider_id: str, month_key: date) -> int:
-    """Zählt veröffentlichte Slots für einen Monat mit Retry bei SSL-Fehlern."""
+    """
+    Zählt veröffentlichte Slots für einen Monat mit Retry bei SSL-Fehlern.
+    WICHTIG: Zählt die Summe der Kapazitäten, nicht die Anzahl der Slots!
+    Ein Slot mit capacity=3 zählt als 3 Slots.
+    """
     start_db, next_db = _month_bounds_utc_naive(month_key)
     
     # Retry-Logik für SSL-Verbindungsfehler
     for attempt in range(3):
         try:
+            # Summe der Kapazitäten statt Anzahl der Slots
             c = (
                 session.scalar(
-                    select(func.count())
+                    select(func.coalesce(func.sum(Slot.capacity), 0))
                     .select_from(Slot)
                     .where(
                         Slot.provider_id == provider_id,
@@ -1177,6 +1182,12 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
         )
         return {"unlimited": True, "month": str(month_key), "used": None, "limit": None}
 
+    # Prüfe, ob die Kapazität des neuen Slots noch ins Limit passt
+    # Ein Slot mit capacity=3 zählt als 3 Slots
+    new_used = actual_used + cap
+    if new_used > plan_limit:
+        raise PublishLimitReached("monthly_publish_limit_reached")
+
     # Quota-Row upsert + used mit IST-Zählung synchronisieren
     session.execute(
         text(
@@ -1191,16 +1202,17 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
         {"pid": str(provider_id), "m": month_key, "used": int(actual_used), "lim": int(plan_limit)},
     )
 
+    # Kapazität des neuen Slots zum used hinzufügen
     bumped = session.execute(
         text(
             """
             UPDATE public.publish_quota
-            SET used = used + 1
-            WHERE provider_id=:pid AND month=:m AND used < "limit"
+            SET used = used + :cap
+            WHERE provider_id=:pid AND month=:m AND used + :cap <= "limit"
             RETURNING used, "limit"
             """
         ),
-        {"pid": str(provider_id), "m": month_key},
+        {"pid": str(provider_id), "m": month_key, "cap": int(cap)},
     ).mappings().first()
 
     if not bumped:
@@ -1228,11 +1240,12 @@ def _publish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> 
 def _unpublish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -> dict:
     """
     PUBLISHED -> DRAFT und Quota used--.
+    WICHTIG: Subtrahiert die Kapazität des Slots, nicht nur 1!
     """
     slot = session.execute(
         text(
             """
-            SELECT id, provider_id, start_at, status
+            SELECT id, provider_id, start_at, status, capacity
             FROM public.slot
             WHERE id=:sid AND provider_id=:pid
             FOR UPDATE
@@ -1249,16 +1262,21 @@ def _unpublish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -
     start_at = slot["start_at"]
     start_at_aware = _as_utc_aware(start_at) if start_at else _now()
     month_key = _month_key_from_dt(start_at_aware)
+    
+    # Kapazität des Slots (Standard: 1)
+    cap = int(slot.get("capacity") or 1)
+    if cap < 1:
+        cap = 1
 
     session.execute(
         text(
             """
             UPDATE public.publish_quota
-            SET used = GREATEST(used - 1, 0)
+            SET used = GREATEST(used - :cap, 0)
             WHERE provider_id=:pid AND month=:m
             """
         ),
-        {"pid": str(provider_id), "m": month_key},
+        {"pid": str(provider_id), "m": month_key, "cap": int(cap)},
     )
 
     session.execute(
