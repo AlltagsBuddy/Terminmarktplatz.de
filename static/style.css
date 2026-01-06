@@ -415,6 +415,27 @@ h2::after{
   border-radius:6px;
   background:linear-gradient(90deg, var(--c-yellow), var(--c-pink), var(--c-blue));
   display:inline-block;
+  margin-left:8px;
+}
+
+/* Portal: h2 Gradient-Balken innerhalb des Panels */
+.page-portal .panel{
+  position:relative;
+  overflow:visible;
+}
+
+.page-portal .panel h2{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+
+.page-portal .panel h2::after{
+  margin-left:0;
+  vertical-align:middle;
+  position:relative;
+  flex-shrink:0;
 }
 .sub{color:var(--c-blue); margin:14px 0 20px}
 
@@ -520,6 +541,7 @@ h2::after{
   border:1px solid var(--border);
   box-shadow:var(--shadow-2);
   color:var(--fg);
+  overflow:visible; /* Gradient-Balken soll sichtbar bleiben */
 }
 .hero + section .panel .muted{
   color:var(--text-2);
