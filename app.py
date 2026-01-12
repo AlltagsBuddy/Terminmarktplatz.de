@@ -108,6 +108,19 @@ MAIL_REPLY_TO = os.getenv("MAIL_REPLY_TO", os.getenv("REPLY_TO", MAIL_FROM))
 EMAILS_ENABLED = os.getenv("EMAILS_ENABLED", "true").lower() == "true"
 CONTACT_TO = os.getenv("CONTACT_TO", MAIL_FROM)
 
+# Prüfe ob es ein Testsystem ist (für automatische Deaktivierung von Features)
+if IS_RENDER:
+    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
+    IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
+else:
+    IS_TESTSYSTEM = False
+
+# Testsystem: Google Maps und Mail-Versand automatisch deaktivieren
+if IS_TESTSYSTEM:
+    GOOGLE_MAPS_API_KEY = None  # Deaktiviert Google Maps im Testsystem
+    EMAILS_ENABLED = False  # Deaktiviert Mail-Versand im Testsystem
+    app.logger.info("⚠️  Testsystem erkannt: Google Maps und Mail-Versand sind deaktiviert")
+
 # RESEND (HTTPS)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
@@ -293,10 +306,8 @@ ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 # --- CORS -------------------------------------------------
 # --- CORS -------------------------------------------------
 if IS_RENDER:
-    # Prüfe ob es ein Testsystem ist (basierend auf RENDER_EXTERNAL_URL oder Service-Name)
-    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
-    IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
-    
+    # IS_TESTSYSTEM wird bereits oben definiert (nach EMAILS_ENABLED)
+    # Verwende die bereits definierte Variable
     if IS_TESTSYSTEM:
         # Testsystem: Erlaube die Testsystem-URL und Produktions-URLs
         ALLOWED_ORIGINS = [
@@ -1249,10 +1260,7 @@ def _cookie_flags():
     Für Same-Origin (Frontend und Backend auf derselben Domain) verwenden wir Lax.
     """
     if IS_RENDER:
-        # Prüfe ob es ein Testsystem ist
-        RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
-        IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
-        
+        # IS_TESTSYSTEM wird bereits oben definiert (nach EMAILS_ENABLED)
         # Testsystem: Frontend und Backend auf derselben Domain -> SameSite=Lax
         # Produktion: Frontend auf terminmarktplatz.de, Backend auf api.terminmarktplatz.de -> SameSite=None
         if IS_TESTSYSTEM:
@@ -2232,12 +2240,20 @@ if _html_enabled():
             with open(suche_path, "r", encoding="utf-8") as f:
                 content = f.read()
             # Ersetze hardcodierten Google Maps API Key durch Umgebungsvariablen-Key
+            # Im Testsystem: Google Maps deaktivieren (leerer Key)
+            import re
             if GOOGLE_MAPS_API_KEY:
                 # Ersetze den hardcodierten Key (falls vorhanden)
-                import re
                 content = re.sub(
                     r'const gmKey = "[^"]*";',
                     f'const gmKey = "{GOOGLE_MAPS_API_KEY}";',
+                    content
+                )
+            else:
+                # Kein API Key (z.B. Testsystem): Setze leeren Key
+                content = re.sub(
+                    r'const gmKey = "[^"]*";',
+                    'const gmKey = "";',
                     content
                 )
             return Response(content, mimetype="text/html")
