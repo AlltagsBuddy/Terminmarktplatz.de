@@ -720,6 +720,10 @@
       if (isLocal) {
         return `${proto}//${h}:5000`;
       }
+      // Testsystem auf Render
+      if (h.includes('testsystem') || h.includes('onrender.com')) {
+        return `${proto}//${location.host}`;
+      }
       if (h === 'api.terminmarktplatz.de') {
         return `${proto}//${h}`;
       }
@@ -2184,6 +2188,10 @@
               h.endsWith('.local');
 
             if (isLocal) return `${proto}//${h}:5000`;
+            // Testsystem auf Render
+            if (h.includes('testsystem') || h.includes('onrender.com')) {
+              return `${proto}//${location.host}`;
+            }
             if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
             return 'https://api.terminmarktplatz.de';
           })();
