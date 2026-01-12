@@ -236,23 +236,38 @@ if DB_URL and DB_URL.startswith("postgres://"):
 elif DB_URL and DB_URL.startswith("postgresql://"):
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
+# Prüfe ob es PostgreSQL ist (für connect_args)
+_is_postgresql_url = DB_URL and ("postgresql" in DB_URL.lower() or "postgres" in DB_URL.lower())
+
 # --------------------------------------------------------
 # DB / Crypto / CORS
 # --------------------------------------------------------
-engine = create_engine(
-    DB_URL,
-    pool_pre_ping=True,     # prüft Verbindung vor Benutzung
-    pool_recycle=300,       # recycelt Connections alle 5 Minuten (Render PostgreSQL Timeout)
-    pool_timeout=30,
-    pool_size=5,
-    max_overflow=10,
-    echo=False,
-    connect_args={
-        # bei Render/Supabase/managed Postgres fast immer korrekt:
-        "sslmode": os.getenv("PGSSLMODE", "require"),
-        "connect_timeout": 10,  # Timeout für initiale Verbindung
-    },
-)
+# connect_args nur für PostgreSQL setzen (SQLite unterstützt kein sslmode)
+if _is_postgresql_url:
+    engine = create_engine(
+        DB_URL,
+        pool_pre_ping=True,     # prüft Verbindung vor Benutzung
+        pool_recycle=300,       # recycelt Connections alle 5 Minuten (Render PostgreSQL Timeout)
+        pool_timeout=30,
+        pool_size=5,
+        max_overflow=10,
+        echo=False,
+        connect_args={
+            # bei Render/Supabase/managed Postgres fast immer korrekt:
+            "sslmode": os.getenv("PGSSLMODE", "require"),
+            "connect_timeout": 10,  # Timeout für initiale Verbindung
+        },
+    )
+else:
+    # SQLite oder andere Datenbanken (keine connect_args mit sslmode)
+    engine = create_engine(
+        DB_URL,
+        pool_pre_ping=True,
+        pool_timeout=30,
+        pool_size=5,
+        max_overflow=10,
+        echo=False,
+    )
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 
 # --- CORS -------------------------------------------------
