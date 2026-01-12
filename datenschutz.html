@@ -154,6 +154,46 @@
 
       .privacy-table{
         font-size:13px;
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      /* Mobile: Tabelle als Cards darstellen */
+      .privacy-table thead {
+        display: none;
+      }
+      
+      .privacy-table tbody {
+        display: block;
+      }
+      
+      .privacy-table tr {
+        display: block;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      
+      .privacy-table td {
+        display: block;
+        border: none;
+        padding: 8px 0;
+        text-align: left;
+      }
+      
+      .privacy-table td:before {
+        content: attr(data-label) ":";
+        font-weight: 700;
+        display: block;
+        margin-bottom: 4px;
+        color: #f8fafc;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .foot-grid{
