@@ -2098,36 +2098,68 @@ if _html_enabled():
 
     @app.route("/", methods=["GET", "HEAD"])
     def index():
-        return render_template("index.html")
+        return send_from_directory(APP_ROOT, "index.html")
 
     @app.get("/login")
     def login_page():
-        return render_template("login.html")
+        return send_from_directory(APP_ROOT, "login.html")
 
     @app.get("/anbieter-portal")
     def anbieter_portal_page():
-        return render_template("anbieter-portal.html")
+        return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
     @app.get("/anbieter-portal.html")
     def anbieter_portal_page_html():
-        return render_template("anbieter-portal.html")
+        return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
     def suche_page():
-        return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+        # suche.html liegt im Root, aber benötigt Template-Rendering für GOOGLE_MAPS_API_KEY
+        # Daher: Datei lesen, hardcodierten Key durch Umgebungsvariablen-Key ersetzen
+        suche_path = os.path.join(APP_ROOT, "suche.html")
+        try:
+            with open(suche_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Ersetze hardcodierten Google Maps API Key durch Umgebungsvariablen-Key
+            if GOOGLE_MAPS_API_KEY:
+                # Ersetze den hardcodierten Key (falls vorhanden)
+                import re
+                content = re.sub(
+                    r'const gmKey = "[^"]*";',
+                    f'const gmKey = "{GOOGLE_MAPS_API_KEY}";',
+                    content
+                )
+            return Response(content, mimetype="text/html")
+        except FileNotFoundError:
+            # Fallback: Versuche Template-Verzeichnis
+            return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
     @app.get("/suche.html")
     def suche_page_html():
-        return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+        # Gleiche Logik wie /suche
+        suche_path = os.path.join(APP_ROOT, "suche.html")
+        try:
+            with open(suche_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            if GOOGLE_MAPS_API_KEY:
+                import re
+                content = re.sub(
+                    r'const gmKey = "[^"]*";',
+                    f'const gmKey = "{GOOGLE_MAPS_API_KEY}";',
+                    content
+                )
+            return Response(content, mimetype="text/html")
+        except FileNotFoundError:
+            return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
     @app.get("/impressum")
     def impressum():
-        return render_template("impressum.html")
+        return send_from_directory(APP_ROOT, "impressum.html")
 
     @app.get("/datenschutz")
     def datenschutz():
-        return render_template("datenschutz.html")
+        return send_from_directory(APP_ROOT, "datenschutz.html")
 
     @app.get("/reset-password")
     @app.get("/reset-password.html")
@@ -2136,7 +2168,7 @@ if _html_enabled():
 
     @app.get("/agb")
     def agb():
-        return render_template("agb.html")
+        return send_from_directory(APP_ROOT, "agb.html")
 
     @app.get("/paket-buchen")
     @auth_required()
@@ -2182,6 +2214,11 @@ if _html_enabled():
         if slug.startswith("admin/"):
             abort(404)  # Admin-Routen müssen explizit definiert sein
         filename = slug if slug.endswith(".html") else f"{slug}.html"
+        # Versuche zuerst Root-Verzeichnis (die meisten HTML-Dateien liegen dort)
+        file_path = os.path.join(APP_ROOT, filename)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(APP_ROOT, filename)
+        # Fallback: Versuche Template-Verzeichnis
         try:
             return render_template(filename)
         except Exception:
