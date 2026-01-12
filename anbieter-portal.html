@@ -2209,8 +2209,15 @@
         const action = el.dataset.action;
 
         if (action === 'logout'){
-          try{ await fetch(`${API_LOCAL}/auth/logout`, { method:'POST', credentials:'include' }); }catch(_){}
-          location.href = '/login.html';
+          try{ 
+            await fetch(`${API_LOCAL}/auth/logout`, { method:'POST', credentials:'include' });
+            // UI sofort aktualisieren
+            updateAuthUI();
+          }catch(_){}
+          // Redirect nach kurzer Verzögerung, damit UI-Update sichtbar ist
+          setTimeout(() => {
+            location.href = '/login.html';
+          }, 100);
         }
 
         if (action === 'delete'){

@@ -1264,7 +1264,11 @@ def _cookie_flags():
 
 
 def _cookie_delete_flags():
-    """Flags für delete_cookie (nur path, da samesite/httponly/secure nicht unterstützt werden)."""
+    """
+    Flags für delete_cookie.
+    WICHTIG: Flask's delete_cookie unterstützt nicht alle Parameter, daher müssen wir
+    die Cookies auch mit max_age=0 setzen (siehe auth_logout).
+    """
     return {"path": "/"}
 
 
@@ -2645,13 +2649,15 @@ def auth_login_form():
 @auth_required()
 def auth_logout():
     resp = make_response(jsonify({"ok": True}))
-    flags = _cookie_delete_flags()
-    resp.delete_cookie("access_token", **flags)
-    resp.delete_cookie("refresh_token", **flags)
-    # Zusätzlich: Cookies mit expiring max_age setzen (Fallback für Browser-Kompatibilität)
+    # WICHTIG: Cookies müssen mit den gleichen Flags gelöscht werden, mit denen sie gesetzt wurden
+    # Flask's delete_cookie unterstützt nicht alle Parameter, daher setzen wir max_age=0
     set_flags = _cookie_flags()
     resp.set_cookie("access_token", "", max_age=0, **set_flags)
     resp.set_cookie("refresh_token", "", max_age=0, **set_flags)
+    # Zusätzlich: delete_cookie für Kompatibilität
+    delete_flags = _cookie_delete_flags()
+    resp.delete_cookie("access_token", **delete_flags)
+    resp.delete_cookie("refresh_token", **delete_flags)
     return resp
 
 

@@ -415,7 +415,15 @@
     (function(){
       const APIforMenu = (typeof window.API === 'string')
         ? window.API
-        : ((h)=> (h==='localhost'||h==='127.0.0.1') ? 'http://127.0.0.1:5000' : 'https://api.terminmarktplatz.de')(location.hostname);
+        : ((h) => {
+            if (h === 'localhost' || h === '127.0.0.1') {
+              return 'http://127.0.0.1:5000';
+            }
+            if (h.includes('testsystem') || h.includes('onrender.com')) {
+              return `${location.protocol}//${location.host}`;
+            }
+            return 'https://api.terminmarktplatz.de';
+          })(location.hostname);
 
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
