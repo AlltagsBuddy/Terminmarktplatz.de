@@ -1243,9 +1243,23 @@ def _json_error(msg, code=400):
 
 
 def _cookie_flags():
-    """Flags für set_cookie (alle Parameter)."""
+    """
+    Flags für set_cookie (alle Parameter).
+    WICHTIG: SameSite=None nur für Cross-Origin (z.B. wenn Frontend auf anderer Domain).
+    Für Same-Origin (Frontend und Backend auf derselben Domain) verwenden wir Lax.
+    """
     if IS_RENDER:
-        return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
+        # Prüfe ob es ein Testsystem ist
+        RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
+        IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
+        
+        # Testsystem: Frontend und Backend auf derselben Domain -> SameSite=Lax
+        # Produktion: Frontend auf terminmarktplatz.de, Backend auf api.terminmarktplatz.de -> SameSite=None
+        if IS_TESTSYSTEM:
+            return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/"}
+        else:
+            # Produktion: Cross-Origin zwischen terminmarktplatz.de und api.terminmarktplatz.de
+            return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
     return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
 
 
