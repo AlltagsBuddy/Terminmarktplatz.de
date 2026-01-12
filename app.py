@@ -27,7 +27,7 @@ BERLIN = ZoneInfo("Europe/Berlin")
 import time
 from sqlalchemy import create_engine, select, and_, or_, func, text
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError, DisconnectionError
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -247,7 +247,7 @@ if _is_postgresql_url:
     engine = create_engine(
         DB_URL,
         pool_pre_ping=True,     # prüft Verbindung vor Benutzung
-        pool_recycle=300,       # recycelt Connections alle 5 Minuten (Render PostgreSQL Timeout)
+        pool_recycle=180,       # recycelt Connections alle 3 Minuten (kürzer für bessere SSL-Stabilität)
         pool_timeout=30,
         pool_size=5,
         max_overflow=10,
@@ -4205,81 +4205,119 @@ def slots_list():
     archived = request.args.get("archived")
     show_archived = archived and archived.lower() in ("true", "1", "yes")
 
-    with Session(engine) as s:
-        bq = (
-            select(Booking.slot_id, func.count().label("booked"))
-            .where(Booking.status == "confirmed")
-            .group_by(Booking.slot_id)
-            .subquery()
-        )
+    # Retry-Mechanismus für SSL-Fehler und Verbindungsprobleme
+    max_retries = 3
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            with Session(engine) as s:
+                bq = (
+                    select(Booking.slot_id, func.count().label("booked"))
+                    .where(Booking.status == "confirmed")
+                    .group_by(Booking.slot_id)
+                    .subquery()
+                )
 
-        q = (
-            select(
-                Slot,
-                func.coalesce(bq.c.booked, 0).label("booked"),
-            )
-            .outerjoin(bq, bq.c.slot_id == Slot.id)
-            .where(Slot.provider_id == request.provider_id)
-        )
-
-        if status:
-            q = q.where(Slot.status == status)
-        
-        # Archiv-Filter: Standard nur nicht-archivierte, explizit archived=true zeigt nur archivierte
-        if show_archived:
-            q = q.where(Slot.archived == True)
-        else:
-            # Standard: nur nicht-archivierte Slots
-            q = q.where(Slot.archived == False)
-
-        rows = s.execute(q.order_by(Slot.start_at.desc())).all()
-
-        slot_ids = [slot.id for slot, _ in rows]
-        bookings_by_slot: dict[str, list[dict]] = {}
-        canceled_counts: dict[str, int] = {}
-
-        if slot_ids:
-            booking_rows = (
-                s.execute(
-                    select(Booking)
-                    .where(
-                        Booking.slot_id.in_(slot_ids),
-                        Booking.status.in_(["confirmed", "canceled"]),
+                q = (
+                    select(
+                        Slot,
+                        func.coalesce(bq.c.booked, 0).label("booked"),
                     )
-                    .order_by(Booking.created_at.asc())
+                    .outerjoin(bq, bq.c.slot_id == Slot.id)
+                    .where(Slot.provider_id == request.provider_id)
                 )
-                .scalars()
-                .all()
-            )
 
-            for b in booking_rows:
-                slot_id = b.slot_id
-                bookings_by_slot.setdefault(slot_id, []).append(
-                    {
-                        "id": b.id,
-                        "customer_name": b.customer_name,
-                        "customer_email": b.customer_email,
-                        "status": b.status,
-                    }
-                )
-                if b.status == "canceled":
-                    canceled_counts[slot_id] = canceled_counts.get(slot_id, 0) + 1
+                if status:
+                    q = q.where(Slot.status == status)
+                
+                # Archiv-Filter: Standard nur nicht-archivierte, explizit archived=true zeigt nur archivierte
+                if show_archived:
+                    q = q.where(Slot.archived == True)
+                else:
+                    # Standard: nur nicht-archivierte Slots
+                    q = q.where(Slot.archived == False)
 
-        out = []
-        for slot, booked in rows:
-            cap = slot.capacity or 1
-            booked_int = int(booked or 0)
-            available = max(0, cap - booked_int)
+                rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
-            item = slot_to_json(slot)
-            item["booked"] = booked_int
-            item["available"] = available
-            item["bookings"] = bookings_by_slot.get(slot.id, [])
-            item["has_canceled"] = canceled_counts.get(slot.id, 0) > 0
-            item["canceled_count"] = canceled_counts.get(slot.id, 0)
-            out.append(item)
+                slot_ids = [slot.id for slot, _ in rows]
+                bookings_by_slot: dict[str, list[dict]] = {}
+                canceled_counts: dict[str, int] = {}
 
-        return jsonify(out)
+                if slot_ids:
+                    booking_rows = (
+                        s.execute(
+                            select(Booking)
+                            .where(
+                                Booking.slot_id.in_(slot_ids),
+                                Booking.status.in_(["confirmed", "canceled"]),
+                            )
+                            .order_by(Booking.created_at.asc())
+                        )
+                        .scalars()
+                        .all()
+                    )
+
+                    for b in booking_rows:
+                        slot_id = b.slot_id
+                        bookings_by_slot.setdefault(slot_id, []).append(
+                            {
+                                "id": b.id,
+                                "customer_name": b.customer_name,
+                                "customer_email": b.customer_email,
+                                "status": b.status,
+                            }
+                        )
+                        if b.status == "canceled":
+                            canceled_counts[slot_id] = canceled_counts.get(slot_id, 0) + 1
+
+                out = []
+                for slot, booked in rows:
+                    cap = slot.capacity or 1
+                    booked_int = int(booked or 0)
+                    available = max(0, cap - booked_int)
+
+                    item = slot_to_json(slot)
+                    item["booked"] = booked_int
+                    item["available"] = available
+                    item["bookings"] = bookings_by_slot.get(slot.id, [])
+                    item["has_canceled"] = canceled_counts.get(slot.id, 0) > 0
+                    item["canceled_count"] = canceled_counts.get(slot.id, 0)
+                    out.append(item)
+
+                return jsonify(out)
+        
+        except (OperationalError, PsycopgOperationalError, DisconnectionError) as e:
+            last_error = e
+            error_str = str(e).lower()
+            # Prüfe ob es ein SSL- oder Verbindungsfehler ist
+            if "ssl" in error_str or "decryption" in error_str or "bad record mac" in error_str or "connection" in error_str:
+                if attempt < max_retries - 1:
+                    # Warte kurz bevor Retry (exponential backoff)
+                    wait_time = (attempt + 1) * 0.5
+                    app.logger.warning(f"DB connection error (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    # Verbindungspool invalidieren, damit neue Verbindung aufgebaut wird
+                    engine.dispose()
+                    continue
+                else:
+                    app.logger.error(f"DB connection error after {max_retries} attempts: {e}")
+                    return _json_error("database_error", 500)
+            else:
+                # Anderer Fehler, nicht retry
+                raise
+        
+        except Exception as e:
+            # Andere Fehler nicht retry
+            app.logger.error(f"Unexpected error in slots_list: {e}")
+            raise
+    
+    # Falls alle Retries fehlgeschlagen sind
+    if last_error:
+        app.logger.error(f"Failed to execute slots_list after {max_retries} attempts: {last_error}")
+        return _json_error("database_error", 500)
+    
+    return _json_error("unknown_error", 500)
 
 
 # ... ab hier ist dein restlicher Code (Slots CRUD, Public Slots/Booking,
