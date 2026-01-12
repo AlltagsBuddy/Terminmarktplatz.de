@@ -1448,36 +1448,8 @@
       const priceVal = $('#sl-price').value;
       const notes    = $('#sl-notes').value.trim();
 
-      // Prüfe monatliches Slot-Limit vor dem Erstellen/Bearbeiten
-      if (ME && !ME.slots_unlimited && typeof ME.slots_used_this_month === 'number' && typeof ME.free_slots_per_month === 'number') {
-        const used = ME.slots_used_this_month || 0;
-        const limit = ME.free_slots_per_month || 3;
-        
-        // Beim Bearbeiten: Alte Kapazität abziehen, wenn der Slot bereits veröffentlicht ist
-        let oldCapacity = 0;
-        if (EDITING_SLOT && EDITING_SLOT.id && EDITING_SLOT.status === 'PUBLISHED') {
-          // Prüfe, ob der Slot im selben Monat liegt
-          const oldStartDt = EDITING_SLOT.start_at ? new Date(EDITING_SLOT.start_at) : null;
-          if (oldStartDt) {
-            const oldMonth = oldStartDt.getFullYear() * 12 + oldStartDt.getMonth();
-            const newMonth = startDt.getFullYear() * 12 + startDt.getMonth();
-            // Nur abziehen, wenn im selben Monat
-            if (oldMonth === newMonth) {
-              oldCapacity = parseInt(EDITING_SLOT.capacity || '1', 10);
-            }
-          }
-        }
-        
-        // Berechne, wie viel nach diesem Slot noch übrig wäre
-        // Beim Bearbeiten: Alte Kapazität abziehen, beim Erstellen: einfach addieren
-        const wouldBeUsed = used - oldCapacity + capacity;
-        
-        if (wouldBeUsed > limit) {
-          if (!confirm('⚠️ Dein Slot-Kontingent ist überschritten.\n\nMöchtest du trotzdem fortfahren? (Der Slot kann nicht veröffentlicht werden, bis du dein Limit erhöhst.)')) {
-            return;
-          }
-        }
-      }
+      // KEINE Prüfung beim Erstellen/Bearbeiten - die Prüfung erfolgt erst beim Veröffentlichen
+      // Das Backend prüft korrekt beim /slots/<id>/publish Endpoint
 
       // ✅ splitten -> DB-Felder
       const parsed = splitStreetAndNumber(streetCombined);
