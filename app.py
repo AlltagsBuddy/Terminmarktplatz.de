@@ -268,6 +268,26 @@ else:
         max_overflow=10,
         echo=False,
     )
+
+# Datenbanktyp erkennen (dynamisch über engine.dialect)
+def _get_db_type():
+    """Ermittelt den Datenbanktyp (postgresql, sqlite, etc.)"""
+    try:
+        dialect_name = engine.dialect.name
+        return dialect_name.lower()
+    except Exception:
+        # Fallback: Prüfe URL
+        db_url_lower = DB_URL.lower()
+        if "postgresql" in db_url_lower or "postgres" in db_url_lower:
+            return "postgresql"
+        elif "sqlite" in db_url_lower:
+            return "sqlite"
+        return "unknown"
+
+DB_TYPE = _get_db_type()
+IS_POSTGRESQL = DB_TYPE == "postgresql"
+IS_SQLITE = DB_TYPE == "sqlite"
+
 ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 
 # --- CORS -------------------------------------------------
@@ -327,19 +347,163 @@ def add_headers(resp):
 
 
 # --------------------------------------------------------
+# Basistabellen erstellen (falls nicht vorhanden)
+# --------------------------------------------------------
+def _ensure_base_tables():
+    """
+    Erstellt die Basistabellen (provider, slot, booking, etc.), falls sie nicht existieren.
+    Wichtig für lokale SQLite-Entwicklung, wo Tabellen möglicherweise nicht initialisiert wurden.
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                # PostgreSQL: Verwende SQLAlchemy Metadata (benötigt aber safe_uuid_v4() Funktion)
+                # Für PostgreSQL erwarten wir, dass db_init.sql bereits ausgeführt wurde
+                try:
+                    result = conn.execute(text("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_schema = 'public' AND table_name = 'provider'
+                        )
+                    """))
+                    if result.scalar():
+                        return  # Tabellen existieren bereits
+                except Exception:
+                    pass
+                
+                try:
+                    from models import Base
+                    Base.metadata.create_all(engine, checkfirst=True)
+                except Exception as e:
+                    print(f"⚠️  Warnung: Basistabellen konnten nicht erstellt werden (PostgreSQL): {e}", flush=True)
+            else:
+                # SQLite: Erstelle Tabellen manuell (SQLite-kompatibel)
+                try:
+                    result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='provider'"))
+                    if result.fetchone():
+                        return  # Tabellen existieren bereits
+                except Exception:
+                    pass
+                
+                # Erstelle Basistabellen für SQLite
+                ddl_provider = """
+                CREATE TABLE IF NOT EXISTS provider (
+                  id TEXT PRIMARY KEY,
+                  email TEXT UNIQUE NOT NULL,
+                  email_verified_at DATETIME,
+                  pw_hash TEXT NOT NULL,
+                  company_name TEXT,
+                  branch TEXT,
+                  street TEXT,
+                  zip TEXT,
+                  city TEXT,
+                  phone TEXT,
+                  whatsapp TEXT,
+                  status TEXT NOT NULL DEFAULT 'pending',
+                  is_admin INTEGER NOT NULL DEFAULT 0,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  "plan" TEXT,
+                  plan_valid_until DATETIME,
+                  free_slots_per_month INTEGER,
+                  booking_fee_eur NUMERIC,
+                  provider_number INTEGER
+                );
+                """
+                
+                ddl_slot = """
+                CREATE TABLE IF NOT EXISTS slot (
+                  id TEXT PRIMARY KEY,
+                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  title TEXT NOT NULL,
+                  category TEXT NOT NULL,
+                  start_at DATETIME NOT NULL,
+                  end_at DATETIME NOT NULL,
+                  location TEXT,
+                  street TEXT,
+                  house_number TEXT,
+                  zip TEXT,
+                  city TEXT,
+                  lat REAL,
+                  lng REAL,
+                  capacity INTEGER NOT NULL DEFAULT 1,
+                  contact_method TEXT NOT NULL DEFAULT 'mail',
+                  booking_link TEXT,
+                  price_cents INTEGER,
+                  notes TEXT,
+                  status TEXT NOT NULL DEFAULT 'DRAFT',
+                  published_at DATETIME,
+                  archived INTEGER DEFAULT 0,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                
+                ddl_booking = """
+                CREATE TABLE IF NOT EXISTS booking (
+                  id TEXT PRIMARY KEY,
+                  slot_id TEXT NOT NULL REFERENCES slot(id) ON DELETE CASCADE,
+                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  name TEXT NOT NULL,
+                  email TEXT NOT NULL,
+                  phone TEXT,
+                  message TEXT,
+                  status TEXT NOT NULL DEFAULT 'pending',
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                
+                conn.exec_driver_sql(ddl_provider)
+                conn.exec_driver_sql(ddl_slot)
+                conn.exec_driver_sql(ddl_booking)
+                
+                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS slot_status_start_idx ON slot(status, start_at)")
+                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS slot_provider_id_idx ON slot(provider_id)")
+                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS booking_slot_id_idx ON booking(slot_id)")
+                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS booking_provider_id_idx ON booking(provider_id)")
+                
+                print("✓ Basistabellen für SQLite erstellt", flush=True)
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: Basistabellen konnten nicht erstellt werden: {e}", flush=True)
+
+
+# Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
+# WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
+_ensure_base_tables()
+
+
+# --------------------------------------------------------
 # Geocode-Cache (idempotent)
 # --------------------------------------------------------
 def _ensure_geo_tables():
-    ddl_cache = """
-    CREATE TABLE IF NOT EXISTS geocode_cache (
-      key text PRIMARY KEY,
-      lat double precision,
-      lon double precision,
-      updated_at timestamp with time zone DEFAULT now()
-    );
     """
-    with engine.begin() as conn:
-        conn.exec_driver_sql(ddl_cache)
+    Erstellt die Geocode-Cache-Tabelle, falls sie nicht existiert.
+    Fängt Fehler ab, damit die App auch startet, wenn die DB noch nicht verfügbar ist.
+    """
+    try:
+        if IS_POSTGRESQL:
+            ddl_cache = """
+            CREATE TABLE IF NOT EXISTS geocode_cache (
+              key text PRIMARY KEY,
+              lat double precision,
+              lon double precision,
+              updated_at timestamp with time zone DEFAULT now()
+            );
+            """
+        else:
+            # SQLite-kompatibel
+            ddl_cache = """
+            CREATE TABLE IF NOT EXISTS geocode_cache (
+              key text PRIMARY KEY,
+              lat REAL,
+              lon REAL,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        with engine.begin() as conn:
+            conn.exec_driver_sql(ddl_cache)
+    except (OperationalError, SQLAlchemyError) as e:
+        # Logge den Fehler, aber verhindere nicht den App-Start
+        print(f"⚠️  Warnung: Geocode-Tabellen konnten nicht erstellt werden: {e}", flush=True)
+        print("   Die Tabellen werden beim ersten Request erstellt, wenn die DB verfügbar ist.", flush=True)
 
 
 _ensure_geo_tables()
@@ -353,21 +517,28 @@ def _remove_category_constraint():
     Entfernt den alten CHECK-Constraint für Kategorien, damit alle Kategorien aus BRANCHES erlaubt sind.
     Die Validierung erfolgt jetzt in der Anwendung (normalize_category).
     """
-    ddl_remove_constraint = """
-    DO $$
-    BEGIN
-      IF EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'slot_category_check'
-      ) THEN
-        ALTER TABLE public.slot DROP CONSTRAINT slot_category_check;
-      END IF;
-    END $$;
-    """
-    with engine.begin() as conn:
-        try:
-            conn.exec_driver_sql(ddl_remove_constraint)
-        except Exception as e:
-            app.logger.warning("remove_category_constraint failed: %r", e)
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                # PostgreSQL: Verwende DO-Block
+                ddl_remove_constraint = """
+                DO $$
+                BEGIN
+                  IF EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'slot_category_check'
+                  ) THEN
+                    ALTER TABLE public.slot DROP CONSTRAINT slot_category_check;
+                  END IF;
+                END $$;
+                """
+                conn.exec_driver_sql(ddl_remove_constraint)
+            else:
+                # SQLite: Prüfe ob Tabelle existiert, dann Constraint entfernen
+                # SQLite unterstützt keine direkte Constraint-Entfernung, daher überspringen wir dies
+                # Die Validierung erfolgt sowieso in der Anwendung
+                pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: remove_category_constraint fehlgeschlagen: {e}", flush=True)
 
 
 _remove_category_constraint()
@@ -381,15 +552,32 @@ def _ensure_alert_deleted_at():
     Fügt das deleted_at Feld zur alert_subscription Tabelle hinzu, falls es noch nicht existiert.
     Ermöglicht Soft-Delete, damit gelöschte Benachrichtigungen weiterhin zum Limit zählen.
     """
-    ddl_add_deleted_at = """
-    ALTER TABLE public.alert_subscription
-      ADD COLUMN IF NOT EXISTS deleted_at timestamp without time zone;
-    """
-    with engine.begin() as conn:
-        try:
-            conn.exec_driver_sql(ddl_add_deleted_at)
-        except Exception as e:
-            app.logger.warning("ensure_alert_deleted_at failed: %r", e)
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                # PostgreSQL: ADD COLUMN IF NOT EXISTS
+                ddl_add_deleted_at = """
+                ALTER TABLE public.alert_subscription
+                  ADD COLUMN IF NOT EXISTS deleted_at timestamp without time zone;
+                """
+                conn.exec_driver_sql(ddl_add_deleted_at)
+            else:
+                # SQLite: Prüfe ob Tabelle existiert, dann ob Spalte existiert
+                try:
+                    # Prüfe ob Tabelle existiert
+                    conn.execute(text("SELECT 1 FROM alert_subscription LIMIT 1"))
+                    # Tabelle existiert, prüfe ob Spalte existiert
+                    try:
+                        conn.execute(text("SELECT deleted_at FROM alert_subscription LIMIT 1"))
+                        # Spalte existiert bereits
+                    except Exception:
+                        # Spalte existiert nicht, hinzufügen
+                        conn.exec_driver_sql("ALTER TABLE alert_subscription ADD COLUMN deleted_at DATETIME")
+                except Exception:
+                    # Tabelle existiert nicht - ignorieren (wird später erstellt)
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_alert_deleted_at fehlgeschlagen: {e}", flush=True)
 
 
 _ensure_alert_deleted_at()
@@ -402,25 +590,60 @@ def _ensure_password_reset_table():
     """
     Erstellt die password_reset Tabelle, falls sie noch nicht existiert.
     """
-    ddl_password_reset = """
-    CREATE TABLE IF NOT EXISTS password_reset (
-      id uuid PRIMARY KEY DEFAULT safe_uuid_v4(),
-      provider_id uuid NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
-      token text UNIQUE NOT NULL,
-      expires_at timestamp without time zone NOT NULL,
-      used_at timestamp without time zone,
-      created_at timestamp without time zone NOT NULL DEFAULT now()
-    );
-    
-    CREATE INDEX IF NOT EXISTS password_reset_provider_id_idx ON password_reset(provider_id);
-    CREATE INDEX IF NOT EXISTS password_reset_token_idx ON password_reset(token);
-    CREATE INDEX IF NOT EXISTS password_reset_expires_at_idx ON password_reset(expires_at) WHERE used_at IS NULL;
-    """
-    with engine.begin() as conn:
-        try:
-            conn.exec_driver_sql(ddl_password_reset)
-        except Exception as e:
-            app.logger.warning("ensure_password_reset_table failed: %r", e)
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                # PostgreSQL: Tabellen-Erstellung und Indizes einzeln (meist sicherer)
+                ddl_table = """
+                CREATE TABLE IF NOT EXISTS password_reset (
+                  id uuid PRIMARY KEY DEFAULT safe_uuid_v4(),
+                  provider_id uuid NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  token text UNIQUE NOT NULL,
+                  expires_at timestamp without time zone NOT NULL,
+                  used_at timestamp without time zone,
+                  created_at timestamp without time zone NOT NULL DEFAULT now()
+                );
+                """
+                ddl_idx1 = "CREATE INDEX IF NOT EXISTS password_reset_provider_id_idx ON password_reset(provider_id);"
+                ddl_idx2 = "CREATE INDEX IF NOT EXISTS password_reset_token_idx ON password_reset(token);"
+                ddl_idx3 = "CREATE INDEX IF NOT EXISTS password_reset_expires_at_idx ON password_reset(expires_at) WHERE used_at IS NULL;"
+                
+                # Jedes Statement einzeln ausführen (sicherer für beide DB-Typen)
+                conn.exec_driver_sql(ddl_table)
+                try:
+                    conn.exec_driver_sql(ddl_idx1)
+                    conn.exec_driver_sql(ddl_idx2)
+                    conn.exec_driver_sql(ddl_idx3)
+                except Exception:
+                    # Indizes existieren möglicherweise bereits
+                    pass
+            else:
+                # SQLite-kompatibel - Einzelne Statements ausführen (SQLite unterstützt kein Multi-Statement)
+                ddl_table = """
+                CREATE TABLE IF NOT EXISTS password_reset (
+                  id TEXT PRIMARY KEY,
+                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  token TEXT UNIQUE NOT NULL,
+                  expires_at DATETIME NOT NULL,
+                  used_at DATETIME,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                ddl_idx1 = "CREATE INDEX IF NOT EXISTS password_reset_provider_id_idx ON password_reset(provider_id);"
+                ddl_idx2 = "CREATE INDEX IF NOT EXISTS password_reset_token_idx ON password_reset(token);"
+                ddl_idx3 = "CREATE INDEX IF NOT EXISTS password_reset_expires_at_idx ON password_reset(expires_at);"
+                
+                # Jedes Statement einzeln ausführen
+                conn.exec_driver_sql(ddl_table)
+                try:
+                    conn.exec_driver_sql(ddl_idx1)
+                    conn.exec_driver_sql(ddl_idx2)
+                    conn.exec_driver_sql(ddl_idx3)
+                except Exception:
+                    # Indizes existieren möglicherweise bereits
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_password_reset_table fehlgeschlagen: {e}", flush=True)
 
 
 _ensure_password_reset_table()
@@ -433,42 +656,34 @@ def _ensure_provider_number_field():
     """
     Erstellt das provider_number Feld, falls es noch nicht existiert, und nummeriert bestehende Provider.
     """
-    with engine.begin() as conn:
-        try:
-            # Prüfen ob Spalte existiert (PostgreSQL-spezifisch)
+    try:
+        with engine.begin() as conn:
+            # Prüfen ob Spalte existiert
             column_exists = False
-            try:
-                # PostgreSQL: Prüfe in information_schema
-                result = conn.execute(text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'provider' AND column_name = 'provider_number'
-                """))
-                column_exists = result.fetchone() is not None
-                app.logger.info(f"provider_number column check (information_schema): {column_exists}")
-            except Exception as e_info:
-                app.logger.debug("information_schema check failed, trying SELECT: %r", e_info)
-                # Fallback: Versuche SELECT
+            if IS_POSTGRESQL:
+                try:
+                    # PostgreSQL: Prüfe in information_schema
+                    result = conn.execute(text("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'provider' AND column_name = 'provider_number'
+                    """))
+                    column_exists = result.fetchone() is not None
+                except Exception:
+                    pass
+            else:
+                # SQLite: Versuche SELECT
                 try:
                     conn.execute(text("SELECT provider_number FROM provider LIMIT 1"))
                     column_exists = True
-                    app.logger.info("provider_number column exists (SELECT check)")
-                except Exception as e_select:
+                except Exception:
                     column_exists = False
-                    app.logger.debug("provider_number column does not exist: %r", e_select)
             
             if not column_exists:
                 # Spalte existiert nicht, erstellen
-                try:
-                    conn.execute(text("ALTER TABLE provider ADD COLUMN provider_number INTEGER"))
-                    app.logger.info("✅ provider_number column created successfully")
-                except Exception as e_col:
-                    app.logger.error("❌ Could not add provider_number column: %r", e_col)
-                    raise  # Fehler weiterwerfen, damit es nicht stillschweigend fehlschlägt
+                conn.execute(text("ALTER TABLE provider ADD COLUMN provider_number INTEGER"))
             
             # Bestehende Provider nummerieren (nach Registrierungsdatum aufsteigend)
-            # WICHTIG: Immer ALLE Provider neu nummerieren, um sicherzustellen, dass die Reihenfolge korrekt ist
-            # PostgreSQL-Syntax mit FROM
             try:
                 # Hole alle Provider nach created_at sortiert
                 all_providers = conn.execute(text("""
@@ -477,81 +692,51 @@ def _ensure_provider_number_field():
                     ORDER BY created_at ASC
                 """)).fetchall()
                 
-                app.logger.info(f"provider_number: found {len(all_providers)} providers to number")
-                
-                # Alle Provider neu nummerieren nach created_at (1, 2, 3, ...)
-                # Dies stellt sicher, dass die Reihenfolge immer korrekt ist
-                result = conn.execute(text("""
-                    UPDATE provider
-                    SET provider_number = sub.row_num
-                    FROM (
-                      SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
-                      FROM provider
-                    ) AS sub
-                    WHERE provider.id = sub.id
-                    RETURNING provider.id, provider.provider_number
-                """))
-                updated_rows = result.fetchall()
-                app.logger.info(f"provider_number: numbered {len(updated_rows)} providers (PostgreSQL)")
-                
-                # Verifiziere, dass alle Provider eine Nummer haben
-                providers_without_number = conn.execute(text("""
-                    SELECT COUNT(*) FROM provider WHERE provider_number IS NULL
-                """)).scalar()
-                
-                if providers_without_number > 0:
-                    app.logger.warning(f"provider_number: {providers_without_number} providers still without number after migration!")
+                if IS_POSTGRESQL:
+                    # PostgreSQL: UPDATE mit FROM
+                    result = conn.execute(text("""
+                        UPDATE provider
+                        SET provider_number = sub.row_num
+                        FROM (
+                          SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) as row_num
+                          FROM provider
+                        ) AS sub
+                        WHERE provider.id = sub.id
+                    """))
                 else:
-                    app.logger.info("provider_number: ✅ All providers have been numbered successfully")
-            except Exception as e_pg:
-                # SQLite-Syntax (kein FROM in UPDATE) oder andere DB
-                try:
-                    # Alle Provider nach created_at sortiert holen
-                    all_providers = conn.execute(text("""
-                        SELECT id, created_at 
-                        FROM provider 
-                        ORDER BY created_at ASC
-                    """)).fetchall()
-                    
-                    # Alle Provider neu nummerieren (1, 2, 3, ...)
+                    # SQLite: Einzelne UPDATEs (kein FROM in UPDATE)
                     for idx, (pid, _) in enumerate(all_providers, start=1):
                         conn.execute(
                             text("UPDATE provider SET provider_number = :num WHERE id = :pid"),
                             {"num": idx, "pid": str(pid)}
                         )
-                    app.logger.info(f"provider_number: numbered all {len(all_providers)} providers (SQLite/fallback)")
-                except Exception as e2:
-                    app.logger.warning("provider_number numbering failed: %r", e2)
+            except Exception:
+                pass
             
             # Index erstellen
             try:
-                # Prüfe ob Index bereits existiert
                 index_exists = False
-                try:
-                    result = conn.execute(text("""
-                        SELECT indexname FROM pg_indexes 
-                        WHERE tablename = 'provider' AND indexname = 'provider_number_idx'
-                    """))
-                    index_exists = result.fetchone() is not None
-                except Exception:
-                    pass
+                if IS_POSTGRESQL:
+                    try:
+                        result = conn.execute(text("""
+                            SELECT indexname FROM pg_indexes 
+                            WHERE tablename = 'provider' AND indexname = 'provider_number_idx'
+                        """))
+                        index_exists = result.fetchone() is not None
+                    except Exception:
+                        pass
                 
                 if not index_exists:
-                    try:
+                    if IS_POSTGRESQL:
                         # PostgreSQL: WHERE-Klausel im Index
-                        conn.execute(text("CREATE UNIQUE INDEX provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL"))
-                        app.logger.info("provider_number index created (PostgreSQL)")
-                    except Exception:
-                        try:
-                            # SQLite: einfacher Index
-                            conn.execute(text("CREATE UNIQUE INDEX provider_number_idx ON provider(provider_number)"))
-                            app.logger.info("provider_number index created (SQLite)")
-                        except Exception as e_idx:
-                            app.logger.warning("Could not create provider_number index: %r", e_idx)
-            except Exception as e_idx:
-                app.logger.warning("Index creation check failed: %r", e_idx)
-        except Exception as e:
-            app.logger.exception("ensure_provider_number_field failed: %r", e)
+                        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS provider_number_idx ON provider(provider_number) WHERE provider_number IS NOT NULL"))
+                    else:
+                        # SQLite: einfacher Index (kein WHERE in Index)
+                        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS provider_number_idx ON provider(provider_number)"))
+            except Exception:
+                pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_number_field fehlgeschlagen: {e}", flush=True)
 
 
 _ensure_provider_number_field()
@@ -564,28 +749,61 @@ def _ensure_archive_fields():
     """
     Fügt archived Flag zu Slots und archived_at/exported_at zu Invoices hinzu (Aufbewahrungspflicht).
     """
-    ddl_slot_archived = """
-    ALTER TABLE public.slot
-      ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
-    """
-    
-    ddl_invoice_archived_at = """
-    ALTER TABLE public.invoice
-      ADD COLUMN IF NOT EXISTS archived_at timestamp without time zone;
-    """
-    
-    ddl_invoice_exported_at = """
-    ALTER TABLE public.invoice
-      ADD COLUMN IF NOT EXISTS exported_at timestamp without time zone;
-    """
-    
-    with engine.begin() as conn:
-        try:
-            conn.exec_driver_sql(ddl_slot_archived)
-            conn.exec_driver_sql(ddl_invoice_archived_at)
-            conn.exec_driver_sql(ddl_invoice_exported_at)
-        except Exception as e:
-            print(f"[migration] ensure_archive_fields failed: {e}", flush=True)
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl_slot_archived = """
+                ALTER TABLE public.slot
+                  ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
+                """
+                ddl_invoice_archived_at = """
+                ALTER TABLE public.invoice
+                  ADD COLUMN IF NOT EXISTS archived_at timestamp without time zone;
+                """
+                ddl_invoice_exported_at = """
+                ALTER TABLE public.invoice
+                  ADD COLUMN IF NOT EXISTS exported_at timestamp without time zone;
+                """
+                
+                # PostgreSQL: ADD COLUMN IF NOT EXISTS funktioniert direkt
+                for ddl in [ddl_slot_archived, ddl_invoice_archived_at, ddl_invoice_exported_at]:
+                    try:
+                        conn.exec_driver_sql(ddl)
+                    except Exception:
+                        pass
+            else:
+                # SQLite: Prüfe manuell ob Tabellen und Spalten existieren
+                # Slot: archived
+                try:
+                    conn.execute(text("SELECT 1 FROM slot LIMIT 1"))
+                    try:
+                        conn.execute(text("SELECT archived FROM slot LIMIT 1"))
+                    except Exception:
+                        conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN archived INTEGER DEFAULT 0")
+                except Exception:
+                    pass
+                
+                # Invoice: archived_at
+                try:
+                    conn.execute(text("SELECT 1 FROM invoice LIMIT 1"))
+                    try:
+                        conn.execute(text("SELECT archived_at FROM invoice LIMIT 1"))
+                    except Exception:
+                        conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN archived_at DATETIME")
+                except Exception:
+                    pass
+                
+                # Invoice: exported_at
+                try:
+                    conn.execute(text("SELECT 1 FROM invoice LIMIT 1"))
+                    try:
+                        conn.execute(text("SELECT exported_at FROM invoice LIMIT 1"))
+                    except Exception:
+                        conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN exported_at DATETIME")
+                except Exception:
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_archive_fields fehlgeschlagen: {e}", flush=True)
 
 
 _ensure_archive_fields()
@@ -599,46 +817,50 @@ def _ensure_slot_status_constraint():
     Aktualisiert die CHECK-Constraint für slot.status, um EXPIRED und CANCELED zu erlauben.
     Entfernt die alte Constraint und erstellt eine neue mit allen erlaubten Statuswerten.
     """
-    # Schritt 1: Entferne alte Constraint falls vorhanden
-    ddl_drop_constraint = """
-    DO $$
-    BEGIN
-      IF EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'ck_slot_status'
-      ) THEN
-        ALTER TABLE public.slot DROP CONSTRAINT ck_slot_status;
-      END IF;
-      
-      -- Entferne auch slot_status_check falls vorhanden
-      IF EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'slot_status_check'
-      ) THEN
-        ALTER TABLE public.slot DROP CONSTRAINT slot_status_check;
-      END IF;
-    END $$;
-    """
-    
-    # Schritt 2: Erstelle neue Constraint mit allen erlaubten Statuswerten
-    ddl_add_constraint = """
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'ck_slot_status'
-      ) THEN
-        ALTER TABLE public.slot 
-          ADD CONSTRAINT ck_slot_status 
-          CHECK (status IN ('DRAFT', 'PUBLISHED', 'CANCELED', 'EXPIRED'));
-      END IF;
-    END $$;
-    """
-    
-    with engine.begin() as conn:
-        try:
-            conn.exec_driver_sql(ddl_drop_constraint)
-            conn.exec_driver_sql(ddl_add_constraint)
-            app.logger.info("Slot status constraint updated successfully")
-        except Exception as e:
-            app.logger.warning("ensure_slot_status_constraint failed: %r", e)
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                # Schritt 1: Entferne alte Constraint falls vorhanden
+                ddl_drop_constraint = """
+                DO $$
+                BEGIN
+                  IF EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'ck_slot_status'
+                  ) THEN
+                    ALTER TABLE public.slot DROP CONSTRAINT ck_slot_status;
+                  END IF;
+                  
+                  -- Entferne auch slot_status_check falls vorhanden
+                  IF EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'slot_status_check'
+                  ) THEN
+                    ALTER TABLE public.slot DROP CONSTRAINT slot_status_check;
+                  END IF;
+                END $$;
+                """
+                
+                # Schritt 2: Erstelle neue Constraint mit allen erlaubten Statuswerten
+                ddl_add_constraint = """
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'ck_slot_status'
+                  ) THEN
+                    ALTER TABLE public.slot 
+                      ADD CONSTRAINT ck_slot_status 
+                      CHECK (status IN ('DRAFT', 'PUBLISHED', 'CANCELED', 'EXPIRED'));
+                  END IF;
+                END $$;
+                """
+                
+                conn.exec_driver_sql(ddl_drop_constraint)
+                conn.exec_driver_sql(ddl_add_constraint)
+            else:
+                # SQLite: Constraints werden nicht dynamisch verwaltet
+                # Die Validierung erfolgt in der Anwendung (normalize_category, etc.)
+                pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_slot_status_constraint fehlgeschlagen: {e}", flush=True)
 
 
 _ensure_slot_status_constraint()
@@ -648,55 +870,76 @@ _ensure_slot_status_constraint()
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
 def _ensure_publish_quota_tables():
-    ddl_quota_uuid = """
-    CREATE TABLE IF NOT EXISTS public.publish_quota (
-      provider_id uuid NOT NULL,
-      month date NOT NULL,
-      used integer NOT NULL DEFAULT 0,
-      "limit" integer NOT NULL,
-      PRIMARY KEY (provider_id, month)
-    );
-    """
-    ddl_quota_fk = """
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'publish_quota_provider_fk'
-      ) THEN
-        ALTER TABLE public.publish_quota
-        ADD CONSTRAINT publish_quota_provider_fk
-        FOREIGN KEY (provider_id) REFERENCES public.provider(id) ON DELETE CASCADE;
-      END IF;
-    END $$;
-    """
-    ddl_slot_published_at = """
-    ALTER TABLE public.slot
-      ADD COLUMN IF NOT EXISTS published_at timestamp without time zone;
-    """
-    with engine.begin() as conn:
-        try:
-            conn.exec_driver_sql(ddl_quota_uuid)
-            conn.exec_driver_sql(ddl_quota_fk)
-        except Exception as e:
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl_quota_uuid = """
+                CREATE TABLE IF NOT EXISTS public.publish_quota (
+                  provider_id uuid NOT NULL,
+                  month date NOT NULL,
+                  used integer NOT NULL DEFAULT 0,
+                  "limit" integer NOT NULL,
+                  PRIMARY KEY (provider_id, month)
+                );
+                """
+                ddl_quota_fk = """
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'publish_quota_provider_fk'
+                  ) THEN
+                    ALTER TABLE public.publish_quota
+                    ADD CONSTRAINT publish_quota_provider_fk
+                    FOREIGN KEY (provider_id) REFERENCES public.provider(id) ON DELETE CASCADE;
+                  END IF;
+                END $$;
+                """
+                ddl_slot_published_at = """
+                ALTER TABLE public.slot
+                  ADD COLUMN IF NOT EXISTS published_at timestamp without time zone;
+                """
+                
+                try:
+                    conn.exec_driver_sql(ddl_quota_uuid)
+                    conn.exec_driver_sql(ddl_quota_fk)
+                except Exception:
+                    pass
+            else:
+                # SQLite-kompatibel
+                ddl_quota = """
+                CREATE TABLE IF NOT EXISTS publish_quota (
+                  provider_id TEXT NOT NULL,
+                  month DATE NOT NULL,
+                  used INTEGER NOT NULL DEFAULT 0,
+                  "limit" INTEGER NOT NULL,
+                  PRIMARY KEY (provider_id, month),
+                  FOREIGN KEY (provider_id) REFERENCES provider(id) ON DELETE CASCADE
+                );
+                """
+                try:
+                    conn.exec_driver_sql(ddl_quota)
+                except Exception:
+                    pass
+            
+            # published_at Spalte für Slot (beide DB-Typen)
             try:
-                conn.exec_driver_sql(
-                    """
-                    CREATE TABLE IF NOT EXISTS public.publish_quota (
-                      provider_id text NOT NULL,
-                      month date NOT NULL,
-                      used integer NOT NULL DEFAULT 0,
-                      "limit" integer NOT NULL,
-                      PRIMARY KEY (provider_id, month)
-                    );
-                    """
-                )
+                # Prüfe ob Tabelle existiert
+                conn.execute(text("SELECT 1 FROM slot LIMIT 1"))
+                
+                if IS_POSTGRESQL:
+                    conn.exec_driver_sql("ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS published_at timestamp without time zone;")
+                else:
+                    # SQLite: Prüfe ob Spalte existiert
+                    try:
+                        conn.execute(text("SELECT published_at FROM slot LIMIT 1"))
+                    except Exception:
+                        # Spalte existiert nicht, hinzufügen
+                        conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN published_at DATETIME")
             except Exception:
-                app.logger.warning("publish_quota ensure failed: %r", e)
-
-        try:
-            conn.exec_driver_sql(ddl_slot_published_at)
-        except Exception as e:
-            app.logger.warning("slot.published_at ensure failed: %r", e)
+                # Tabelle existiert nicht - ignorieren
+                pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}", flush=True)
 
 
 _ensure_publish_quota_tables()
