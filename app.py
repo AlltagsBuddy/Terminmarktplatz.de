@@ -293,10 +293,23 @@ ph = PasswordHasher(time_cost=2, memory_cost=102_400, parallelism=8)
 # --- CORS -------------------------------------------------
 # --- CORS -------------------------------------------------
 if IS_RENDER:
-    ALLOWED_ORIGINS = [
-        "https://terminmarktplatz.de",
-        "https://www.terminmarktplatz.de",
-    ]
+    # Prüfe ob es ein Testsystem ist (basierend auf RENDER_EXTERNAL_URL oder Service-Name)
+    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
+    IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
+    
+    if IS_TESTSYSTEM:
+        # Testsystem: Erlaube die Testsystem-URL und Produktions-URLs
+        ALLOWED_ORIGINS = [
+            RENDER_EXTERNAL_URL.rstrip("/"),  # Testsystem-URL
+            "https://terminmarktplatz.de",
+            "https://www.terminmarktplatz.de",
+        ]
+    else:
+        # Produktion: Nur Produktions-URLs
+        ALLOWED_ORIGINS = [
+            "https://terminmarktplatz.de",
+            "https://www.terminmarktplatz.de",
+        ]
 else:
     ALLOWED_ORIGINS = [
         "http://localhost:5000",
@@ -343,6 +356,29 @@ def add_headers(resp):
     # SAMEORIGIN statt DENY für Facebook in-app Browser Kompatibilität
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     resp.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
+    
+    # Dynamische CORS-Header für Testsysteme auf Render
+    # Überschreibt Flask-CORS für Testsystem-Origins
+    if IS_RENDER:
+        origin = request.headers.get("Origin")
+        if origin:
+            origin_lower = origin.lower()
+            # Erlaube Testsystem-Origins (onrender.com mit "test" im Namen)
+            is_testsystem_origin = (
+                "onrender.com" in origin_lower and 
+                ("test" in origin_lower or "testsystem" in origin_lower)
+            )
+            
+            if is_testsystem_origin:
+                # Setze/Überschreibe CORS-Header für Testsystem-Origins
+                resp.headers["Access-Control-Allow-Origin"] = origin
+                resp.headers["Access-Control-Allow-Credentials"] = "true"
+                resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+                resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                # Erlaube alle Request-Header für Preflight
+                if request.method == "OPTIONS":
+                    resp.status_code = 200
+    
     return resp
 
 

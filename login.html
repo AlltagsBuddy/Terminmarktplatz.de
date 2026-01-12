@@ -230,9 +230,18 @@
   (function(){
     const API = (typeof window.API === 'string')
       ? window.API
-      : ((h) => (h === 'localhost' || h === '127.0.0.1')
-            ? 'http://127.0.0.1:5000'
-            : 'https://api.terminmarktplatz.de')(location.hostname);
+      : ((h) => {
+          // Lokale Entwicklung
+          if (h === 'localhost' || h === '127.0.0.1') {
+            return 'http://127.0.0.1:5000';
+          }
+          // Testsystem auf Render
+          if (h.includes('testsystem') || h.includes('onrender.com')) {
+            return `${location.protocol}//${location.host}`;
+          }
+          // Produktion
+          return 'https://api.terminmarktplatz.de';
+        })(location.hostname);
 
     const btn  = document.getElementById('userMenuBtn');
     const menu = document.getElementById('userMenu');
@@ -564,8 +573,16 @@
     // ---------- API-Basis ----------
     const API = (() => {
       const h = location.hostname, proto = location.protocol;
-      const isLocal = (h === 'localhost' || h === '127.0.0.1');
-      return isLocal ? `${proto}//127.0.0.1:5000` : 'https://api.terminmarktplatz.de';
+      // Lokale Entwicklung
+      if (h === 'localhost' || h === '127.0.0.1') {
+        return `${proto}//127.0.0.1:5000`;
+      }
+      // Testsystem auf Render
+      if (h.includes('testsystem') || h.includes('onrender.com')) {
+        return `${proto}//${location.host}`;
+      }
+      // Produktion
+      return 'https://api.terminmarktplatz.de';
     })();
 
     // Footer-Jahr
