@@ -322,10 +322,12 @@ if IS_RENDER:
             "https://www.terminmarktplatz.de",
         ]
 else:
+    # Lokale Entwicklung: Erlaube localhost, 127.0.0.1 und lokale IP-Adressen
     ALLOWED_ORIGINS = [
         "http://localhost:5000",
         "http://127.0.0.1:5000",
     ]
+    # Lokale IP-Adressen werden dynamisch im after_request Handler erlaubt
 
 CORS(
     app,
@@ -368,12 +370,33 @@ def add_headers(resp):
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     resp.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
     
-    # Dynamische CORS-Header für Testsysteme auf Render
-    # Überschreibt Flask-CORS für Testsystem-Origins
-    if IS_RENDER:
-        origin = request.headers.get("Origin")
-        if origin:
-            origin_lower = origin.lower()
+    origin = request.headers.get("Origin")
+    if origin:
+        origin_lower = origin.lower()
+        
+        # Lokale Entwicklung: Erlaube lokale IP-Adressen (192.168.x.x, 10.x.x.x, etc.)
+        if not IS_RENDER:
+            import re
+            # Prüfe ob es eine lokale IP-Adresse ist
+            is_local_ip = (
+                "localhost" in origin_lower or
+                "127.0.0.1" in origin_lower or
+                re.match(r"^https?://192\.168\.\d+\.\d+", origin_lower) or
+                re.match(r"^https?://10\.\d+\.\d+\.\d+", origin_lower) or
+                origin_lower.endswith(".local")
+            )
+            
+            if is_local_ip:
+                # Setze CORS-Header für lokale IP-Adressen
+                resp.headers["Access-Control-Allow-Origin"] = origin
+                resp.headers["Access-Control-Allow-Credentials"] = "true"
+                resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+                resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                return resp
+        
+        # Dynamische CORS-Header für Testsysteme auf Render
+        # Überschreibt Flask-CORS für Testsystem-Origins
+        if IS_RENDER:
             # Erlaube Testsystem-Origins (onrender.com mit "test" im Namen)
             is_testsystem_origin = (
                 "onrender.com" in origin_lower and 
