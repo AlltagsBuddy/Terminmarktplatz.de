@@ -264,7 +264,7 @@
           Hier erfährst du, welche personenbezogenen Daten wir auf Terminmarktplatz verarbeiten, zu welchen Zwecken,
           auf welcher Rechtsgrundlage, wie lange und welche Rechte du nach der DSGVO hast.
         </p>
-        <p class="note">Stand: <span id="policy-date"></span></p>
+        <p class="note">Stand: 20. Juli 2025</p>
       </div>
     </section>
 
@@ -431,7 +431,7 @@
           </p>
           <ul>
             <li>
-              <strong>Session-/Auth-Cookies</strong> (z. B. Zugriffstoken/Refresh-Token, HTTP-only, Secure, SameSite=Lax):
+              <strong>Session-/Auth-Cookies</strong> (z. B. Zugriffstoken/Refresh-Token, HTTP-only, Secure; SameSite je nach Umgebung):
               notwendig für Login und Authentifizierung im Anbieter-Portal.
             </li>
             <li>
@@ -499,29 +499,41 @@
           </p>
           <ul>
             <li>
-              <strong>Hosting & Infrastruktur</strong> (z. B. Webserver, Datenbanken): EU-basierte Anbieter für
-              Hosting der Website und der Backend-Services.
+              <strong>Backend-Service & Datenbank (Render)</strong>: Wir betreiben die Server-Komponenten (API) und die Datenbank über
+              Render (render.com). Dabei werden u. a. Verbindungsdaten/Logdaten (z. B. IP-Adresse, Zeitstempel, angeforderte URL, HTTP-Status,
+              User-Agent) sowie die im Rahmen der Plattformnutzung anfallenden Daten (z. B. Konto-, Slot- und Buchungsdaten) verarbeitet,
+              soweit dies für den Betrieb erforderlich ist.
             </li>
             <li>
-              <strong>E-Mail-Versand (Transaktionsmails)</strong>: externer E-Mail-Dienstleister (z. B. Postmark),
-              der E-Mails im Auftrag versendet.
+              <strong>Website-Hosting (STRATO)</strong>: Die öffentliche Website (statische Seiten) wird über STRATO AG, Deutschland, bereitgestellt.
+              Beim Aufruf der Website verarbeitet STRATO technisch bedingt Server-Logdaten (siehe Punkt 5.1).
             </li>
             <li>
-              <strong>Optional: Zahlungsdienstleister</strong>, falls du eine kostenpflichtige Leistung buchst
-              (z. B. für Anbieter-Pakete). In diesem Fall werden Zahlungsdaten direkt vom Zahlungsdienstleister
-              verarbeitet; wir erhalten in der Regel keine vollständigen Zahlungsdetails.
+              <strong>Zahlungsplattform (CopeCart)</strong>: Für den Kauf kostenpflichtiger Pakete/Leistungen nutzen wir CopeCart.
+              Die Zahlungsabwicklung (inkl. Zahlungsdaten) erfolgt direkt über CopeCart. Wir erhalten typischerweise nur die zur Vertragsdurchführung
+              erforderlichen Informationen (z. B. Zahlungsstatus, Produkt/Plan, Transaktions-/Bestell-ID, Rechnungs-/Kontaktinformationen, sofern von dir
+              bei CopeCart angegeben) sowie ggf. technische Benachrichtigungen (Webhooks) zur Zuordnung deiner Zahlung.
             </li>
             <li>
-              <strong>Google Analytics</strong> (nur nach Einwilligung): Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland; 
-              Muttergesellschaft: Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA. 
-              Zweck: Analyse der Websitenutzung, Reichweitenmessung, Optimierung der Website. 
-              Verarbeitete Daten: IP-Adresse (anonymisiert), Nutzungsdaten, Geräteinformationen. 
-              Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). 
-              Speicherdauer: Standardmäßig 14 Monate. 
-              Datenübertragung in die USA erfolgt auf Basis der Standardvertragsklauseln nach Art. 46 DSGVO. 
+              <strong>E-Mail-Versand (Transaktionsmails)</strong>: Für den Versand von System-E-Mails (z. B. Registrierung/Verifizierung,
+              Buchungsbestätigungen, Storno, Passwort-Reset) nutzen wir – je nach Konfiguration – einen externen E-Mail-Dienstleister
+              (z. B. Resend oder Postmark) oder SMTP. Dabei werden Absender-/Empfängeradresse, Versandzeitpunkt sowie der Inhalt der jeweiligen
+              System-E-Mail verarbeitet.
+            </li>
+            <li>
+              <strong>Google Analytics</strong> (nur nach Einwilligung): Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland;
+              Muttergesellschaft: Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA.
+              Zweck: Analyse der Websitenutzung, Reichweitenmessung, Optimierung der Website.
+              Verarbeitete Daten: IP-Adresse (anonymisiert), Nutzungsdaten, Geräteinformationen.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).
+              Speicherdauer: Standardmäßig 14 Monate.
               Weitere Details siehe Punkt 6.1.
             </li>
           </ul>
+          <p class="note">
+            <strong>Hinweis:</strong> Je nach technischer Ausgestaltung können Hosting-/Infrastruktur-Dienstleister auch außerhalb der EU/des EWR
+            eingebunden sein. Details zur Drittlandübermittlung findest du in Punkt 8.
+          </p>
 
           <h2>8. Datenübermittlung in Drittländer</h2>
           <p>
@@ -537,6 +549,11 @@
             die zwischen Google Ireland Limited (EU) und Google LLC (USA) geschlossen wurden. 
             Weitere Informationen zur Datenübertragung findest du in den 
             <a href="https://policies.google.com/privacy/frameworks" target="_blank" rel="noopener noreferrer">Google Privacy Frameworks</a>.
+          </p>
+          <p>
+            <strong>Render / Infrastruktur:</strong> Soweit im Rahmen des Hostings/der Infrastruktur eine Verarbeitung außerhalb der EU/des EWR
+            erfolgt, stützen wir diese – sofern erforderlich – auf geeignete Garantien (z. B. Standardvertragsklauseln) und angemessene
+            technische und organisatorische Maßnahmen.
           </p>
 
           <h2>9. Speicherdauer</h2>
@@ -652,10 +669,7 @@
     (function(){
       const yEl = document.getElementById('y');
       if (yEl) yEl.textContent = new Date().getFullYear();
-      const d = new Date();
-      const pad = (n)=> String(n).padStart(2,'0');
-      const pd = document.getElementById('policy-date');
-      if (pd) pd.textContent = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
+      // Stand-Datum ist fest im HTML definiert (20. Juli 2025) und wird nicht dynamisch gesetzt
     })();
   </script>
 

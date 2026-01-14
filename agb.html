@@ -192,7 +192,7 @@
           Diese AGB regeln die Nutzung von Terminmarktplatz durch Anbieter:innen („Anbieter“) und Nutzer:innen, die Termine suchen
           und buchen („Suchende“). Terminmarktplatz ist eine Vermittlungsplattform.
         </p>
-        <p class="note">Stand: <span id="stand"></span></p>
+        <p class="note">Stand: 20. Juli 2025</p>
       </div>
     </section>
 
@@ -285,7 +285,7 @@
           <p>
             Maßgeblich sind ausschließlich die im Zeitpunkt der Buchung des jeweiligen Modells auf der Seite
             <a href="preise.html">Preise</a> dargestellten Konditionen. Sämtliche Gebühren verstehen sich – sofern nicht anders
-            ausgewiesen – inklusive gesetzlicher Umsatzsteuer.
+            ausgewiesen – als Endpreise. Die gesetzliche Umsatzsteuer ist in den Preisen enthalten, soweit wir umsatzsteuerpflichtig sind.
           </p>
           <p>
             Entgelte werden nach dem vereinbarten Leistungszeitraum abgerechnet; Zahlungen erfolgen bargeldlos über die angebotenen Zahlungsmethoden.
@@ -294,16 +294,18 @@
 
           <h3>6.1 Aufbewahrungspflicht für Rechnungen</h3>
           <p>
-            <strong>Rechnungen werden von uns 8 Jahre lang aufbewahrt (gemäß GoBD / Abgabenordnung §147).</strong>
-            Dies ist eine gesetzliche Pflicht für Rechnungsaussteller und kann nicht auf Dritte übertragen werden.
+            <strong>Rechnungen werden von uns gemäß den gesetzlichen Aufbewahrungspflichten (insbesondere GoBD / Abgabenordnung §147) aufbewahrt.</strong>
+            Die Aufbewahrungsfrist beträgt grundsätzlich 10 Jahre für Rechnungen im Sinne des Umsatzsteuergesetzes, soweit nicht kürzere
+            Fristen (z. B. 6 Jahre für andere Belege) gelten. Dies ist eine gesetzliche Pflicht für Rechnungsaussteller und kann nicht
+            auf Dritte übertragen werden.
           </p>
           <p>
             Anbieter können ihre Rechnungen jederzeit über das Anbieter-Portal einsehen, herunterladen und für eigene Zwecke archivieren.
             Diese Möglichkeit stellt einen Service dar und entbindet uns nicht von unserer eigenen Aufbewahrungspflicht.
           </p>
           <p>
-            <strong>Rechnungen werden von uns niemals gelöscht</strong> – auch nicht auf Anbieteranfrage – solange die gesetzliche
-            Aufbewahrungsfrist läuft. Nach Ablauf der Frist erfolgt die Löschung gemäß den gesetzlichen Bestimmungen.
+            <strong>Rechnungen werden von uns während der gesetzlichen Aufbewahrungsfrist nicht gelöscht</strong> – auch nicht auf Anbieteranfrage.
+            Nach Ablauf der gesetzlichen Aufbewahrungsfrist erfolgt die Löschung gemäß den datenschutzrechtlichen Bestimmungen (DSGVO).
           </p>
 
           <h2>7. Widerruf, Stornierung & No-Show</h2>
@@ -385,10 +387,8 @@
 
           <h2>14. Online-Streitbeilegung & Verbraucherstreitbeilegung</h2>
           <p>
-            Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit, die du unter
-            <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">
-              https://ec.europa.eu/consumers/odr
-            </a> findest.
+            <strong>Hinweis:</strong> Die Europäische Plattform zur Online-Streitbeilegung (OS-Plattform) wurde am 20. Juli 2025 eingestellt.
+            Für Streitigkeiten stehen Ihnen die ordentlichen Gerichte zur Verfügung.
           </p>
           <p>
             Wir sind weder verpflichtet noch bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle im Sinne
@@ -467,11 +467,10 @@
   </footer>
 
   <script>
-    // Jahr im Footer + Stand-Datum im Hero
+    // Jahr im Footer
     const yEl = document.getElementById('y');
     if (yEl) yEl.textContent = new Date().getFullYear();
-    const standEl = document.getElementById('stand');
-    if (standEl) standEl.textContent = new Date().toLocaleDateString('de-DE');
+    // Stand-Datum ist fest im HTML definiert (20. Juli 2025) und wird nicht dynamisch gesetzt
   </script>
 
   <!-- User-Menü Logik (mobil + Auth-Status) -->
