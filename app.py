@@ -362,6 +362,30 @@ CORS(
 
 
 
+@app.before_request
+def handle_cors_preflight():
+    """Behandelt CORS Preflight (OPTIONS) Anfragen für lokale IPs."""
+    if request.method == "OPTIONS":
+        origin = request.headers.get("Origin")
+        if origin and not IS_RENDER:
+            import re
+            origin_lower = origin.lower()
+            is_local_ip = (
+                "localhost" in origin_lower or
+                "127.0.0.1" in origin_lower or
+                re.match(r"^https?://192\.168\.\d+\.\d+", origin_lower) or
+                re.match(r"^https?://10\.\d+\.\d+\.\d+", origin_lower) or
+                origin_lower.endswith(".local")
+            )
+            if is_local_ip:
+                resp = make_response()
+                resp.headers["Access-Control-Allow-Origin"] = origin
+                resp.headers["Access-Control-Allow-Credentials"] = "true"
+                resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+                resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                return resp
+
+
 @app.after_request
 def add_headers(resp):
     resp.headers.setdefault("Cache-Control", "no-store")
@@ -2385,8 +2409,13 @@ if _html_enabled():
     def any_page(slug: str):
         # Spezifische Routen sollten bereits abgefangen worden sein
         # Diese Route ist nur für generische HTML-Dateien
+        # WICHTIG: API-Endpoints nicht abfangen (werden später definiert)
         if slug.startswith("admin/"):
             abort(404)  # Admin-Routen müssen explizit definiert sein
+        # API-Endpoints nicht abfangen: /me, /auth/*, /api/*, /slots*, /public/*, etc.
+        if slug in ("me", "auth", "api", "slots", "public", "alerts", "provider", "webhook", "healthz") or \
+           slug.startswith(("auth/", "api/", "slots", "public/", "alerts/", "provider/", "webhook/", "admin/")):
+            abort(404)  # Diese Routen werden separat definiert
         filename = slug if slug.endswith(".html") else f"{slug}.html"
         # Versuche zuerst Root-Verzeichnis (die meisten HTML-Dateien liegen dort)
         file_path = os.path.join(APP_ROOT, filename)
