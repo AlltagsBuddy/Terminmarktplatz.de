@@ -174,6 +174,7 @@ class Slot(Base):
 
     price_cents: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)  # Beschreibung für Suchende (öffentlich sichtbar)
 
     # ✅ kompatibel zu app.py
     status: Mapped[str] = mapped_column(Text, default="DRAFT")

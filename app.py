@@ -913,6 +913,30 @@ def _ensure_slot_status_constraint():
 _ensure_slot_status_constraint()
 
 
+def _ensure_slot_description_field():
+    """Fügt description-Spalte zu Slot-Tabelle hinzu (idempotent)."""
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                # PostgreSQL: ADD COLUMN IF NOT EXISTS
+                conn.exec_driver_sql("""
+                    ALTER TABLE public.slot 
+                    ADD COLUMN IF NOT EXISTS description text;
+                """)
+            else:
+                # SQLite: Prüfe ob Spalte existiert
+                try:
+                    conn.execute(text("SELECT description FROM slot LIMIT 1"))
+                except Exception:
+                    # Spalte existiert nicht, hinzufügen
+                    conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN description TEXT")
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_slot_description_field fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_slot_description_field()
+
+
 # --------------------------------------------------------
 # Publish-Quota Tabellen (idempotent, best effort)
 # --------------------------------------------------------
@@ -1295,6 +1319,7 @@ def slot_to_json(x: Slot):
         "booking_link": x.booking_link,
         "price_cents": x.price_cents,
         "notes": x.notes,
+        "description": getattr(x, "description", None),
         "status": x.status,
         "archived": getattr(x, "archived", False),
         "published_at": _from_db_as_iso_utc(published_at) if published_at else None,
@@ -4445,6 +4470,7 @@ def slots_create():
                 booking_link=(data.get("booking_link") or None),
                 price_cents=(data.get("price_cents") or None),
                 notes=(data.get("notes") or None),
+                description=(data.get("description") or None),
                 status=SLOT_STATUS_DRAFT,
                 **slot_kwargs_extra,
             )
@@ -4599,6 +4625,7 @@ def slots_update(slot_id):
                 "booking_link",
                 "price_cents",
                 "notes",
+                "description",
             ]:
                 if k in data:
                     setattr(slot, k, data[k])

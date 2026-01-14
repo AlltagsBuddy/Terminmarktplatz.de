@@ -668,8 +668,14 @@
                 <input id="sl-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
               </div>
               <div class="field" style="grid-column:1/-1">
+                <label for="sl-description">Beschreibung (für Suchende sichtbar)</label>
+                <textarea id="sl-description" rows="3" placeholder="Optionale Beschreibung des Termins, die Suchende in den Suchergebnissen sehen können"></textarea>
+                <span class="hint" style="font-size: 12px;">Diese Beschreibung wird in den Suchergebnissen angezeigt und hilft Suchenden, den Termin besser zu verstehen.</span>
+              </div>
+              <div class="field" style="grid-column:1/-1">
                 <label for="sl-notes">Notizen (intern)</label>
                 <textarea id="sl-notes" rows="2" placeholder="optional"></textarea>
+                <span class="hint" style="font-size: 12px;">Interne Notizen, die nur für dich sichtbar sind.</span>
               </div>
 
               <div class="toolbar">
@@ -1518,6 +1524,7 @@
 
         capacity: isNaN(capacity) ? 1 : capacity,
         price_cents: (priceCents === null || isNaN(priceCents)) ? null : priceCents,
+        description: description || null,
         notes: notes || null
       };
 
@@ -1737,6 +1744,8 @@
         }
       }
 
+      const descriptionInput = document.getElementById('sl-description');
+      if (descriptionInput) descriptionInput.value = slot.description || '';
       const notesInput = document.getElementById('sl-notes');
       if (notesInput) notesInput.value = slot.notes || '';
 

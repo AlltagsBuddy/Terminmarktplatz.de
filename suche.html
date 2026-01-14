@@ -989,6 +989,10 @@
                 <p class="muted" style="margin:2px 0 0;">
                   <strong>Adresse:</strong> ${terminAddress}
                 </p>` : ''}
+              ${x.description ? `
+                <p style="margin:8px 0 0; color:#475569; line-height:1.5;">
+                  ${x.description}
+                </p>` : ''}
             </div>
             <div>
               <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
