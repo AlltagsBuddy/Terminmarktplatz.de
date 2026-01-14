@@ -24,25 +24,28 @@
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
   <style>
+    /* --- Seiten-spezifische Styles (Impressum) - wie AGB/Datenschutz --- */
+    .legal h2{margin-top:8px}
+    .legal h3{margin:14px 0 8px}
+    .legal p{margin:8px 0}
+    .legal ul{margin:6px 0 12px 18px}
+    .legal li{margin:4px 0}
+    .legal .note{font-size:14px; color:#475569; font-weight:500}
+    .legal .panel a{ text-decoration: underline; }
     .small{
       font-size:13px;
-      color:var(--ink-dim);
-    }
-    .impressum h2{
-      margin-top:8px;
-    }
-    .impressum h3{
-      margin:16px 0 6px;
-    }
-    .impressum p{
-      margin:6px 0;
+      color:#64748b;
+      font-weight:500;
     }
     .callout{
-      border-left:4px solid var(--ab-primary, #6f53ff);
+      border-left:4px solid #6f53ff;
       padding:12px 14px;
-      background:#fff;
-      border:1px solid var(--ab-border, #e2e8f0);
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
       border-radius:12px;
+    }
+    .callout .small{
+      color:#475569;
     }
 
     /* auth-in initial verstecken – JS blendet bei Login ein */
@@ -130,6 +133,7 @@
         font-size: 0.95rem;
       }
 
+      .legal .panel,
       .card.impressum {
         padding: 18px !important;
       }
@@ -216,7 +220,7 @@
 
     <section>
       <div class="container">
-        <div class="card impressum" style="padding:22px">
+        <div class="panel legal" style="padding:22px">
           <h2>1. Angaben gemäß § 5 TMG</h2>
           <p>
             <strong>AlltagsBuddy – Inh. Annett Hofmann</strong><br>
