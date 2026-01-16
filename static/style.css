@@ -656,19 +656,36 @@ footer{
   display:none;
 }
 .cookie .wrap{
-  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-  border:1px solid var(--border);
+  background:#ffffff;
+  border:2px solid #0f172a;
   border-radius:18px;
-  padding:14px;
-  box-shadow:var(--shadow-2);
+  padding:16px;
+  box-shadow:0 14px 40px rgba(0,0,0,.35);
+  color:#0f172a;
+  max-width:860px;
+  margin:0 auto;
 }
 .cookie p{
-  margin:0 0 10px;
-  color:var(--ink-dim);
+  margin:0 0 12px;
+  color:#0f172a;
+  font-size:clamp(14px, 1.9vw, 16px);
+  line-height:1.45;
 }
 .cookie .btns{
   display:flex;
   gap:10px;
+  flex-wrap:wrap;
+}
+@media (max-width:640px){
+  .cookie{
+    inset:auto 12px 12px 12px;
+  }
+  .cookie .btns{
+    flex-direction:column;
+  }
+  .cookie .btns .btn{
+    width:100%;
+  }
 }
 
 /* =========================================================
