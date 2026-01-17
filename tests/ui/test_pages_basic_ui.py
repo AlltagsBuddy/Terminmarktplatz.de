@@ -1,5 +1,5 @@
 import pytest
-import requests
+from playwright.sync_api import Page, expect
 
 
 @pytest.mark.parametrize(
@@ -19,9 +19,8 @@ import requests
         ("/cookie-einstellungen", "Cookie-Einstellungen | Terminmarktplatz"),
     ],
 )
-def test_pages_are_reachable(app_base_url: str, path: str, expected_title: str) -> None:
-    response = requests.get(f"{app_base_url}{path}", timeout=20)
-    assert response.status_code == 200
-    html = response.text.lower()
-    assert "<html" in html
-    assert expected_title.lower() in html
+def test_pages_are_reachable_ui(app_base_url: str, page: Page, path: str, expected_title: str) -> None:
+    response = page.goto(f"{app_base_url}{path}", wait_until="domcontentloaded")
+    assert response is not None and response.ok
+    expect(page.locator("html")).to_be_visible()
+    expect(page).to_have_title(expected_title)

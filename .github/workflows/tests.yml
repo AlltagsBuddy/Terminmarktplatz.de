@@ -30,3 +30,11 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: test-artifacts
+          if-no-files-found: ignore
