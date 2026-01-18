@@ -32,10 +32,14 @@
         Konto ▾
       </button>
       <div id="userMenu" class="menu" role="menu" hidden>
-        <button class="item" data-action="logout" role="menuitem">Abmelden</button>
-        <a class="item" href="kontakt.html" role="menuitem">Kontaktformular</a>
+        <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+        <button class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+        <a class="item auth-in" href="anbieter-portal.html" role="menuitem">Profil</a>
+        <a class="item auth-in" href="anbieter-portal.html#step-3" role="menuitem">Slot anlegen</a>
+        <a class="item auth-in admin-only" href="https://api.terminmarktplatz.de/admin-rechnungen.html" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+        <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+        <a class="item" href="kontakt.html" role="menuitem">Kontakt</a>
         <a class="item" href="hilfe.html" role="menuitem">Hilfe</a>
-        <button class="item danger" data-action="delete" role="menuitem">Konto löschen</button>
       </div>
     </div>
   </div>

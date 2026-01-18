@@ -198,6 +198,7 @@
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -431,18 +432,25 @@
 
       const authOutEls = menu.querySelectorAll('.auth-out');
       const authInEls  = menu.querySelectorAll('.auth-in');
+      const adminOnlyEls = menu.querySelectorAll('.admin-only');
 
-      function setAuthVisible(isLoggedIn){
+      function setAuthVisible(isLoggedIn, isAdmin){
         authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
         authInEls.forEach(el  => { el.style.display  = isLoggedIn ? '' : 'none'; });
+        adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
       }
 
       async function checkAuth(){
         try{
           const res = await fetch(`${APIforMenu}/me`, { credentials:'include' });
-          setAuthVisible(res.ok);
+          if (res.ok) {
+            const data = await res.json().catch(()=> null);
+            setAuthVisible(true, data?.is_admin === true);
+          } else {
+            setAuthVisible(false, false);
+          }
         }catch(e){
-          setAuthVisible(false);
+          setAuthVisible(false, false);
         }
       }
 

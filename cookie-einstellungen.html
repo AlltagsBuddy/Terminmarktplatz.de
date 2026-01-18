@@ -192,6 +192,7 @@
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -401,9 +402,21 @@
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
           const loggedIn = res.ok;
+          let isAdmin = false;
+          if (res.ok) {
+            const data = await res.json().catch(()=> null);
+            isAdmin = data?.is_admin === true;
+          }
           document.querySelectorAll('.auth-in').forEach(el => el.style.display = loggedIn ? '' : 'none');
           document.querySelectorAll('.auth-out').forEach(el => el.style.display = loggedIn ? 'none' : '');
-        }catch(e){}
+          document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = (loggedIn && isAdmin) ? '' : 'none';
+          });
+        }catch(e){
+          document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = 'none';
+          });
+        }
       }
       checkAuth();
     })();
