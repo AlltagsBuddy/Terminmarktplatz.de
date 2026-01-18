@@ -2382,10 +2382,12 @@ if _html_enabled():
         return send_from_directory(APP_ROOT, "login.html")
 
     @app.get("/anbieter-portal")
+    @auth_required()
     def anbieter_portal_page():
         return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
     @app.get("/anbieter-portal.html")
+    @auth_required()
     def anbieter_portal_page_html():
         return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
