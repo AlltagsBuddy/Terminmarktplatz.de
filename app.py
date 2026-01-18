@@ -4617,20 +4617,29 @@ def slots_update(slot_id):
                             return _json_error("bad_capacity", 400)
                         return _json_error("bad_request", 400)
 
+            start_changed = False
+            end_changed = False
+
             if "start_at" in data:
                 try:
-                    slot.start_at = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
+                    new_start = _to_db_utc_naive(parse_iso_utc(data["start_at"]))
                 except Exception:
                     return _json_error("bad_datetime", 400)
+                if slot.start_at != new_start:
+                    start_changed = True
+                slot.start_at = new_start
             if "end_at" in data:
                 try:
-                    slot.end_at = _to_db_utc_naive(parse_iso_utc(data["end_at"]))
+                    new_end = _to_db_utc_naive(parse_iso_utc(data["end_at"]))
                 except Exception:
                     return _json_error("bad_datetime", 400)
+                if slot.end_at != new_end:
+                    end_changed = True
+                slot.end_at = new_end
             if slot.end_at <= slot.start_at:
                 return _json_error("end_before_start", 400)
 
-            if _as_utc_aware(slot.start_at) <= _now():
+            if (start_changed or end_changed) and _as_utc_aware(slot.start_at) <= _now():
                 return _json_error("start_in_past", 409)
 
             if "category" in data:
