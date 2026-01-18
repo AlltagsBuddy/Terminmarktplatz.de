@@ -222,6 +222,22 @@
       color:#0f172a !important;
     }
 
+    .logo-upload{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .logo-preview{
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      border:1px solid #e2e8f0;
+      object-fit:cover;
+      margin-top:6px;
+      background:#fff;
+    }
+
     .slot-filter{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .slot-filter input{
       background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
@@ -576,9 +592,13 @@
               <label for="pf-whatsapp">WhatsApp (optional)</label>
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
             </div>
-            <div class="field">
-              <label for="pf-logo">Logo (URL, optional)</label>
-              <input id="pf-logo" name="logo_url" placeholder="https://.../logo.png"/>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-logo-file">Logo (JPG, 512x512, max 300 KB)</label>
+              <div class="logo-upload">
+                <input id="pf-logo-file" type="file" accept="image/jpeg"/>
+                <button type="button" class="btn" id="pf-logo-upload-btn">Logo hochladen</button>
+              </div>
+              <img id="pf-logo-preview" class="logo-preview" alt="Logo Vorschau" style="display:none;">
               <span class="hint" style="font-size: 12px;">Wird in der Suche angezeigt und sorgt für Wiedererkennung.</span>
             </div>
             <div class="toolbar">
@@ -1102,7 +1122,6 @@
         city:         $('#pf-city').value.trim(),
         phone:        $('#pf-phone').value.trim(),
         whatsapp:     $('#pf-whatsapp').value.trim(),
-        logo_url:     $('#pf-logo').value.trim(),
       };
     }
 
@@ -1135,6 +1154,18 @@
       const guard = $('#slot-guard');
       if (fs) fs.disabled = !!locked;
       if (guard) guard.style.display = locked ? 'block' : 'none';
+    }
+
+    function setLogoPreview(url){
+      const img = document.getElementById('pf-logo-preview');
+      if (!img) return;
+      if (url) {
+        img.src = url;
+        img.style.display = 'block';
+      } else {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
     }
 
     // ---------- Auth / Profil laden ----------
@@ -1174,7 +1205,7 @@
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
-        $('#pf-logo').value     = ME.logo_url || '';
+        setLogoPreview(ME.logo_url || '');
 
         // Provider-Nummer anzeigen - MIT RETRY-LOGIK
         const providerIdDisplay = document.getElementById('provider-id-display');
@@ -1423,6 +1454,50 @@
         showMsg('msg-profile','Netzwerkfehler.');
       }
     });
+
+    const logoUploadBtn = document.getElementById('pf-logo-upload-btn');
+    const logoInput = document.getElementById('pf-logo-file');
+    if (logoUploadBtn && logoInput) {
+      logoUploadBtn.addEventListener('click', async ()=>{
+        const file = logoInput.files && logoInput.files[0];
+        if (!file) {
+          showMsg('msg-profile', 'Bitte eine JPG-Datei auswählen.');
+          return;
+        }
+        const isJpg = (file.type === 'image/jpeg')
+          || (file.name || '').toLowerCase().endsWith('.jpg')
+          || (file.name || '').toLowerCase().endsWith('.jpeg');
+        if (!isJpg) {
+          showMsg('msg-profile', 'Nur JPG-Dateien sind erlaubt.');
+          return;
+        }
+
+        const form = new FormData();
+        form.append('logo', file);
+        try {
+          const res = await fetch(`${API}/me/logo`, {
+            method:'POST',
+            credentials:'include',
+            body: form
+          });
+          const data = await res.json().catch(()=> ({}));
+          if (res.ok && data.logo_url) {
+            setLogoPreview(data.logo_url);
+            if (ME) ME.logo_url = data.logo_url;
+            showMsg('msg-profile', 'Logo hochgeladen.', true);
+          } else {
+            const map = {
+              logo_too_large: 'Logo ist zu groß (max 300 KB).',
+              invalid_logo_format: 'Nur JPG erlaubt.',
+              invalid_logo_size: 'Logo muss 512x512 Pixel sein.',
+            };
+            showMsg('msg-profile', map[data.error] || 'Logo-Upload fehlgeschlagen.');
+          }
+        } catch (e2) {
+          showMsg('msg-profile', 'Netzwerkfehler beim Logo-Upload.');
+        }
+      });
+    }
 
     // ---------- Passwort ändern ----------
     $('#form-change-password').addEventListener('submit', async (e)=>{

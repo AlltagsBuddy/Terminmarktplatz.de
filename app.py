@@ -15,6 +15,7 @@ from email.message import EmailMessage
 from email.utils import parseaddr, formataddr
 import smtplib
 import requests
+from PIL import Image, UnidentifiedImageError
 
 # ZoneInfo robust (Backport bei < 3.9)
 try:
@@ -68,6 +69,9 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
+LOGO_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-logos")
+LOGO_MAX_BYTES = 300 * 1024
+LOGO_SIZE_PX = 512
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -82,6 +86,8 @@ app = Flask(
     static_url_path="/static",
     template_folder=TEMPLATE_DIR,
 )
+
+os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -3225,6 +3231,67 @@ def me_update():
         return jsonify({"ok": True})
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.post("/me/logo")
+@auth_required()
+def me_logo_upload():
+    try:
+        if "logo" not in request.files:
+            return _json_error("missing_file", 400)
+        file = request.files["logo"]
+        if not file or not file.filename:
+            return _json_error("missing_file", 400)
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > LOGO_MAX_BYTES:
+            return _json_error("logo_too_large", 400)
+
+        try:
+            img = Image.open(file.stream)
+            img.verify()
+        except UnidentifiedImageError:
+            return _json_error("invalid_logo_format", 400)
+        except Exception:
+            return _json_error("invalid_logo_format", 400)
+        finally:
+            file.stream.seek(0)
+
+        try:
+            img = Image.open(file.stream)
+            width, height = img.size
+            fmt = (img.format or "").upper()
+        except Exception:
+            return _json_error("invalid_logo_format", 400)
+        finally:
+            file.stream.seek(0)
+
+        if fmt != "JPEG":
+            return _json_error("invalid_logo_format", 400)
+        if width != LOGO_SIZE_PX or height != LOGO_SIZE_PX:
+            return _json_error("invalid_logo_size", 400)
+
+        filename = f"{request.provider_id}.jpg"
+        target_path = os.path.join(LOGO_UPLOAD_DIR, filename)
+        with open(target_path, "wb") as out:
+            out.write(file.stream.read())
+
+        logo_path = f"/static/uploads/provider-logos/{filename}"
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            p.logo_url = logo_path
+            s.commit()
+
+        cache_buster = int(time.time())
+        return jsonify({"ok": True, "logo_url": f"{logo_path}?v={cache_buster}"})
+    except Exception:
+        app.logger.exception("me_logo_upload failed")
         return jsonify({"error": "server_error"}), 500
 
 
