@@ -35,7 +35,18 @@ def seeded_data():
             phone="1234567",
             status="approved",
         )
-        s.add(provider)
+        provider2 = Provider(
+            email="public-slots-2@example.com",
+            pw_hash="test",
+            company_name="Public 2 GmbH",
+            branch="Kosmetik",
+            street="Nebenweg",
+            zip="99999",
+            city="Anderstadt",
+            phone="1234567",
+            status="approved",
+        )
+        s.add_all([provider, provider2])
         s.flush()
 
         now = app_module._now()
@@ -57,7 +68,7 @@ def seeded_data():
             status="PUBLISHED",
         )
         slot2 = Slot(
-            provider_id=provider.id,
+            provider_id=provider2.id,
             title="Termin B",
             category="Kosmetik",
             start_at=start2,

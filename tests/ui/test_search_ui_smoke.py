@@ -12,10 +12,14 @@ def _normalize(val: str | None) -> str:
 def _fetch_slots(page: Page, app_base_url: str) -> list[dict]:
     last_status = None
     for _ in range(3):
-        resp = page.request.get(
-            f"{app_base_url}/public/slots?include_full=1",
-            timeout=60_000,
-        )
+        try:
+            resp = page.request.get(
+                f"{app_base_url}/public/slots?include_full=1",
+                timeout=60_000,
+            )
+        except Exception:
+            time.sleep(1.5)
+            continue
         last_status = resp.status
         if resp.ok:
             return resp.json() or []
