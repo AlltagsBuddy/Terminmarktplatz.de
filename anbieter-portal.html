@@ -114,10 +114,30 @@
     .duration-row input{ flex:1 1 auto; width:100%; }
     .duration-row select{ flex:0 0 90px; max-width:90px; }
 
-    .table{width:100%; border-collapse:collapse; border:1px solid var(--border);
-           border-radius:14px; overflow:hidden}
-    .table th,.table td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left}
-    .table th{background:#f8fafc; color:#0f172a}
+    .table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 10px;
+      border:0;
+    }
+    .table th,.table td{
+      padding:10px 12px;
+      border-bottom:0;
+      text-align:left;
+      background:#ffffff;
+    }
+    .table th{
+      background:#f8fafc;
+      color:#0f172a;
+      border-bottom:1px solid var(--border);
+    }
+    .table tbody tr td:first-child{ border-top-left-radius:12px; border-bottom-left-radius:12px; }
+    .table tbody tr td:last-child{ border-top-right-radius:12px; border-bottom-right-radius:12px; }
+    .table tbody tr{
+      box-shadow:0 6px 16px rgba(15,23,42,0.08);
+      outline:1px solid var(--border);
+      border-radius:12px;
+    }
     .table th:first-child,.table td:first-child{ text-align:center; width:34px }
 
     .badge-st{padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border)}
@@ -132,10 +152,13 @@
     .table tr.slot-booked td{ background:#dcfce7; }
     .table tr.slot-booked.slot-past td{ background:#bbf7d0; }
 
+    .slot-title{ font-weight:700; color:#0f172a; }
+    .slot-desc{ margin-top:4px; color:#475569; font-size:0.88rem; }
+    .slot-hints{ display:flex; flex-direction:column; gap:2px; margin-top:4px; }
     .slot-hint{
       display:block;
       font-size:12px;
-      margin-top:2px;
+      margin-top:0;
       color:#0f172a;
     }
     .slot-past .slot-hint{
@@ -1891,6 +1914,10 @@
         if (bookingHint)      hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
         if (bookingTimeHint)  hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
         if (canceledTimeHint) hintHtml.push(`<span class="slot-hint slot-hint-canceled">${canceledTimeHint}</span>`);
+        const hintBlock = hintHtml.length ? `<div class="slot-hints">${hintHtml.join('')}</div>` : '';
+
+        const description = (s.description || '').toString().trim();
+        const descriptionHtml = description ? `<div class="slot-desc">${description}</div>` : '';
 
         let cancelHtml = '';
         if (activeBookings.length === 1){
@@ -1924,8 +1951,9 @@
           <td data-label="Start">${fmtLocal(s.start_at)}</td>
           <td data-label="Ende">${fmtLocal(s.end_at)}</td>
           <td data-label="Titel">
-            ${s.title}
-            ${hintHtml.join('')}
+            <div class="slot-title">${s.title || ''}</div>
+            ${descriptionHtml}
+            ${hintBlock}
           </td>
           <td data-label="Kategorie">${s.category||''}</td>
           <td data-label="Ort">${place || ''}</td>
