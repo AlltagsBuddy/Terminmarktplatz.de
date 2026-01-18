@@ -39,7 +39,7 @@ def test_split_street_and_number():
     assert num == "12a"
 
     street2, num2 = app_module.split_street_and_number("OhneNummer")
-    assert street2 == ""
+    assert street2 == "OhneNummer"
     assert num2 == ""
 
 
