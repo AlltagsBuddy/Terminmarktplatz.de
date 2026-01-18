@@ -493,6 +493,7 @@ def _ensure_base_tables():
                   city TEXT,
                   phone TEXT,
                   whatsapp TEXT,
+                  logo_url TEXT,
                   status TEXT NOT NULL DEFAULT 'pending',
                   is_admin INTEGER NOT NULL DEFAULT 0,
                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -562,6 +563,35 @@ def _ensure_base_tables():
 # Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
 # WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
 _ensure_base_tables()
+
+
+# --------------------------------------------------------
+# Provider: Logo-URL Feld hinzufügen (optional)
+# --------------------------------------------------------
+def _ensure_provider_logo_url():
+    """
+    Fügt das logo_url Feld zur provider Tabelle hinzu, falls es noch nicht existiert.
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                ALTER TABLE public.provider
+                  ADD COLUMN IF NOT EXISTS logo_url text;
+                """
+                conn.exec_driver_sql(ddl)
+            else:
+                try:
+                    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(provider)")).fetchall()]
+                    if "logo_url" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN logo_url TEXT")
+                except Exception:
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_logo_url fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_provider_logo_url()
 
 
 # --------------------------------------------------------
@@ -3092,6 +3122,7 @@ def me():
                 "city": p.city,
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
+                "logo_url": getattr(p, "logo_url", None),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -3111,7 +3142,7 @@ def me():
 def me_update():
     try:
         data = request.get_json(force=True) or {}
-        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp"}
+        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp", "logo_url"}
 
         def clean(v):
             if v is None:
@@ -3136,6 +3167,19 @@ def me_update():
             z = upd["zip"]
             if not z.isdigit() or len(z) != 5:
                 return _json_error("invalid_zip", 400)
+
+        if "logo_url" in upd:
+            url = (upd.get("logo_url") or "").strip()
+            if not url:
+                upd["logo_url"] = None
+            else:
+                if len(url) > 300:
+                    return _json_error("invalid_logo_url", 400)
+                if any(ch in url for ch in ['"', "'", "<", ">"]):
+                    return _json_error("invalid_logo_url", 400)
+                if not (url.startswith("https://") or url.startswith("http://") or url.startswith("/static/")):
+                    return _json_error("invalid_logo_url", 400)
+                upd["logo_url"] = url
 
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)

@@ -127,6 +127,33 @@
       touch-action: manipulation !important;
     }
 
+    .provider-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:4px;
+    }
+    .provider-logo,
+    .provider-logo-fallback{
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      flex:0 0 32px;
+      background:#e2e8f0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:#0f172a;
+      font-size:0.85rem;
+      overflow:hidden;
+    }
+    .provider-logo{
+      object-fit:cover;
+      background:#ffffff;
+      border:1px solid #e2e8f0;
+    }
+
     /* Actions im Buchungsdialog */
     .book-actions {
       display: flex;
@@ -944,6 +971,11 @@
         // Provider-Infos aus Backend
         const p = x.provider || {};
         const providerName = p.name || p.company_name || p.email || 'Anbieter';
+        const providerLogo = (p.logo_url || '').toString().trim();
+        const providerInitial = (providerName || 'A').toString().trim().charAt(0).toUpperCase() || 'A';
+        const providerBadge = providerLogo
+          ? `<img class="provider-logo" src="${providerLogo}" alt="${providerName}">`
+          : `<div class="provider-logo-fallback">${providerInitial}</div>`;
         const providerAddress =
           p.address
           || [p.street, [p.zip, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
@@ -982,9 +1014,10 @@
                 · Kategorie: ${x.category || '—'}
                 ${cityShow ? ` · Ort: ${cityShow}` : ''}
               </p>
-              <p class="muted" style="margin:4px 0 0;">
-                <strong>Anbieter:</strong> ${providerName}
-              </p>
+              <div class="provider-row">
+                ${providerBadge}
+                <div class="muted"><strong>Anbieter:</strong> ${providerName}</div>
+              </div>
               ${terminAddress ? `
                 <p class="muted" style="margin:2px 0 0;">
                   <strong>Adresse:</strong> ${terminAddress}

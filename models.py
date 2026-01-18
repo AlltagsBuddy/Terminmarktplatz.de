@@ -46,6 +46,7 @@ class Provider(Base):
     city: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(Text)
     whatsapp: Mapped[str | None] = mapped_column(Text)
+    logo_url: Mapped[str | None] = mapped_column(Text)
 
     status: Mapped[str] = mapped_column(Text, default="pending")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -127,6 +128,7 @@ class Provider(Base):
             "branch": self.branch,
             "phone": self.phone,
             "whatsapp": self.whatsapp,
+            "logo_url": self.logo_url,
         }
 
 
