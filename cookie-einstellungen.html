@@ -101,6 +101,18 @@
       color: var(--ink-dim);
       border: 1px solid var(--border);
     }
+    .cookie-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:24px;
+    }
+    .cookie-actions .btn:not(.primary){
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+    }
 
     /* auth-in zunächst ausblenden */
     .auth-in {
@@ -238,9 +250,9 @@
             </div>
           </div>
 
-          <div style="margin-top: 24px;">
+          <div class="cookie-actions">
             <button class="btn primary" id="save-cookies">Einstellungen speichern</button>
-            <a href="/datenschutz.html" class="btn" style="margin-left: 12px;">Zur Datenschutzerklärung</a>
+            <a href="/datenschutz.html" class="btn">Zur Datenschutzerklärung</a>
           </div>
         </div>
       </div>
@@ -269,7 +281,7 @@
         <a class="foot-link" href="impressum.html">Impressum</a>
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
-        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>`r`n        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
@@ -419,4 +431,5 @@
   </script>
 </body>
 </html>
+
 
