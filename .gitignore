@@ -17,3 +17,6 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Lokale Test-Assets
+static/logo.jpg
