@@ -631,6 +631,23 @@ _ensure_provider_logo_consent()
 
 
 # --------------------------------------------------------
+# Provider: Logo URL mit Cache-Buster (mtime)
+# --------------------------------------------------------
+def _logo_url_with_buster(logo_url: str | None) -> str | None:
+    if not logo_url:
+        return None
+    if not logo_url.startswith("/static/uploads/provider-logos/"):
+        return logo_url
+    fname = logo_url.split("/")[-1]
+    fpath = os.path.join(LOGO_UPLOAD_DIR, fname)
+    try:
+        mtime = int(os.path.getmtime(fpath))
+        return f"{logo_url}?v={mtime}"
+    except Exception:
+        return logo_url
+
+
+# --------------------------------------------------------
 # Geocode-Cache (idempotent)
 # --------------------------------------------------------
 def _ensure_geo_tables():
@@ -3158,7 +3175,7 @@ def me():
                 "city": p.city,
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
-                "logo_url": getattr(p, "logo_url", None),
+                "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None)),
                 "consent_logo_display": bool(getattr(p, "consent_logo_display", False)),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
@@ -3343,10 +3360,37 @@ def me_logo_upload():
             p.consent_logo_display = True
             s.commit()
 
-        cache_buster = int(time.time())
-        return jsonify({"ok": True, "logo_url": f"{logo_path}?v={cache_buster}"})
+        return jsonify({"ok": True, "logo_url": _logo_url_with_buster(logo_path)})
     except Exception:
         app.logger.exception("me_logo_upload failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.delete("/me/logo")
+@auth_required()
+def me_logo_delete():
+    try:
+        removed = False
+        for ext in ("jpg", "png"):
+            path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{ext}")
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    removed = True
+                except Exception:
+                    pass
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            p.logo_url = None
+            p.consent_logo_display = False
+            s.commit()
+
+        return jsonify({"ok": True, "deleted": removed})
+    except Exception:
+        app.logger.exception("me_logo_delete failed")
         return jsonify({"error": "server_error"}), 500
 
 
@@ -6501,6 +6545,8 @@ def public_slots():
 
                     if not bool(getattr(provider, "consent_logo_display", False)):
                         provider_dict["logo_url"] = None
+                    else:
+                        provider_dict["logo_url"] = _logo_url_with_buster(provider_dict.get("logo_url"))
 
                     item["provider"] = provider_dict
                     item["provider_zip"] = p_zip
