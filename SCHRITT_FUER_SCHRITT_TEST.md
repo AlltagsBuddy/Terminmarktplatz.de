@@ -368,6 +368,7 @@ fetch('/admin/run_billing', {
 ### Setup
 ```bash
 pip install -r requirements.txt
+python -m playwright install
 ```
 
 ### Alle Tests (API + UI)

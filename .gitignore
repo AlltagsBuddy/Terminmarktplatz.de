@@ -18,5 +18,8 @@ venv/
 .vscode/
 .idea/
 
+# Test-/Coverage-Artefakte
+.coverage
+
 # Lokale Test-Assets
 static/logo.jpg
