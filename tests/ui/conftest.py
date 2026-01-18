@@ -9,7 +9,7 @@ from playwright.sync_api import Page
 @pytest.fixture(autouse=True)
 def screenshot_on_failure(request: pytest.FixtureRequest, page: Page) -> Generator[None, None, None]:
     yield
-    report = request.node.stash.get("call_report")
+    report = request.node.stash.get("call_report", None)
     if report and report.failed:
         os.makedirs("test-artifacts", exist_ok=True)
         safe_name = re.sub(r"[^a-zA-Z0-9_.-]+", "_", request.node.nodeid)

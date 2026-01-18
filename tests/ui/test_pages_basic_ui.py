@@ -23,4 +23,7 @@ def test_pages_are_reachable_ui(app_base_url: str, page: Page, path: str, expect
     response = page.goto(f"{app_base_url}{path}", wait_until="domcontentloaded")
     assert response is not None and response.ok
     expect(page.locator("html")).to_be_visible()
-    expect(page).to_have_title(expected_title)
+    if path == "/":
+        expect(page).to_have_title(f"{expected_title} – Freie Termine in deiner Nähe")
+    else:
+        expect(page).to_have_title(expected_title)
