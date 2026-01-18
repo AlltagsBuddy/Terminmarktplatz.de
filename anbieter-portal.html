@@ -1494,6 +1494,7 @@
 
       const capacity = parseInt($('#sl-cap').value || '1', 10);
       const priceVal = $('#sl-price').value;
+      const description = $('#sl-description').value.trim();
       const notes    = $('#sl-notes').value.trim();
 
       // KEINE Prüfung beim Erstellen/Bearbeiten - die Prüfung erfolgt erst beim Veröffentlichen
@@ -1574,6 +1575,12 @@
                 formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
               }, 100);
             }
+          } else if (data.error === 'start_in_past') {
+            showMsg('msg-slot', 'Startzeit liegt in der Vergangenheit. Bitte ein zukünftiges Datum wählen.', false);
+          } else if (data.error === 'end_before_start') {
+            showMsg('msg-slot', 'Endzeit muss nach der Startzeit liegen.', false);
+          } else if (data.error === 'profile_incomplete') {
+            showMsg('msg-slot', 'Profil unvollständig: Bitte Profil zuerst vollständig ausfüllen.', false);
           } else {
             showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.', false);
             // Scroll zum Formular, damit die Meldung sichtbar ist
