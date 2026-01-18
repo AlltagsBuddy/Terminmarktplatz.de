@@ -593,9 +593,9 @@
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
             </div>
             <div class="field" style="grid-column:1/-1">
-              <label for="pf-logo-file">Logo (JPG, 512x512, max 300 KB)</label>
+              <label for="pf-logo-file">Logo (JPG/PNG, 512x512, max 20 KB)</label>
               <div class="logo-upload">
-                <input id="pf-logo-file" type="file" accept="image/jpeg"/>
+                <input id="pf-logo-file" type="file" accept="image/jpeg,image/png"/>
                 <button type="button" class="btn" id="pf-logo-upload-btn">Logo hochladen</button>
               </div>
               <img id="pf-logo-preview" class="logo-preview" alt="Logo Vorschau" style="display:none;">
@@ -1467,8 +1467,14 @@
         const isJpg = (file.type === 'image/jpeg')
           || (file.name || '').toLowerCase().endsWith('.jpg')
           || (file.name || '').toLowerCase().endsWith('.jpeg');
-        if (!isJpg) {
-          showMsg('msg-profile', 'Nur JPG-Dateien sind erlaubt.');
+        const isPng = (file.type === 'image/png')
+          || (file.name || '').toLowerCase().endsWith('.png');
+        if (!(isJpg || isPng)) {
+          showMsg('msg-profile', 'Nur JPG oder PNG sind erlaubt.');
+          return;
+        }
+        if (file.size > 20 * 1024) {
+          showMsg('msg-profile', 'Logo ist zu groß (max 20 KB).');
           return;
         }
 
@@ -1487,8 +1493,8 @@
             showMsg('msg-profile', 'Logo hochgeladen.', true);
           } else {
             const map = {
-              logo_too_large: 'Logo ist zu groß (max 300 KB).',
-              invalid_logo_format: 'Nur JPG erlaubt.',
+              logo_too_large: 'Logo ist zu groß (max 20 KB).',
+              invalid_logo_format: 'Nur JPG oder PNG erlaubt.',
               invalid_logo_size: 'Logo muss 512x512 Pixel sein.',
             };
             showMsg('msg-profile', map[data.error] || 'Logo-Upload fehlgeschlagen.');

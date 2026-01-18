@@ -70,7 +70,7 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
 LOGO_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-logos")
-LOGO_MAX_BYTES = 300 * 1024
+LOGO_MAX_BYTES = 20 * 1024
 LOGO_SIZE_PX = 512
 
 IS_RENDER = bool(
@@ -3269,13 +3269,21 @@ def me_logo_upload():
         finally:
             file.stream.seek(0)
 
-        if fmt != "JPEG":
+        if fmt not in ("JPEG", "PNG"):
             return _json_error("invalid_logo_format", 400)
         if width != LOGO_SIZE_PX or height != LOGO_SIZE_PX:
             return _json_error("invalid_logo_size", 400)
 
-        filename = f"{request.provider_id}.jpg"
+        ext = "png" if fmt == "PNG" else "jpg"
+        filename = f"{request.provider_id}.{ext}"
         target_path = os.path.join(LOGO_UPLOAD_DIR, filename)
+        for old_ext in ("jpg", "png"):
+            old_path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{old_ext}")
+            if old_path != target_path and os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
         with open(target_path, "wb") as out:
             out.write(file.stream.read())
 
