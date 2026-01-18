@@ -116,6 +116,7 @@
 
     .table{
       width:100%;
+      table-layout:fixed;
       border-collapse:separate;
       border-spacing:0 10px;
       border:0;
@@ -125,7 +126,40 @@
       border-bottom:0;
       text-align:left;
       background:#ffffff;
+      white-space:normal;
+      overflow-wrap:anywhere;
     }
+    .table td[data-label="Aktionen"]{ width:120px; }
+    .slot-actions-cell{ white-space:normal; }
+    .slot-actions{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:flex-start;
+      width:100%;
+    }
+    .slot-actions-more{
+      width:100%;
+    }
+    .slot-actions-more summary{
+      list-style:none;
+      cursor:pointer;
+      width:100%;
+      text-align:center;
+      user-select:none;
+    }
+    .slot-actions-more summary::-webkit-details-marker{ display:none; }
+    .slot-actions-menu{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-top:6px;
+      padding:8px;
+      background:#f8fafc;
+      border:1px solid var(--border);
+      border-radius:10px;
+    }
+    .slot-actions-archived{ font-size:12px; }
     .table th{
       background:#f8fafc;
       color:#0f172a;
@@ -1946,6 +1980,22 @@
         // ✅ Anzeige-Ort robust (DB-Felder > location)
         const place = displayAddress(s);
 
+        const primaryAction = (canEdit && !isArchived)
+          ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>`
+          : '';
+
+        const menuActions = [
+          (canPublish && !isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : '',
+          (!isArchived) ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : '',
+          (isPublished && !isArchived) ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : '',
+        ].filter(Boolean).join('');
+
+        const menuBlock = menuActions
+          ? `<details class="slot-actions-more"><summary class="btn">Mehr</summary><div class="slot-actions-menu">${menuActions}</div></details>`
+          : '';
+
+        const archivedNote = isArchived ? `<span class="muted slot-actions-archived">Archiviert</span>` : '';
+
         tr.innerHTML = `
           <td data-label="✓"><input type="checkbox" class="row-check" data-id="${s.id}"></td>
           <td data-label="Start">${fmtLocal(s.start_at)}</td>
@@ -1959,13 +2009,13 @@
           <td data-label="Ort">${place || ''}</td>
           <td data-label="Kapazität">${capacity}</td>
           <td data-label="Status"><span class="badge-st ${stClass}">${statusLabel}</span></td>
-          <td data-label="Aktionen" class="nowrap" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-            ${canPublish && !isArchived ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : ''}
-            ${canEdit && !isArchived ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : ''}
-            ${!isArchived ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : ''}
-            ${isPublished && !isArchived ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : ''}
-            ${isArchived ? `<span class="muted" style="font-size:12px">Archiviert</span>` : ''}
-            ${cancelHtml}
+          <td data-label="Aktionen" class="slot-actions-cell">
+            <div class="slot-actions">
+              ${primaryAction}
+              ${menuBlock}
+              ${archivedNote}
+              ${cancelHtml}
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
