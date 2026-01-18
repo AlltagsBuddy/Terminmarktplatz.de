@@ -361,3 +361,29 @@ fetch('/admin/run_billing', {
   .then(console.log)
 ```
 
+---
+
+## Automatisierte Tests & Coverage (Testsystem)
+
+### Setup
+```bash
+pip install -r requirements.txt
+```
+
+### Alle Tests (API + UI)
+```bash
+pytest
+```
+
+### Nur UI-Tests
+```bash
+pytest -m ui
+```
+
+### Coverage (Backend-Code)
+```bash
+pytest --cov=app --cov=models --cov=auth --cov=mail --cov=db_publish --cov-report=term-missing
+```
+
+**Hinweis:** UI-Tests zählen nicht zur Code-Coverage, da sie die Anwendung von außen testen.
+
