@@ -2247,14 +2247,38 @@ def auth_required(admin: bool = False):
                         pass
             
             if not data:
-                # Für HTML-Routen: Redirect zu Login
-                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                # JSON/API-Endpunkte sollen 401 liefern (kein Redirect), sonst Login-Redirect
+                json_prefixes = (
+                    "/api/",
+                    "/auth/",
+                    "/admin/",
+                    "/slots",
+                    "/provider/",
+                    "/public/",
+                    "/alerts/",
+                    "/webhook/",
+                )
+                json_paths = {"/me"}
+                is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
+                if request.path.endswith(".html") or not is_json_endpoint:
                     return redirect(f"/login.html?next={request.path}")
                 return _json_error("unauthorized", 401)
             
             if admin and not data.get("adm"):
                 # Für HTML-Routen: Redirect zu Login mit Fehlermeldung
-                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                json_prefixes = (
+                    "/api/",
+                    "/auth/",
+                    "/admin/",
+                    "/slots",
+                    "/provider/",
+                    "/public/",
+                    "/alerts/",
+                    "/webhook/",
+                )
+                json_paths = {"/me"}
+                is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
+                if request.path.endswith(".html") or not is_json_endpoint:
                     return redirect(f"/login.html?error=admin_required&next={request.path}")
                 return _json_error("forbidden", 403)
             
