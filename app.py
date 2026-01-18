@@ -500,6 +500,7 @@ def _ensure_base_tables():
                   phone TEXT,
                   whatsapp TEXT,
                   logo_url TEXT,
+                  consent_logo_display INTEGER DEFAULT 0,
                   status TEXT NOT NULL DEFAULT 'pending',
                   is_admin INTEGER NOT NULL DEFAULT 0,
                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -598,6 +599,35 @@ def _ensure_provider_logo_url():
 
 
 _ensure_provider_logo_url()
+
+
+# --------------------------------------------------------
+# Provider: Logo-Consent Feld hinzufügen (optional)
+# --------------------------------------------------------
+def _ensure_provider_logo_consent():
+    """
+    Fügt das consent_logo_display Feld zur provider Tabelle hinzu, falls es noch nicht existiert.
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                ALTER TABLE public.provider
+                  ADD COLUMN IF NOT EXISTS consent_logo_display boolean DEFAULT false;
+                """
+                conn.exec_driver_sql(ddl)
+            else:
+                try:
+                    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(provider)")).fetchall()]
+                    if "consent_logo_display" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN consent_logo_display INTEGER DEFAULT 0")
+                except Exception:
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_provider_logo_consent()
 
 
 # --------------------------------------------------------
@@ -3129,6 +3159,7 @@ def me():
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
                 "logo_url": getattr(p, "logo_url", None),
+                "consent_logo_display": bool(getattr(p, "consent_logo_display", False)),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -3187,6 +3218,14 @@ def me_update():
                     return _json_error("invalid_logo_url", 400)
                 upd["logo_url"] = url
 
+        consent_val = data.get("consent_logo_display")
+        if consent_val is not None:
+            if isinstance(consent_val, str):
+                consent = consent_val.strip().lower() in ("true", "1", "yes", "on")
+            else:
+                consent = bool(consent_val)
+            upd["consent_logo_display"] = consent
+
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
             if not p:
@@ -3200,6 +3239,8 @@ def me_update():
 
             for k, v in upd.items():
                 setattr(p, k, v)
+            if "consent_logo_display" in upd and not upd["consent_logo_display"]:
+                p.logo_url = None
 
             try:
                 s.commit()
@@ -3243,6 +3284,11 @@ def me_logo_upload():
         file = request.files["logo"]
         if not file or not file.filename:
             return _json_error("missing_file", 400)
+
+        consent_val = request.form.get("consent_logo_display")
+        consent = (consent_val or "").strip().lower() in ("true", "1", "yes", "on")
+        if not consent:
+            return _json_error("logo_consent_required", 400)
 
         file.stream.seek(0, os.SEEK_END)
         size = file.stream.tell()
@@ -3294,6 +3340,7 @@ def me_logo_upload():
             if not p:
                 return _json_error("not_found", 404)
             p.logo_url = logo_path
+            p.consent_logo_display = True
             s.commit()
 
         cache_buster = int(time.time())
@@ -6448,7 +6495,12 @@ def public_slots():
                             "branch": provider.branch,
                             "phone": provider.phone,
                             "whatsapp": provider.whatsapp,
+                            "logo_url": getattr(provider, "logo_url", None),
+                            "consent_logo_display": bool(getattr(provider, "consent_logo_display", False)),
                         }
+
+                    if not bool(getattr(provider, "consent_logo_display", False)):
+                        provider_dict["logo_url"] = None
 
                     item["provider"] = provider_dict
                     item["provider_zip"] = p_zip
