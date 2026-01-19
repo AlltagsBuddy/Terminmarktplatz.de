@@ -1003,7 +1003,7 @@
         // 2. Slot.location (Termin-Ort)
         // KEIN Fallback auf Provider-Adresse, um Verwechslungen zu vermeiden
         let terminAddress = slotAddress || (x.location || '').trim() || '';
-        const cityShow = x.provider_city || (p.city || '');
+        const cityShow = slotLine2;
 
         const availableBadge = (typeof x.available === 'number')
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`

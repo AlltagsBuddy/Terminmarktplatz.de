@@ -6471,34 +6471,30 @@ def public_slots():
                     loc_for_filter = location_raw or city_q or zip_filter
                     if loc_for_filter:
                         pattern_loc = f"%{loc_for_filter}%"
-                        # Suche in Slot.location ODER Slot.zip ODER Slot.city ODER Provider.zip/city
+                        # Suche NUR nach Slot-Ort (keine Provider-Adresse)
                         if zip_filter and zip_filter.isdigit() and len(zip_filter) == 5:
-                            # Wenn es eine PLZ ist, suche nach Slot.zip ODER Provider.zip ODER location
+                            # Wenn es eine PLZ ist, suche nach Slot.zip ODER Slot.location
                             sq = sq.where(
                                 or_(
                                     Slot.zip == zip_filter,
-                                    Provider.zip == zip_filter,
                                     Slot.location.ilike(pattern_loc),
                                 )
                             )
                         elif city_q:
-                            # Wenn es eine Stadt ist, suche nach Slot.city ODER Provider.city ODER location
+                            # Wenn es eine Stadt ist, suche nach Slot.city ODER Slot.location
                             sq = sq.where(
                                 or_(
                                     Slot.city.ilike(f"%{city_q}%"),
-                                    Provider.city.ilike(f"%{city_q}%"),
                                     Slot.location.ilike(pattern_loc),
                                 )
                             )
                         else:
-                            # Fallback: location ODER Provider Adressfelder
+                            # Fallback: Slot.location ODER Slot-Adressfelder
                             sq = sq.where(
                                 or_(
                                     Slot.location.ilike(pattern_loc),
                                     Slot.zip.ilike(pattern_loc),
                                     Slot.city.ilike(pattern_loc),
-                                    Provider.zip.ilike(pattern_loc),
-                                    Provider.city.ilike(pattern_loc),
                                 )
                             )
 
@@ -6539,11 +6535,18 @@ def public_slots():
                         if origin_lat is None or origin_lon is None:
                             continue
                         
-                        # Verwende zuerst Slot-Adresse, dann Provider-Adresse als Fallback
-                        slot_zip = getattr(slot, "zip", None) or p_zip
-                        slot_city = getattr(slot, "city", None) or p_city
-                        
-                        plat, plon = geocode_cached(s, slot_zip, slot_city)
+                        # Verwende nur Slot-Adresse (kein Provider-Fallback)
+                        slot_zip = normalize_zip(getattr(slot, "zip", None))
+                        if len(slot_zip) != 5:
+                            slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
+                        slot_city = (getattr(slot, "city", None) or "").strip()
+
+                        geo_zip = slot_zip if len(slot_zip) == 5 else None
+                        geo_city = slot_city or None
+                        if not geo_zip and not geo_city:
+                            continue
+
+                        plat, plon = geocode_cached(s, geo_zip, geo_city)
                         if plat is None or plon is None:
                             continue
                             

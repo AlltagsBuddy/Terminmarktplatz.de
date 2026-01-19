@@ -1601,6 +1601,24 @@
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
 
+    function enableTimePicker(id){
+      const el = document.getElementById(id);
+      if (!el) return;
+      const openPicker = () => {
+        if (typeof el.showPicker === 'function') {
+          try { el.showPicker(); } catch (_) {}
+        }
+      };
+      el.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        openPicker();
+      });
+      el.addEventListener('click', openPicker);
+    }
+
+    enableTimePicker('sl-start');
+    enableTimePicker('sl-end');
+
     $('#sl-date').addEventListener('change',  recalcEnd);
     $('#sl-start').addEventListener('input',  recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
