@@ -6365,7 +6365,10 @@ def public_slots():
     city_q = (request.args.get("city") or "").strip()
     zip_filter = (request.args.get("zip") or "").strip()
     day_str = (request.args.get("day") or "").strip()
+    day_from_str = (request.args.get("day_from") or "").strip()
+    day_to_str = (request.args.get("day_to") or "").strip()
     from_str = (request.args.get("from") or "").strip()
+    to_str = (request.args.get("to") or "").strip()
     include_full = request.args.get("include_full") == "1"
 
     if location_raw and not zip_filter and not city_q:
@@ -6406,8 +6409,20 @@ def public_slots():
             end_local = start_local + timedelta(days=1)
             start_from = start_local.astimezone(timezone.utc)
             end_until = end_local.astimezone(timezone.utc)
-        elif from_str:
-            start_from = parse_iso_utc(from_str)
+        elif day_from_str or day_to_str:
+            if day_from_str:
+                y, m, d = map(int, day_from_str.split("-"))
+                start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
+                start_from = start_local.astimezone(timezone.utc)
+            if day_to_str:
+                y, m, d = map(int, day_to_str.split("-"))
+                end_local = datetime(y, m, d, 23, 59, 59, 999000, tzinfo=BERLIN)
+                end_until = end_local.astimezone(timezone.utc)
+        elif from_str or to_str:
+            if from_str:
+                start_from = parse_iso_utc(from_str)
+            if to_str:
+                end_until = parse_iso_utc(to_str)
         else:
             start_from = _now()
     except Exception:
