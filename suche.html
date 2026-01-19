@@ -602,9 +602,10 @@
               ⏰ 
               <select name="zeit" id="f-zeit">
                 <option value="">Beliebig</option>
-                <option value="vormittag">Vormittag (08–12)</option>
-                <option value="nachmittag">Nachmittag (12–17)</option>
-                <option value="abend">Abend (17–21)</option>
+                <option value="morgens">Morgens (6–11)</option>
+                <option value="mittags">Mittags (11–16)</option>
+                <option value="abends">Abends (16–22)</option>
+                <option value="nachts">Nachts (22–6)</option>
               </select>
             </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
@@ -773,9 +774,10 @@
     const inZeitfenster = (iso, zeit) => {
       if (!zeit) return true;
       const h = new Date(iso).getHours();
-      if (zeit === 'vormittag') return h >= 8 && h < 12;
-      if (zeit === 'nachmittag') return h >= 12 && h < 17;
-      if (zeit === 'abend') return h >= 17 && h < 21;
+      if (zeit === 'morgens') return h >= 6 && h < 11;
+      if (zeit === 'mittags') return h >= 11 && h < 16;
+      if (zeit === 'abends') return h >= 16 && h < 22;
+      if (zeit === 'nachts') return h >= 22 || h < 6;
       return true;
     };
     const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
