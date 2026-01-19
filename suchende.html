@@ -108,9 +108,19 @@
       font-size:14px;
     }
 
-    .searchbar-break{
+    .searchbar{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+    }
+    .searchbar .input{
+      flex:1 1 calc(33.333% - 16px);
+      max-width:320px;
+    }
+    .searchbar .panel{
       flex-basis:100%;
-      height:0;
     }
 
     /* Feature-Icons */
@@ -400,7 +410,6 @@
                 <option value="100">100 km</option>
               </select>
             </label>
-            <div class="searchbar-break" aria-hidden="true"></div>
             <label class="input" aria-label="Von Datum">
               📅 <input type="date" name="day_from" />
             </label>

@@ -108,9 +108,19 @@
       gap: 10px;
       margin-bottom: 10px;
     }
-    .searchbar-break{
+    .searchbar{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+    }
+    .searchbar .input{
+      flex:1 1 calc(33.333% - 16px);
+      max-width:320px;
+    }
+    .searchbar .panel{
       flex-basis:100%;
-      height:0;
     }
 
     /* Ergebnis-Grid */
@@ -593,7 +603,6 @@
                 <option value="100">100 km</option>
               </select>
             </label>
-            <div class="searchbar-break" aria-hidden="true"></div>
 
             <label class="input" aria-label="Von Datum">
               📅 <input type="date" id="search-day-from" name="day_from" placeholder="von">
