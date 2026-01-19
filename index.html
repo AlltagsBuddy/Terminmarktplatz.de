@@ -102,6 +102,21 @@
       font-size:0.9rem;
     }
 
+    .searchbar{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+    }
+    .searchbar .input{
+      flex:1 1 calc(33.333% - 16px);
+      max-width:320px;
+    }
+    .searchbar .panel{
+      flex-basis:100%;
+    }
+
     /* Mobile-Optimierung + Menü-Verhalten mobil */
     @media (max-width: 768px) {
       /* Header / Navigation */
@@ -381,20 +396,18 @@
           </p>
 
           <div class="search-card" role="search" aria-label="Terminsuche">
-            <form class="searchbar" id="search-form" action="/suche.html" method="get">
-              <div id="home-search-error" class="panel" style="display:none; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b;">
-                Umkreis kann nur mit Ort/PLZ verwendet werden.
-              </div>
+            <form class="searchbar" id="filters" action="/suche.html" method="get">
+              <div id="filter-error" class="panel" style="display:none; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b;"></div>
               <label class="input" aria-label="Leistung">
-                🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt">
+                🔎 <input type="text" name="q" id="f-q" placeholder="z. B. Friseur Damen, Physio Rücken">
               </label>
-              <label class="input" aria-label="Ort">
-                📍 <input type="text" name="ort" placeholder="PLZ / Stadt">
+              <label class="input" aria-label="PLZ oder Ort">
+                📍 <input type="text" name="ort" id="f-ort" placeholder="PLZ / Stadt">
               </label>
               <label class="input" aria-label="Umkreis">
                 📏
                 <select name="radius" id="f-radius" title="Umkreis um PLZ">
-                    <option value="">Umkreis</option>
+                    <option value="">Umkreis (optional)</option>
                     <option value="5">5 km</option>
                     <option value="10">10 km</option>
                     <option value="25">25 km</option>
@@ -405,14 +418,14 @@
               </label>
 
               <label class="input" aria-label="Von Datum">
-                📅 <input type="date" name="day_from" placeholder="von">
+                📅 <input type="date" id="search-day-from" name="day_from" placeholder="von">
               </label>
               <label class="input" aria-label="Bis Datum">
-                📅 <input type="date" name="day_to" placeholder="bis">
+                📅 <input type="date" id="search-day-to" name="day_to" placeholder="bis">
               </label>
               <label class="input" aria-label="Zeitfenster">
                 ⏰
-                <select name="zeit">
+                <select name="zeit" id="f-zeit">
                   <option value="">Beliebig</option>
                   <option value="morgens">Morgens (6–11)</option>
                   <option value="mittags">Mittags (11–16)</option>
@@ -420,7 +433,7 @@
                   <option value="nachts">Nachts (22–6)</option>
                 </select>
               </label>
-              <button class="btn primary" type="submit">Freie Slots finden</button>
+              <button class="btn primary" type="submit">Aktualisieren</button>
             </form>
 
             <div class="trust">
@@ -689,17 +702,35 @@
 
   <script>
     (function(){
-      const form = document.getElementById('search-form');
+      const form = document.getElementById('filters');
       if (!form) return;
-      const err = document.getElementById('home-search-error');
+      const err = document.getElementById('filter-error');
       const ortInput = form.querySelector('input[name="ort"]');
       const radiusSelect = form.querySelector('select[name="radius"]');
+      const fromInput = form.querySelector('input[name="day_from"]');
+      const toInput = form.querySelector('input[name="day_to"]');
       form.addEventListener('submit', (e) => {
+        const errors = [];
         const ortVal = (ortInput?.value || '').trim();
         const radiusVal = (radiusSelect?.value || '').trim();
+        const fromVal = (fromInput?.value || '').trim();
+        const toVal = (toInput?.value || '').trim();
         if (err) err.style.display = 'none';
         if (radiusVal && !ortVal) {
-          if (err) err.style.display = 'block';
+          errors.push('Umkreis kann nur mit Ort/PLZ verwendet werden.');
+        }
+        if (fromVal && toVal) {
+          const from = new Date(fromVal);
+          const to = new Date(toVal);
+          if (from > to) {
+            errors.push('Bitte gültigen Datumsbereich wählen: „Bis“ darf nicht vor „Von“ liegen.');
+          }
+        }
+        if (errors.length) {
+          if (err) {
+            err.textContent = errors.join(' ');
+            err.style.display = 'block';
+          }
           e.preventDefault();
           return false;
         }

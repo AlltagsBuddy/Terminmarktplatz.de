@@ -34,14 +34,58 @@ def _open_search(page: Page, app_base_url: str, title: str, ort: str | None = No
     page.goto(url, wait_until="domcontentloaded")
 
 
+def _goto_with_retry(page: Page, url: str, attempts: int = 3) -> None:
+    last_error: Exception | None = None
+    for _ in range(attempts):
+        try:
+            page.goto(url, wait_until="domcontentloaded")
+            return
+        except Exception as exc:
+            last_error = exc
+            time.sleep(1.5)
+    if last_error:
+        raise last_error
+
+
 def test_search_filters_visible(app_base_url: str, page: Page) -> None:
     page.goto(f"{app_base_url}/suche.html", wait_until="domcontentloaded")
     page.wait_for_selector("#filters", timeout=20_000)
     expect(page.locator("#filters")).to_be_visible()
     expect(page.locator("#f-q")).to_be_visible()
     expect(page.locator("#f-ort")).to_be_visible()
-    expect(page.locator("#search-day")).to_be_visible()
+    expect(page.locator("#search-day-from")).to_be_visible()
+    expect(page.locator("#search-day-to")).to_be_visible()
     expect(page.locator("#sort")).to_be_visible()
+
+
+def test_search_time_filter_options(app_base_url: str, page: Page) -> None:
+    _goto_with_retry(page, f"{app_base_url}/suche.html")
+    page.wait_for_selector("#f-zeit", timeout=20_000)
+    options = page.locator("#f-zeit option")
+    expect(options).to_contain_text(
+        ["Beliebig", "Morgens (6–11)", "Mittags (11–16)", "Abends (16–22)", "Nachts (22–6)"]
+    )
+
+
+def test_search_radius_requires_location(app_base_url: str, page: Page) -> None:
+    _goto_with_retry(page, f"{app_base_url}/suche.html")
+    page.wait_for_selector("#filters", timeout=20_000)
+    page.select_option("#f-radius", "10")
+    page.locator("#filters button[type='submit']").click()
+    err = page.locator("#filter-error")
+    expect(err).to_be_visible()
+    expect(err).to_contain_text("Umkreis kann nur mit Ort/PLZ verwendet werden.")
+
+
+def test_search_date_range_validation(app_base_url: str, page: Page) -> None:
+    _goto_with_retry(page, f"{app_base_url}/suche.html")
+    page.wait_for_selector("#filters", timeout=20_000)
+    page.fill("#search-day-from", "2025-05-10")
+    page.fill("#search-day-to", "2025-05-01")
+    page.locator("#filters button[type='submit']").click()
+    err = page.locator("#filter-error")
+    expect(err).to_be_visible()
+    expect(err).to_contain_text("Bitte gültigen Datumsbereich wählen")
 
 
 def test_search_card_has_booking_button(app_base_url: str, page: Page) -> None:
