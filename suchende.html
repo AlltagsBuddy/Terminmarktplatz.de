@@ -383,6 +383,7 @@
               <input type="text" name="ort" placeholder="PLZ oder Ort" />
             </div>
             <label class="input" aria-label="Umkreis">
+              📏
               <select name="radius" id="f-radius" title="Umkreis um PLZ">
                 <option value="">Umkreis</option>
                 <option value="5">5 km</option>
@@ -393,9 +394,12 @@
                 <option value="100">100 km</option>
               </select>
             </label>
-            <div class="input">
-              <input type="date" name="day" />
-            </div>
+            <label class="input" aria-label="Von Datum">
+              📅 <input type="date" name="day_from" />
+            </label>
+            <label class="input" aria-label="Bis Datum">
+              📅 <input type="date" name="day_to" />
+            </label>
             <div class="input">
               <select name="dauer">
                 <option value="">Dauer</option>
