@@ -108,6 +108,11 @@
       font-size:14px;
     }
 
+    .searchbar-break{
+      flex-basis:100%;
+      height:0;
+    }
+
     /* Feature-Icons */
     .feature-icon {
       width:48px;
@@ -395,6 +400,7 @@
                 <option value="100">100 km</option>
               </select>
             </label>
+            <div class="searchbar-break" aria-hidden="true"></div>
             <label class="input" aria-label="Von Datum">
               📅 <input type="date" name="day_from" />
             </label>

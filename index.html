@@ -180,6 +180,10 @@
         align-items: stretch;
         gap: 8px;
       }
+      .searchbar-break{
+        flex-basis:100%;
+        height:0;
+      }
 
       .searchbar .input {
         width: 100%;
@@ -376,6 +380,9 @@
 
           <div class="search-card" role="search" aria-label="Terminsuche">
             <form class="searchbar" id="search-form" action="/suche.html" method="get">
+              <div id="home-search-error" class="panel" style="display:none; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b;">
+                Umkreis kann nur mit Ort/PLZ verwendet werden.
+              </div>
               <label class="input" aria-label="Leistung">
                 🔎 <input type="text" name="q" placeholder="Was suchst du? z. B. Friseur Damenhaarschnitt">
               </label>
@@ -394,6 +401,7 @@
                     <option value="100">100 km</option>
                 </select>
               </label>
+              <div class="searchbar-break" aria-hidden="true"></div>
 
               <label class="input" aria-label="Von Datum">
                 📅 <input type="date" name="day_from" placeholder="von">
@@ -675,6 +683,27 @@
 
       // beim Laden Auth-Status prüfen und Menü/CTA anpassen
       checkAuth();
+    })();
+  </script>
+
+  <script>
+    (function(){
+      const form = document.getElementById('search-form');
+      if (!form) return;
+      const err = document.getElementById('home-search-error');
+      const ortInput = form.querySelector('input[name="ort"]');
+      const radiusSelect = form.querySelector('select[name="radius"]');
+      form.addEventListener('submit', (e) => {
+        const ortVal = (ortInput?.value || '').trim();
+        const radiusVal = (radiusSelect?.value || '').trim();
+        if (err) err.style.display = 'none';
+        if (radiusVal && !ortVal) {
+          if (err) err.style.display = 'block';
+          e.preventDefault();
+          return false;
+        }
+        return true;
+      });
     })();
   </script>
 
