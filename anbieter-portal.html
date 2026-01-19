@@ -124,29 +124,66 @@
       padding-right:36px;
     }
 
-    .time-picker-menu{
-      position:absolute;
+    .timepicker-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,0.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
       z-index:9999;
-      background:#ffffff;
-      border:1px solid #e2e8f0;
-      border-radius:10px;
-      box-shadow:0 10px 24px rgba(0,0,0,0.12);
-      max-height:240px;
-      overflow:auto;
-      padding:6px;
+      padding:16px;
     }
-    .time-picker-item{
-      width:100%;
-      text-align:left;
-      padding:8px 10px;
-      border-radius:8px;
+    .timepicker-card{
+      background:#ffffff;
+      border-radius:16px;
+      width:320px;
+      max-width:100%;
+      box-shadow:0 20px 40px rgba(0,0,0,0.2);
+      padding:16px;
+    }
+    .timepicker-title{
+      font-weight:700;
+      margin:0 0 6px;
+    }
+    .timepicker-sub{
+      margin:0 0 12px;
+      color:#64748b;
+      font-size:0.9rem;
+    }
+    .timepicker-clock{
+      position:relative;
+      width:260px;
+      height:260px;
+      margin:0 auto 12px;
+      border-radius:50%;
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+    }
+    .timepicker-number{
+      position:absolute;
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       border:0;
       background:transparent;
       cursor:pointer;
       font:inherit;
+      color:#0f172a;
     }
-    .time-picker-item:hover{
-      background:#f1f5f9;
+    .timepicker-number.is-selected{
+      background:#6f53ff;
+      color:#ffffff;
+      font-weight:700;
+    }
+    .timepicker-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-top:6px;
     }
 
     .table{
@@ -712,7 +749,7 @@
               </div>
               <div class="field">
                 <label for="sl-start">Start (Uhrzeit) <span class="req">*</span></label>
-                <input id="sl-start" type="time" step="60" required aria-required="true"/>
+                <input id="sl-start" type="text" inputmode="none" readonly required aria-required="true"/>
               </div>
 
               <div class="field">
@@ -737,7 +774,7 @@
 
               <div class="field">
                 <label for="sl-end">Ende (berechnet)</label>
-                <input id="sl-end" type="time" step="60"/>
+                <input id="sl-end" type="text" inputmode="none" readonly/>
               </div>
 
               <!-- Slot-Adresse mit Validierung -->
@@ -1649,67 +1686,145 @@
     }
 
     const timePicker = (() => {
-      const menu = document.createElement('div');
-      menu.className = 'time-picker-menu';
-      menu.hidden = true;
-      document.body.appendChild(menu);
+      const overlay = document.createElement('div');
+      overlay.className = 'timepicker-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <div class="timepicker-card" role="dialog" aria-modal="true">
+          <p class="timepicker-title" data-title>Uhrzeit wählen</p>
+          <p class="timepicker-sub" data-sub>Stunde auswählen</p>
+          <div class="timepicker-clock" data-clock></div>
+          <div class="timepicker-actions">
+            <button type="button" class="btn" data-cancel>Abbrechen</button>
+            <button type="button" class="btn primary" data-ok>OK</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
 
-      const times = [];
-      for (let h = 0; h < 24; h += 1) {
-        for (let m = 0; m < 60; m += 5) {
-          times.push(`${pad(h)}:${pad(m)}`);
+      const clockEl = overlay.querySelector('[data-clock]');
+      const titleEl = overlay.querySelector('[data-title]');
+      const subEl = overlay.querySelector('[data-sub]');
+      const cancelBtn = overlay.querySelector('[data-cancel]');
+      const okBtn = overlay.querySelector('[data-ok]');
+
+      let activeInput = null;
+      let step = 'hour';
+      let selectedHour = 0;
+      let selectedMinute = 0;
+
+      function positionNumber(btn, index, count, radius){
+        const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+        const cx = 130;
+        const cy = 130;
+        const x = cx + Math.cos(angle) * radius - 18;
+        const y = cy + Math.sin(angle) * radius - 18;
+        btn.style.left = `${x}px`;
+        btn.style.top = `${y}px`;
+      }
+
+      function buildHours(){
+        clockEl.innerHTML = '';
+        const outer = [];
+        const inner = [];
+        for (let i = 0; i < 12; i += 1) outer.push(i);
+        for (let i = 12; i < 24; i += 1) inner.push(i);
+        outer.forEach((val, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'timepicker-number' + (val === selectedHour ? ' is-selected' : '');
+          btn.textContent = `${val}`;
+          btn.dataset.value = `${val}`;
+          positionNumber(btn, i, outer.length, 100);
+          clockEl.appendChild(btn);
+        });
+        inner.forEach((val, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'timepicker-number' + (val === selectedHour ? ' is-selected' : '');
+          btn.textContent = `${val}`;
+          btn.dataset.value = `${val}`;
+          positionNumber(btn, i, inner.length, 60);
+          clockEl.appendChild(btn);
+        });
+      }
+
+      function buildMinutes(){
+        clockEl.innerHTML = '';
+        const minutes = [];
+        for (let i = 0; i < 60; i += 5) minutes.push(i);
+        minutes.forEach((val, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'timepicker-number' + (val === selectedMinute ? ' is-selected' : '');
+          btn.textContent = pad(val);
+          btn.dataset.value = `${val}`;
+          positionNumber(btn, i, minutes.length, 100);
+          clockEl.appendChild(btn);
+        });
+      }
+
+      function render(){
+        if (step === 'hour') {
+          titleEl.textContent = 'Uhrzeit wählen';
+          subEl.textContent = 'Stunde auswählen';
+          buildHours();
+        } else {
+          titleEl.textContent = 'Uhrzeit wählen';
+          subEl.textContent = 'Minute auswählen';
+          buildMinutes();
         }
       }
 
-      let activeInput = null;
-
-      function render(){
-        menu.innerHTML = times.map(t => (
-          `<button type="button" class="time-picker-item" data-time="${t}">${t}</button>`
-        )).join('');
-      }
-
       function openFor(input){
-        if (!input) return;
         activeInput = input;
-        if (menu.childElementCount === 0) render();
-        const rect = input.getBoundingClientRect();
-        const left = Math.max(8, rect.left + window.scrollX);
-        const top = rect.bottom + window.scrollY + 4;
-        menu.style.left = `${left}px`;
-        menu.style.top = `${top}px`;
-        menu.style.width = `${rect.width}px`;
-        menu.hidden = false;
+        const current = (input.value || '').trim();
+        if (current.includes(':')) {
+          const [h, m] = current.split(':').map(v => parseInt(v, 10));
+          if (!Number.isNaN(h)) selectedHour = Math.min(23, Math.max(0, h));
+          if (!Number.isNaN(m)) selectedMinute = Math.min(59, Math.max(0, m));
+        }
+        step = 'hour';
+        render();
+        overlay.hidden = false;
       }
 
       function close(){
-        menu.hidden = true;
+        overlay.hidden = true;
         activeInput = null;
       }
 
-      menu.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-time]');
-        if (!btn || !activeInput) return;
-        activeInput.value = btn.dataset.time;
+      function commit(){
+        if (!activeInput) return;
+        activeInput.value = `${pad(selectedHour)}:${pad(selectedMinute)}`;
         activeInput.dispatchEvent(new Event('input', { bubbles: true }));
         activeInput.dispatchEvent(new Event('change', { bubbles: true }));
         close();
+      }
+
+      clockEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-value]');
+        if (!btn) return;
+        const val = parseInt(btn.dataset.value, 10);
+        if (Number.isNaN(val)) return;
+        if (step === 'hour') {
+          selectedHour = val;
+          step = 'minute';
+          render();
+          return;
+        }
+        selectedMinute = val;
+        commit();
       });
 
-      document.addEventListener('click', (e) => {
-        if (menu.hidden) return;
-        if (menu.contains(e.target)) return;
-        if (activeInput && e.target === activeInput) return;
-        close();
+      cancelBtn.addEventListener('click', close);
+      okBtn.addEventListener('click', commit);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
       });
-
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') close();
+        if (!overlay.hidden && e.key === 'Escape') close();
       });
-
-      window.addEventListener('scroll', () => {
-        if (!menu.hidden) close();
-      }, true);
 
       return { openFor, close };
     })();
@@ -1717,14 +1832,9 @@
     function enableTimePicker(id){
       const el = document.getElementById(id);
       if (!el) return;
-      const openPicker = () => {
-        if (typeof el.showPicker === 'function') {
-          try { el.showPicker(); return; } catch (_) {}
-        }
-        timePicker.openFor(el);
-      };
-      el.addEventListener('focus', openPicker);
+      const openPicker = () => timePicker.openFor(el);
       el.addEventListener('click', openPicker);
+      el.addEventListener('focus', openPicker);
     }
 
     enableTimePicker('sl-start');
