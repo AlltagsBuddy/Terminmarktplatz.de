@@ -124,6 +124,31 @@
       padding-right:36px;
     }
 
+    .time-picker-menu{
+      position:absolute;
+      z-index:9999;
+      background:#ffffff;
+      border:1px solid #e2e8f0;
+      border-radius:10px;
+      box-shadow:0 10px 24px rgba(0,0,0,0.12);
+      max-height:240px;
+      overflow:auto;
+      padding:6px;
+    }
+    .time-picker-item{
+      width:100%;
+      text-align:left;
+      padding:8px 10px;
+      border-radius:8px;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      font:inherit;
+    }
+    .time-picker-item:hover{
+      background:#f1f5f9;
+    }
+
     .table{
       width:100%;
       table-layout:fixed;
@@ -712,7 +737,7 @@
 
               <div class="field">
                 <label for="sl-end">Ende (berechnet)</label>
-                <input id="sl-end" type="time" readonly/>
+                <input id="sl-end" type="time" step="60"/>
               </div>
 
               <!-- Slot-Adresse mit Validierung -->
@@ -1601,18 +1626,104 @@
       $('#sl-end').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
     }
 
+    function minutesFromTime(value){
+      if (!value || !value.includes(':')) return null;
+      const [h, m] = value.split(':').map(v => parseInt(v, 10));
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return h * 60 + m;
+    }
+
+    function recalcDurationFromEnd(){
+      const d = $('#sl-date').value;
+      const start = $('#sl-start').value;
+      const end = $('#sl-end').value;
+      if (!d || !start || !end) return;
+      const sMin = minutesFromTime(start);
+      const eMin = minutesFromTime(end);
+      if (sMin == null || eMin == null) return;
+      let diff = eMin - sMin;
+      if (diff < 0) diff += 24 * 60;
+      if (!diff) return;
+      $('#sl-unit').value = 'min';
+      $('#sl-duration').value = diff;
+    }
+
+    const timePicker = (() => {
+      const menu = document.createElement('div');
+      menu.className = 'time-picker-menu';
+      menu.hidden = true;
+      document.body.appendChild(menu);
+
+      const times = [];
+      for (let h = 0; h < 24; h += 1) {
+        for (let m = 0; m < 60; m += 5) {
+          times.push(`${pad(h)}:${pad(m)}`);
+        }
+      }
+
+      let activeInput = null;
+
+      function render(){
+        menu.innerHTML = times.map(t => (
+          `<button type="button" class="time-picker-item" data-time="${t}">${t}</button>`
+        )).join('');
+      }
+
+      function openFor(input){
+        if (!input) return;
+        activeInput = input;
+        if (menu.childElementCount === 0) render();
+        const rect = input.getBoundingClientRect();
+        const left = Math.max(8, rect.left + window.scrollX);
+        const top = rect.bottom + window.scrollY + 4;
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.style.width = `${rect.width}px`;
+        menu.hidden = false;
+      }
+
+      function close(){
+        menu.hidden = true;
+        activeInput = null;
+      }
+
+      menu.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-time]');
+        if (!btn || !activeInput) return;
+        activeInput.value = btn.dataset.time;
+        activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        activeInput.dispatchEvent(new Event('change', { bubbles: true }));
+        close();
+      });
+
+      document.addEventListener('click', (e) => {
+        if (menu.hidden) return;
+        if (menu.contains(e.target)) return;
+        if (activeInput && e.target === activeInput) return;
+        close();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+      });
+
+      window.addEventListener('scroll', () => {
+        if (!menu.hidden) close();
+      }, true);
+
+      return { openFor, close };
+    })();
+
     function enableTimePicker(id){
       const el = document.getElementById(id);
       if (!el) return;
       const openPicker = () => {
         if (typeof el.showPicker === 'function') {
-          try { el.showPicker(); } catch (_) {}
+          try { el.showPicker(); return; } catch (_) {}
         }
+        timePicker.openFor(el);
       };
-      el.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        openPicker();
-      });
+      el.addEventListener('focus', openPicker);
       el.addEventListener('click', openPicker);
     }
 
@@ -1623,6 +1734,7 @@
     $('#sl-start').addEventListener('input',  recalcEnd);
     $('#sl-duration').addEventListener('input', recalcEnd);
     $('#sl-unit').addEventListener('change',  recalcEnd);
+    $('#sl-end').addEventListener('input', recalcDurationFromEnd);
 
     $$('#form-slot .seg [data-min]').forEach(b => b.addEventListener('click', ()=>{
       $('#sl-unit').value = 'min';
