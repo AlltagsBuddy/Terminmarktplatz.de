@@ -101,6 +101,18 @@
       color: var(--ink-dim);
       border: 1px solid var(--border);
     }
+    .cookie-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:24px;
+    }
+    .cookie-actions .btn:not(.primary){
+      background:#ffffff;
+      color:#0f172a;
+      border:1px solid #cbd5e1;
+      text-shadow:none;
+    }
 
     /* auth-in zunächst ausblenden */
     .auth-in {
@@ -180,6 +192,7 @@
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -238,9 +251,9 @@
             </div>
           </div>
 
-          <div style="margin-top: 24px;">
+          <div class="cookie-actions">
             <button class="btn primary" id="save-cookies">Einstellungen speichern</button>
-            <a href="/datenschutz.html" class="btn" style="margin-left: 12px;">Zur Datenschutzerklärung</a>
+            <a href="/datenschutz.html" class="btn">Zur Datenschutzerklärung</a>
           </div>
         </div>
       </div>
@@ -270,6 +283,7 @@
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
         <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
@@ -388,9 +402,21 @@
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
           const loggedIn = res.ok;
+          let isAdmin = false;
+          if (res.ok) {
+            const data = await res.json().catch(()=> null);
+            isAdmin = data?.is_admin === true;
+          }
           document.querySelectorAll('.auth-in').forEach(el => el.style.display = loggedIn ? '' : 'none');
           document.querySelectorAll('.auth-out').forEach(el => el.style.display = loggedIn ? 'none' : '');
-        }catch(e){}
+          document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = (loggedIn && isAdmin) ? '' : 'none';
+          });
+        }catch(e){
+          document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = 'none';
+          });
+        }
       }
       checkAuth();
     })();
@@ -419,4 +445,5 @@
   </script>
 </body>
 </html>
+
 

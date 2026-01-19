@@ -17,3 +17,10 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Test-/Coverage-Artefakte
+.coverage
+test-artifacts/
+
+# Lokale Test-Assets
+static/logo.jpg

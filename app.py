@@ -15,6 +15,7 @@ from email.message import EmailMessage
 from email.utils import parseaddr, formataddr
 import smtplib
 import requests
+from PIL import Image, UnidentifiedImageError
 
 # ZoneInfo robust (Backport bei < 3.9)
 try:
@@ -68,6 +69,9 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
+LOGO_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-logos")
+LOGO_MAX_BYTES = 20 * 1024
+LOGO_SIZE_PX = 512
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -82,6 +86,8 @@ app = Flask(
     static_url_path="/static",
     template_folder=TEMPLATE_DIR,
 )
+
+os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -493,6 +499,8 @@ def _ensure_base_tables():
                   city TEXT,
                   phone TEXT,
                   whatsapp TEXT,
+                  logo_url TEXT,
+                  consent_logo_display INTEGER DEFAULT 0,
                   status TEXT NOT NULL DEFAULT 'pending',
                   is_admin INTEGER NOT NULL DEFAULT 0,
                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -562,6 +570,85 @@ def _ensure_base_tables():
 # Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
 # WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
 _ensure_base_tables()
+
+
+# --------------------------------------------------------
+# Provider: Logo-URL Feld hinzufügen (optional)
+# --------------------------------------------------------
+def _ensure_provider_logo_url():
+    """
+    Fügt das logo_url Feld zur provider Tabelle hinzu, falls es noch nicht existiert.
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                ALTER TABLE public.provider
+                  ADD COLUMN IF NOT EXISTS logo_url text;
+                """
+                conn.exec_driver_sql(ddl)
+            else:
+                try:
+                    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(provider)")).fetchall()]
+                    if "logo_url" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN logo_url TEXT")
+                except Exception:
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_logo_url fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_provider_logo_url()
+
+
+# --------------------------------------------------------
+# Provider: Logo-Consent Feld hinzufügen (optional)
+# --------------------------------------------------------
+def _ensure_provider_logo_consent():
+    """
+    Fügt das consent_logo_display Feld zur provider Tabelle hinzu, falls es noch nicht existiert.
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                ALTER TABLE public.provider
+                  ADD COLUMN IF NOT EXISTS consent_logo_display boolean DEFAULT false;
+                """
+                conn.exec_driver_sql(ddl)
+            else:
+                try:
+                    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(provider)")).fetchall()]
+                    if "consent_logo_display" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN consent_logo_display INTEGER DEFAULT 0")
+                except Exception:
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_provider_logo_consent()
+
+
+# --------------------------------------------------------
+# Provider: Logo URL mit Cache-Buster (mtime)
+# --------------------------------------------------------
+def _logo_url_with_buster(logo_url: str | None, base_url: str | None = None) -> str | None:
+    if not logo_url:
+        return None
+    if not logo_url.startswith("/static/uploads/provider-logos/"):
+        return logo_url
+    fname = logo_url.split("/")[-1]
+    fpath = os.path.join(LOGO_UPLOAD_DIR, fname)
+    try:
+        mtime = int(os.path.getmtime(fpath))
+        url = f"{logo_url}?v={mtime}"
+    except Exception:
+        url = logo_url
+
+    if base_url and url.startswith("/"):
+        return base_url.rstrip("/") + url
+    return url
 
 
 # --------------------------------------------------------
@@ -2160,14 +2247,38 @@ def auth_required(admin: bool = False):
                         pass
             
             if not data:
-                # Für HTML-Routen: Redirect zu Login
-                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                # JSON/API-Endpunkte sollen 401 liefern (kein Redirect), sonst Login-Redirect
+                json_prefixes = (
+                    "/api/",
+                    "/auth/",
+                    "/admin/",
+                    "/slots",
+                    "/provider/",
+                    "/public/",
+                    "/alerts/",
+                    "/webhook/",
+                )
+                json_paths = {"/me"}
+                is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
+                if request.path.endswith(".html") or not is_json_endpoint:
                     return redirect(f"/login.html?next={request.path}")
                 return _json_error("unauthorized", 401)
             
             if admin and not data.get("adm"):
                 # Für HTML-Routen: Redirect zu Login mit Fehlermeldung
-                if request.path.endswith('.html') or not request.path.startswith('/api/'):
+                json_prefixes = (
+                    "/api/",
+                    "/auth/",
+                    "/admin/",
+                    "/slots",
+                    "/provider/",
+                    "/public/",
+                    "/alerts/",
+                    "/webhook/",
+                )
+                json_paths = {"/me"}
+                is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
+                if request.path.endswith(".html") or not is_json_endpoint:
                     return redirect(f"/login.html?error=admin_required&next={request.path}")
                 return _json_error("forbidden", 403)
             
@@ -2295,10 +2406,12 @@ if _html_enabled():
         return send_from_directory(APP_ROOT, "login.html")
 
     @app.get("/anbieter-portal")
+    @auth_required()
     def anbieter_portal_page():
         return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
     @app.get("/anbieter-portal.html")
+    @auth_required()
     def anbieter_portal_page_html():
         return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
@@ -3092,6 +3205,8 @@ def me():
                 "city": p.city,
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
+                "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
+                "consent_logo_display": bool(getattr(p, "consent_logo_display", False)),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -3111,7 +3226,7 @@ def me():
 def me_update():
     try:
         data = request.get_json(force=True) or {}
-        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp"}
+        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp", "logo_url"}
 
         def clean(v):
             if v is None:
@@ -3137,6 +3252,27 @@ def me_update():
             if not z.isdigit() or len(z) != 5:
                 return _json_error("invalid_zip", 400)
 
+        if "logo_url" in upd:
+            url = (upd.get("logo_url") or "").strip()
+            if not url:
+                upd["logo_url"] = None
+            else:
+                if len(url) > 300:
+                    return _json_error("invalid_logo_url", 400)
+                if any(ch in url for ch in ['"', "'", "<", ">"]):
+                    return _json_error("invalid_logo_url", 400)
+                if not (url.startswith("https://") or url.startswith("http://") or url.startswith("/static/")):
+                    return _json_error("invalid_logo_url", 400)
+                upd["logo_url"] = url
+
+        consent_val = data.get("consent_logo_display")
+        if consent_val is not None:
+            if isinstance(consent_val, str):
+                consent = consent_val.strip().lower() in ("true", "1", "yes", "on")
+            else:
+                consent = bool(consent_val)
+            upd["consent_logo_display"] = consent
+
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
             if not p:
@@ -3150,6 +3286,8 @@ def me_update():
 
             for k, v in upd.items():
                 setattr(p, k, v)
+            if "consent_logo_display" in upd and not upd["consent_logo_display"]:
+                p.logo_url = None
 
             try:
                 s.commit()
@@ -3181,6 +3319,108 @@ def me_update():
         return jsonify({"ok": True})
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.post("/me/logo")
+@auth_required()
+def me_logo_upload():
+    try:
+        if "logo" not in request.files:
+            return _json_error("missing_file", 400)
+        file = request.files["logo"]
+        if not file or not file.filename:
+            return _json_error("missing_file", 400)
+
+        consent_val = request.form.get("consent_logo_display")
+        consent = (consent_val or "").strip().lower() in ("true", "1", "yes", "on")
+        if not consent:
+            return _json_error("logo_consent_required", 400)
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > LOGO_MAX_BYTES:
+            return _json_error("logo_too_large", 400)
+
+        try:
+            img = Image.open(file.stream)
+            img.verify()
+        except UnidentifiedImageError:
+            return _json_error("invalid_logo_format", 400)
+        except Exception:
+            return _json_error("invalid_logo_format", 400)
+        finally:
+            file.stream.seek(0)
+
+        try:
+            img = Image.open(file.stream)
+            width, height = img.size
+            fmt = (img.format or "").upper()
+        except Exception:
+            return _json_error("invalid_logo_format", 400)
+        finally:
+            file.stream.seek(0)
+
+        if fmt not in ("JPEG", "PNG"):
+            return _json_error("invalid_logo_format", 400)
+        if width != LOGO_SIZE_PX or height != LOGO_SIZE_PX:
+            return _json_error("invalid_logo_size", 400)
+
+        ext = "png" if fmt == "PNG" else "jpg"
+        filename = f"{request.provider_id}.{ext}"
+        target_path = os.path.join(LOGO_UPLOAD_DIR, filename)
+        for old_ext in ("jpg", "png"):
+            old_path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{old_ext}")
+            if old_path != target_path and os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+        with open(target_path, "wb") as out:
+            out.write(file.stream.read())
+
+        logo_path = f"/static/uploads/provider-logos/{filename}"
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            p.logo_url = logo_path
+            p.consent_logo_display = True
+            s.commit()
+
+        return jsonify({"ok": True, "logo_url": _logo_url_with_buster(logo_path, _external_base())})
+    except Exception:
+        app.logger.exception("me_logo_upload failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.delete("/me/logo")
+@auth_required()
+def me_logo_delete():
+    try:
+        removed = False
+        for ext in ("jpg", "png"):
+            path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{ext}")
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    removed = True
+                except Exception:
+                    pass
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            p.logo_url = None
+            p.consent_logo_display = False
+            s.commit()
+
+        return jsonify({"ok": True, "deleted": removed})
+    except Exception:
+        app.logger.exception("me_logo_delete failed")
         return jsonify({"error": "server_error"}), 500
 
 
@@ -6231,34 +6471,30 @@ def public_slots():
                     loc_for_filter = location_raw or city_q or zip_filter
                     if loc_for_filter:
                         pattern_loc = f"%{loc_for_filter}%"
-                        # Suche in Slot.location ODER Slot.zip ODER Slot.city ODER Provider.zip/city
+                        # Suche NUR nach Slot-Ort (keine Provider-Adresse)
                         if zip_filter and zip_filter.isdigit() and len(zip_filter) == 5:
-                            # Wenn es eine PLZ ist, suche nach Slot.zip ODER Provider.zip ODER location
+                            # Wenn es eine PLZ ist, suche nach Slot.zip ODER Slot.location
                             sq = sq.where(
                                 or_(
                                     Slot.zip == zip_filter,
-                                    Provider.zip == zip_filter,
                                     Slot.location.ilike(pattern_loc),
                                 )
                             )
                         elif city_q:
-                            # Wenn es eine Stadt ist, suche nach Slot.city ODER Provider.city ODER location
+                            # Wenn es eine Stadt ist, suche nach Slot.city ODER Slot.location
                             sq = sq.where(
                                 or_(
                                     Slot.city.ilike(f"%{city_q}%"),
-                                    Provider.city.ilike(f"%{city_q}%"),
                                     Slot.location.ilike(pattern_loc),
                                 )
                             )
                         else:
-                            # Fallback: location ODER Provider Adressfelder
+                            # Fallback: Slot.location ODER Slot-Adressfelder
                             sq = sq.where(
                                 or_(
                                     Slot.location.ilike(pattern_loc),
                                     Slot.zip.ilike(pattern_loc),
                                     Slot.city.ilike(pattern_loc),
-                                    Provider.zip.ilike(pattern_loc),
-                                    Provider.city.ilike(pattern_loc),
                                 )
                             )
 
@@ -6299,11 +6535,18 @@ def public_slots():
                         if origin_lat is None or origin_lon is None:
                             continue
                         
-                        # Verwende zuerst Slot-Adresse, dann Provider-Adresse als Fallback
-                        slot_zip = getattr(slot, "zip", None) or p_zip
-                        slot_city = getattr(slot, "city", None) or p_city
-                        
-                        plat, plon = geocode_cached(s, slot_zip, slot_city)
+                        # Verwende nur Slot-Adresse (kein Provider-Fallback)
+                        slot_zip = normalize_zip(getattr(slot, "zip", None))
+                        if len(slot_zip) != 5:
+                            slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
+                        slot_city = (getattr(slot, "city", None) or "").strip()
+
+                        geo_zip = slot_zip if len(slot_zip) == 5 else None
+                        geo_city = slot_city or None
+                        if not geo_zip and not geo_city:
+                            continue
+
+                        plat, plon = geocode_cached(s, geo_zip, geo_city)
                         if plat is None or plon is None:
                             continue
                             
@@ -6329,7 +6572,17 @@ def public_slots():
                             "branch": provider.branch,
                             "phone": provider.phone,
                             "whatsapp": provider.whatsapp,
+                            "logo_url": getattr(provider, "logo_url", None),
+                            "consent_logo_display": bool(getattr(provider, "consent_logo_display", False)),
                         }
+
+                    if not bool(getattr(provider, "consent_logo_display", False)):
+                        provider_dict["logo_url"] = None
+                    else:
+                        provider_dict["logo_url"] = _logo_url_with_buster(
+                            provider_dict.get("logo_url"),
+                            _external_base(),
+                        )
 
                     item["provider"] = provider_dict
                     item["provider_zip"] = p_zip

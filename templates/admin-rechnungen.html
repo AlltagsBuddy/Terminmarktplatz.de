@@ -94,8 +94,10 @@
 
           <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="https://terminmarktplatz.de/anbieter-portal.html" class="item auth-in" role="menuitem">Anbieter-Portal</a>
-          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in" role="menuitem">Rechnungen (Admin)</a>
+          <a href="https://terminmarktplatz.de/anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="https://terminmarktplatz.de/anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
           <a href="https://terminmarktplatz.de/kontakt.html" class="item" role="menuitem">Kontakt</a>
@@ -538,6 +540,30 @@
       const menu = document.getElementById('userMenu');
       if (!btn || !menu) return;
 
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls = menu.querySelectorAll('.auth-in');
+      const adminOnlyEls = menu.querySelectorAll('.admin-only');
+
+      function setAuthVisible(isLoggedIn, isAdmin){
+        authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+        authInEls.forEach(el => { el.style.display = isLoggedIn ? '' : 'none'; });
+        adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
+      }
+
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { credentials:'include' });
+          if (res.ok) {
+            const data = await res.json().catch(()=> null);
+            setAuthVisible(true, data?.is_admin === true);
+          } else {
+            setAuthVisible(false, false);
+          }
+        }catch(e){
+          setAuthVisible(false, false);
+        }
+      }
+
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
         const isHidden = menu.hasAttribute('hidden');
@@ -564,6 +590,25 @@
         } catch(e) {}
         window.location.href = 'login.html?tab=login';
       });
+
+      // Konto löschen
+      document.querySelector('[data-action="delete"]')?.addEventListener('click', async ()=>{
+        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+        if (!ok) return;
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { method:'DELETE', credentials:'include' });
+          if (res.ok) {
+            window.location.href = 'login.html?deleted=1';
+          } else {
+            const data = await res.json().catch(()=> ({}));
+            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+          }
+        }catch(err){
+          alert('Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      });
+
+      checkAuth();
     })();
   </script>
 

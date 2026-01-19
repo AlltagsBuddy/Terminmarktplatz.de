@@ -237,6 +237,7 @@
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -358,6 +359,7 @@
           <ul>
             <li><strong>Stammdaten:</strong> Name, Vorname, ggf. Firmenname, Kontaktdaten (E-Mail, Anschrift).</li>
             <li><strong>Zugangsdaten (Anbieter):</strong> E-Mail-Adresse, Passwort-Hash (Argon2), Verifizierungsstatus.</li>
+            <li><strong>Profilinhalte (Anbieter):</strong> Logo/Bilddatei (sofern hochgeladen).</li>
             <li><strong>Buchungsdaten:</strong> gebuchte Slots, Datum/Uhrzeit, Anbieter, Status (z. B. bestätigt, storniert).</li>
             <li><strong>Nutzungsdaten:</strong> Logfiles (IP-Adresse, Zeitpunkt, aufgerufene URL, HTTP-Status, User-Agent, Referrer).</li>
             <li><strong>Kommunikationsdaten:</strong> Inhalte von Nachrichten über das Kontaktformular oder per E-Mail.</li>
@@ -396,6 +398,14 @@
             hierfür insbesondere deine E-Mail-Adresse, dein Passwort (in Form eines Argon2-Hashes) und die von dir hinterlegten
             Profil-/Firmendaten. Die Verarbeitung ist erforderlich, um dir das Konto bereitzustellen und das Vertragsverhältnis
             zu erfüllen (Art. 6 Abs. 1 lit. b DSGVO).
+          </p>
+          <p>
+            Sofern du ein Anbieter-Logo hochlädst, speichern wir die Bilddatei und zeigen sie in der Suche und bei deinen Angeboten
+            an, um eine bessere Wiedererkennung zu ermöglichen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragsdurchführung).
+          </p>
+          <p>
+            Die öffentliche Anzeige deines Logos erfolgt nur mit deiner ausdrücklichen Einwilligung im Profil und kann dort jederzeit
+            widerrufen werden. Rechtsgrundlage hierfür ist Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).
           </p>
 
           <h3>5.4 Terminbuchungen (Suchende)</h3>
@@ -666,7 +676,7 @@
         <a class="foot-link" href="impressum.html">Impressum</a>
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
-        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
@@ -722,9 +732,14 @@
 
       async function updateAuthUI(){
         let loggedIn = false;
+        let isAdmin = false;
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
-          loggedIn = res.ok;
+          if (res.ok) {
+            loggedIn = true;
+            const data = await res.json().catch(()=> null);
+            isAdmin = data?.is_admin === true;
+          }
         }catch(e){
           loggedIn = false;
         }
@@ -734,6 +749,9 @@
         });
         document.querySelectorAll('.auth-out').forEach(el => {
           el.style.display = loggedIn ? 'none' : '';
+        });
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = (loggedIn && isAdmin) ? '' : 'none';
         });
       }
 
@@ -793,3 +811,5 @@
   </script>
 </body>
 </html>
+
+

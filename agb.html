@@ -165,6 +165,7 @@
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -327,6 +328,9 @@
                 oder Verstöße gegen diese AGB bestehen.</li>
             <li>Anbieter sichern zu, die erforderlichen Rechte an Logos, Bildern und Texten zu besitzen und räumen uns ein einfaches,
                 räumlich nicht beschränktes Nutzungsrecht zur Darstellung auf der Plattform ein.</li>
+            <li>Logo-Uploads dürfen nur als JPG oder PNG erfolgen, müssen quadratisch sein (512×512 px) und dürfen max. 20 KB groß sein.
+                Unzulässige oder zu große Dateien können abgelehnt oder entfernt werden.</li>
+            <li>Die öffentliche Anzeige des Logos erfolgt nur nach ausdrücklicher Einwilligung des Anbieters im Profil.</li>
           </ul>
 
           <h2>9. Nutzungsrechte & Schutzrechte</h2>
@@ -455,7 +459,7 @@
         <a class="foot-link" href="impressum.html">Impressum</a>
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
-        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
@@ -508,9 +512,14 @@
       // Login-Status prüfen und auth-in / auth-out steuern
       async function updateAuthUI(){
         let loggedIn = false;
+        let isAdmin = false;
         try{
           const res = await fetch(`${API}/me`, { credentials:'include' });
-          loggedIn = res.ok; // 200 = eingeloggt, 401/403 = nicht
+          if (res.ok) {
+            loggedIn = true;
+            const data = await res.json().catch(()=> null);
+            isAdmin = data?.is_admin === true;
+          }
         }catch(e){
           loggedIn = false;
         }
@@ -520,6 +529,9 @@
         });
         document.querySelectorAll('.auth-out').forEach(el => {
           el.style.display = loggedIn ? 'none' : '';
+        });
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = (loggedIn && isAdmin) ? '' : 'none';
         });
       }
 
@@ -580,3 +592,5 @@
   </script>
 </body>
 </html>
+
+
