@@ -6552,9 +6552,12 @@ def public_slots():
                         
                         # Verwende nur Slot-Adresse (kein Provider-Fallback)
                         slot_zip = normalize_zip(getattr(slot, "zip", None))
+                        slot_location = (getattr(slot, "location", None) or "").strip()
                         if len(slot_zip) != 5:
-                            slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
+                            slot_zip = normalize_zip(_extract_zip_from_text(slot_location))
                         slot_city = (getattr(slot, "city", None) or "").strip()
+                        if not slot_city and slot_location:
+                            slot_city = slot_location
 
                         geo_zip = slot_zip if len(slot_zip) == 5 else None
                         geo_city = slot_city or None

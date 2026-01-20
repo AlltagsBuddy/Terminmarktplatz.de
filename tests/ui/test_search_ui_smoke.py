@@ -77,6 +77,17 @@ def test_search_radius_requires_location(app_base_url: str, page: Page) -> None:
     expect(err).to_contain_text("Umkreis kann nur mit Ort/PLZ verwendet werden.")
 
 
+def test_search_radius_with_location_submits(app_base_url: str, page: Page) -> None:
+    _goto_with_retry(page, f"{app_base_url}/suche.html")
+    page.wait_for_selector("#filters", timeout=20_000)
+    page.fill("#f-ort", "Berlin")
+    page.select_option("#f-radius", "10")
+    page.locator("#filters button[type='submit']").click()
+    page.wait_for_url("**/suche.html**radius=10**", timeout=20_000)
+    err = page.locator("#filter-error")
+    expect(err).to_be_hidden()
+
+
 def test_search_date_range_validation(app_base_url: str, page: Page) -> None:
     _goto_with_retry(page, f"{app_base_url}/suche.html")
     page.wait_for_selector("#filters", timeout=20_000)
