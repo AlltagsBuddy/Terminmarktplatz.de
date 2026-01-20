@@ -6685,6 +6685,28 @@ def public_book():
             return _json_error("slot_full", 409)
 
         provider = s.get(Provider, slot.provider_id)
+        if provider:
+            same_time = (
+                s.scalar(
+                    select(func.count())
+                    .select_from(Booking)
+                    .join(Slot, Slot.id == Booking.slot_id)
+                    .where(
+                        and_(
+                            Booking.customer_email == email,
+                            Booking.status.in_(["hold", "confirmed"]),
+                            Slot.provider_id == slot.provider_id,
+                            Slot.start_at == slot.start_at,
+                        )
+                    )
+                )
+                or 0
+            )
+            if same_time > 0:
+                return _json_error(
+                    "Pro E-Mailadresse ist nur ein Termin zur selben Uhrzeit möglich.",
+                    409,
+                )
         if provider and provider.booking_fee_eur is not None:
             fee = provider.booking_fee_eur
         else:
