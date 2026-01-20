@@ -6485,8 +6485,9 @@ def public_slots():
                         # Fallback: Teilstring-Suche
                         sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
+                loc_for_filter = location_raw or city_q or zip_filter
+
                 if radius_km is None:
-                    loc_for_filter = location_raw or city_q or zip_filter
                     if loc_for_filter:
                         pattern_loc = f"%{loc_for_filter}%"
                         # Suche NUR nach Slot-Ort (keine Provider-Adresse)
@@ -6569,11 +6570,27 @@ def public_slots():
 
                         plat, plon = geocode_cached(s, geo_zip, geo_city)
                         if plat is None or plon is None:
-                            continue
-                            
-                        distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
-                        if distance_km > radius_km:
-                            continue
+                            # Fallback: wenn Geocoding fehlt, textueller Ortsabgleich
+                            if not loc_for_filter:
+                                continue
+                            lf = str(loc_for_filter).strip().lower()
+                            slot_loc = (getattr(slot, "location", None) or "").strip().lower()
+                            slot_city_txt = (getattr(slot, "city", None) or "").strip().lower()
+                            slot_zip_txt = (getattr(slot, "zip", None) or "").strip().lower()
+                            if lf.isdigit() and len(lf) == 5:
+                                if lf == slot_zip_txt or lf in slot_loc:
+                                    pass
+                                else:
+                                    continue
+                            else:
+                                if lf in slot_city_txt or lf in slot_loc:
+                                    pass
+                                else:
+                                    continue
+                        else:
+                            distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
+                            if distance_km > radius_km:
+                                continue
 
                     item = slot_to_json(slot)
                     item["available"] = available
