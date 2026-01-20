@@ -3,6 +3,7 @@ import tempfile
 from datetime import timedelta
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
@@ -115,3 +116,30 @@ def test_public_slots_exclude_full_by_default(test_client, seeded_data):
     data = r.get_json()
     # Slot1 ist voll (capacity=1 und 1 booking) und sollte fehlen
     assert all(item["title"] != "Termin A" for item in data)
+
+
+def test_public_slots_radius_filter(test_client, seeded_data):
+    slot1_id, slot2_id = seeded_data
+    with Session(app_module.engine) as s:
+        s.execute(
+            text(
+                "INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,:lat,:lon)"
+                " ON CONFLICT (key) DO UPDATE SET lat=EXCLUDED.lat, lon=EXCLUDED.lon"
+            ),
+            {"k": "zip:12345", "lat": 50.0, "lon": 10.0},
+        )
+        s.execute(
+            text(
+                "INSERT INTO geocode_cache(key, lat, lon) VALUES(:k,:lat,:lon)"
+                " ON CONFLICT (key) DO UPDATE SET lat=EXCLUDED.lat, lon=EXCLUDED.lon"
+            ),
+            {"k": "zip:99999", "lat": 60.0, "lon": 10.0},
+        )
+        s.commit()
+
+    r = test_client.get("/public/slots?location=12345&radius=50&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json()
+    ids = {item["id"] for item in data}
+    assert slot1_id in ids
+    assert slot2_id not in ids

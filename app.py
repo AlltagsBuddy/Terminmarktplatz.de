@@ -6448,6 +6448,9 @@ def public_slots():
                             origin_lat, origin_lon = geocode_cached(s, location_raw, None)
                         else:
                             origin_lat, origin_lon = geocode_cached(s, None, location_raw)
+                    # Falls Geocoding fehlschlägt, auf Textsuche zurückfallen
+                    if origin_lat is None or origin_lon is None:
+                        radius_km = None
 
                 bq = (
                     select(Booking.slot_id, func.count().label("booked"))
