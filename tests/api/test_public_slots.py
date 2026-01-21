@@ -1,9 +1,10 @@
 import os
 import tempfile
 from datetime import timedelta
+from urllib.parse import urlencode
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 
@@ -116,6 +117,68 @@ def test_public_slots_exclude_full_by_default(test_client, seeded_data):
     data = r.get_json()
     # Slot1 ist voll (capacity=1 und 1 booking) und sollte fehlen
     assert all(item["title"] != "Termin A" for item in data)
+
+
+def _slot_dates():
+    with Session(app_module.engine) as s:
+        slot1 = s.scalar(select(Slot).where(Slot.title == "Termin A"))
+        slot2 = s.scalar(select(Slot).where(Slot.title == "Termin B"))
+        return slot1, slot2
+
+
+def test_public_slots_day_from_to_range(test_client, seeded_data):
+    slot1, slot2 = _slot_dates()
+    start1_local = app_module._as_utc_aware(slot1.start_at).astimezone(app_module.BERLIN)
+    start2_local = app_module._as_utc_aware(slot2.start_at).astimezone(app_module.BERLIN)
+    day_from = start1_local.strftime("%Y-%m-%d")
+    day_to = start2_local.strftime("%Y-%m-%d")
+
+    r = test_client.get(f"/public/slots?day_from={day_from}&day_to={day_to}&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json()
+    ids = {item["id"] for item in data}
+    assert slot1.id in ids
+    assert slot2.id in ids
+
+
+def test_public_slots_day_to_only(test_client, seeded_data):
+    slot1, slot2 = _slot_dates()
+    start1_local = app_module._as_utc_aware(slot1.start_at).astimezone(app_module.BERLIN)
+    day_to = start1_local.strftime("%Y-%m-%d")
+
+    r = test_client.get(f"/public/slots?day_to={day_to}&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json()
+    ids = {item["id"] for item in data}
+    assert slot1.id in ids
+    assert slot2.id not in ids
+
+
+def test_public_slots_day_from_only(test_client, seeded_data):
+    slot1, slot2 = _slot_dates()
+    start2_local = app_module._as_utc_aware(slot2.start_at).astimezone(app_module.BERLIN)
+    day_from = start2_local.strftime("%Y-%m-%d")
+
+    r = test_client.get(f"/public/slots?day_from={day_from}&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json()
+    ids = {item["id"] for item in data}
+    assert slot1.id not in ids
+    assert slot2.id in ids
+
+
+def test_public_slots_from_to_iso_range(test_client, seeded_data):
+    slot1, slot2 = _slot_dates()
+    start1_iso = app_module._as_utc_aware(slot1.start_at).isoformat()
+    end1_iso = app_module._as_utc_aware(slot1.end_at).isoformat()
+
+    qs = urlencode({"from": start1_iso, "to": end1_iso, "include_full": "1"})
+    r = test_client.get(f"/public/slots?{qs}")
+    assert r.status_code == 200
+    data = r.get_json()
+    ids = {item["id"] for item in data}
+    assert slot1.id in ids
+    assert slot2.id not in ids
 
 
 def test_public_slots_radius_filter(test_client, seeded_data):
