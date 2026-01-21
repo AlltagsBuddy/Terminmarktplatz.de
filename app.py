@@ -55,17 +55,7 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import (
-    Base,
-    Provider,
-    Slot,
-    Booking,
-    PlanPurchase,
-    Invoice,
-    AlertSubscription,
-    PasswordReset,
-    ProviderService,
-)
+from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -526,7 +516,6 @@ def _ensure_base_tables():
                 CREATE TABLE IF NOT EXISTS slot (
                   id TEXT PRIMARY KEY,
                   provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
-                  service_id TEXT REFERENCES provider_service(id) ON DELETE SET NULL,
                   title TEXT NOT NULL,
                   category TEXT NOT NULL,
                   start_at DATETIME NOT NULL,
@@ -581,94 +570,6 @@ def _ensure_base_tables():
 # Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
 # WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
 _ensure_base_tables()
-
-
-# --------------------------------------------------------
-# Provider: Leistungen/Services Tabelle hinzufügen
-# --------------------------------------------------------
-def _ensure_provider_service_table():
-    try:
-        with engine.begin() as conn:
-            if IS_POSTGRESQL:
-                ddl = """
-                CREATE TABLE IF NOT EXISTS public.provider_service (
-                  id uuid PRIMARY KEY,
-                  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
-                  name text NOT NULL,
-                  duration_minutes integer NOT NULL DEFAULT 30,
-                  price_cents integer,
-                  description text,
-                  active boolean NOT NULL DEFAULT TRUE,
-                  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-                """
-                conn.exec_driver_sql(ddl)
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS provider_service_provider_id_idx ON public.provider_service(provider_id)"
-                )
-            else:
-                ddl = """
-                CREATE TABLE IF NOT EXISTS provider_service (
-                  id TEXT PRIMARY KEY,
-                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
-                  name TEXT NOT NULL,
-                  duration_minutes INTEGER NOT NULL DEFAULT 30,
-                  price_cents INTEGER,
-                  description TEXT,
-                  active INTEGER NOT NULL DEFAULT 1,
-                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-                """
-                conn.exec_driver_sql(ddl)
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS provider_service_provider_id_idx ON provider_service(provider_id)"
-                )
-    except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_provider_service_table fehlgeschlagen: {e}", flush=True)
-
-
-_ensure_provider_service_table()
-
-
-# --------------------------------------------------------
-# Slot: service_id Feld hinzufügen (optional)
-# --------------------------------------------------------
-def _ensure_slot_service_id():
-    try:
-        with engine.begin() as conn:
-            if IS_POSTGRESQL:
-                conn.exec_driver_sql(
-                    "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS service_id uuid;"
-                )
-                conn.exec_driver_sql(
-                    """
-                    DO $$
-                    BEGIN
-                      IF NOT EXISTS (
-                        SELECT 1 FROM pg_constraint
-                        WHERE conname = 'slot_service_fk'
-                      ) THEN
-                        ALTER TABLE public.slot
-                          ADD CONSTRAINT slot_service_fk
-                          FOREIGN KEY (service_id)
-                          REFERENCES public.provider_service(id)
-                          ON DELETE SET NULL;
-                      END IF;
-                    END $$;
-                    """
-                )
-            else:
-                try:
-                    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(slot)")).fetchall()]
-                    if "service_id" not in cols:
-                        conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN service_id TEXT")
-                except Exception:
-                    pass
-    except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_slot_service_id fehlgeschlagen: {e}", flush=True)
-
-
-_ensure_slot_service_id()
 
 
 # --------------------------------------------------------
@@ -1542,7 +1443,6 @@ def slot_to_json(x: Slot):
     return {
         "id": x.id,
         "provider_id": x.provider_id,
-        "service_id": getattr(x, "service_id", None),
         "title": x.title,
         "category": x.category,
         "start_at": _from_db_as_iso_utc(x.start_at),
@@ -3569,147 +3469,6 @@ def cancel_plan():
 
 
 # --------------------------------------------------------
-# Provider Services (Leistungen)
-# --------------------------------------------------------
-@app.get("/provider/services")
-@auth_required()
-def provider_services_list():
-    try:
-        with Session(engine) as s:
-            rows = (
-                s.execute(
-                    select(ProviderService)
-                    .where(ProviderService.provider_id == request.provider_id)
-                    .order_by(ProviderService.created_at.desc())
-                )
-                .scalars()
-                .all()
-            )
-            return jsonify([r.to_public_dict() for r in rows])
-    except Exception:
-        app.logger.exception("provider_services_list failed")
-        return _json_error("server_error", 500)
-
-
-@app.post("/provider/services")
-@auth_required()
-def provider_services_create():
-    try:
-        data = request.get_json(force=True) or {}
-        name = (data.get("name") or "").strip()
-        duration = int(data.get("duration_minutes") or 0)
-        price_cents = data.get("price_cents")
-        description = (data.get("description") or "").strip() or None
-        active = data.get("active")
-
-        if not name or duration <= 0:
-            return _json_error("missing_fields", 400)
-        if duration < 5:
-            return _json_error("duration_too_short", 400)
-        if price_cents is not None:
-            try:
-                price_cents = int(price_cents)
-            except Exception:
-                return _json_error("invalid_price", 400)
-            if price_cents < 0:
-                return _json_error("invalid_price", 400)
-        active_val = True if active is None else bool(active)
-
-        with Session(engine) as s:
-            service = ProviderService(
-                provider_id=request.provider_id,
-                name=name,
-                duration_minutes=duration,
-                price_cents=price_cents,
-                description=description,
-                active=active_val,
-            )
-            s.add(service)
-            s.commit()
-            return jsonify({"ok": True, "service": service.to_public_dict()})
-    except Exception:
-        app.logger.exception("provider_services_create failed")
-        return _json_error("server_error", 500)
-
-
-@app.put("/provider/services/<service_id>")
-@auth_required()
-def provider_services_update(service_id):
-    try:
-        data = request.get_json(force=True) or {}
-        allowed = {"name", "duration_minutes", "price_cents", "description", "active"}
-
-        def clean(v):
-            if v is None:
-                return None
-            return str(v).strip()
-
-        upd = {k: data.get(k) for k in data.keys() if k in allowed}
-
-        if "name" in upd:
-            name = clean(upd["name"])
-            if not name:
-                return _json_error("missing_fields", 400)
-            upd["name"] = name
-
-        if "duration_minutes" in upd:
-            try:
-                duration = int(upd["duration_minutes"])
-            except Exception:
-                return _json_error("bad_duration", 400)
-            if duration < 5:
-                return _json_error("duration_too_short", 400)
-            upd["duration_minutes"] = duration
-
-        if "price_cents" in upd:
-            if upd["price_cents"] is None or upd["price_cents"] == "":
-                upd["price_cents"] = None
-            else:
-                try:
-                    price_cents = int(upd["price_cents"])
-                except Exception:
-                    return _json_error("invalid_price", 400)
-                if price_cents < 0:
-                    return _json_error("invalid_price", 400)
-                upd["price_cents"] = price_cents
-
-        if "description" in upd:
-            upd["description"] = clean(upd["description"]) or None
-
-        if "active" in upd:
-            upd["active"] = bool(upd["active"])
-
-        with Session(engine) as s:
-            service = s.get(ProviderService, service_id)
-            if not service or str(service.provider_id) != str(request.provider_id):
-                return _json_error("not_found", 404)
-
-            for k, v in upd.items():
-                setattr(service, k, v)
-            s.commit()
-            return jsonify({"ok": True, "service": service.to_public_dict()})
-    except Exception:
-        app.logger.exception("provider_services_update failed")
-        return _json_error("server_error", 500)
-
-
-@app.delete("/provider/services/<service_id>")
-@auth_required()
-def provider_services_delete(service_id):
-    try:
-        with Session(engine) as s:
-            service = s.get(ProviderService, service_id)
-            if not service or str(service.provider_id) != str(request.provider_id):
-                return _json_error("not_found", 404)
-            s.delete(service)
-            s.commit()
-        return jsonify({"ok": True})
-    except Exception:
-        app.logger.exception("provider_services_delete failed")
-        return _json_error("server_error", 500)
-
-
-# --------------------------------------------------------
 # Termin-Alarm / Benachrichtigungen (Suchende)
 # --------------------------------------------------------
 from urllib.parse import unquote
@@ -4976,11 +4735,6 @@ def slots_create():
             data_city   = (data.get("city") or "").strip()
 
             slot_kwargs_extra = {}
-            service_id = (data.get("service_id") or "").strip() or None
-            if service_id:
-                service = s.get(ProviderService, service_id)
-                if not service or str(service.provider_id) != str(request.provider_id):
-                    return _json_error("invalid_service", 400)
 
             # street
             if hasattr(Slot, "street"):
@@ -5008,7 +4762,6 @@ def slots_create():
 
             slot = Slot(
                 provider_id=request.provider_id,
-                service_id=service_id,
                 title=title,
                 category=category,
                 start_at=start_db,
@@ -5169,17 +4922,8 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
-            if "service_id" in data:
-                service_id = (data.get("service_id") or "").strip() or None
-                if service_id:
-                    service = s.get(ProviderService, service_id)
-                    if not service or str(service.provider_id) != str(request.provider_id):
-                        return _json_error("invalid_service", 400)
-                data["service_id"] = service_id
-
             # WICHTIG: Updates dürfen NICHT nur bei capacity laufen
             for k in [
-                "service_id",
                 "title",
                 "category",
                 "location",

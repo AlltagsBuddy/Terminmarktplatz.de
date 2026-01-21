@@ -100,13 +100,6 @@ class Provider(Base):
         passive_deletes=True,
     )
 
-    services: Mapped[list["ProviderService"]] = relationship(
-        "ProviderService",
-        back_populates="provider",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
     @property
     def public_name(self) -> str:
         return (self.company_name or self.email or "").strip()
@@ -142,60 +135,6 @@ class Provider(Base):
 
 
 # ------------------------------------------------------------
-# ProviderService (Leistung / Angebot)
-# ------------------------------------------------------------
-class ProviderService(Base):
-    """Leistung des Providers (Basis-Leistungsverwaltung)."""
-    __tablename__ = "provider_service"
-
-    id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
-        primary_key=True,
-        default=lambda: str(uuid4()),
-    )
-
-    provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
-        ForeignKey("provider.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
-    price_cents: Mapped[int | None] = mapped_column(Integer)
-    description: Mapped[str | None] = mapped_column(Text)
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False),
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-    )
-
-    provider: Mapped["Provider"] = relationship(
-        "Provider",
-        back_populates="services",
-    )
-
-    slots: Mapped[list["Slot"]] = relationship(
-        "Slot",
-        passive_deletes=True,
-    )
-
-    def to_public_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "provider_id": self.provider_id,
-            "name": self.name,
-            "duration_minutes": self.duration_minutes,
-            "price_cents": self.price_cents,
-            "description": self.description,
-            "active": self.active,
-            "created_at": self.created_at,
-        }
-
-
-# ------------------------------------------------------------
 # Slot (freies Zeitfenster)
 # ------------------------------------------------------------
 class Slot(Base):
@@ -212,13 +151,6 @@ class Slot(Base):
         UUID(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
-    )
-
-    service_id: Mapped[str | None] = mapped_column(
-        UUID(as_uuid=False),
-        ForeignKey("provider_service.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
     )
 
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -265,10 +197,6 @@ class Slot(Base):
     provider: Mapped["Provider"] = relationship(
         "Provider",
         back_populates="slots",
-    )
-
-    service: Mapped["ProviderService | None"] = relationship(
-        "ProviderService",
     )
 
     bookings: Mapped[list["Booking"]] = relationship(
