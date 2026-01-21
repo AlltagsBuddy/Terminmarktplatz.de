@@ -2635,7 +2635,7 @@ def public_contact():
         if not name or not email or not subject or not message:
             return _json_error("missing_fields", 400)
         try:
-            email = validate_email(email).email
+            email = validate_email(email).normalized
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
@@ -2733,7 +2733,7 @@ def register():
         password = data.get("password") or ""
 
         try:
-            email = validate_email(email).email
+            email = validate_email(email).normalized
         except EmailNotValidError:
             return _json_error("invalid_email")
         if len(password) < 8:
@@ -3984,7 +3984,7 @@ def alert_stats():
         return _json_error("email_required", 400)
 
     try:
-        email = validate_email(email).email
+        email = validate_email(email).normalized
     except EmailNotValidError:
         return _json_error("invalid_email", 400)
 
@@ -4317,7 +4317,7 @@ def create_alert():
             return _json_error("invalid_zip", 400)
 
         try:
-            email = validate_email(email).email
+            email = validate_email(email).normalized
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
@@ -6898,7 +6898,7 @@ def public_book():
         return _json_error("missing_fields")
 
     try:
-        email = validate_email(email).email
+        email = validate_email(email).normalized
     except EmailNotValidError:
         return _json_error("invalid_email", 400)
 
