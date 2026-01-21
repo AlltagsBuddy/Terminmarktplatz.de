@@ -55,7 +55,17 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset
+from models import (
+    Base,
+    Provider,
+    Slot,
+    Booking,
+    PlanPurchase,
+    Invoice,
+    AlertSubscription,
+    PasswordReset,
+    ProviderService,
+)
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -570,6 +580,53 @@ def _ensure_base_tables():
 # Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
 # WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
 _ensure_base_tables()
+
+
+# --------------------------------------------------------
+# Provider: Leistungen/Services Tabelle hinzufügen
+# --------------------------------------------------------
+def _ensure_provider_service_table():
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                CREATE TABLE IF NOT EXISTS public.provider_service (
+                  id uuid PRIMARY KEY,
+                  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
+                  name text NOT NULL,
+                  duration_minutes integer NOT NULL DEFAULT 30,
+                  price_cents integer,
+                  description text,
+                  active boolean NOT NULL DEFAULT TRUE,
+                  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                conn.exec_driver_sql(ddl)
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS provider_service_provider_id_idx ON public.provider_service(provider_id)"
+                )
+            else:
+                ddl = """
+                CREATE TABLE IF NOT EXISTS provider_service (
+                  id TEXT PRIMARY KEY,
+                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  name TEXT NOT NULL,
+                  duration_minutes INTEGER NOT NULL DEFAULT 30,
+                  price_cents INTEGER,
+                  description TEXT,
+                  active INTEGER NOT NULL DEFAULT 1,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                conn.exec_driver_sql(ddl)
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS provider_service_provider_id_idx ON provider_service(provider_id)"
+                )
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_service_table fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_provider_service_table()
 
 
 # --------------------------------------------------------
@@ -3190,6 +3247,14 @@ def me():
             except Exception:
                 pass
 
+        calendar_token = _provider_calendar_token(str(p.id))
+        base_url = _external_base()
+        calendar_ics_url = f"{base_url}/public/provider/{p.id}/calendar.ics?token={calendar_token}"
+        calendar_webcal_url = (
+            calendar_ics_url.replace("https://", "webcal://")
+            .replace("http://", "webcal://")
+        )
+
         return jsonify(
             {
                 "id": p.id,
@@ -3217,6 +3282,8 @@ def me():
                 "slots_used_this_month": int(slots_used),
                 "slots_left_this_month": slots_left,
                 "slots_unlimited": unlimited,
+                "calendar_ics_url": calendar_ics_url,
+                "calendar_webcal_url": calendar_webcal_url,
             }
         )
 
@@ -3456,6 +3523,147 @@ def cancel_plan():
     except Exception:
         app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
+
+
+# --------------------------------------------------------
+# Provider Services (Leistungen)
+# --------------------------------------------------------
+@app.get("/provider/services")
+@auth_required()
+def provider_services_list():
+    try:
+        with Session(engine) as s:
+            rows = (
+                s.execute(
+                    select(ProviderService)
+                    .where(ProviderService.provider_id == request.provider_id)
+                    .order_by(ProviderService.created_at.desc())
+                )
+                .scalars()
+                .all()
+            )
+            return jsonify([r.to_public_dict() for r in rows])
+    except Exception:
+        app.logger.exception("provider_services_list failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/provider/services")
+@auth_required()
+def provider_services_create():
+    try:
+        data = request.get_json(force=True) or {}
+        name = (data.get("name") or "").strip()
+        duration = int(data.get("duration_minutes") or 0)
+        price_cents = data.get("price_cents")
+        description = (data.get("description") or "").strip() or None
+        active = data.get("active")
+
+        if not name or duration <= 0:
+            return _json_error("missing_fields", 400)
+        if duration < 5:
+            return _json_error("duration_too_short", 400)
+        if price_cents is not None:
+            try:
+                price_cents = int(price_cents)
+            except Exception:
+                return _json_error("invalid_price", 400)
+            if price_cents < 0:
+                return _json_error("invalid_price", 400)
+        active_val = True if active is None else bool(active)
+
+        with Session(engine) as s:
+            service = ProviderService(
+                provider_id=request.provider_id,
+                name=name,
+                duration_minutes=duration,
+                price_cents=price_cents,
+                description=description,
+                active=active_val,
+            )
+            s.add(service)
+            s.commit()
+            return jsonify({"ok": True, "service": service.to_public_dict()})
+    except Exception:
+        app.logger.exception("provider_services_create failed")
+        return _json_error("server_error", 500)
+
+
+@app.put("/provider/services/<service_id>")
+@auth_required()
+def provider_services_update(service_id):
+    try:
+        data = request.get_json(force=True) or {}
+        allowed = {"name", "duration_minutes", "price_cents", "description", "active"}
+
+        def clean(v):
+            if v is None:
+                return None
+            return str(v).strip()
+
+        upd = {k: data.get(k) for k in data.keys() if k in allowed}
+
+        if "name" in upd:
+            name = clean(upd["name"])
+            if not name:
+                return _json_error("missing_fields", 400)
+            upd["name"] = name
+
+        if "duration_minutes" in upd:
+            try:
+                duration = int(upd["duration_minutes"])
+            except Exception:
+                return _json_error("bad_duration", 400)
+            if duration < 5:
+                return _json_error("duration_too_short", 400)
+            upd["duration_minutes"] = duration
+
+        if "price_cents" in upd:
+            if upd["price_cents"] is None or upd["price_cents"] == "":
+                upd["price_cents"] = None
+            else:
+                try:
+                    price_cents = int(upd["price_cents"])
+                except Exception:
+                    return _json_error("invalid_price", 400)
+                if price_cents < 0:
+                    return _json_error("invalid_price", 400)
+                upd["price_cents"] = price_cents
+
+        if "description" in upd:
+            upd["description"] = clean(upd["description"]) or None
+
+        if "active" in upd:
+            upd["active"] = bool(upd["active"])
+
+        with Session(engine) as s:
+            service = s.get(ProviderService, service_id)
+            if not service or str(service.provider_id) != str(request.provider_id):
+                return _json_error("not_found", 404)
+
+            for k, v in upd.items():
+                setattr(service, k, v)
+            s.commit()
+            return jsonify({"ok": True, "service": service.to_public_dict()})
+    except Exception:
+        app.logger.exception("provider_services_update failed")
+        return _json_error("server_error", 500)
+
+
+@app.delete("/provider/services/<service_id>")
+@auth_required()
+def provider_services_delete(service_id):
+    try:
+        with Session(engine) as s:
+            service = s.get(ProviderService, service_id)
+            if not service or str(service.provider_id) != str(request.provider_id):
+                return _json_error("not_found", 404)
+            s.delete(service)
+            s.commit()
+        return jsonify({"ok": True})
+    except Exception:
+        app.logger.exception("provider_services_delete failed")
+        return _json_error("server_error", 500)
 
 
 # --------------------------------------------------------
@@ -6334,6 +6542,40 @@ def _verify_booking_token(token: str) -> str | None:
         return None
 
 
+PROVIDER_CALENDAR_TOKEN_TTL_DAYS = 365
+
+
+def _provider_calendar_token(provider_id: str) -> str:
+    return jwt.encode(
+        {
+            "sub": provider_id,
+            "typ": "provider_calendar",
+            "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=PROVIDER_CALENDAR_TOKEN_TTL_DAYS)).timestamp()),
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+
+
+def _verify_provider_calendar_token(token: str) -> str | None:
+    try:
+        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
+        return data.get("sub") if data.get("typ") == "provider_calendar" else None
+    except Exception:
+        return None
+
+
+def _escape_ical_text(text: str | None) -> str:
+    if not text:
+        return ""
+    text = str(text).replace("\\", "\\\\")
+    text = text.replace(",", "\\,")
+    text = text.replace(";", "\\;")
+    text = text.replace("\n", "\\n")
+    return text
+
+
 def _haversine_km(lat1, lon1, lat2, lon2):
     from math import radians, sin, cos, atan2, sqrt
 
@@ -7147,6 +7389,120 @@ def public_booking_calendar(booking_id):
             
     except Exception as e:
         app.logger.exception("public_booking_calendar failed")
+        return _json_error("server_error", 500)
+
+
+@app.get("/public/provider/<provider_id>/calendar.ics")
+def public_provider_calendar(provider_id):
+    """Generiert eine .ics Datei für veröffentlichte Provider-Slots."""
+    token = request.args.get("token")
+    verified_provider_id = _verify_provider_calendar_token(token) if token else None
+
+    if not verified_provider_id or str(verified_provider_id) != str(provider_id):
+        return _json_error("invalid_token", 400)
+
+    try:
+        with Session(engine) as s:
+            provider_obj = s.get(Provider, provider_id)
+            if not provider_obj:
+                return _json_error("not_found", 404)
+
+            now_db = _to_db_utc_naive(_now())
+            booking_counts = (
+                select(Booking.slot_id, func.count().label("booked"))
+                .where(Booking.status == "confirmed")
+                .group_by(Booking.slot_id)
+                .subquery()
+            )
+
+            q = (
+                select(
+                    Slot,
+                    func.coalesce(booking_counts.c.booked, 0).label("booked"),
+                )
+                .outerjoin(booking_counts, booking_counts.c.slot_id == Slot.id)
+                .where(
+                    Slot.provider_id == provider_id,
+                    Slot.status == "PUBLISHED",
+                    Slot.archived == False,
+                    Slot.start_at >= now_db,
+                )
+                .order_by(Slot.start_at.asc())
+            )
+
+            rows = s.execute(q).all()
+
+        lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Terminmarktplatz//Provider Slots//DE",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+        ]
+
+        created_utc = _now().strftime("%Y%m%dT%H%M%SZ")
+
+        for slot_obj, booked in rows:
+            start_dt = _as_utc_aware(slot_obj.start_at)
+            end_dt = _as_utc_aware(slot_obj.end_at)
+            start_utc = start_dt.strftime("%Y%m%dT%H%M%SZ")
+            end_utc = end_dt.strftime("%Y%m%dT%H%M%SZ")
+
+            title = slot_obj.title or "Termin"
+            summary = title
+            if slot_obj.category:
+                summary = f"{title} ({slot_obj.category})"
+
+            slot_address = (
+                slot_obj.public_address()
+                if hasattr(slot_obj, "public_address")
+                else (slot_obj.location or "")
+            )
+
+            description_parts = [f"Termin: {title}"]
+            if slot_obj.category:
+                description_parts.append(f"Kategorie: {slot_obj.category}")
+            if slot_address:
+                description_parts.append(f"Ort: {slot_address}")
+            if slot_obj.notes:
+                description_parts.append(f"Hinweise: {slot_obj.notes}")
+
+            cap = int(slot_obj.capacity or 1)
+            booked_int = int(booked or 0)
+            if booked_int > 0:
+                description_parts.append(f"Gebucht: {booked_int}/{cap}")
+            else:
+                description_parts.append(f"Kapazität: {cap}")
+
+            description = "\n".join(description_parts)
+
+            lines.extend(
+                [
+                    "BEGIN:VEVENT",
+                    f"UID:slot-{slot_obj.id}@terminmarktplatz.de",
+                    f"DTSTAMP:{created_utc}",
+                    f"DTSTART:{start_utc}",
+                    f"DTEND:{end_utc}",
+                    f"SUMMARY:{_escape_ical_text(summary)}",
+                    f"DESCRIPTION:{_escape_ical_text(description)}",
+                    "STATUS:CONFIRMED",
+                    "SEQUENCE:0",
+                ]
+            )
+            if slot_address:
+                lines.append(f"LOCATION:{_escape_ical_text(slot_address)}")
+            lines.append("END:VEVENT")
+
+        lines.append("END:VCALENDAR")
+
+        ics_content = "\r\n".join(lines)
+        response = make_response(ics_content)
+        response.headers["Content-Type"] = "text/calendar; charset=utf-8"
+        response.headers["Content-Disposition"] = 'inline; filename="terminmarktplatz-slots.ics"'
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+    except Exception:
+        app.logger.exception("public_provider_calendar failed")
         return _json_error("server_error", 500)
 
 

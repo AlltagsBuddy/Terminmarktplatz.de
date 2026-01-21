@@ -464,6 +464,49 @@
       white-space: nowrap;
     }
 
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap:10px;
+      margin: 10px 0 14px;
+    }
+    .stat-card{
+      background:#f8fafc;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .stat-label{
+      font-size:12px;
+      color:#64748b;
+    }
+    .stat-value{
+      font-size:1.2rem;
+      font-weight:700;
+      color:#0f172a;
+    }
+
+    .calendar-export{
+      margin: 8px 0 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
+    .calendar-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .calendar-input{
+      flex:1 1 320px;
+      min-width:200px;
+    }
+    .small{ font-size:12px; }
+    .service-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+    .service-actions .btn{ font-size:0.85rem; padding:6px 10px; }
+
     @media (max-width: 768px){
       .plan-info { width: 100%; justify-content: flex-start; }
       .plan-info .btn-cancel-plan { margin-left: 0; width: 100%; justify-content: center; }
@@ -648,6 +691,60 @@
           </div>
         </div>
 
+        <!-- Leistungen -->
+        <div class="panel" style="grid-column:1/-1">
+          <h2>Leistungen</h2>
+          <p class="muted">Verwalte deine Leistungen (Name, Dauer, Preis). Diese Info kann später für Slots genutzt werden.</p>
+
+          <form id="form-service" class="grid" novalidate>
+            <div class="field">
+              <label for="sv-name">Leistung <span class="req">*</span></label>
+              <input id="sv-name" name="name" placeholder="z. B. Beratung, Haarschnitt" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="sv-duration">Dauer (Minuten) <span class="req">*</span></label>
+              <input id="sv-duration" type="number" min="5" step="5" value="30" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="sv-price">Preis (Euro, optional)</label>
+              <input id="sv-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="sv-description">Beschreibung (optional)</label>
+              <textarea id="sv-description" rows="2" placeholder="Kurze Beschreibung der Leistung"></textarea>
+            </div>
+            <div class="field">
+              <label class="check">
+                <input type="checkbox" id="sv-active" checked>
+                Aktiv
+              </label>
+            </div>
+            <div class="toolbar">
+              <button class="btn primary" type="submit" id="sv-submit-btn">Leistung anlegen</button>
+              <button class="btn" type="button" id="sv-cancel-btn" style="display:none;">Bearbeitung abbrechen</button>
+            </div>
+            <div id="msg-service" class="msg"></div>
+          </form>
+
+          <div class="table-wrap" style="margin-top:12px;">
+            <table class="table" id="tbl-services">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Dauer</th>
+                  <th>Preis</th>
+                  <th>Status</th>
+                  <th>Beschreibung</th>
+                  <th class="nowrap">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" class="muted">Lade …</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Slot anlegen / bearbeiten -->
         <div class="panel">
           <h2>Neuen Slot anlegen</h2>
@@ -804,6 +901,34 @@
             Hinweis: Neue Slots werden zunächst als <em>Entwurf</em> angelegt und sind erst nach dem Veröffentlichen öffentlich sichtbar.
           </div>
 
+          <div class="stats-grid" id="slot-stats">
+            <div class="stat-card">
+              <div class="stat-label">Slots · <span id="stat-context">Aktive Termine</span></div>
+              <div class="stat-value" id="stat-slots-total">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Veröffentlicht</div>
+              <div class="stat-value" id="stat-slots-published">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Buchungen (bestätigt)</div>
+              <div class="stat-value" id="stat-bookings">–</div>
+            </div>
+          </div>
+
+          <div class="calendar-export">
+            <div style="font-weight:600; margin-bottom:6px;">Kalender-Export (nur lesen)</div>
+            <div class="calendar-row">
+              <input id="calendar-ics-url" class="calendar-input" type="text" readonly placeholder="Kalender-Link wird geladen …">
+              <button class="btn" id="calendar-copy-btn" type="button">Link kopieren</button>
+              <a class="btn" id="calendar-download-btn" target="_blank" rel="noopener">ICS laden</a>
+            </div>
+            <div class="muted small" style="margin-top:6px;">
+              Tipp: Link als Kalender‑Abo in Google/Outlook hinzufügen (1‑Wege‑Sync).
+              <a id="calendar-webcal-link" href="#" target="_blank" rel="noopener">webcal-Link öffnen</a>
+            </div>
+          </div>
+
           <!-- Hinweis bei erreichtem Slot-Limit -->
           <div id="slot-limit-alert" class="alert">
             <strong>Slot-Limit erreicht.</strong>
@@ -888,6 +1013,12 @@
           el.style.display='none'; 
         }
       }, duration);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
     function showSlotLimitAlert(){
@@ -1174,8 +1305,94 @@
       }
     }
 
+    function getBookedCount(slot){
+      if (Array.isArray(slot.bookings)) {
+        return slot.bookings.filter(b => b.status === 'confirmed').length;
+      }
+      if (typeof slot.booked === 'number') return slot.booked;
+      return 0;
+    }
+
+    function updateSlotStats(items){
+      const totalEl = document.getElementById('stat-slots-total');
+      if (!totalEl) return;
+      const publishedEl = document.getElementById('stat-slots-published');
+      const bookingsEl = document.getElementById('stat-bookings');
+      const contextEl = document.getElementById('stat-context');
+
+      const total = items.length;
+      const published = items.filter(s => String(s.status || '').toUpperCase() === 'PUBLISHED').length;
+      const bookings = items.reduce((sum, s) => sum + getBookedCount(s), 0);
+
+      totalEl.textContent = String(total);
+      if (publishedEl) publishedEl.textContent = String(published);
+      if (bookingsEl) bookingsEl.textContent = String(bookings);
+      if (contextEl) {
+        contextEl.textContent = CURRENT_FILTER === 'archived' ? 'Archivierte Termine' : 'Aktive Termine';
+      }
+    }
+
+    async function copyCalendarLink(){
+      const url = ME?.calendar_ics_url || '';
+      if (!url) {
+        showMsg('msg-slots', 'Kalender-Link nicht verfügbar.');
+        return;
+      }
+      try{
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const input = document.getElementById('calendar-ics-url');
+          if (input) {
+            input.focus();
+            input.select();
+            document.execCommand('copy');
+          }
+        }
+        showMsg('msg-slots', 'Kalender-Link kopiert.', true);
+      }catch(e){
+        showMsg('msg-slots', 'Kopieren fehlgeschlagen.');
+      }
+    }
+
+    function setCalendarLinks(){
+      const url = ME?.calendar_ics_url || '';
+      const webcalUrl = ME?.calendar_webcal_url || '';
+      const input = document.getElementById('calendar-ics-url');
+      const downloadBtn = document.getElementById('calendar-download-btn');
+      const copyBtn = document.getElementById('calendar-copy-btn');
+      const webcalLink = document.getElementById('calendar-webcal-link');
+
+      if (input) {
+        input.value = url;
+        input.placeholder = url ? '' : 'Kalender-Link nicht verfügbar';
+      }
+      if (downloadBtn) {
+        if (url) {
+          downloadBtn.href = url;
+          downloadBtn.style.display = '';
+        } else {
+          downloadBtn.removeAttribute('href');
+          downloadBtn.style.display = 'none';
+        }
+      }
+      if (copyBtn) {
+        copyBtn.style.display = url ? '' : 'none';
+      }
+      if (webcalLink) {
+        if (webcalUrl) {
+          webcalLink.href = webcalUrl;
+          webcalLink.style.display = '';
+        } else {
+          webcalLink.removeAttribute('href');
+          webcalLink.style.display = 'none';
+        }
+      }
+    }
+
     // ---------- Auth / Profil laden ----------
     let ME = null;
+    let CURRENT_FILTER = 'active'; // 'active' oder 'archived'
     async function requireAuth(){
       try{
         const r = await fetch(`${API}/me`, { credentials:'include' });
@@ -1381,6 +1598,8 @@
           }
         }
 
+        setCalendarLinks();
+
         // Prüfe Profilvollständigkeit: ME.profile_complete ist die autoritative Quelle
         // Wenn es nicht vorhanden ist, prüfe mit ME-Daten (nicht Formular-Werte!)
         let complete = false;
@@ -1582,6 +1801,178 @@
       } catch (e) {
         showMsg('msg-change-password', 'Netzwerkfehler.');
       }
+    });
+
+    // ---------- Leistungen ----------
+    let SERVICES = [];
+    let EDITING_SERVICE = null;
+
+    function formatEuroFromCents(cents){
+      if (typeof cents !== 'number' || isNaN(cents)) return '-';
+      return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+    }
+
+    function resetServiceForm(){
+      EDITING_SERVICE = null;
+      const form = document.getElementById('form-service');
+      if (form) form.reset();
+      $('#sv-duration').value = 30;
+      $('#sv-active').checked = true;
+      const submitBtn = document.getElementById('sv-submit-btn');
+      if (submitBtn) submitBtn.textContent = 'Leistung anlegen';
+      const cancelBtn = document.getElementById('sv-cancel-btn');
+      if (cancelBtn) cancelBtn.style.display = 'none';
+    }
+
+    function enterServiceEdit(service){
+      EDITING_SERVICE = service;
+      $('#sv-name').value = service.name || '';
+      $('#sv-duration').value = service.duration_minutes || 30;
+      $('#sv-price').value = (typeof service.price_cents === 'number') ? (service.price_cents / 100).toFixed(2) : '';
+      $('#sv-description').value = service.description || '';
+      $('#sv-active').checked = service.active !== false;
+      const submitBtn = document.getElementById('sv-submit-btn');
+      if (submitBtn) submitBtn.textContent = 'Leistung speichern';
+      const cancelBtn = document.getElementById('sv-cancel-btn');
+      if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+    }
+
+    function renderServices(items){
+      const tbody = $('#tbl-services tbody');
+      if (!tbody) return;
+      if (!items.length){
+        tbody.innerHTML = `<tr><td colspan="6" class="muted">Noch keine Leistungen angelegt.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = '';
+      for (const s of items){
+        const tr = document.createElement('tr');
+        const status = s.active === false ? 'Inaktiv' : 'Aktiv';
+        const statusBadge = s.active === false ? 'st-arch' : 'st-pub';
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(s.name || '')}</strong></td>
+          <td>${s.duration_minutes || '-'} min</td>
+          <td>${formatEuroFromCents(s.price_cents)}</td>
+          <td><span class="badge-st ${statusBadge}">${status}</span></td>
+          <td>${escapeHtml(s.description || '')}</td>
+          <td>
+            <div class="service-actions">
+              <button class="btn action" data-edit-service="${s.id}">Bearbeiten</button>
+              <button class="btn danger" data-del-service="${s.id}">Löschen</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      $$('#tbl-services [data-edit-service]').forEach(btn => {
+        btn.addEventListener('click', ()=>{
+          const id = btn.dataset.editService;
+          const svc = SERVICES.find(x => x.id === id);
+          if (svc) enterServiceEdit(svc);
+        });
+      });
+      $$('#tbl-services [data-del-service]').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.dataset.delService;
+          if (!confirm('Diese Leistung wirklich löschen?')) return;
+          try{
+            const res = await fetch(`${API}/provider/services/${id}`, { method:'DELETE', credentials:'include' });
+            if (!res.ok) {
+              showMsg('msg-service', 'Leistung konnte nicht gelöscht werden.');
+              return;
+            }
+            await loadServices();
+          }catch(e){
+            showMsg('msg-service', 'Netzwerkfehler.');
+          }
+        });
+      });
+    }
+
+    async function loadServices(){
+      const tbody = $('#tbl-services tbody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="muted">Lade …</td></tr>`;
+      try{
+        const r = await fetch(`${API}/provider/services`, { credentials:'include' });
+        if (!r.ok){
+          if (r.status === 401 || r.status === 403) {
+            window.location.href = 'login.html?tab=login';
+            return;
+          }
+          showMsg('msg-service', 'Leistungen konnten nicht geladen werden.');
+          return;
+        }
+        SERVICES = await r.json();
+        renderServices(SERVICES);
+      }catch(e){
+        showMsg('msg-service', 'Netzwerkfehler.');
+      }
+    }
+
+    $('#form-service').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const name = $('#sv-name').value.trim();
+      const duration = parseInt($('#sv-duration').value || '0', 10);
+      const priceVal = $('#sv-price').value;
+      const description = $('#sv-description').value.trim();
+      const active = $('#sv-active').checked;
+
+      if (!name || !duration){
+        showMsg('msg-service', 'Bitte Name und Dauer angeben.');
+        return;
+      }
+      if (duration < 5){
+        showMsg('msg-service', 'Dauer muss mindestens 5 Minuten sein.');
+        return;
+      }
+      const price_cents = (priceVal === '' ? null : Math.round(Number(priceVal) * 100));
+      if (priceVal !== '' && (isNaN(price_cents) || price_cents < 0)){
+        showMsg('msg-service', 'Preis ist ungültig.');
+        return;
+      }
+
+      const payload = {
+        name,
+        duration_minutes: duration,
+        price_cents,
+        description: description || null,
+        active
+      };
+
+      try{
+        let res;
+        if (EDITING_SERVICE && EDITING_SERVICE.id){
+          res = await fetch(`${API}/provider/services/${EDITING_SERVICE.id}`, {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify(payload)
+          });
+        } else {
+          res = await fetch(`${API}/provider/services`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify(payload)
+          });
+        }
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok){
+          showMsg('msg-service', data.error || 'Leistung konnte nicht gespeichert werden.');
+          return;
+        }
+        showMsg('msg-service', EDITING_SERVICE ? 'Leistung gespeichert.' : 'Leistung angelegt.', true);
+        resetServiceForm();
+        await loadServices();
+      }catch(e){
+        showMsg('msg-service', 'Netzwerkfehler.');
+      }
+    });
+
+    $('#sv-cancel-btn')?.addEventListener('click', ()=>{
+      resetServiceForm();
+      showMsg('msg-service', 'Bearbeitung abgebrochen.', true);
     });
 
     // ---------- Slot-Form: Dauer -> Ende ----------
@@ -1975,6 +2366,7 @@
 
     function renderTable(items){
       const tbody = $('#tbl-slots tbody');
+      updateSlotStats(items);
       if(!items.length){
         tbody.innerHTML = `<tr><td colspan="9" class="muted">Noch keine Slots angelegt.</td></tr>`;
         return;
@@ -2214,8 +2606,6 @@
       updateBulkButtons(items);
     }
 
-    let CURRENT_FILTER = 'active'; // 'active' oder 'archived'
-
     async function loadSlots(){
       hideSlotLimitAlert(); // ✅ FIX: Alert nicht „kleben" lassen
       const tbody = $('#tbl-slots tbody');
@@ -2367,6 +2757,7 @@
       await loadSlots();
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
+    $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
 
     // Filter-Buttons für Aktive/Archivierte Termine
     const btnShowActive = $('#btn-show-active');
@@ -2395,6 +2786,7 @@
 
     (async function init(){
       await requireAuth();
+      await loadServices();
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
