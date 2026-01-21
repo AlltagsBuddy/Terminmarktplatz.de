@@ -6365,7 +6365,10 @@ def public_slots():
     city_q = (request.args.get("city") or "").strip()
     zip_filter = (request.args.get("zip") or "").strip()
     day_str = (request.args.get("day") or "").strip()
+    day_from_str = (request.args.get("day_from") or "").strip()
+    day_to_str = (request.args.get("day_to") or "").strip()
     from_str = (request.args.get("from") or "").strip()
+    to_str = (request.args.get("to") or "").strip()
     include_full = request.args.get("include_full") == "1"
 
     if location_raw and not zip_filter and not city_q:
@@ -6406,8 +6409,20 @@ def public_slots():
             end_local = start_local + timedelta(days=1)
             start_from = start_local.astimezone(timezone.utc)
             end_until = end_local.astimezone(timezone.utc)
-        elif from_str:
-            start_from = parse_iso_utc(from_str)
+        elif day_from_str or day_to_str:
+            if day_from_str:
+                y, m, d = map(int, day_from_str.split("-"))
+                start_local = datetime(y, m, d, 0, 0, 0, tzinfo=BERLIN)
+                start_from = start_local.astimezone(timezone.utc)
+            if day_to_str:
+                y, m, d = map(int, day_to_str.split("-"))
+                end_local = datetime(y, m, d, 23, 59, 59, 999000, tzinfo=BERLIN)
+                end_until = end_local.astimezone(timezone.utc)
+        elif from_str or to_str:
+            if from_str:
+                start_from = parse_iso_utc(from_str)
+            if to_str:
+                end_until = parse_iso_utc(to_str)
         else:
             start_from = _now()
     except Exception:
@@ -6433,6 +6448,9 @@ def public_slots():
                             origin_lat, origin_lon = geocode_cached(s, location_raw, None)
                         else:
                             origin_lat, origin_lon = geocode_cached(s, None, location_raw)
+                    # Falls Geocoding fehlschlägt, auf Textsuche zurückfallen
+                    if origin_lat is None or origin_lon is None:
+                        radius_km = None
 
                 bq = (
                     select(Booking.slot_id, func.count().label("booked"))
@@ -6467,8 +6485,9 @@ def public_slots():
                         # Fallback: Teilstring-Suche
                         sq = sq.where(Slot.category.ilike(f"%{category}%"))
 
+                loc_for_filter = location_raw or city_q or zip_filter
+
                 if radius_km is None:
-                    loc_for_filter = location_raw or city_q or zip_filter
                     if loc_for_filter:
                         pattern_loc = f"%{loc_for_filter}%"
                         # Suche NUR nach Slot-Ort (keine Provider-Adresse)
@@ -6537,9 +6556,12 @@ def public_slots():
                         
                         # Verwende nur Slot-Adresse (kein Provider-Fallback)
                         slot_zip = normalize_zip(getattr(slot, "zip", None))
+                        slot_location = (getattr(slot, "location", None) or "").strip()
                         if len(slot_zip) != 5:
-                            slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
+                            slot_zip = normalize_zip(_extract_zip_from_text(slot_location))
                         slot_city = (getattr(slot, "city", None) or "").strip()
+                        if not slot_city and slot_location:
+                            slot_city = slot_location
 
                         geo_zip = slot_zip if len(slot_zip) == 5 else None
                         geo_city = slot_city or None
@@ -6548,11 +6570,27 @@ def public_slots():
 
                         plat, plon = geocode_cached(s, geo_zip, geo_city)
                         if plat is None or plon is None:
-                            continue
-                            
-                        distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
-                        if distance_km > radius_km:
-                            continue
+                            # Fallback: wenn Geocoding fehlt, textueller Ortsabgleich
+                            if not loc_for_filter:
+                                continue
+                            lf = str(loc_for_filter).strip().lower()
+                            slot_loc = (getattr(slot, "location", None) or "").strip().lower()
+                            slot_city_txt = (getattr(slot, "city", None) or "").strip().lower()
+                            slot_zip_txt = (getattr(slot, "zip", None) or "").strip().lower()
+                            if lf.isdigit() and len(lf) == 5:
+                                if lf == slot_zip_txt or lf in slot_loc:
+                                    pass
+                                else:
+                                    continue
+                            else:
+                                if lf in slot_city_txt or lf in slot_loc:
+                                    pass
+                                else:
+                                    continue
+                        else:
+                            distance_km = _haversine_km(origin_lat, origin_lon, plat, plon)
+                            if distance_km > radius_km:
+                                continue
 
                     item = slot_to_json(slot)
                     item["available"] = available
@@ -6647,6 +6685,28 @@ def public_book():
             return _json_error("slot_full", 409)
 
         provider = s.get(Provider, slot.provider_id)
+        if provider:
+            same_time = (
+                s.scalar(
+                    select(func.count())
+                    .select_from(Booking)
+                    .join(Slot, Slot.id == Booking.slot_id)
+                    .where(
+                        and_(
+                            Booking.customer_email == email,
+                            Booking.status.in_(["hold", "confirmed"]),
+                            Slot.provider_id == slot.provider_id,
+                            Slot.start_at == slot.start_at,
+                        )
+                    )
+                )
+                or 0
+            )
+            if same_time > 0:
+                return _json_error(
+                    "Pro E-Mailadresse ist nur ein Termin zur selben Uhrzeit möglich.",
+                    409,
+                )
         if provider and provider.booking_fee_eur is not None:
             fee = provider.booking_fee_eur
         else:

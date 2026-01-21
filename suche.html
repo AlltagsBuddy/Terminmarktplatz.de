@@ -108,6 +108,20 @@
       gap: 10px;
       margin-bottom: 10px;
     }
+    .searchbar{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+    }
+    .searchbar .input{
+      flex:1 1 calc(33.333% - 16px);
+      max-width:320px;
+    }
+    .searchbar .panel{
+      flex-basis:100%;
+    }
 
     /* Ergebnis-Grid */
     .results-grid {
@@ -569,6 +583,7 @@
         <p class="lead">Filter anpassen und direkt buchen – ohne Anmeldung, mit E-Mail-Bestätigung.</p>
 
         <form class="search-card" id="filters" method="get" role="search" aria-label="Suche">
+          <div id="filter-error" class="panel" style="display:none; margin-bottom:10px; padding:8px 10px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b;"></div>
           <div class="searchbar">
             <label class="input" aria-label="Leistung">
               🔎 <input type="text" name="q" id="f-q" placeholder="z. B. Friseur Damen, Physio Rücken">
@@ -577,6 +592,7 @@
               📍 <input type="text" name="ort" id="f-ort" placeholder="PLZ / Stadt">
             </label>
             <label class="input" aria-label="Umkreis">
+              📏
               <select name="radius" id="f-radius" title="Umkreis um PLZ">
                 <option value="">Umkreis (optional)</option>
                 <option value="5">5 km</option>
@@ -588,16 +604,20 @@
               </select>
             </label>
 
-            <label class="input" aria-label="Datum">
-              📅 <input type="date" id="search-day" name="day">
+            <label class="input" aria-label="Von Datum">
+              📅 <input type="date" id="search-day-from" name="day_from" placeholder="von">
+            </label>
+            <label class="input" aria-label="Bis Datum">
+              📅 <input type="date" id="search-day-to" name="day_to" placeholder="bis">
             </label>
             <label class="input" aria-label="Zeitfenster">
               ⏰ 
               <select name="zeit" id="f-zeit">
                 <option value="">Beliebig</option>
-                <option value="vormittag">Vormittag (08–12)</option>
-                <option value="nachmittag">Nachmittag (12–17)</option>
-                <option value="abend">Abend (17–21)</option>
+                <option value="morgens">Morgens (6–11)</option>
+                <option value="mittags">Mittags (11–16)</option>
+                <option value="abends">Abends (16–22)</option>
+                <option value="nachts">Nachts (22–6)</option>
               </select>
             </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
@@ -750,16 +770,26 @@
     // Utilities
     const $ = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
-    const fmtDateTime = (iso) => {
+    const fmtDate = (iso) => {
       const d = new Date(iso);
-      return d.toLocaleString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      return d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' });
+    };
+    const fmtTime = (iso) => {
+      const d = new Date(iso);
+      return d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+    };
+    const fmtTimeRange = (startIso, endIso) => {
+      const start = fmtTime(startIso);
+      if (!endIso) return start;
+      return `${start} - ${fmtTime(endIso)}`;
     };
     const inZeitfenster = (iso, zeit) => {
       if (!zeit) return true;
       const h = new Date(iso).getHours();
-      if (zeit === 'vormittag') return h >= 8 && h < 12;
-      if (zeit === 'nachmittag') return h >= 12 && h < 17;
-      if (zeit === 'abend') return h >= 17 && h < 21;
+      if (zeit === 'morgens') return h >= 6 && h < 11;
+      if (zeit === 'mittags') return h >= 11 && h < 16;
+      if (zeit === 'abends') return h >= 16 && h < 22;
+      if (zeit === 'nachts') return h >= 22 || h < 6;
       return true;
     };
     const KATS = new Set(['Friseur','Kosmetik','Physiotherapie','Nagelstudio','Zahnarzt','Handwerk','KFZ-Service','Fitness','Coaching','Tierarzt','Behörde','Sonstiges']);
@@ -813,8 +843,7 @@
 
         const content = `
           <div class="tm-slot-iw" style="font-size:13px; line-height:1.5;">
-            <strong>${item.slotTitle || 'Termin'}</strong><br>
-            ${item.startAt ? `${fmtDateTime(item.startAt)}<br>` : ''}
+            ${item.startAt ? `${fmtDate(item.startAt)} ${fmtTimeRange(item.startAt, item.endAt)}<br>` : ''}
             <strong>Anbieter:</strong> ${item.providerName || 'Anbieter'}<br>
             ${item.category ? `<strong>Kategorie:</strong> ${item.category}<br>` : ''}
             ${item.address ? `<strong>Adresse:</strong> ${item.address}<br>` : ''}
@@ -861,7 +890,9 @@
     const sp     = new URLSearchParams(location.search);
     const q      = (sp.get('q')||'').trim();
     const ort    = (sp.get('ort')||'').trim();
-    const dayUrl = (sp.get('day')||'').trim();
+    const dayFromUrl = (sp.get('day_from')||'').trim();
+    const dayToUrl = (sp.get('day_to')||'').trim();
+    const dayLegacy = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
 
@@ -870,11 +901,40 @@
     $('#f-ort').value    = ort;
     $('#f-zeit').value   = zeit;
     $('#f-radius').value = radius;
-    const dayInput = document.getElementById('search-day');
-    if (dayInput) dayInput.value = dayUrl;   // keine Auto-Setzung auf heute
+    const dayFromInput = document.getElementById('search-day-from');
+    const dayToInput = document.getElementById('search-day-to');
+    if (dayFromInput) dayFromInput.value = dayFromUrl || dayLegacy;
+    if (dayToInput) dayToInput.value = dayToUrl;
 
     // Filterformular: GET-Reload ist ok
-    $('#filters').addEventListener('submit', ()=>{ /* Standard-Submit genügt */ });
+    $('#filters').addEventListener('submit', (e)=>{ 
+      const fromVal = $('#search-day-from')?.value || '';
+      const toVal = $('#search-day-to')?.value || '';
+      const ortVal = $('#f-ort')?.value?.trim() || '';
+      const radiusVal = $('#f-radius')?.value?.trim() || '';
+      const err = document.getElementById('filter-error');
+      const errors = [];
+      if (err) err.style.display = 'none';
+      if (radiusVal && !ortVal) {
+        errors.push('Umkreis kann nur mit Ort/PLZ verwendet werden.');
+      }
+      if (fromVal && toVal) {
+        const from = new Date(fromVal);
+        const to = new Date(toVal);
+        if (from > to) {
+          errors.push('Bitte gültigen Datumsbereich wählen: „Bis“ darf nicht vor „Von“ liegen.');
+        }
+      }
+      if (errors.length) {
+        if (err) {
+          err.textContent = errors.join(' ');
+          err.style.display = 'block';
+        }
+        e.preventDefault();
+        return false;
+      }
+      return true;
+    });
 
     // Fetch + Render
     async function load() {
@@ -891,18 +951,25 @@
       const s2    = new URLSearchParams(location.search);
       const q2    = (s2.get('q')||'').trim();
       const ort2  = (s2.get('ort')||'').trim();
-      const day2  = (s2.get('day')||'').trim();
+      const dayFrom2 = (s2.get('day_from')||'').trim();
+      const dayTo2   = (s2.get('day_to')||'').trim();
+      const dayLegacy2 = (s2.get('day')||'').trim();
       const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
       const rad2  = (s2.get('radius')||'').trim();
 
-      const hasSearch = !!(q2 || ort2 || day2 || zeit2 || rad2);
+      const hasSearch = !!(q2 || ort2 || dayFrom2 || dayTo2 || dayLegacy2 || zeit2 || rad2);
 
       // ---- API-Parameter (day optional + SLOT-LOCATION + radius)
       const params = new URLSearchParams();
 
       // Nur setzen, wenn der Nutzer ein Datum gewählt hat
-      if (day2) {
-        params.set('day', day2);
+      const effectiveDayFrom = dayFrom2 || dayLegacy2;
+      if (effectiveDayFrom && !dayTo2) {
+        // Einzeltag
+        params.set('day', effectiveDayFrom);
+      } else if (effectiveDayFrom || dayTo2) {
+        if (effectiveDayFrom) params.set('day_from', effectiveDayFrom);
+        if (dayTo2) params.set('day_to', dayTo2);
       }
 
       const isExactCategory = q2 && KATS.has(q2);
@@ -965,8 +1032,14 @@
       }
 
       let datePart = '';
-      if (day2) {
-        datePart = `am ${ new Date(day2).toLocaleDateString('de-DE') }`;
+      if (effectiveDayFrom && dayTo2) {
+        const fromLabel = new Date(effectiveDayFrom).toLocaleDateString('de-DE');
+        const toLabel = new Date(dayTo2).toLocaleDateString('de-DE');
+        datePart = `vom ${fromLabel} bis ${toLabel}`;
+      } else if (effectiveDayFrom) {
+        datePart = `am ${ new Date(effectiveDayFrom).toLocaleDateString('de-DE') }`;
+      } else if (dayTo2) {
+        datePart = `bis ${ new Date(dayTo2).toLocaleDateString('de-DE') }`;
       } else {
         datePart = 'in nächster Zeit';
       }
@@ -1009,12 +1082,13 @@
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
           : '';
 
-       if (terminAddress) {
+        if (terminAddress) {
           mapItems.push({
             address: terminAddress,
             providerName,
             slotTitle: x.title || 'Termin',
             startAt: x.start_at,
+            endAt: x.end_at,
             category: x.category || '',
             city: cityShow || ''
           });
@@ -1028,7 +1102,7 @@
             <div>
               <h3>${x.title || 'Termin'} ${availableBadge}</h3>
               <p class="muted">
-                <b>${fmtDateTime(x.start_at)}</b>
+                <b>${fmtDate(x.start_at)}</b> · ${fmtTimeRange(x.start_at, x.end_at)}
                 · Kategorie: ${x.category || '—'}
                 ${cityShow ? ` · Ort: ${cityShow}` : ''}
               </p>
