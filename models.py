@@ -177,6 +177,11 @@ class ProviderService(Base):
         back_populates="services",
     )
 
+    slots: Mapped[list["Slot"]] = relationship(
+        "Slot",
+        passive_deletes=True,
+    )
+
     def to_public_dict(self) -> dict:
         return {
             "id": self.id,
@@ -207,6 +212,13 @@ class Slot(Base):
         UUID(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
+    )
+
+    service_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("provider_service.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -253,6 +265,10 @@ class Slot(Base):
     provider: Mapped["Provider"] = relationship(
         "Provider",
         back_populates="slots",
+    )
+
+    service: Mapped["ProviderService | None"] = relationship(
+        "ProviderService",
     )
 
     bookings: Mapped[list["Booking"]] = relationship(

@@ -526,6 +526,7 @@ def _ensure_base_tables():
                 CREATE TABLE IF NOT EXISTS slot (
                   id TEXT PRIMARY KEY,
                   provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  service_id TEXT REFERENCES provider_service(id) ON DELETE SET NULL,
                   title TEXT NOT NULL,
                   category TEXT NOT NULL,
                   start_at DATETIME NOT NULL,
@@ -627,6 +628,47 @@ def _ensure_provider_service_table():
 
 
 _ensure_provider_service_table()
+
+
+# --------------------------------------------------------
+# Slot: service_id Feld hinzufügen (optional)
+# --------------------------------------------------------
+def _ensure_slot_service_id():
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS service_id uuid;"
+                )
+                conn.exec_driver_sql(
+                    """
+                    DO $$
+                    BEGIN
+                      IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'slot_service_fk'
+                      ) THEN
+                        ALTER TABLE public.slot
+                          ADD CONSTRAINT slot_service_fk
+                          FOREIGN KEY (service_id)
+                          REFERENCES public.provider_service(id)
+                          ON DELETE SET NULL;
+                      END IF;
+                    END $$;
+                    """
+                )
+            else:
+                try:
+                    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(slot)")).fetchall()]
+                    if "service_id" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN service_id TEXT")
+                except Exception:
+                    pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_slot_service_id fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_slot_service_id()
 
 
 # --------------------------------------------------------
@@ -1500,6 +1542,7 @@ def slot_to_json(x: Slot):
     return {
         "id": x.id,
         "provider_id": x.provider_id,
+        "service_id": getattr(x, "service_id", None),
         "title": x.title,
         "category": x.category,
         "start_at": _from_db_as_iso_utc(x.start_at),
@@ -4933,6 +4976,11 @@ def slots_create():
             data_city   = (data.get("city") or "").strip()
 
             slot_kwargs_extra = {}
+            service_id = (data.get("service_id") or "").strip() or None
+            if service_id:
+                service = s.get(ProviderService, service_id)
+                if not service or str(service.provider_id) != str(request.provider_id):
+                    return _json_error("invalid_service", 400)
 
             # street
             if hasattr(Slot, "street"):
@@ -4960,6 +5008,7 @@ def slots_create():
 
             slot = Slot(
                 provider_id=request.provider_id,
+                service_id=service_id,
                 title=title,
                 category=category,
                 start_at=start_db,
@@ -5120,8 +5169,17 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
+            if "service_id" in data:
+                service_id = (data.get("service_id") or "").strip() or None
+                if service_id:
+                    service = s.get(ProviderService, service_id)
+                    if not service or str(service.provider_id) != str(request.provider_id):
+                        return _json_error("invalid_service", 400)
+                data["service_id"] = service_id
+
             # WICHTIG: Updates dürfen NICHT nur bei capacity laufen
             for k in [
+                "service_id",
                 "title",
                 "category",
                 "location",

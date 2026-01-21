@@ -506,6 +506,17 @@
     .small{ font-size:12px; }
     .service-actions{ display:flex; gap:6px; flex-wrap:wrap; }
     .service-actions .btn{ font-size:0.85rem; padding:6px 10px; }
+    .service-layout{ display:grid; gap:16px; }
+    .service-grid{ display:grid; gap:12px; }
+    .service-grid .full{ grid-column:1/-1; }
+    .service-grid .toolbar{ grid-column:1/-1; }
+    .service-grid .check-field{ justify-content:flex-end; padding-top:22px; }
+
+    @media(min-width: 920px){
+      .service-layout{ grid-template-columns: minmax(320px, 420px) 1fr; }
+      .service-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .service-layout .table-wrap{ margin-top:0 !important; }
+    }
 
     @media (max-width: 768px){
       .plan-info { width: 100%; justify-content: flex-start; }
@@ -696,52 +707,54 @@
           <h2>Leistungen</h2>
           <p class="muted">Verwalte deine Leistungen (Name, Dauer, Preis). Diese Info kann später für Slots genutzt werden.</p>
 
-          <form id="form-service" class="grid" novalidate>
-            <div class="field">
-              <label for="sv-name">Leistung <span class="req">*</span></label>
-              <input id="sv-name" name="name" placeholder="z. B. Beratung, Haarschnitt" required aria-required="true"/>
-            </div>
-            <div class="field">
-              <label for="sv-duration">Dauer (Minuten) <span class="req">*</span></label>
-              <input id="sv-duration" type="number" min="5" step="5" value="30" required aria-required="true"/>
-            </div>
-            <div class="field">
-              <label for="sv-price">Preis (Euro, optional)</label>
-              <input id="sv-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
-            </div>
-            <div class="field" style="grid-column:1/-1">
-              <label for="sv-description">Beschreibung (optional)</label>
-              <textarea id="sv-description" rows="2" placeholder="Kurze Beschreibung der Leistung"></textarea>
-            </div>
-            <div class="field">
-              <label class="check">
-                <input type="checkbox" id="sv-active" checked>
-                Aktiv
-              </label>
-            </div>
-            <div class="toolbar">
-              <button class="btn primary" type="submit" id="sv-submit-btn">Leistung anlegen</button>
-              <button class="btn" type="button" id="sv-cancel-btn" style="display:none;">Bearbeitung abbrechen</button>
-            </div>
-            <div id="msg-service" class="msg"></div>
-          </form>
+          <div class="service-layout">
+            <form id="form-service" class="service-grid" novalidate>
+              <div class="field">
+                <label for="sv-name">Leistung <span class="req">*</span></label>
+                <input id="sv-name" name="name" placeholder="z. B. Beratung, Haarschnitt" required aria-required="true"/>
+              </div>
+              <div class="field">
+                <label for="sv-duration">Dauer (Minuten) <span class="req">*</span></label>
+                <input id="sv-duration" type="number" min="5" step="5" value="30" required aria-required="true"/>
+              </div>
+              <div class="field">
+                <label for="sv-price">Preis (Euro, optional)</label>
+                <input id="sv-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
+              </div>
+              <div class="field full">
+                <label for="sv-description">Beschreibung (optional)</label>
+                <textarea id="sv-description" rows="2" placeholder="Kurze Beschreibung der Leistung"></textarea>
+              </div>
+              <div class="field check-field">
+                <label class="check">
+                  <input type="checkbox" id="sv-active" checked>
+                  Aktiv
+                </label>
+              </div>
+              <div class="toolbar">
+                <button class="btn primary" type="submit" id="sv-submit-btn">Leistung anlegen</button>
+                <button class="btn" type="button" id="sv-cancel-btn" style="display:none;">Bearbeitung abbrechen</button>
+              </div>
+              <div id="msg-service" class="msg"></div>
+            </form>
 
-          <div class="table-wrap" style="margin-top:12px;">
-            <table class="table" id="tbl-services">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Dauer</th>
-                  <th>Preis</th>
-                  <th>Status</th>
-                  <th>Beschreibung</th>
-                  <th class="nowrap">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="6" class="muted">Lade …</td></tr>
-              </tbody>
-            </table>
+            <div class="table-wrap" style="margin-top:12px;">
+              <table class="table" id="tbl-services">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Dauer</th>
+                    <th>Preis</th>
+                    <th>Status</th>
+                    <th>Beschreibung</th>
+                    <th class="nowrap">Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" class="muted">Lade …</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -759,6 +772,14 @@
               <div class="field">
                 <label for="sl-title">Titel <span class="req">*</span></label>
                 <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
+              </div>
+
+              <div class="field">
+                <label for="sl-service">Leistung übernehmen (optional)</label>
+                <select id="sl-service">
+                  <option value="">Leistung auswählen (optional)</option>
+                </select>
+                <span class="hint" style="font-size: 12px;">Übernimmt Name, Dauer, Preis und Beschreibung aus deiner Leistung.</span>
               </div>
 
               <div class="field">
@@ -1890,6 +1911,37 @@
       });
     }
 
+    function populateServiceOptions(){
+      const sel = document.getElementById('sl-service');
+      if (!sel) return;
+      const current = sel.value || '';
+      sel.innerHTML = '<option value="">Leistung auswählen (optional)</option>';
+      for (const s of SERVICES){
+        const opt = document.createElement('option');
+        const priceLabel = (typeof s.price_cents === 'number' && !isNaN(s.price_cents))
+          ? ` · ${formatEuroFromCents(s.price_cents)}`
+          : '';
+        const activeLabel = (s.active === false) ? ' (inaktiv)' : '';
+        opt.value = s.id;
+        opt.textContent = `${s.name || 'Leistung'} · ${s.duration_minutes || 30} min${priceLabel}${activeLabel}`;
+        if (s.id === current) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function applyServiceToSlot(serviceId){
+      const service = SERVICES.find(x => x.id === serviceId);
+      if (!service) return;
+      $('#sl-title').value = service.name || '';
+      $('#sl-duration').value = service.duration_minutes || 30;
+      $('#sl-unit').value = 'min';
+      recalcEnd();
+      $('#sl-price').value = (typeof service.price_cents === 'number')
+        ? (service.price_cents / 100).toFixed(2)
+        : '';
+      $('#sl-description').value = service.description || '';
+    }
+
     async function loadServices(){
       const tbody = $('#tbl-services tbody');
       if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="muted">Lade …</td></tr>`;
@@ -1905,6 +1957,7 @@
         }
         SERVICES = await r.json();
         renderServices(SERVICES);
+        populateServiceOptions();
       }catch(e){
         showMsg('msg-service', 'Netzwerkfehler.');
       }
@@ -1973,6 +2026,11 @@
     $('#sv-cancel-btn')?.addEventListener('click', ()=>{
       resetServiceForm();
       showMsg('msg-service', 'Bearbeitung abgebrochen.', true);
+    });
+
+    document.getElementById('sl-service')?.addEventListener('change', (e)=>{
+      const id = e.target.value;
+      if (id) applyServiceToSlot(id);
     });
 
     // ---------- Slot-Form: Dauer -> Ende ----------
@@ -2071,6 +2129,7 @@
       const priceVal = $('#sl-price').value;
       const description = $('#sl-description').value.trim();
       const notes    = $('#sl-notes').value.trim();
+      const serviceId = ($('#sl-service')?.value || '').trim();
 
       // KEINE Prüfung beim Erstellen/Bearbeiten - die Prüfung erfolgt erst beim Veröffentlichen
       // Das Backend prüft korrekt beim /slots/<id>/publish Endpoint
@@ -2088,6 +2147,7 @@
         category,
         start_at: startDt.toISOString(),
         end_at:   endDt.toISOString(),
+        service_id: serviceId || null,
 
         // ✅ DB-Felder (Model Slot.street/house_number/zip/city)
         street: parsed.street,
@@ -2271,6 +2331,8 @@
       const unit = document.getElementById('sl-unit');
       if (dur) dur.value = 30;
       if (unit) unit.value = 'min';
+      const serviceSel = document.getElementById('sl-service');
+      if (serviceSel) serviceSel.value = '';
       recalcEnd();
       copyProfileAddressToSlot(false);
       const submitBtn = document.getElementById('slot-submit-btn');
@@ -2285,6 +2347,8 @@
 
       const title = document.getElementById('sl-title');
       if (title) title.value = slot.title || '';
+      const serviceSel = document.getElementById('sl-service');
+      if (serviceSel) serviceSel.value = slot.service_id || '';
 
       // Kategorie setzen mit hierarchischer Struktur
       if (slot.category) {
