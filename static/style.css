@@ -142,6 +142,18 @@ header{
   backdrop-filter:saturate(160%) blur(14px);
   border-bottom:1px solid var(--border);
 }
+header .nav{
+  justify-content:flex-start !important;
+}
+header .user-menu{
+  margin-left:12px !important;
+}
+header .nav-links{
+  margin-left:auto !important;
+}
+header .cta-group{
+  margin-left:12px !important;
+}
 .nav{
   display:flex;
   align-items:center;

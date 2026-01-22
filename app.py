@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 import traceback
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal  # für Geldbeträge
