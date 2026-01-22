@@ -21,12 +21,47 @@
     .profile-logo{width:72px; height:72px; border-radius:14px; object-fit:cover; border:1px solid #e2e8f0; background:#fff}
     .slot-table .badge{font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--border)}
     .badge-cat{background:#eef2ff; color:#4338ca}
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#f8fafc;
+      color:#0f172a;
+      font-size:12px;
+      font-weight:600;
+    }
     .price{font-weight:700}
+    .gallery-grid{
+      display:grid;
+      gap:10px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      margin-top:10px;
+    }
+    .gallery-grid img{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid #e2e8f0;
+      background:#fff;
+    }
     .book-actions{
       display:flex;
       gap:8px;
       justify-content:flex-end;
       margin-top:6px;
+    }
+    .booking-cancel-btn{
+      background: rgba(111, 83, 255, 0.08);
+      border: 1px solid rgba(111, 83, 255, 0.35);
+      color: #111827;
+      box-shadow: none;
+    }
+    .booking-cancel-btn:hover{
+      background: rgba(111, 83, 255, 0.16);
+      border-color: rgba(111, 83, 255, 0.7);
     }
     #book-dialog{
       border:none;
@@ -48,6 +83,7 @@
       max-height:calc(100vh - 32px);
       overflow-y:auto;
     }
+    .cta-group{ display:none !important; }
   </style>
 </head>
 <body>
@@ -56,7 +92,7 @@
   <main>
     <section class="hero" style="padding:36px 0 18px">
       <div class="container">
-        <span class="badge">Anbieterprofil</span>
+        <span class="badge">Öffentliches Profil</span>
         <h1>{{ provider.name }}</h1>
         {% if provider.branch %}
           <p class="lead">{{ provider.branch }}</p>
@@ -87,6 +123,108 @@
               <div><strong>WhatsApp:</strong> <a href="https://wa.me/{{ provider.whatsapp|replace('+','') }}">{{ provider.whatsapp }}</a></div>
             {% endif %}
           </div>
+
+          {% if provider.website_url or provider.instagram_url or provider.facebook_url or provider.tiktok_url %}
+            <div style="margin-top:12px">
+              <strong>Links</strong>
+              {% if provider.website_url %}
+                <div>Website: <a href="{{ provider.website_url }}" target="_blank" rel="noopener">{{ provider.website_url }}</a></div>
+              {% endif %}
+              {% if provider.instagram_url %}
+                <div>Instagram: <a href="{{ provider.instagram_url }}" target="_blank" rel="noopener">{{ provider.instagram_url }}</a></div>
+              {% endif %}
+              {% if provider.facebook_url %}
+                <div>Facebook: <a href="{{ provider.facebook_url }}" target="_blank" rel="noopener">{{ provider.facebook_url }}</a></div>
+              {% endif %}
+              {% if provider.tiktok_url %}
+                <div>TikTok: <a href="{{ provider.tiktok_url }}" target="_blank" rel="noopener">{{ provider.tiktok_url }}</a></div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if provider.about_text %}
+            <div style="margin-top:12px">
+              <strong>Kurzbeschreibung</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.about_text }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.opening_hours %}
+            <div style="margin-top:12px">
+              <strong>Öffnungszeiten</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.opening_hours }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.languages %}
+            {% set langs = provider.languages.replace(';', ',').split(',') %}
+            <div style="margin-top:12px">
+              <strong>Sprachen</strong>
+              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                {% for l in langs %}
+                  {% if l.strip() %}
+                    <span class="tag">{{ l.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if provider.specialties %}
+            {% set specs = provider.specialties.replace(';', ',').split(',') %}
+            <div style="margin-top:12px">
+              <strong>Spezialisierungen</strong>
+              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                {% for s in specs %}
+                  {% if s.strip() %}
+                    <span class="tag">{{ s.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if provider.payment_methods %}
+            {% set pays = provider.payment_methods.replace(';', ',').split(',') %}
+            <div style="margin-top:12px">
+              <strong>Zahlungsmethoden</strong>
+              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                {% for p in pays %}
+                  {% if p.strip() %}
+                    <span class="tag">{{ p.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if provider.cancellation_policy %}
+            <div style="margin-top:12px">
+              <strong>Stornobedingungen</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.cancellation_policy }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.directions %}
+            <div style="margin-top:12px">
+              <strong>Anfahrt / Parken</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.directions }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.gallery_urls %}
+            {% set gallery = provider.gallery_urls.splitlines() %}
+            <div style="margin-top:12px">
+              <strong>Galerie</strong>
+              <div class="gallery-grid">
+                {% for url in gallery %}
+                  {% if url.strip() %}
+                    <img src="{{ url.strip() }}" alt="Galerie Bild">
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
         </div>
 
         <div class="panel">

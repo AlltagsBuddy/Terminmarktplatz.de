@@ -142,6 +142,55 @@
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
             </div>
             <div class="field" style="grid-column:1/-1">
+              <label for="pf-about">Kurzbeschreibung (optional)</label>
+              <textarea id="pf-about" name="about_text" rows="3" placeholder="Kurz erklären, was du anbietest."></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-hours">Öffnungszeiten / Verfügbarkeit (optional)</label>
+              <textarea id="pf-hours" name="opening_hours" rows="3" placeholder="z. B. Mo–Fr 9–18, Sa 10–14"></textarea>
+            </div>
+            <div class="field">
+              <label for="pf-website">Website (optional)</label>
+              <input id="pf-website" name="website_url" placeholder="https://...">
+            </div>
+            <div class="field">
+              <label for="pf-instagram">Instagram (optional)</label>
+              <input id="pf-instagram" name="instagram_url" placeholder="https://instagram.com/...">
+            </div>
+            <div class="field">
+              <label for="pf-facebook">Facebook (optional)</label>
+              <input id="pf-facebook" name="facebook_url" placeholder="https://facebook.com/...">
+            </div>
+            <div class="field">
+              <label for="pf-tiktok">TikTok (optional)</label>
+              <input id="pf-tiktok" name="tiktok_url" placeholder="https://tiktok.com/@...">
+            </div>
+            <div class="field">
+              <label for="pf-languages">Sprachen (optional)</label>
+              <input id="pf-languages" name="languages" placeholder="Deutsch, Englisch, Türkisch">
+            </div>
+            <div class="field">
+              <label for="pf-specialties">Spezialisierungen (optional)</label>
+              <input id="pf-specialties" name="specialties" placeholder="z. B. Hochzeitsstyling, Steuerrecht">
+            </div>
+            <div class="field">
+              <label for="pf-payment">Zahlungsmethoden (optional)</label>
+              <input id="pf-payment" name="payment_methods" placeholder="Bar, Karte, PayPal">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-cancel">Stornobedingungen (optional)</label>
+              <textarea id="pf-cancel" name="cancellation_policy" rows="3" placeholder="z. B. kostenfrei bis 24h vorher"></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-directions">Anfahrt / Parken (optional)</label>
+              <textarea id="pf-directions" name="directions" rows="3" placeholder="z. B. Parkplätze im Hof, 2 Min vom Bahnhof"></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-gallery">Bilder/Galerie (optional)</label>
+              <textarea id="pf-gallery" name="gallery_urls" rows="3" placeholder="Eine Bild-URL pro Zeile"></textarea>
+              <span class="hint" style="font-size:12px;">Für jetzt: öffentliche Bild-URLs. Später gern Upload.</span>
+            </div>
+            <div class="field" style="grid-column:1/-1">
               <label for="pf-logo-file">Logo (JPG/PNG, 512x512, max 20 KB)</label>
               <div class="logo-upload">
                 <input id="pf-logo-file" type="file" accept="image/jpeg,image/png"/>
@@ -274,6 +323,18 @@
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
+        $('#pf-about').value = ME.about_text || '';
+        $('#pf-hours').value = ME.opening_hours || '';
+        $('#pf-website').value = ME.website_url || '';
+        $('#pf-instagram').value = ME.instagram_url || '';
+        $('#pf-facebook').value = ME.facebook_url || '';
+        $('#pf-tiktok').value = ME.tiktok_url || '';
+        $('#pf-languages').value = ME.languages || '';
+        $('#pf-specialties').value = ME.specialties || '';
+        $('#pf-payment').value = ME.payment_methods || '';
+        $('#pf-cancel').value = ME.cancellation_policy || '';
+        $('#pf-directions').value = ME.directions || '';
+        $('#pf-gallery').value = ME.gallery_urls || '';
         const logoConsent = document.getElementById('pf-logo-consent');
         if (logoConsent) logoConsent.checked = !!ME.consent_logo_display;
         setLogoPreview(ME.logo_url || '');
@@ -301,6 +362,18 @@
         city: $('#pf-city').value.trim(),
         phone: $('#pf-phone').value.trim(),
         whatsapp: $('#pf-whatsapp').value.trim(),
+          about_text: $('#pf-about').value.trim(),
+          opening_hours: $('#pf-hours').value.trim(),
+          website_url: $('#pf-website').value.trim(),
+          instagram_url: $('#pf-instagram').value.trim(),
+          facebook_url: $('#pf-facebook').value.trim(),
+          tiktok_url: $('#pf-tiktok').value.trim(),
+          languages: $('#pf-languages').value.trim(),
+          specialties: $('#pf-specialties').value.trim(),
+          payment_methods: $('#pf-payment').value.trim(),
+          cancellation_policy: $('#pf-cancel').value.trim(),
+          directions: $('#pf-directions').value.trim(),
+          gallery_urls: $('#pf-gallery').value.trim(),
         consent_logo_display: $('#pf-logo-consent')?.checked || false,
       };
       if (!isValidStreetWithNumber(combined) || !isValidZip(payload.zip) || !isValidPhone(payload.phone)) {

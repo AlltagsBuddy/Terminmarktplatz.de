@@ -48,6 +48,18 @@ class Provider(Base):
     whatsapp: Mapped[str | None] = mapped_column(Text)
     logo_url: Mapped[str | None] = mapped_column(Text)
     consent_logo_display: Mapped[bool] = mapped_column(Boolean, default=False)
+    about_text: Mapped[str | None] = mapped_column(Text)
+    opening_hours: Mapped[str | None] = mapped_column(Text)
+    website_url: Mapped[str | None] = mapped_column(Text)
+    instagram_url: Mapped[str | None] = mapped_column(Text)
+    facebook_url: Mapped[str | None] = mapped_column(Text)
+    tiktok_url: Mapped[str | None] = mapped_column(Text)
+    languages: Mapped[str | None] = mapped_column(Text)
+    specialties: Mapped[str | None] = mapped_column(Text)
+    payment_methods: Mapped[str | None] = mapped_column(Text)
+    cancellation_policy: Mapped[str | None] = mapped_column(Text)
+    directions: Mapped[str | None] = mapped_column(Text)
+    gallery_urls: Mapped[str | None] = mapped_column(Text)
 
     status: Mapped[str] = mapped_column(Text, default="pending")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -138,6 +150,18 @@ class Provider(Base):
             "whatsapp": self.whatsapp,
             "logo_url": self.logo_url,
             "consent_logo_display": self.consent_logo_display,
+            "about_text": self.about_text,
+            "opening_hours": self.opening_hours,
+            "website_url": self.website_url,
+            "instagram_url": self.instagram_url,
+            "facebook_url": self.facebook_url,
+            "tiktok_url": self.tiktok_url,
+            "languages": self.languages,
+            "specialties": self.specialties,
+            "payment_methods": self.payment_methods,
+            "cancellation_policy": self.cancellation_policy,
+            "directions": self.directions,
+            "gallery_urls": self.gallery_urls,
         }
 
 

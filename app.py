@@ -501,6 +501,18 @@ def _ensure_base_tables():
                   whatsapp TEXT,
                   logo_url TEXT,
                   consent_logo_display INTEGER DEFAULT 0,
+                  about_text TEXT,
+                  opening_hours TEXT,
+                  website_url TEXT,
+                  instagram_url TEXT,
+                  facebook_url TEXT,
+                  tiktok_url TEXT,
+                  languages TEXT,
+                  specialties TEXT,
+                  payment_methods TEXT,
+                  cancellation_policy TEXT,
+                  directions TEXT,
+                  gallery_urls TEXT,
                   status TEXT NOT NULL DEFAULT 'pending',
                   is_admin INTEGER NOT NULL DEFAULT 0,
                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -683,6 +695,40 @@ def _ensure_provider_logo_consent():
 
 
 _ensure_provider_logo_consent()
+
+# Provider: Öffentliches Profil – zusätzliche Felder
+def _ensure_provider_public_profile_fields():
+    """
+    Fügt optionale Profilfelder zur provider Tabelle hinzu, falls sie noch nicht existieren.
+    """
+    fields = [
+        "about_text",
+        "opening_hours",
+        "website_url",
+        "instagram_url",
+        "facebook_url",
+        "tiktok_url",
+        "languages",
+        "specialties",
+        "payment_methods",
+        "cancellation_policy",
+        "directions",
+        "gallery_urls",
+    ]
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                for col in fields:
+                    conn.exec_driver_sql(f"ALTER TABLE provider ADD COLUMN IF NOT EXISTS {col} text;")
+            else:
+                cols = _sqlite_columns(conn, "provider")
+                for col in fields:
+                    if col not in cols:
+                        conn.exec_driver_sql(f"ALTER TABLE provider ADD COLUMN {col} TEXT")
+    except Exception as e:
+        print(f"⚠️  Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
+
+_ensure_provider_public_profile_fields()
 
 
 # --------------------------------------------------------
@@ -2596,6 +2642,18 @@ if _html_enabled():
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
                 "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
+                "about_text": getattr(p, "about_text", None),
+                "opening_hours": getattr(p, "opening_hours", None),
+                "website_url": getattr(p, "website_url", None),
+                "instagram_url": getattr(p, "instagram_url", None),
+                "facebook_url": getattr(p, "facebook_url", None),
+                "tiktok_url": getattr(p, "tiktok_url", None),
+                "languages": getattr(p, "languages", None),
+                "specialties": getattr(p, "specialties", None),
+                "payment_methods": getattr(p, "payment_methods", None),
+                "cancellation_policy": getattr(p, "cancellation_policy", None),
+                "directions": getattr(p, "directions", None),
+                "gallery_urls": getattr(p, "gallery_urls", None),
             }
 
             slots = []
@@ -3514,6 +3572,18 @@ def me():
                 "whatsapp": p.whatsapp,
                 "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
                 "consent_logo_display": bool(getattr(p, "consent_logo_display", False)),
+                "about_text": getattr(p, "about_text", None),
+                "opening_hours": getattr(p, "opening_hours", None),
+                "website_url": getattr(p, "website_url", None),
+                "instagram_url": getattr(p, "instagram_url", None),
+                "facebook_url": getattr(p, "facebook_url", None),
+                "tiktok_url": getattr(p, "tiktok_url", None),
+                "languages": getattr(p, "languages", None),
+                "specialties": getattr(p, "specialties", None),
+                "payment_methods": getattr(p, "payment_methods", None),
+                "cancellation_policy": getattr(p, "cancellation_policy", None),
+                "directions": getattr(p, "directions", None),
+                "gallery_urls": getattr(p, "gallery_urls", None),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -3535,7 +3605,28 @@ def me():
 def me_update():
     try:
         data = request.get_json(force=True) or {}
-        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp", "logo_url"}
+        allowed = {
+            "company_name",
+            "branch",
+            "street",
+            "zip",
+            "city",
+            "phone",
+            "whatsapp",
+            "logo_url",
+            "about_text",
+            "opening_hours",
+            "website_url",
+            "instagram_url",
+            "facebook_url",
+            "tiktok_url",
+            "languages",
+            "specialties",
+            "payment_methods",
+            "cancellation_policy",
+            "directions",
+            "gallery_urls",
+        }
 
         def clean(v):
             if v is None:
@@ -3543,10 +3634,21 @@ def me_update():
             v = str(v).strip()
             return v or None
 
+        def clean_multiline(v):
+            if v is None:
+                return None
+            lines = [ln.strip() for ln in str(v).splitlines()]
+            lines = [ln for ln in lines if ln]
+            return "\n".join(lines) or None
+
         # house_number akzeptieren und verarbeiten
         house_number = clean(data.get("house_number"))
         
         upd = {k: clean(v) for k, v in data.items() if k in allowed}
+
+        for key in ("about_text", "opening_hours", "cancellation_policy", "directions", "gallery_urls"):
+            if key in data:
+                upd[key] = clean_multiline(data.get(key))
 
         # Wenn house_number vorhanden ist, mit street kombinieren
         if house_number:
