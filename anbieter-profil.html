@@ -36,6 +36,19 @@
     .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
     .logo-upload{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .logo-preview{ width:64px; height:64px; border-radius:12px; border:1px solid #e2e8f0; object-fit:cover; margin-top:6px; background:#fff; }
+    .gallery-preview{ display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top:8px; }
+    .gallery-preview .gallery-item{ position:relative; }
+    .gallery-preview img{ width:100%; height:90px; object-fit:cover; border-radius:10px; border:1px solid #e2e8f0; background:#fff; }
+    .gallery-preview button{
+      position:absolute;
+      top:6px; right:6px;
+      background:#ffffff;
+      border:1px solid #cbd5e1;
+      border-radius:10px;
+      padding:4px 6px;
+      font-size:12px;
+      cursor:pointer;
+    }
     .password-wrapper{ position:relative; display:flex; align-items:center; }
     .password-wrapper input{ padding-right:40px; width:100%; }
     .password-toggle{ position:absolute; right:12px; background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:18px; }
@@ -188,7 +201,13 @@
             <div class="field" style="grid-column:1/-1">
               <label for="pf-gallery">Bilder/Galerie (optional)</label>
               <textarea id="pf-gallery" name="gallery_urls" rows="3" placeholder="Eine Bild-URL pro Zeile"></textarea>
-              <span class="hint" style="font-size:12px;">Für jetzt: öffentliche Bild-URLs. Später gern Upload.</span>
+              <span class="hint" style="font-size:12px;">Entweder Bild-URLs eintragen oder hier hochladen.</span>
+              <div class="logo-upload" style="margin-top:8px;">
+                <input id="pf-gallery-files" type="file" accept="image/jpeg,image/png" multiple>
+                <button type="button" class="btn" id="pf-gallery-upload-btn">Bilder hochladen</button>
+              </div>
+              <div class="hint" style="font-size:12px;">Max. 12 Bilder, JPG/PNG bis 500 KB.</div>
+              <div id="pf-gallery-preview" class="gallery-preview"></div>
             </div>
             <div class="field" style="grid-column:1/-1">
               <label for="pf-logo-file">Logo (JPG/PNG, 512x512, max 20 KB)</label>
@@ -291,6 +310,33 @@
       else { img.removeAttribute('src'); img.style.display = 'none'; }
     }
 
+    function parseGalleryUrls(raw){
+      return String(raw || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+    }
+
+    function renderGalleryPreview(urls){
+      const wrap = document.getElementById('pf-gallery-preview');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      (urls || []).forEach(url => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        const img = document.createElement('img');
+        img.alt = 'Galerie Bild';
+        img.src = url;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Entfernen';
+        btn.dataset.remove = url;
+        item.appendChild(img);
+        item.appendChild(btn);
+        wrap.appendChild(item);
+      });
+    }
+
     function setPublicProfileLink(me){
       const block = document.getElementById('public-profile-block');
       const input = document.getElementById('public-profile-url');
@@ -335,6 +381,7 @@
         $('#pf-cancel').value = ME.cancellation_policy || '';
         $('#pf-directions').value = ME.directions || '';
         $('#pf-gallery').value = ME.gallery_urls || '';
+        renderGalleryPreview(parseGalleryUrls(ME.gallery_urls));
         const logoConsent = document.getElementById('pf-logo-consent');
         if (logoConsent) logoConsent.checked = !!ME.consent_logo_display;
         setLogoPreview(ME.logo_url || '');
@@ -443,6 +490,80 @@
           }
         } catch (e3) {
           showMsg('msg-profile', 'Netzwerkfehler beim Löschen des Logos.');
+        }
+      });
+    }
+
+    const galleryInput = document.getElementById('pf-gallery');
+    const galleryUploadBtn = document.getElementById('pf-gallery-upload-btn');
+    const galleryFiles = document.getElementById('pf-gallery-files');
+    const galleryPreview = document.getElementById('pf-gallery-preview');
+
+    if (galleryInput) {
+      galleryInput.addEventListener('input', () => {
+        renderGalleryPreview(parseGalleryUrls(galleryInput.value));
+      });
+    }
+
+    if (galleryPreview) {
+      galleryPreview.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-remove]');
+        if (!btn || !galleryInput) return;
+        const url = btn.dataset.remove;
+        if (!url) return;
+
+        const current = parseGalleryUrls(galleryInput.value);
+        const next = current.filter(u => u !== url);
+        galleryInput.value = next.join('\n');
+        renderGalleryPreview(next);
+
+        if (url.startsWith('/static/uploads/provider-gallery/')) {
+          try{
+            const res = await fetch(`${API}/me/gallery`, {
+              method:'DELETE',
+              headers:{'Content-Type':'application/json'},
+              credentials:'include',
+              body: JSON.stringify({ url })
+            });
+            const data = await res.json().catch(()=> ({}));
+            if (!res.ok){
+              showMsg('msg-profile', data.error || 'Bild konnte nicht gelöscht werden.');
+            } else if (data.gallery_urls) {
+              galleryInput.value = data.gallery_urls.join('\n');
+              renderGalleryPreview(parseGalleryUrls(galleryInput.value));
+              showMsg('msg-profile', 'Bild entfernt.', true);
+            }
+          }catch(err){
+            showMsg('msg-profile', 'Netzwerkfehler beim Löschen des Bildes.');
+          }
+        }
+      });
+    }
+
+    if (galleryUploadBtn && galleryFiles && galleryInput) {
+      galleryUploadBtn.addEventListener('click', async ()=>{
+        const files = galleryFiles.files ? Array.from(galleryFiles.files) : [];
+        if (!files.length) {
+          showMsg('msg-profile', 'Bitte mindestens ein Bild auswählen.');
+          return;
+        }
+        const form = new FormData();
+        files.forEach(f => form.append('images', f));
+        try{
+          const res = await fetch(`${API}/me/gallery`, { method:'POST', credentials:'include', body: form });
+          const data = await res.json().catch(()=> ({}));
+          if (!res.ok) {
+            showMsg('msg-profile', data.error || 'Upload fehlgeschlagen.');
+            return;
+          }
+          if (Array.isArray(data.gallery_urls)) {
+            galleryInput.value = data.gallery_urls.join('\n');
+            renderGalleryPreview(parseGalleryUrls(galleryInput.value));
+          }
+          galleryFiles.value = '';
+          showMsg('msg-profile', 'Bilder hochgeladen.', true);
+        }catch(err){
+          showMsg('msg-profile', 'Netzwerkfehler beim Upload.');
         }
       });
     }

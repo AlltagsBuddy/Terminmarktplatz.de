@@ -9,13 +9,14 @@ import hmac
 import hashlib
 import base64
 import re
+import io
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
 from email.utils import parseaddr, formataddr
 import smtplib
 import requests
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 # ZoneInfo robust (Backport bei < 3.9)
 try:
@@ -70,8 +71,13 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
 LOGO_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-logos")
+GALLERY_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-gallery")
 LOGO_MAX_BYTES = 20 * 1024
 LOGO_SIZE_PX = 512
+GALLERY_MAX_BYTES = 500 * 1024
+GALLERY_MAX_COUNT = 12
+GALLERY_MAX_DIM_PX = 1600
+GALLERY_JPEG_QUALITY = 82
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -88,6 +94,7 @@ app = Flask(
 )
 
 os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
+os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -3832,6 +3839,162 @@ def me_logo_delete():
         return jsonify({"ok": True, "deleted": removed})
     except Exception:
         app.logger.exception("me_logo_delete failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+def _parse_gallery_urls(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    lines = [ln.strip() for ln in str(raw).splitlines()]
+    return [ln for ln in lines if ln]
+
+
+def _normalize_gallery_urls(urls: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for url in urls:
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append(url)
+    return out
+
+
+def _compress_gallery_image(file_storage) -> tuple[bytes, str]:
+    file_storage.stream.seek(0)
+    try:
+        img = Image.open(file_storage.stream)
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        raise ValueError("invalid_gallery_format")
+    fmt = (img.format or "").upper()
+    if fmt not in ("JPEG", "PNG"):
+        raise ValueError("invalid_gallery_format")
+
+    width, height = img.size
+    max_dim = max(width, height)
+    if max_dim > GALLERY_MAX_DIM_PX:
+        scale = GALLERY_MAX_DIM_PX / max_dim
+        new_size = (int(width * scale), int(height * scale))
+        img = img.resize(new_size, Image.LANCZOS)
+
+    has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+    out = io.BytesIO()
+    if fmt == "PNG" and has_alpha:
+        img.save(out, format="PNG", optimize=True)
+        ext = "png"
+    else:
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        img.save(out, format="JPEG", quality=GALLERY_JPEG_QUALITY, optimize=True, progressive=True)
+        ext = "jpg"
+    data = out.getvalue()
+    return data, ext
+
+
+@app.post("/me/gallery")
+@auth_required()
+def me_gallery_upload():
+    try:
+        files = request.files.getlist("images")
+        if not files and "image" in request.files:
+            files = [request.files["image"]]
+        if not files:
+            return _json_error("missing_file", 400)
+
+        new_urls: list[str] = []
+        for file in files:
+            if not file or not file.filename:
+                return _json_error("missing_file", 400)
+
+            file.stream.seek(0, os.SEEK_END)
+            size = file.stream.tell()
+            file.stream.seek(0)
+            if size > GALLERY_MAX_BYTES:
+                return _json_error("gallery_too_large", 400)
+
+            try:
+                img = Image.open(file.stream)
+                img.verify()
+            except UnidentifiedImageError:
+                return _json_error("invalid_gallery_format", 400)
+            except Exception:
+                return _json_error("invalid_gallery_format", 400)
+            finally:
+                file.stream.seek(0)
+
+            try:
+                img = Image.open(file.stream)
+                fmt = (img.format or "").upper()
+            except Exception:
+                return _json_error("invalid_gallery_format", 400)
+            finally:
+                file.stream.seek(0)
+
+            if fmt not in ("JPEG", "PNG"):
+                return _json_error("invalid_gallery_format", 400)
+
+            ext = "png" if fmt == "PNG" else "jpg"
+            filename = f"{request.provider_id}-{uuid4().hex}.{ext}"
+            target_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+            with open(target_path, "wb") as out:
+                out.write(file.stream.read())
+
+            new_urls.append(f"/static/uploads/provider-gallery/{filename}")
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            existing = _parse_gallery_urls(getattr(p, "gallery_urls", None))
+            merged = _normalize_gallery_urls(existing + new_urls)
+            if len(merged) > GALLERY_MAX_COUNT:
+                return _json_error("gallery_too_many", 400)
+            p.gallery_urls = "\n".join(merged) if merged else None
+            s.commit()
+
+        return jsonify({"ok": True, "gallery_urls": merged})
+    except Exception:
+        app.logger.exception("me_gallery_upload failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.delete("/me/gallery")
+@auth_required()
+def me_gallery_delete():
+    try:
+        data = request.get_json(force=True) or {}
+        url = (data.get("url") or "").strip()
+        if not url:
+            return _json_error("missing_url", 400)
+        clean_url = url.split("?", 1)[0]
+        if not clean_url.startswith("/static/uploads/provider-gallery/"):
+            return _json_error("invalid_gallery_url", 400)
+        filename = os.path.basename(clean_url)
+        if not filename or "/" in filename or "\\" in filename:
+            return _json_error("invalid_gallery_url", 400)
+
+        removed = False
+        path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                removed = True
+            except Exception:
+                pass
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            existing = _parse_gallery_urls(getattr(p, "gallery_urls", None))
+            filtered = [u for u in existing if u.split("?", 1)[0] != clean_url]
+            p.gallery_urls = "\n".join(filtered) if filtered else None
+            s.commit()
+
+        return jsonify({"ok": True, "deleted": removed, "gallery_urls": filtered})
+    except Exception:
+        app.logger.exception("me_gallery_delete failed")
         return jsonify({"error": "server_error"}), 500
 
 
