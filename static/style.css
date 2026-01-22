@@ -1296,28 +1296,38 @@ fieldset[disabled]{
 @media (max-width:768px){
   .container.nav{
     display:flex;
-    flex-wrap:wrap;
-    align-items:flex-start;
-    gap:8px;
+    flex-wrap:wrap !important;
+    align-items:flex-start !important;
+    gap:8px !important;
+    padding-inline:16px !important;
   }
 
-  .brand{
-    margin-right:auto;
+  header .brand{
+    margin-bottom:4px !important;
+  }
+
+  .brand-title{
+    font-size:1.05rem !important;
+  }
+
+  header .user-menu{
+    margin-left:auto !important;
   }
 
   .nav-links{
     display:flex !important;
-    width:100%;
-    justify-content:center;
-    flex-wrap:wrap;
-    gap:8px;
-    text-align:center;
-    margin-top:4px;
+    width:100% !important;
+    justify-content:center !important;
+    flex-wrap:wrap !important;
+    gap:8px !important;
+    text-align:center !important;
+    margin-top:4px !important;
+    margin-left:0 !important;
   }
 
   .nav-links a{
-    font-size:0.9rem;
-    padding:6px 8px;
+    font-size:0.9rem !important;
+    padding:2px 6px !important;
   }
 
   /* CTA-Gruppe darf umbrechen, wenn vorhanden */

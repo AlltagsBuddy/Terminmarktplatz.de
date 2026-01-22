@@ -145,9 +145,24 @@
 
     .provider-row{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
+      flex-wrap:wrap;
       gap:8px;
       margin-top:4px;
+    }
+    .provider-meta{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+    }
+    .provider-label{
+      font-weight:700;
+    }
+    .provider-name{
+      min-width:0;
+      max-width:100%;
     }
     .provider-link{
       color:#ffffff;
@@ -158,10 +173,35 @@
       border-radius:999px;
       background:linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.9));
       box-shadow:0 6px 18px rgba(0,0,0,.18);
+      display:inline-block;
+      max-width:100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .provider-text{
+      font-weight:800;
+      color:#ffffff;
+      display:inline-block;
+      max-width:100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .provider-link:hover{
       color:#ffffff;
       transform:translateY(-1px);
+    }
+    .results-grid .card h3{
+      line-height:1.3;
+      margin-bottom:6px;
+    }
+    .results-grid .card .muted{
+      font-size:0.95rem;
+      line-height:1.5;
+    }
+    .results-grid .card p{
+      line-height:1.5;
     }
     .results-toolbar .inline-input{
       display:flex;
@@ -393,6 +433,19 @@
 
       .results-grid {
         grid-template-columns: 1fr;
+      }
+      
+      .results-grid .card h3{
+        font-size:1.1rem;
+      }
+
+      .provider-meta{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .provider-name{
+        width:100%;
       }
       
       /* Stelle sicher, dass Buttons in Cards auf Mobile klickbar sind */
@@ -1274,10 +1327,13 @@
               </p>
               <div class="provider-row">
                 ${providerBadge}
-                <div class="muted"><strong>Anbieter:</strong>
-                  ${profileUrl
-                    ? `<a href="${profileUrl}" class="provider-link">${providerName}</a>`
-                    : `${providerName}`}
+                <div class="muted provider-meta">
+                  <span class="provider-label"><strong>Anbieter:</strong></span>
+                  <span class="provider-name">
+                    ${profileUrl
+                      ? `<a href="${profileUrl}" class="provider-link">${providerName}</a>`
+                      : `<span class="provider-text">${providerName}</span>`}
+                  </span>
                 </div>
               </div>
               ${terminAddress ? `
