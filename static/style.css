@@ -149,6 +149,10 @@ header{
   gap:16px;
   padding:14px 0;
 }
+.nav .brand{ order:1; }
+.nav .user-menu{ order:2; }
+.nav .nav-links{ order:3; }
+.nav .cta-group{ order:4; }
 .brand{
   display:flex;
   align-items:center;

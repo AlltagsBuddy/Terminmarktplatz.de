@@ -2,8 +2,7 @@
 <header>
   <div class="container nav"
        role="navigation"
-       aria-label="Hauptnavigation"
-       style="flex-wrap:wrap; gap:8px; align-items:flex-start;">
+       aria-label="Hauptnavigation">
     <a class="brand" href="index.html" aria-label="Startseite">
       <div class="brand-logo" aria-hidden="true">
         <img src="static/terminmarktplatz-logo.png"
@@ -15,9 +14,9 @@
     </a>
 
     <!-- Rechts: User-Dropdown (wenn eingeloggt) -->
-    <div class="user-menu" id="user-menu" hidden>
+    <div class="user-menu" id="user-menu">
       <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-        Konto ▾
+        ☰ Menü
       </button>
       <div id="userMenu" class="menu" role="menu" hidden>
         <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
@@ -45,3 +44,85 @@
     </div>
   </div>
 </header>
+
+<script>
+  (function(){
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    const btn = document.getElementById('userMenuBtn');
+    const menu = document.getElementById('userMenu');
+    if (!btn || !menu) return;
+
+    btn.textContent = '☰ Menü';
+
+    const authOutEls = menu.querySelectorAll('.auth-out');
+    const authInEls = menu.querySelectorAll('.auth-in');
+    const adminOnlyEls = menu.querySelectorAll('.admin-only');
+
+    function setAuthVisible(isLoggedIn, isAdmin){
+      authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+      authInEls.forEach(el => { el.style.display = isLoggedIn ? '' : 'none'; });
+      adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
+    }
+
+    async function checkAuth(){
+      try{
+        const res = await fetch(`${API}/me`, { credentials:'include' });
+        if (res.ok) {
+          const data = await res.json().catch(()=> null);
+          setAuthVisible(true, data?.is_admin === true);
+        } else {
+          setAuthVisible(false, false);
+        }
+      }catch(e){
+        setAuthVisible(false, false);
+      }
+    }
+
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const isHidden = menu.hasAttribute('hidden');
+      if (isHidden) { menu.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
+      else { menu.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
+    });
+    document.addEventListener('click', (e)=>{
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.setAttribute('hidden', '');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.querySelector('[data-action="logout"]')?.addEventListener('click', async ()=>{
+      try { await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); } catch(e) {}
+      window.location.href = 'login.html?tab=login';
+    });
+    document.querySelector('[data-action="delete"]')?.addEventListener('click', async ()=>{
+      const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+      if (!ok) return;
+      try{
+        const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+        if (res.ok) { window.location.href = 'login.html?deleted=1'; }
+        else {
+          const data = await res.json().catch(()=> ({}));
+          alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+        }
+      }catch(err){
+        alert('Netzwerkfehler – bitte später erneut versuchen.');
+      }
+    });
+
+    checkAuth();
+  })();
+</script>
