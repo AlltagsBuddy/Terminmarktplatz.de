@@ -55,7 +55,7 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset
+from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset, Review
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -570,6 +570,61 @@ def _ensure_base_tables():
 # Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
 # WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
 _ensure_base_tables()
+
+
+# --------------------------------------------------------
+# Reviews Tabelle hinzufügen
+# --------------------------------------------------------
+def _ensure_review_table():
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                CREATE TABLE IF NOT EXISTS public.review (
+                  id uuid PRIMARY KEY,
+                  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
+                  booking_id uuid NOT NULL REFERENCES public.booking(id) ON DELETE CASCADE,
+                  reviewer_name text,
+                  rating integer NOT NULL,
+                  comment text,
+                  reply_text text,
+                  replied_at timestamp without time zone,
+                  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                conn.exec_driver_sql(ddl)
+                conn.exec_driver_sql(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS review_booking_id_idx ON public.review(booking_id)"
+                )
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS review_provider_id_idx ON public.review(provider_id)"
+                )
+            else:
+                ddl = """
+                CREATE TABLE IF NOT EXISTS review (
+                  id TEXT PRIMARY KEY,
+                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  booking_id TEXT NOT NULL REFERENCES booking(id) ON DELETE CASCADE,
+                  reviewer_name TEXT,
+                  rating INTEGER NOT NULL,
+                  comment TEXT,
+                  reply_text TEXT,
+                  replied_at DATETIME,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                conn.exec_driver_sql(ddl)
+                conn.exec_driver_sql(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS review_booking_id_idx ON review(booking_id)"
+                )
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS review_provider_id_idx ON review(provider_id)"
+                )
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_review_table fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_review_table()
 
 
 # --------------------------------------------------------
@@ -2501,6 +2556,16 @@ if _html_enabled():
                     .all()
                 )
 
+                review_rows = (
+                    s.execute(
+                        select(Review)
+                        .where(Review.provider_id == p.id)
+                        .order_by(Review.created_at.desc())
+                    )
+                    .scalars()
+                    .all()
+                )
+
             provider = {
                 "name": p.public_name,
                 "branch": p.branch,
@@ -2534,15 +2599,149 @@ if _html_enabled():
                     }
                 )
 
+            reviews = []
+            rating_sum = 0
+            for r in review_rows:
+                rating_sum += int(r.rating or 0)
+                name = (r.reviewer_name or "").strip()
+                display_name = name
+                if name and " " in name:
+                    first, *rest = name.split(" ")
+                    last_initial = f"{rest[-1][:1]}." if rest else ""
+                    display_name = f"{first} {last_initial}".strip()
+                reviews.append(
+                    {
+                        "id": str(r.id),
+                        "rating": int(r.rating or 0),
+                        "comment": r.comment,
+                        "reviewer_name": display_name or "Anonym",
+                        "created_at": r.created_at,
+                        "reply_text": r.reply_text,
+                        "replied_at": r.replied_at,
+                    }
+                )
+
+            review_count = len(reviews)
+            review_avg = round((rating_sum / review_count), 1) if review_count else None
+
             return render_template(
                 "anbieter_profil.html",
                 provider=provider,
                 slots=slots,
+                reviews=reviews,
+                review_avg=review_avg,
+                review_count=review_count,
                 frontend_url=FRONTEND_URL,
             )
         except Exception:
             app.logger.exception("public_provider_profile failed")
             return _json_error("server_error", 500)
+
+    @app.get("/bewertung")
+    def review_page():
+        token = request.args.get("token")
+        booking_id = _verify_review_token(token) if token else None
+        if not booking_id:
+            return render_template("bewertung.html", error="Ungültiger Bewertungslink.")
+
+        try:
+            with Session(engine) as s:
+                b = s.get(Booking, booking_id)
+                if not b:
+                    return render_template("bewertung.html", error="Buchung nicht gefunden.")
+                if b.status != "confirmed":
+                    return render_template("bewertung.html", error="Diese Buchung ist nicht bestätigt.")
+                slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+                provider_obj = s.get(Provider, b.provider_id) if b.provider_id else None
+                if not slot_obj or not provider_obj:
+                    return render_template("bewertung.html", error="Termin nicht gefunden.")
+
+                if _as_utc_aware(slot_obj.end_at) > _now():
+                    return render_template(
+                        "bewertung.html",
+                        error="Du kannst den Termin erst nach dem Stattfinden bewerten.",
+                    )
+
+                existing = (
+                    s.execute(select(Review).where(Review.booking_id == str(b.id)))
+                    .scalars()
+                    .first()
+                )
+                if existing:
+                    return render_template(
+                        "bewertung.html",
+                        success="Vielen Dank! Deine Bewertung wurde bereits gespeichert.",
+                    )
+
+                slot_start_local = _as_utc_aware(slot_obj.start_at).astimezone(BERLIN)
+                slot_end_local = _as_utc_aware(slot_obj.end_at).astimezone(BERLIN)
+
+                return render_template(
+                    "bewertung.html",
+                    token=token,
+                    provider_name=provider_obj.public_name,
+                    slot_title=slot_obj.title,
+                    slot_date=slot_start_local.strftime("%d.%m.%Y"),
+                    slot_time=f"{slot_start_local.strftime('%H:%M')} – {slot_end_local.strftime('%H:%M')}",
+                )
+        except Exception:
+            app.logger.exception("review_page failed")
+            return render_template("bewertung.html", error="Serverfehler.")
+
+    @app.post("/bewertung")
+    def review_submit():
+        token = request.form.get("token")
+        booking_id = _verify_review_token(token) if token else None
+        if not booking_id:
+            return render_template("bewertung.html", error="Ungültiger Bewertungslink.")
+
+        try:
+            rating = int(request.form.get("rating") or 0)
+        except Exception:
+            rating = 0
+        comment = (request.form.get("comment") or "").strip()
+        if rating < 1 or rating > 5:
+            return render_template("bewertung.html", error="Bitte eine Bewertung von 1 bis 5 auswählen.")
+        if len(comment) > 1000:
+            return render_template("bewertung.html", error="Kommentar ist zu lang (max. 1000 Zeichen).")
+
+        try:
+            with Session(engine) as s:
+                b = s.get(Booking, booking_id)
+                if not b or b.status != "confirmed":
+                    return render_template("bewertung.html", error="Buchung nicht gefunden.")
+                slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+                if not slot_obj or _as_utc_aware(slot_obj.end_at) > _now():
+                    return render_template("bewertung.html", error="Bewertung noch nicht möglich.")
+
+                existing = (
+                    s.execute(select(Review).where(Review.booking_id == str(b.id)))
+                    .scalars()
+                    .first()
+                )
+                if existing:
+                    return render_template(
+                        "bewertung.html",
+                        success="Vielen Dank! Deine Bewertung wurde bereits gespeichert.",
+                    )
+
+                review = Review(
+                    provider_id=b.provider_id,
+                    booking_id=str(b.id),
+                    reviewer_name=b.customer_name,
+                    rating=rating,
+                    comment=comment or None,
+                )
+                s.add(review)
+                s.commit()
+
+            return render_template(
+                "bewertung.html",
+                success="Vielen Dank! Deine Bewertung wurde gespeichert.",
+            )
+        except Exception:
+            app.logger.exception("review_submit failed")
+            return render_template("bewertung.html", error="Serverfehler.")
 
     @app.get("/impressum")
     def impressum():
@@ -3546,6 +3745,55 @@ def cancel_plan():
     except Exception:
         app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
+
+
+# --------------------------------------------------------
+# Provider Reviews (Antworten)
+# --------------------------------------------------------
+@app.get("/provider/reviews")
+@auth_required()
+def provider_reviews_list():
+    try:
+        with Session(engine) as s:
+            rows = (
+                s.execute(
+                    select(Review)
+                    .where(Review.provider_id == request.provider_id)
+                    .order_by(Review.created_at.desc())
+                )
+                .scalars()
+                .all()
+            )
+            return jsonify([r.to_public_dict() for r in rows])
+    except Exception:
+        app.logger.exception("provider_reviews_list failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/provider/reviews/<review_id>/reply")
+@auth_required()
+def provider_reviews_reply(review_id):
+    try:
+        data = request.get_json(force=True) or {}
+        reply_text = (data.get("reply_text") or "").strip()
+        if len(reply_text) > 1000:
+            return _json_error("reply_too_long", 400)
+
+        with Session(engine) as s:
+            review = s.get(Review, review_id)
+            if not review or str(review.provider_id) != str(request.provider_id):
+                return _json_error("not_found", 404)
+            if reply_text:
+                review.reply_text = reply_text
+                review.replied_at = _to_db_utc_naive(_now())
+            else:
+                review.reply_text = None
+                review.replied_at = None
+            s.commit()
+            return jsonify({"ok": True, "review": review.to_public_dict()})
+    except Exception:
+        app.logger.exception("provider_reviews_reply failed")
+        return _json_error("server_error", 500)
 
 
 # --------------------------------------------------------
@@ -6424,6 +6672,30 @@ def _verify_booking_token(token: str) -> str | None:
         return None
 
 
+REVIEW_TOKEN_TTL_DAYS = 120
+
+
+def _review_token(booking_id: str) -> str:
+    return jwt.encode(
+        {
+            "sub": booking_id,
+            "typ": "review",
+            "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=REVIEW_TOKEN_TTL_DAYS)).timestamp()),
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+
+
+def _verify_review_token(token: str) -> str | None:
+    try:
+        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
+        return data.get("sub") if data.get("typ") == "review" else None
+    except Exception:
+        return None
+
+
 PROVIDER_CALENDAR_TOKEN_TTL_DAYS = 365
 
 
@@ -6970,6 +7242,11 @@ def public_confirm():
                     confirm_email_body += f"Preis: {price_euro:.2f} €\n"
                 confirm_email_body += f"\n"
                 confirm_email_body += f"Wir freuen uns auf deinen Besuch!\n"
+                review_link = f"{_external_base()}/bewertung?token={_review_token(str(b.id))}"
+                confirm_email_body += (
+                    "\nNach dem Termin freuen wir uns über eine kurze Bewertung:\n"
+                    f"{review_link}\n"
+                )
 
                 send_mail(
                     b.customer_email,

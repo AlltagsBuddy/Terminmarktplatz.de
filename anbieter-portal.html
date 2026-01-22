@@ -915,6 +915,14 @@
           <div id="msg-slots" class="msg"></div>
         </div>
 
+        <!-- Bewertungen -->
+        <div class="panel" style="grid-column:1/-1">
+          <h2>Bewertungen</h2>
+          <p class="muted">Nur bestätigte Termine können bewertet werden. Du kannst darauf antworten.</p>
+          <div id="reviews-list" class="grid" style="gap:12px;"></div>
+          <div id="msg-reviews" class="msg"></div>
+        </div>
+
       </div>
     </section>
   </main>
@@ -966,6 +974,12 @@
           el.style.display='none'; 
         }
       }, duration);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
     function showSlotLimitAlert(){
@@ -2566,6 +2580,83 @@
       }
     });
 
+    // ---------- Bewertungen ----------
+    function renderReviews(items){
+      const wrap = document.getElementById('reviews-list');
+      if (!wrap) return;
+      if (!items || !items.length){
+        wrap.innerHTML = '<div class="muted">Noch keine Bewertungen vorhanden.</div>';
+        return;
+      }
+      wrap.innerHTML = '';
+      items.forEach(r => {
+        const ratingValue = Math.max(0, Math.min(5, Number(r.rating || 0)));
+        const stars = '★★★★★'.slice(0, ratingValue) + '☆☆☆☆☆'.slice(0, 5 - ratingValue);
+        const card = document.createElement('div');
+        card.className = 'panel';
+        card.style.padding = '12px';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+            <div style="font-weight:600;">${escapeHtml(r.reviewer_name || 'Anonym')}</div>
+            <div>${stars}</div>
+          </div>
+          ${r.comment ? `<div style="margin-top:6px; color:#475569;">${escapeHtml(r.comment)}</div>` : ''}
+          <div style="margin-top:10px;">
+            <label style="font-weight:600; display:block; margin-bottom:4px;">Antwort des Anbieters</label>
+            <textarea rows="2" style="width:100%;" data-reply="${r.id}" placeholder="Optional antworten…">${escapeHtml(r.reply_text || '')}</textarea>
+            <div class="toolbar" style="margin-top:6px;">
+              <button class="btn" data-reply-save="${r.id}">Antwort speichern</button>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(card);
+      });
+
+      wrap.querySelectorAll('[data-reply-save]').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.dataset.replySave;
+          const textarea = wrap.querySelector(`textarea[data-reply="${id}"]`);
+          const reply_text = textarea ? textarea.value.trim() : '';
+          try{
+            const res = await fetch(`${API}/provider/reviews/${id}/reply`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              credentials:'include',
+              body: JSON.stringify({ reply_text })
+            });
+            const data = await res.json().catch(()=> ({}));
+            if (!res.ok) {
+              showMsg('msg-reviews', data.error || 'Antwort konnte nicht gespeichert werden.');
+              return;
+            }
+            showMsg('msg-reviews', reply_text ? 'Antwort gespeichert.' : 'Antwort entfernt.', true);
+          }catch(e){
+            showMsg('msg-reviews', 'Netzwerkfehler.');
+          }
+        });
+      });
+    }
+
+    async function loadReviews(){
+      const wrap = document.getElementById('reviews-list');
+      if (wrap) wrap.innerHTML = '<div class="muted">Lade …</div>';
+      try{
+        const res = await fetch(`${API}/provider/reviews`, { credentials:'include' });
+        if (!res.ok){
+          if (res.status === 401 || res.status === 403) {
+            window.location.href = 'login.html?tab=login';
+            return;
+          }
+          showMsg('msg-reviews', 'Bewertungen konnten nicht geladen werden.');
+          return;
+        }
+        const data = await res.json();
+        renderReviews(data || []);
+      }catch(e){
+        showMsg('msg-reviews', 'Netzwerkfehler.');
+      }
+    }
+
     // Filter-Buttons für Aktive/Archivierte Termine
     const btnShowActive = $('#btn-show-active');
     const btnShowArchived = $('#btn-show-archived');
@@ -2596,6 +2687,7 @@
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
+      await loadReviews();
     })();
   </script>
 

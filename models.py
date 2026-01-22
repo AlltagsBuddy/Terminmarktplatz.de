@@ -100,6 +100,13 @@ class Provider(Base):
         passive_deletes=True,
     )
 
+    reviews: Mapped[list["Review"]] = relationship(
+        "Review",
+        back_populates="provider",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
     @property
     def public_name(self) -> str:
         return (self.company_name or self.email or "").strip()
@@ -313,6 +320,13 @@ class Booking(Base):
     provider: Mapped["Provider"] = relationship("Provider", back_populates="bookings")
     invoice: Mapped["Invoice | None"] = relationship("Invoice", back_populates="bookings")
 
+    review: Mapped["Review | None"] = relationship(
+        "Review",
+        back_populates="booking",
+        uselist=False,
+        passive_deletes=True,
+    )
+
     def to_public_dict(
         self,
         include_slot: bool = False,
@@ -522,3 +536,60 @@ class PasswordReset(Base):
     )
 
     provider: Mapped["Provider"] = relationship("Provider")
+
+
+# ------------------------------------------------------------
+# Review (Bewertung)
+# ------------------------------------------------------------
+class Review(Base):
+    """Bewertung eines bestätigten Termins."""
+    __tablename__ = "review"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
+    provider_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("provider.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    booking_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("booking.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    reviewer_name: Mapped[str | None] = mapped_column(Text)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text)
+
+    reply_text: Mapped[str | None] = mapped_column(Text)
+    replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+
+    provider: Mapped["Provider"] = relationship("Provider", back_populates="reviews")
+    booking: Mapped["Booking"] = relationship("Booking", back_populates="review")
+
+    def to_public_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "provider_id": self.provider_id,
+            "booking_id": self.booking_id,
+            "reviewer_name": self.reviewer_name,
+            "rating": int(self.rating),
+            "comment": self.comment,
+            "reply_text": self.reply_text,
+            "replied_at": self.replied_at,
+            "created_at": self.created_at,
+        }

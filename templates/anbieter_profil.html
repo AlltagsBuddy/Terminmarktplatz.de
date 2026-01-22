@@ -103,6 +103,44 @@
         </div>
       </div>
     </section>
+
+    <section>
+      <div class="container">
+        <div class="panel">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <h2 style="margin:0;">Bewertungen</h2>
+            {% if review_avg %}
+              <span class="badge">{{ review_avg }} ★</span>
+              <span class="muted">({{ review_count }} Bewertungen)</span>
+            {% else %}
+              <span class="muted">Noch keine Bewertungen</span>
+            {% endif %}
+          </div>
+
+          {% if reviews and reviews|length > 0 %}
+            <div style="margin-top:12px; display:grid; gap:12px;">
+              {% for r in reviews %}
+                <div style="border:1px solid var(--border); border-radius:12px; padding:12px;">
+                  <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                    <div style="font-weight:600;">{{ r.reviewer_name }}</div>
+                    <div>{{ "★" * r.rating }}{{ "☆" * (5 - r.rating) }}</div>
+                  </div>
+                  {% if r.comment %}
+                    <div style="margin-top:6px; color:#475569;">{{ r.comment }}</div>
+                  {% endif %}
+                  {% if r.reply_text %}
+                    <div style="margin-top:10px; padding:8px 10px; background:#f8fafc; border-radius:8px;">
+                      <div style="font-weight:600;">Antwort des Anbieters</div>
+                      <div class="muted" style="margin-top:4px;">{{ r.reply_text }}</div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>

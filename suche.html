@@ -147,6 +147,15 @@
       gap:8px;
       margin-top:4px;
     }
+    .provider-link{
+      color:#0f172a;
+      font-weight:600;
+      text-decoration:underline;
+      text-underline-offset:2px;
+    }
+    .provider-link:hover{
+      color:#1d4ed8;
+    }
     .provider-logo,
     .provider-logo-fallback{
       width:32px;
@@ -1095,6 +1104,10 @@
         }
 
 
+        const profileUrl = p.provider_number
+          ? `${location.origin}/anbieter/${p.provider_number}`
+          : '';
+
         const el = document.createElement('div');
         el.className = 'card';
         el.innerHTML = `
@@ -1108,7 +1121,11 @@
               </p>
               <div class="provider-row">
                 ${providerBadge}
-                <div class="muted"><strong>Anbieter:</strong> ${providerName}</div>
+                <div class="muted"><strong>Anbieter:</strong>
+                  ${profileUrl
+                    ? `<a href="${profileUrl}" class="provider-link">${providerName}</a>`
+                    : `${providerName}`}
+                </div>
               </div>
               ${terminAddress ? `
                 <p class="muted" style="margin:2px 0 0;">
