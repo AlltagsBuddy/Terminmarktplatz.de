@@ -161,38 +161,10 @@
       color:#ffffff;
       transform:translateY(-1px);
     }
-    .quick-filters{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:10px;
-      align-items:center;
-    }
-    .quick-filters .pill-btn{
-      border:1px solid rgba(255,255,255,.22);
-      background:rgba(255,255,255,.06);
-      color:#fff;
-      padding:6px 12px;
-      border-radius:999px;
-      font-weight:600;
-      cursor:pointer;
-    }
-    .quick-filters .pill-btn:hover{ transform:translateY(-1px); }
-    .quick-filters .inline-input{
+    .results-toolbar .inline-input{
       display:flex;
       align-items:center;
       gap:6px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(255,255,255,.06);
-    }
-    .quick-filters input[type="number"]{
-      width:90px;
-      border:none;
-      outline:none;
-      background:transparent;
-      color:#fff;
     }
     .results-toolbar .view-toggle{
       display:flex;
@@ -208,9 +180,21 @@
       border:1px solid rgba(255,255,255,.18);
       color:#fff;
       border-radius:999px;
-      padding:6px 10px;
-      font-weight:700;
+      padding:12px 16px;
+      font-weight:800;
+      font-size:20px;
+      line-height:1;
       cursor:pointer;
+      margin-bottom:12px;
+      min-width:48px;
+      min-height:48px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 8px 18px rgba(0,0,0,.2);
+      position:relative;
+      z-index:2;
+      pointer-events:auto;
     }
     .fav-btn.active{
       background:linear-gradient(135deg, #f472b6, #f97316);
@@ -692,18 +676,6 @@
             </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
           </div>
-          <div class="quick-filters">
-            <button type="button" class="pill-btn" data-quick="today">Heute</button>
-            <button type="button" class="pill-btn" data-quick="morning">Vormittag</button>
-            <button type="button" class="pill-btn" data-quick="clear">Zurücksetzen</button>
-            <label class="inline-input">
-              💶 <input type="number" id="f-price" name="price_max" min="0" step="1" placeholder="Max €">
-            </label>
-            <label class="inline-input">
-              <input type="checkbox" id="f-city-only" name="city_only" value="1">
-              Nur in meiner Stadt
-            </label>
-          </div>
           <div class="trust">Es werden nur <strong>freie</strong> Slots angezeigt.</div>
         </form>
       </div>
@@ -902,7 +874,11 @@
       }
     }
     function setFavorites(list){
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
+      try{
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
+      }catch(e){
+        // Speicher ggf. blockiert (Private Mode)
+      }
     }
     function isFavorite(id){
       return getFavorites().includes(id);
@@ -1032,18 +1008,12 @@
     const dayLegacy = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
-    const priceMax = (sp.get('price_max')||'').trim();
-    const cityOnly = (sp.get('city_only')||'') === '1';
 
     // Felder füllen (damit Auswahl stehen bleibt)
     $('#f-q').value      = q;
     $('#f-ort').value    = ort;
     $('#f-zeit').value   = zeit;
     $('#f-radius').value = radius;
-    const priceInput = document.getElementById('f-price');
-    if (priceInput) priceInput.value = priceMax;
-    const cityOnlyInput = document.getElementById('f-city-only');
-    if (cityOnlyInput) cityOnlyInput.checked = cityOnly;
     const dayFromInput = document.getElementById('search-day-from');
     const dayToInput = document.getElementById('search-day-to');
     if (dayFromInput) dayFromInput.value = dayFromUrl || dayLegacy;
@@ -1087,52 +1057,15 @@
       const zeitVal = $('#f-zeit')?.value?.trim() || '';
       const fromVal = $('#search-day-from')?.value?.trim() || '';
       const toVal = $('#search-day-to')?.value?.trim() || '';
-      const priceVal = $('#f-price')?.value?.trim() || '';
-      const cityOnlyVal = document.getElementById('f-city-only')?.checked;
       if (qVal) params.set('q', qVal);
       if (ortVal) params.set('ort', ortVal);
       if (radiusVal) params.set('radius', radiusVal);
       if (zeitVal) params.set('zeit', zeitVal);
       if (fromVal) params.set('day_from', fromVal);
       if (toVal) params.set('day_to', toVal);
-      if (priceVal) params.set('price_max', priceVal);
-      if (cityOnlyVal) params.set('city_only', '1');
       return params;
     }
-
-    function applyQuickFilter(type){
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      if (type === 'today') {
-        $('#search-day-from').value = `${yyyy}-${mm}-${dd}`;
-        $('#search-day-to').value = `${yyyy}-${mm}-${dd}`;
-      }
-      if (type === 'morning') {
-        $('#f-zeit').value = 'morgens';
-      }
-      if (type === 'clear') {
-        $('#f-q').value = '';
-        $('#f-ort').value = '';
-        $('#f-radius').value = '';
-        $('#f-zeit').value = '';
-        $('#search-day-from').value = '';
-        $('#search-day-to').value = '';
-        const priceInput = document.getElementById('f-price');
-        if (priceInput) priceInput.value = '';
-        const cityOnlyInput = document.getElementById('f-city-only');
-        if (cityOnlyInput) cityOnlyInput.checked = false;
-      }
-      const params = buildParamsFromForm();
-      const newUrl = `${location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      history.replaceState(null, '', newUrl);
-      load();
-    }
-
-    document.querySelectorAll('[data-quick]').forEach(btn => {
-      btn.addEventListener('click', () => applyQuickFilter(btn.dataset.quick));
-    });
+    // Quick-Filters entfernt
 
     function applyViewMode(mode){
       const results = document.getElementById('results');
@@ -1177,8 +1110,6 @@
       const dayLegacy2 = (s2.get('day')||'').trim();
       const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
       const rad2  = (s2.get('radius')||'').trim();
-      const priceMax2 = (s2.get('price_max')||'').trim();
-      const cityOnly2 = (s2.get('city_only')||'') === '1';
 
       const hasSearch = !!(q2 || ort2 || dayFrom2 || dayTo2 || dayLegacy2 || zeit2 || rad2);
 
@@ -1234,26 +1165,7 @@
         const okKW   = (isExactCategory || !kw)
           ? true
           : ((x.title||'').toLowerCase().includes(kw) || (x.category||'').toLowerCase().includes(kw));
-        let okPrice = true;
-        if (priceMax2 && /^\d+(\.\d+)?$/.test(priceMax2)) {
-          const cents = Number(x.price_cents || 0);
-          const maxCents = Math.round(parseFloat(priceMax2) * 100);
-          okPrice = cents <= maxCents || cents === 0;
-        }
-        let okCity = true;
-        if (cityOnly2 && ort2) {
-          const ortLower = ort2.toLowerCase();
-          const slotCity = (x.city || '').toLowerCase();
-          const slotZip = (x.zip || '').toLowerCase();
-          const providerCity = (x.provider_city || '').toLowerCase();
-          const providerZip = (x.provider_zip || '').toLowerCase();
-          if (ortLower.match(/^\d{5}$/)) {
-            okCity = ortLower === slotZip || ortLower === providerZip;
-          } else {
-            okCity = ortLower === slotCity || ortLower === providerCity;
-          }
-        }
-        return okZeit && okKW && okPrice && okCity;
+        return okZeit && okKW;
       });
 
       // Sortierung
@@ -1376,7 +1288,7 @@
                 </p>` : ''}
             </div>
             <div>
-              <button class="fav-btn ${isFavorite(x.id) ? 'active' : ''}" data-fav="${x.id}" type="button" title="Zu Favoriten">♥</button>
+              <button class="fav-btn ${isFavorite(x.id) ? 'active' : ''}" data-fav="${x.id}" type="button" aria-pressed="${isFavorite(x.id) ? 'true' : 'false'}" title="Zu Favoriten">♥</button>
               <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
             </div>
           </div>
@@ -1645,9 +1557,11 @@
             if (idx >= 0) {
               favs.splice(idx, 1);
               favBtn.classList.remove('active');
+              favBtn.setAttribute('aria-pressed', 'false');
             } else {
               favs.push(slotId);
               favBtn.classList.add('active');
+              favBtn.setAttribute('aria-pressed', 'true');
             }
             setFavorites(favs);
             if (document.getElementById('fav-only')?.checked) {
