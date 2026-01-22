@@ -47,6 +47,20 @@
       border:1px solid #e2e8f0;
       background:#fff;
     }
+    .availability-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap:10px;
+      margin:10px 0 16px;
+    }
+    .availability-day{
+      padding:10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+    }
+    .availability-day strong{display:block; margin-bottom:4px;}
+    .availability-day .count{font-size:12px; color:#475569;}
     .book-actions{
       display:flex;
       gap:8px;
@@ -228,6 +242,30 @@
         </div>
 
         <div class="panel">
+          <h2>Verfügbarkeit (nächste 14 Tage)</h2>
+          {% if availability_days %}
+            <div class="availability-grid">
+              {% for d in availability_days %}
+                <div class="availability-day">
+                  <strong>{{ d.label }}</strong>
+                  {% if d.count > 0 %}
+                    <div class="count">{{ d.count }} Termine</div>
+                    <div class="muted" style="margin-top:4px; font-size:12px;">
+                      {% for s in d.slots[:2] %}
+                        <div>{{ s.start_time }}–{{ s.end_time }} · {{ s.title }}</div>
+                      {% endfor %}
+                      {% if d.count > 2 %}
+                        <div>+{{ d.count - 2 }} weitere</div>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <div class="count">Keine Termine</div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
           <h2>Verfügbare Termine</h2>
           {% if slots and slots|length > 0 %}
             <div class="table-wrap slot-table">
@@ -284,6 +322,20 @@
           <label>E-Mail
             <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
           </label>
+          <label>Telefon (optional für WhatsApp)
+            <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+          </label>
+          <label style="display:flex; gap:8px; align-items:center;">
+            <input id="book-reminder" type="checkbox" checked>
+            Erinnerung 24h vorher
+          </label>
+          <label style="display:flex; gap:8px; align-items:center;">
+            <span style="font-size:13px; color:#475569;">Erinnerung per:</span>
+            <select id="book-reminder-channel" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
+              <option value="email">E‑Mail</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </label>
           <div class="book-actions">
             <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
             <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
@@ -307,6 +359,21 @@
               <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail</label>
               <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
             </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
+            <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <input id="book-reminder-mobile" type="checkbox" checked />
+            <label for="book-reminder-mobile" style="font-weight:700; font-size:14px; color:#111;">Erinnerung 24h vorher</label>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Erinnerung per</label>
+            <select id="book-reminder-channel-mobile" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+              <option value="email">E‑Mail</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </div>
             <div style="display:flex; flex-direction:column; gap:10px;">
               <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Buchung anfragen</button>
               <button type="button" id="book-cancel-mobile" style="width:100%; padding:12px; font-size:15px; border:1px solid #ddd; border-radius:12px; background:#f5f5f5; color:#333; font-weight:700; cursor:pointer;">Abbrechen</button>
@@ -385,6 +452,12 @@
         document.getElementById('book-slot-id-mobile').value = slotId;
         document.getElementById('book-name-mobile').value = '';
         document.getElementById('book-email-mobile').value = '';
+        const phoneInput = document.getElementById('book-phone-mobile');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder-mobile');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel-mobile');
+        if (channel) channel.value = 'email';
         bookModalMobile.style.display = 'block';
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
@@ -401,6 +474,12 @@
         document.getElementById('book-slot-id').value = slotId;
         document.getElementById('book-name').value = '';
         document.getElementById('book-email').value = '';
+        const phoneInput = document.getElementById('book-phone');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel');
+        if (channel) channel.value = 'email';
         try {
           bookDialog.showModal();
           setTimeout(() => {
@@ -456,6 +535,9 @@
           const slot_id = document.getElementById('book-slot-id-mobile').value;
           const name = document.getElementById('book-name-mobile').value.trim();
           const email = document.getElementById('book-email-mobile').value.trim();
+          const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
           if (!slot_id || !name || !email) return;
 
           const btn = bookFormMobile.querySelector('button[type="submit"]');
@@ -468,7 +550,14 @@
             const r = await fetch(`${API}/public/book`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ slot_id, name, email })
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
@@ -513,6 +602,9 @@
           const slot_id = document.getElementById('book-slot-id').value;
           const name = document.getElementById('book-name').value.trim();
           const email = document.getElementById('book-email').value.trim();
+          const phone = document.getElementById('book-phone')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
           if (!slot_id || !name || !email) return;
 
           const btn = document.getElementById('book-submit');
@@ -525,7 +617,14 @@
             const r = await fetch(`${API}/public/book`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ slot_id, name, email })
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){

@@ -148,13 +148,73 @@
       margin-top:4px;
     }
     .provider-link{
-      color:#0f172a;
-      font-weight:600;
-      text-decoration:underline;
-      text-underline-offset:2px;
+      color:#ffffff;
+      font-weight:800;
+      font-size:1rem;
+      text-decoration:none;
+      padding:2px 8px;
+      border-radius:999px;
+      background:linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.9));
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
     }
     .provider-link:hover{
-      color:#1d4ed8;
+      color:#ffffff;
+      transform:translateY(-1px);
+    }
+    .quick-filters{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+      align-items:center;
+    }
+    .quick-filters .pill-btn{
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      padding:6px 12px;
+      border-radius:999px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .quick-filters .pill-btn:hover{ transform:translateY(-1px); }
+    .quick-filters .inline-input{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+    }
+    .quick-filters input[type="number"]{
+      width:90px;
+      border:none;
+      outline:none;
+      background:transparent;
+      color:#fff;
+    }
+    .results-toolbar .view-toggle{
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .results-toolbar .view-toggle .btn{
+      padding:8px 12px;
+      border-radius:999px;
+    }
+    .fav-btn{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
+      border-radius:999px;
+      padding:6px 10px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .fav-btn.active{
+      background:linear-gradient(135deg, #f472b6, #f97316);
+      border-color:transparent;
     }
     .provider-logo,
     .provider-logo-fallback{
@@ -632,6 +692,18 @@
             </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
           </div>
+          <div class="quick-filters">
+            <button type="button" class="pill-btn" data-quick="today">Heute</button>
+            <button type="button" class="pill-btn" data-quick="morning">Vormittag</button>
+            <button type="button" class="pill-btn" data-quick="clear">Zurücksetzen</button>
+            <label class="inline-input">
+              💶 <input type="number" id="f-price" name="price_max" min="0" step="1" placeholder="Max €">
+            </label>
+            <label class="inline-input">
+              <input type="checkbox" id="f-city-only" name="city_only" value="1">
+              Nur in meiner Stadt
+            </label>
+          </div>
           <div class="trust">Es werden nur <strong>freie</strong> Slots angezeigt.</div>
         </form>
       </div>
@@ -642,6 +714,15 @@
       <div class="container">
         <div class="results-toolbar">
           <div class="pill" id="summary">Suche wird geladen …</div>
+          <div class="view-toggle">
+            <button type="button" class="btn" id="view-both">Liste + Karte</button>
+            <button type="button" class="btn" id="view-list">Nur Liste</button>
+            <button type="button" class="btn" id="view-map">Nur Karte</button>
+            <label class="inline-input" style="margin-left:6px;">
+              <input type="checkbox" id="fav-only" />
+              Nur Favoriten
+            </label>
+          </div>
           <div class="input" style="max-width:320px">
             <select id="sort">
               <option value="soonest">Sortieren: demnächst</option>
@@ -729,6 +810,20 @@
         <label>E-Mail
           <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
+        <label>Telefon (optional für WhatsApp)
+          <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <label style="display:flex; gap:8px; align-items:center;">
+          <input id="book-reminder" type="checkbox" checked>
+          Erinnerung 24h vorher
+        </label>
+        <label style="display:flex; gap:8px; align-items:center;">
+          <span style="font-size:13px; color:#475569;">Erinnerung per:</span>
+          <select id="book-reminder-channel" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
+            <option value="email">E‑Mail</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </label>
         <div class="book-actions">
           <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
           <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
@@ -752,6 +847,21 @@
           <div style="margin-bottom:20px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail</label>
             <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
+            <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <input id="book-reminder-mobile" type="checkbox" checked />
+            <label for="book-reminder-mobile" style="font-weight:700; font-size:14px; color:#111;">Erinnerung 24h vorher</label>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Erinnerung per</label>
+            <select id="book-reminder-channel-mobile" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+              <option value="email">E‑Mail</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
           </div>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Buchung anfragen</button>
@@ -780,6 +890,23 @@
     // Utilities
     const $ = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
+    const FAVORITES_KEY = 'tm_favorites_v1';
+
+    function getFavorites(){
+      try{
+        const raw = localStorage.getItem(FAVORITES_KEY);
+        const data = raw ? JSON.parse(raw) : [];
+        return Array.isArray(data) ? data : [];
+      }catch(e){
+        return [];
+      }
+    }
+    function setFavorites(list){
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
+    }
+    function isFavorite(id){
+      return getFavorites().includes(id);
+    }
     const fmtDate = (iso) => {
       const d = new Date(iso);
       return d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' });
@@ -905,12 +1032,18 @@
     const dayLegacy = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
+    const priceMax = (sp.get('price_max')||'').trim();
+    const cityOnly = (sp.get('city_only')||'') === '1';
 
     // Felder füllen (damit Auswahl stehen bleibt)
     $('#f-q').value      = q;
     $('#f-ort').value    = ort;
     $('#f-zeit').value   = zeit;
     $('#f-radius').value = radius;
+    const priceInput = document.getElementById('f-price');
+    if (priceInput) priceInput.value = priceMax;
+    const cityOnlyInput = document.getElementById('f-city-only');
+    if (cityOnlyInput) cityOnlyInput.checked = cityOnly;
     const dayFromInput = document.getElementById('search-day-from');
     const dayToInput = document.getElementById('search-day-to');
     if (dayFromInput) dayFromInput.value = dayFromUrl || dayLegacy;
@@ -946,6 +1079,84 @@
       return true;
     });
 
+    function buildParamsFromForm(){
+      const params = new URLSearchParams();
+      const qVal = $('#f-q')?.value?.trim() || '';
+      const ortVal = $('#f-ort')?.value?.trim() || '';
+      const radiusVal = $('#f-radius')?.value?.trim() || '';
+      const zeitVal = $('#f-zeit')?.value?.trim() || '';
+      const fromVal = $('#search-day-from')?.value?.trim() || '';
+      const toVal = $('#search-day-to')?.value?.trim() || '';
+      const priceVal = $('#f-price')?.value?.trim() || '';
+      const cityOnlyVal = document.getElementById('f-city-only')?.checked;
+      if (qVal) params.set('q', qVal);
+      if (ortVal) params.set('ort', ortVal);
+      if (radiusVal) params.set('radius', radiusVal);
+      if (zeitVal) params.set('zeit', zeitVal);
+      if (fromVal) params.set('day_from', fromVal);
+      if (toVal) params.set('day_to', toVal);
+      if (priceVal) params.set('price_max', priceVal);
+      if (cityOnlyVal) params.set('city_only', '1');
+      return params;
+    }
+
+    function applyQuickFilter(type){
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      if (type === 'today') {
+        $('#search-day-from').value = `${yyyy}-${mm}-${dd}`;
+        $('#search-day-to').value = `${yyyy}-${mm}-${dd}`;
+      }
+      if (type === 'morning') {
+        $('#f-zeit').value = 'morgens';
+      }
+      if (type === 'clear') {
+        $('#f-q').value = '';
+        $('#f-ort').value = '';
+        $('#f-radius').value = '';
+        $('#f-zeit').value = '';
+        $('#search-day-from').value = '';
+        $('#search-day-to').value = '';
+        const priceInput = document.getElementById('f-price');
+        if (priceInput) priceInput.value = '';
+        const cityOnlyInput = document.getElementById('f-city-only');
+        if (cityOnlyInput) cityOnlyInput.checked = false;
+      }
+      const params = buildParamsFromForm();
+      const newUrl = `${location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      history.replaceState(null, '', newUrl);
+      load();
+    }
+
+    document.querySelectorAll('[data-quick]').forEach(btn => {
+      btn.addEventListener('click', () => applyQuickFilter(btn.dataset.quick));
+    });
+
+    function applyViewMode(mode){
+      const results = document.getElementById('results');
+      const mapSection = document.getElementById('map-section');
+      if (!results || !mapSection) return;
+      const mapAvailable = mapSection.dataset.available === '1';
+      if (mode === 'list') {
+        results.style.display = '';
+        mapSection.style.display = 'none';
+      } else if (mode === 'map' && mapAvailable) {
+        results.style.display = 'none';
+        mapSection.style.display = '';
+      } else {
+        results.style.display = '';
+      }
+      localStorage.setItem('tm_view_mode', mode);
+    }
+
+    document.getElementById('view-both')?.addEventListener('click', () => applyViewMode('both'));
+    document.getElementById('view-list')?.addEventListener('click', () => applyViewMode('list'));
+    document.getElementById('view-map')?.addEventListener('click', () => applyViewMode('map'));
+
+    document.getElementById('fav-only')?.addEventListener('change', () => load());
+
     // Fetch + Render
     async function load() {
       const summary = $('#summary');
@@ -966,6 +1177,8 @@
       const dayLegacy2 = (s2.get('day')||'').trim();
       const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
       const rad2  = (s2.get('radius')||'').trim();
+      const priceMax2 = (s2.get('price_max')||'').trim();
+      const cityOnly2 = (s2.get('city_only')||'') === '1';
 
       const hasSearch = !!(q2 || ort2 || dayFrom2 || dayTo2 || dayLegacy2 || zeit2 || rad2);
 
@@ -1021,7 +1234,26 @@
         const okKW   = (isExactCategory || !kw)
           ? true
           : ((x.title||'').toLowerCase().includes(kw) || (x.category||'').toLowerCase().includes(kw));
-        return okZeit && okKW;
+        let okPrice = true;
+        if (priceMax2 && /^\d+(\.\d+)?$/.test(priceMax2)) {
+          const cents = Number(x.price_cents || 0);
+          const maxCents = Math.round(parseFloat(priceMax2) * 100);
+          okPrice = cents <= maxCents || cents === 0;
+        }
+        let okCity = true;
+        if (cityOnly2 && ort2) {
+          const ortLower = ort2.toLowerCase();
+          const slotCity = (x.city || '').toLowerCase();
+          const slotZip = (x.zip || '').toLowerCase();
+          const providerCity = (x.provider_city || '').toLowerCase();
+          const providerZip = (x.provider_zip || '').toLowerCase();
+          if (ortLower.match(/^\d{5}$/)) {
+            okCity = ortLower === slotZip || ortLower === providerZip;
+          } else {
+            okCity = ortLower === slotCity || ortLower === providerCity;
+          }
+        }
+        return okZeit && okKW && okPrice && okCity;
       });
 
       // Sortierung
@@ -1030,6 +1262,12 @@
         const db = new Date(b.start_at).getTime();
         return (sortSel.value === 'latest') ? (db - da) : (da - db);
       });
+
+      const favOnly = document.getElementById('fav-only')?.checked;
+      if (favOnly) {
+        const favs = getFavorites();
+        items = items.filter(x => favs.includes(x.id));
+      }
 
       // Render
       if (items.length === 0) {
@@ -1138,6 +1376,7 @@
                 </p>` : ''}
             </div>
             <div>
+              <button class="fav-btn ${isFavorite(x.id) ? 'active' : ''}" data-fav="${x.id}" type="button" title="Zu Favoriten">♥</button>
               <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
             </div>
           </div>
@@ -1156,6 +1395,10 @@
         if (mapSection) mapSection.style.display = 'none';
         clearMarkers();
       }
+      if (mapSection) mapSection.dataset.available = (hasSearch && mapItems.length > 0) ? '1' : '0';
+
+      const mode = localStorage.getItem('tm_view_mode') || 'both';
+      applyViewMode(mode);
 
       // Resort on change
       sortSel.onchange = () => load();
@@ -1182,6 +1425,12 @@
         document.getElementById('book-slot-id-mobile').value = slotId;
         document.getElementById('book-name-mobile').value = '';
         document.getElementById('book-email-mobile').value = '';
+        const phoneInput = document.getElementById('book-phone-mobile');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder-mobile');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel-mobile');
+        if (channel) channel.value = 'email';
         bookModalMobile.style.display = 'block';
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
@@ -1199,6 +1448,12 @@
         document.getElementById('book-slot-id').value = slotId;
         document.getElementById('book-name').value = '';
         document.getElementById('book-email').value = '';
+        const phoneInput = document.getElementById('book-phone');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel');
+        if (channel) channel.value = 'email';
         try {
           bookDialog.showModal();
           setTimeout(() => {
@@ -1259,6 +1514,9 @@
           const slot_id = document.getElementById('book-slot-id-mobile').value;
           const name = document.getElementById('book-name-mobile').value.trim();
           const email = document.getElementById('book-email-mobile').value.trim();
+          const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
           if (!slot_id || !name || !email) return;
 
           const btn = bookFormMobile.querySelector('button[type="submit"]');
@@ -1271,7 +1529,14 @@
             const r = await fetch(`${API}/public/book`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ slot_id, name, email })
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
@@ -1322,6 +1587,9 @@
           const slot_id = document.getElementById('book-slot-id').value;
           const name = document.getElementById('book-name').value.trim();
           const email = document.getElementById('book-email').value.trim();
+          const phone = document.getElementById('book-phone')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
           if (!slot_id || !name || !email) return;
 
           const btn = document.getElementById('book-submit');
@@ -1334,7 +1602,14 @@
             const r = await fetch(`${API}/public/book`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ slot_id, name, email })
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
@@ -1359,6 +1634,28 @@
     const resultsContainer = document.getElementById('results');
     if (resultsContainer) {
       resultsContainer.addEventListener('click', function(e) {
+        const favBtn = e.target.closest('[data-fav]');
+        if (favBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const slotId = favBtn.getAttribute('data-fav');
+          if (slotId) {
+            const favs = getFavorites();
+            const idx = favs.indexOf(slotId);
+            if (idx >= 0) {
+              favs.splice(idx, 1);
+              favBtn.classList.remove('active');
+            } else {
+              favs.push(slotId);
+              favBtn.classList.add('active');
+            }
+            setFavorites(favs);
+            if (document.getElementById('fav-only')?.checked) {
+              load();
+            }
+          }
+          return false;
+        }
         const btn = e.target.closest('[data-book]');
         if (btn) {
           e.preventDefault();

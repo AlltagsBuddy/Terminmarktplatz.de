@@ -2,6 +2,7 @@ import os
 from uuid import uuid4
 import traceback
 from datetime import datetime, timedelta, timezone, date
+import threading
 from decimal import Decimal  # für Geldbeträge
 from typing import Optional
 
@@ -79,6 +80,10 @@ GALLERY_MAX_BYTES = 500 * 1024
 GALLERY_MAX_COUNT = 12
 GALLERY_MAX_DIM_PX = 1600
 GALLERY_JPEG_QUALITY = 82
+REMINDER_LEAD_HOURS = 24
+REMINDER_RUN_INTERVAL_SEC = 300
+_REMINDER_LAST_RUN = 0.0
+_REMINDER_LOCK = threading.Lock()
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -737,6 +742,39 @@ def _ensure_provider_public_profile_fields():
         print(f"⚠️  Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
 
 _ensure_provider_public_profile_fields()
+
+# Booking: Reminder Felder + Telefon
+def _ensure_booking_reminder_fields():
+    """
+    Fügt optionale Reminder-Felder zur booking Tabelle hinzu, falls sie noch nicht existieren.
+    """
+    fields = [
+        ("customer_phone", "text"),
+        ("reminder_opt_in", "boolean"),
+        ("reminder_channel", "text"),
+        ("reminder_sent_at", "timestamp without time zone"),
+    ]
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                for col, typ in fields:
+                    conn.exec_driver_sql(f"ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS {col} {typ};")
+            else:
+                cols = _sqlite_columns(conn, "booking")
+                type_map = {
+                    "text": "TEXT",
+                    "boolean": "INTEGER",
+                    "timestamp without time zone": "DATETIME",
+                }
+                for col, typ in fields:
+                    if col not in cols:
+                        conn.exec_driver_sql(
+                            f"ALTER TABLE booking ADD COLUMN {col} {type_map.get(typ, 'TEXT')}"
+                        )
+    except Exception as e:
+        print(f"⚠️  Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}", flush=True)
+
+_ensure_booking_reminder_fields()
 
 
 # --------------------------------------------------------
@@ -2665,6 +2703,7 @@ if _html_enabled():
             }
 
             slots = []
+            availability_map: dict[date, list[dict]] = {}
             for slot in rows:
                 start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
                 end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
@@ -2682,6 +2721,27 @@ if _html_enabled():
                         "address": slot.public_address(),
                         "price_eur": price_eur,
                         "description": slot.description,
+                    }
+                )
+                availability_map.setdefault(start_local.date(), []).append(
+                    {
+                        "title": slot.title,
+                        "start_time": start_local.strftime("%H:%M"),
+                        "end_time": end_local.strftime("%H:%M"),
+                    }
+                )
+
+            availability_days = []
+            today_local = _now().astimezone(BERLIN).date()
+            for i in range(14):
+                day = today_local + timedelta(days=i)
+                day_slots = availability_map.get(day, [])
+                availability_days.append(
+                    {
+                        "date": day,
+                        "label": day.strftime("%a, %d.%m"),
+                        "slots": day_slots,
+                        "count": len(day_slots),
                     }
                 )
 
@@ -2714,6 +2774,7 @@ if _html_enabled():
                 "anbieter_profil.html",
                 provider=provider,
                 slots=slots,
+                availability_days=availability_days,
                 reviews=reviews,
                 review_avg=review_avg,
                 review_count=review_count,
@@ -4391,6 +4452,85 @@ def notify_alerts_for_slot(slot_id: str) -> None:
             if attempt == 2:
                 app.logger.exception("notify_alerts_for_slot final failure")
                 return
+
+
+def _maybe_send_due_booking_reminders() -> None:
+    global _REMINDER_LAST_RUN
+    now_ts = time.time()
+    if now_ts - _REMINDER_LAST_RUN < REMINDER_RUN_INTERVAL_SEC:
+        return
+    if not _REMINDER_LOCK.acquire(blocking=False):
+        return
+    try:
+        _REMINDER_LAST_RUN = now_ts
+        now = _now()
+        window_end = now + timedelta(hours=REMINDER_LEAD_HOURS)
+        with Session(engine) as s:
+            rows = (
+                s.execute(
+                    select(Booking, Slot, Provider)
+                    .join(Slot, Slot.id == Booking.slot_id)
+                    .join(Provider, Provider.id == Booking.provider_id)
+                    .where(
+                        Booking.status == "confirmed",
+                        Booking.reminder_opt_in == True,
+                        Booking.reminder_sent_at.is_(None),
+                        Slot.start_at > _to_db_utc_naive(now),
+                        Slot.start_at <= _to_db_utc_naive(window_end),
+                    )
+                )
+                .all()
+            )
+            if not rows:
+                return
+            for b, slot, provider in rows:
+                try:
+                    slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+                    slot_end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
+                    start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+                    end_str = slot_end_local.strftime("%H:%M")
+                    slot_address = slot.public_address() if hasattr(slot, "public_address") else (slot.location or "")
+                    if not slot_address and provider:
+                        provider_address = f"{provider.zip or ''} {provider.city or ''}".strip()
+                        if provider.street:
+                            provider_address = f"{provider.street}, {provider_address}".strip()
+                        slot_address = provider_address
+
+                    channel = (getattr(b, "reminder_channel", None) or "email").lower()
+                    phone = (getattr(b, "customer_phone", None) or "").strip()
+                    if channel == "whatsapp" and phone:
+                        msg = (
+                            f"Erinnerung: Dein Termin steht an.\n"
+                            f"{slot.title} am {start_str}–{end_str}\n"
+                            f"{slot_address}".strip()
+                        )
+                        send_sms(phone, msg)
+                    else:
+                        email_body = f"Hallo {b.customer_name},\n\n"
+                        email_body += "Erinnerung: Dein Termin ist in ca. 24 Stunden.\n\n"
+                        email_body += f"Termin: {slot.title}\n"
+                        email_body += f"Kategorie: {slot.category}\n"
+                        email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+                        if slot_address:
+                            email_body += f"Ort: {slot_address}\n"
+                        if provider:
+                            email_body += f"Anbieter: {provider.company_name or provider.public_name}\n"
+                        email_body += "\nBis bald!\n"
+
+                        send_mail(
+                            b.customer_email,
+                            "Termin-Erinnerung (24h vorher)",
+                            text=email_body,
+                            tag="booking_reminder",
+                            metadata={"booking_id": str(b.id), "slot_id": str(slot.id)},
+                        )
+                    b.reminder_sent_at = _now()
+                    s.commit()
+                except Exception:
+                    app.logger.exception("booking reminder send failed")
+                    s.rollback()
+    finally:
+        _REMINDER_LOCK.release()
 
 
 @app.get("/api/alerts/stats")
@@ -7034,6 +7174,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 @app.get("/public/slots")
 def public_slots():
+    _maybe_send_due_booking_reminders()
     q_text = (request.args.get("q") or "").strip()
     location_raw = (request.args.get("location") or "").strip()
     if not location_raw:
@@ -7333,9 +7474,17 @@ def public_book():
     slot_id = (data.get("slot_id") or "").strip()
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    phone = (data.get("phone") or "").strip()
+    reminder_opt_in = data.get("reminder_opt_in", True)
+    reminder_channel = (data.get("reminder_channel") or "email").strip().lower()
 
     if not slot_id or not name or not email:
         return _json_error("missing_fields")
+
+    if reminder_channel not in ("email", "whatsapp"):
+        reminder_channel = "email"
+    if reminder_channel == "whatsapp" and not phone:
+        return _json_error("missing_phone_for_whatsapp", 400)
 
     try:
         email = validate_email(email).normalized
@@ -7399,8 +7548,11 @@ def public_book():
             provider_id=slot.provider_id,
             customer_name=name,
             customer_email=email,
+            customer_phone=phone or None,
             status="hold",
             provider_fee_eur=fee,
+            reminder_opt_in=bool(reminder_opt_in),
+            reminder_channel=reminder_channel,
         )
         s.add(b)
         s.commit()
@@ -7451,12 +7603,14 @@ def public_book():
 
 @app.get("/public/confirm")
 def public_confirm():
+    _maybe_send_due_booking_reminders()
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
         return _json_error("invalid_token", 400)
 
     try:
+        similar_slots: list[dict] = []
         with Session(engine) as s:
             b = s.get(Booking, booking_id, with_for_update=True)
             if not b:
@@ -7533,6 +7687,12 @@ def public_confirm():
                     "\nNach dem Termin freuen wir uns über eine kurze Bewertung:\n"
                     f"{review_link}\n"
                 )
+                if getattr(b, "reminder_opt_in", True):
+                    channel = (getattr(b, "reminder_channel", None) or "email").lower()
+                    confirm_email_body += (
+                        f"\nErinnerung: Wir schicken dir 24h vorher eine Erinnerung per "
+                        f"{'WhatsApp' if channel == 'whatsapp' else 'E-Mail'}.\n"
+                    )
 
                 send_mail(
                     b.customer_email,
@@ -7623,6 +7783,41 @@ def public_confirm():
                     "city": provider_obj.city,
                     "street": provider_obj.street,
                 }
+
+            similar_slots = []
+            if slot_obj is not None and slot_obj.category:
+                sim_rows = (
+                    s.execute(
+                        select(Slot, Provider)
+                        .join(Provider, Provider.id == Slot.provider_id)
+                        .where(
+                            Slot.id != slot_obj.id,
+                            Slot.status == SLOT_STATUS_PUBLISHED,
+                            Slot.archived == False,
+                            Slot.category == slot_obj.category,
+                            Slot.start_at >= _to_db_utc_naive(_now()),
+                        )
+                        .order_by(Slot.start_at.asc())
+                        .limit(4)
+                    )
+                    .all()
+                )
+                for sim_slot, sim_provider in sim_rows:
+                    start_local = _as_utc_aware(sim_slot.start_at).astimezone(BERLIN)
+                    end_local = _as_utc_aware(sim_slot.end_at).astimezone(BERLIN)
+                    similar_slots.append(
+                        {
+                            "id": str(sim_slot.id),
+                            "title": sim_slot.title,
+                            "category": sim_slot.category,
+                            "start_date": start_local.strftime("%d.%m.%Y"),
+                            "start_time": start_local.strftime("%H:%M"),
+                            "end_time": end_local.strftime("%H:%M"),
+                            "provider_name": sim_provider.public_name,
+                            "provider_number": sim_provider.provider_number,
+                            "address": sim_slot.public_address() if hasattr(sim_slot, "public_address") else "",
+                        }
+                    )
 
         # Kalender-Links vorbereiten
         calendar_links = None
@@ -7717,6 +7912,7 @@ def public_confirm():
             base_url=BASE_URL,  # Backend-URL für Kalender-Download
             booking_token=token,  # Token für Kalender-Download
             calendar_links=calendar_links,  # Kalender-Links
+            similar_slots=similar_slots,
         )
     except Exception:
         app.logger.exception("public_confirm failed")

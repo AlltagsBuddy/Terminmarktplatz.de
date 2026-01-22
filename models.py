@@ -309,8 +309,12 @@ class Booking(Base):
     # ✅ app.py geht damit um, dass das fehlen kann
     customer_name: Mapped[str | None] = mapped_column(Text)
     customer_email: Mapped[str | None] = mapped_column(Text)
+    customer_phone: Mapped[str | None] = mapped_column(Text)
 
     status: Mapped[str] = mapped_column(Text, default="hold")
+    reminder_opt_in: Mapped[bool] = mapped_column(Boolean, default=True)
+    reminder_channel: Mapped[str | None] = mapped_column(Text)
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
