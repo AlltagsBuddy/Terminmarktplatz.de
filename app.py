@@ -2470,6 +2470,26 @@ if _html_enabled():
     def anbieter_portal_page_html():
         return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
+    @app.get("/anbieter-profil")
+    @auth_required()
+    def anbieter_profil_page():
+        return send_from_directory(APP_ROOT, "anbieter-profil.html")
+
+    @app.get("/anbieter-profil.html")
+    @auth_required()
+    def anbieter_profil_page_html():
+        return send_from_directory(APP_ROOT, "anbieter-profil.html")
+
+    @app.get("/anbieter-bewertungen")
+    @auth_required()
+    def anbieter_bewertungen_page():
+        return send_from_directory(APP_ROOT, "anbieter-bewertungen.html")
+
+    @app.get("/anbieter-bewertungen.html")
+    @auth_required()
+    def anbieter_bewertungen_page_html():
+        return send_from_directory(APP_ROOT, "anbieter-bewertungen.html")
+
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
     def suche_page():
