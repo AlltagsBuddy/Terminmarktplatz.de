@@ -2464,6 +2464,86 @@ if _html_enabled():
         except FileNotFoundError:
             return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
+    @app.get("/anbieter/<provider_number>")
+    def public_provider_profile(provider_number):
+        try:
+            if not str(provider_number).isdigit():
+                return _json_error("not_found", 404)
+            provider_number_int = int(provider_number)
+        except Exception:
+            return _json_error("not_found", 404)
+
+        try:
+            with Session(engine) as s:
+                p = (
+                    s.execute(
+                        select(Provider).where(Provider.provider_number == provider_number_int)
+                    )
+                    .scalars()
+                    .first()
+                )
+                if not p:
+                    return _json_error("not_found", 404)
+
+                now_db = _to_db_utc_naive(_now())
+                rows = (
+                    s.execute(
+                        select(Slot)
+                        .where(
+                            Slot.provider_id == p.id,
+                            Slot.status == SLOT_STATUS_PUBLISHED,
+                            Slot.archived == False,
+                            Slot.start_at >= now_db,
+                        )
+                        .order_by(Slot.start_at.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+
+            provider = {
+                "name": p.public_name,
+                "branch": p.branch,
+                "address": p.public_address,
+                "street": p.street,
+                "zip": p.zip,
+                "city": p.city,
+                "phone": p.phone,
+                "whatsapp": p.whatsapp,
+                "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
+            }
+
+            slots = []
+            for slot in rows:
+                start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+                end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
+                price_eur = None
+                if slot.price_cents:
+                    price_eur = f"{float(slot.price_cents) / 100:.2f}"
+                slots.append(
+                    {
+                        "id": str(slot.id),
+                        "title": slot.title,
+                        "category": slot.category,
+                        "start_date": start_local.strftime("%d.%m.%Y"),
+                        "start_time": start_local.strftime("%H:%M"),
+                        "end_time": end_local.strftime("%H:%M"),
+                        "address": slot.public_address(),
+                        "price_eur": price_eur,
+                        "description": slot.description,
+                    }
+                )
+
+            return render_template(
+                "anbieter_profil.html",
+                provider=provider,
+                slots=slots,
+                frontend_url=FRONTEND_URL,
+            )
+        except Exception:
+            app.logger.exception("public_provider_profile failed")
+            return _json_error("server_error", 500)
+
     @app.get("/impressum")
     def impressum():
         return send_from_directory(APP_ROOT, "impressum.html")

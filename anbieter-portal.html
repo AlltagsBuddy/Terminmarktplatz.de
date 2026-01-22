@@ -594,6 +594,15 @@
             <div style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; min-height: 24px;" id="provider-id-display">Lade...</div>
             <div style="font-size: 0.85rem; color: #475569; margin-top: 4px;">Diese Nummer ist eindeutig und wird auf Rechnungen angezeigt.</div>
           </div>
+          <div id="public-profile-block" style="margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; display:none;">
+            <div style="font-size: 0.9rem; color: #0f172a; font-weight: 600; margin-bottom: 6px;">Öffentliche Profilseite:</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <input id="public-profile-url" type="text" readonly style="flex:1; min-width:220px;"/>
+              <button type="button" class="btn" id="public-profile-copy">Link kopieren</button>
+              <a class="btn" id="public-profile-open" target="_blank" rel="noopener">Öffnen</a>
+            </div>
+            <div class="hint" style="font-size: 12px; margin-top:6px;">Zeigt Profil und veröffentlichte Termine an.</div>
+          </div>
           <form id="form-profile" class="grid" novalidate>
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
@@ -1243,6 +1252,22 @@
       }
     }
 
+    function setPublicProfileLink(){
+      const block = document.getElementById('public-profile-block');
+      const input = document.getElementById('public-profile-url');
+      const openBtn = document.getElementById('public-profile-open');
+      if (!block || !input || !openBtn) return;
+      const num = ME?.provider_number;
+      if (!num) {
+        block.style.display = 'none';
+        return;
+      }
+      const url = `${location.origin}/anbieter/${num}`;
+      input.value = url;
+      openBtn.href = url;
+      block.style.display = 'block';
+    }
+
     function getBookedCount(slot){
       if (Array.isArray(slot.bookings)) {
         return slot.bookings.filter(b => b.status === 'confirmed').length;
@@ -1536,6 +1561,7 @@
           }
         }
 
+        setPublicProfileLink();
         setCalendarLinks();
 
         // Prüfe Profilvollständigkeit: ME.profile_complete ist die autoritative Quelle
@@ -2523,6 +2549,22 @@
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
     $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
+    $('#public-profile-copy')?.addEventListener('click', async ()=>{
+      const input = document.getElementById('public-profile-url');
+      if (!input || !input.value) return;
+      try{
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(input.value);
+        } else {
+          input.focus();
+          input.select();
+          document.execCommand('copy');
+        }
+        showMsg('msg-profile', 'Link zur Profilseite kopiert.', true);
+      }catch(e){
+        showMsg('msg-profile', 'Kopieren fehlgeschlagen.');
+      }
+    });
 
     // Filter-Buttons für Aktive/Archivierte Termine
     const btnShowActive = $('#btn-show-active');
