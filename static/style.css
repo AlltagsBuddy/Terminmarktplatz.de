@@ -145,7 +145,8 @@ header{
 .nav{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
+  gap:16px;
   padding:14px 0;
 }
 .brand{
@@ -163,11 +164,17 @@ header{
   overflow:hidden;
 }
 .brand-title{font-weight:900; letter-spacing:.2px}
+.user-menu{
+  margin-left:12px;
+  position:relative;
+  z-index:60;
+}
 
 .nav-links{
   display:flex;
   align-items:center;
   gap:16px;
+  margin-left:auto;
 }
 .nav-links a{
   padding:10px 12px;

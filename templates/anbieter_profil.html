@@ -22,6 +22,17 @@
     .slot-table .badge{font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--border)}
     .badge-cat{background:#eef2ff; color:#4338ca}
     .price{font-weight:700}
+    .book-dialog{
+      border:none;
+      border-radius:18px;
+      padding:0;
+      max-width:480px;
+      width:calc(100% - 32px);
+      background:#fff;
+      color:#111;
+      box-shadow:0 10px 40px rgba(0,0,0,.25);
+    }
+    .book-dialog .panel{ margin:0; }
   </style>
 </head>
 <body>
@@ -76,6 +87,7 @@
                     <th>Kategorie</th>
                     <th>Ort</th>
                     <th>Preis</th>
+                    <th>Aktion</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -92,6 +104,9 @@
                     <td><span class="badge badge-cat">{{ s.category }}</span></td>
                     <td>{{ s.address }}</td>
                     <td class="price">{% if s.price_eur %}{{ s.price_eur }} €{% else %}-{% endif %}</td>
+                    <td>
+                      <button class="btn" type="button" data-book="{{ s.id }}" data-title="{{ s.title }}">Buchen</button>
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -103,6 +118,29 @@
         </div>
       </div>
     </section>
+
+    <dialog id="book-dialog" class="book-dialog">
+      <div class="panel" style="padding:16px;">
+        <h3 style="margin-top:0;">Termin buchen</h3>
+        <p class="muted" id="book-slot-title">Bitte Termin auswählen.</p>
+        <form id="book-form">
+          <input type="hidden" id="book-slot-id">
+          <div class="field">
+            <label for="book-name">Name <span class="req">*</span></label>
+            <input id="book-name" required placeholder="Vor- und Nachname">
+          </div>
+          <div class="field">
+            <label for="book-email">E-Mail <span class="req">*</span></label>
+            <input id="book-email" type="email" required placeholder="name@example.com">
+          </div>
+          <div class="toolbar" style="justify-content:flex-end;">
+            <button type="button" class="btn" id="book-cancel">Abbrechen</button>
+            <button type="submit" class="btn primary">Buchung anfragen</button>
+          </div>
+          <div id="book-msg" class="msg"></div>
+        </form>
+      </div>
+    </dialog>
 
     <section>
       <div class="container">
@@ -142,6 +180,88 @@
       </div>
     </section>
   </main>
+
+  <script>
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    const dialog = document.getElementById('book-dialog');
+    const form = document.getElementById('book-form');
+    const msg = document.getElementById('book-msg');
+    const titleEl = document.getElementById('book-slot-title');
+    const slotIdEl = document.getElementById('book-slot-id');
+    const cancelBtn = document.getElementById('book-cancel');
+
+    function showBookMsg(text, ok=false){
+      if (!msg) return;
+      msg.className = 'msg ' + (ok ? 'ok' : 'err');
+      msg.textContent = text;
+      msg.style.display = 'block';
+      setTimeout(()=>{ msg.style.display = 'none'; }, ok ? 3000 : 6000);
+    }
+
+    function openBookDialog(slotId, title){
+      if (!dialog || !form) return;
+      slotIdEl.value = slotId;
+      titleEl.textContent = title ? `Termin: ${title}` : 'Termin buchen';
+      form.reset();
+      if (dialog.showModal) dialog.showModal();
+      else dialog.setAttribute('open', '');
+    }
+
+    function closeBookDialog(){
+      if (!dialog) return;
+      if (dialog.close) dialog.close();
+      else dialog.removeAttribute('open');
+    }
+
+    document.querySelectorAll('[data-book]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openBookDialog(btn.dataset.book, btn.dataset.title || '');
+      });
+    });
+
+    cancelBtn?.addEventListener('click', closeBookDialog);
+
+    form?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const slot_id = slotIdEl.value;
+      const name = document.getElementById('book-name').value.trim();
+      const email = document.getElementById('book-email').value.trim();
+      if (!slot_id || !name || !email) {
+        showBookMsg('Bitte Name und E‑Mail angeben.');
+        return;
+      }
+      try{
+        const res = await fetch(`${API}/public/book`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ slot_id, name, email })
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok){
+          showBookMsg(data.error || 'Buchung konnte nicht erstellt werden.');
+          return;
+        }
+        showBookMsg('Buchung angefragt. Bitte E‑Mail bestätigen.', true);
+        setTimeout(closeBookDialog, 1200);
+      }catch(e){
+        showBookMsg('Netzwerkfehler.');
+      }
+    });
+  </script>
 
   <footer>
     <div class="container foot-grid">

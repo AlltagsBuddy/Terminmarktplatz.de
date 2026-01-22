@@ -53,7 +53,10 @@
 
     .page-portal .panel{ border-radius:var(--r-3xl); box-shadow:var(--shadow-2); }
     .grid{display:grid; gap:16px}
-    @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
+    @media(min-width: 920px){
+      .grid-2{grid-template-columns:1fr 1fr}
+      .slot-create-panel{ grid-column:1/-1; }
+    }
 
     .field{
       display:flex; flex-direction:column; gap:6px;
@@ -586,7 +589,7 @@
     <section>
       <div class="container grid grid-2">
         <!-- Slot anlegen / bearbeiten -->
-        <div class="panel">
+        <div class="panel slot-create-panel">
           <h2>Neuen Slot anlegen</h2>
 
           <div id="slot-guard" class="callout">
