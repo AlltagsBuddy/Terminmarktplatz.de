@@ -142,6 +142,35 @@ header{
   backdrop-filter:saturate(160%) blur(14px);
   border-bottom:1px solid var(--border);
 }
+/* Einheitliches Header-Layout wie index.html */
+header .nav{
+  display:flex !important;
+  align-items:center !important;
+  gap:16px !important;
+  justify-content:flex-start !important;
+  padding:14px 0 !important;
+}
+header .brand{
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+}
+header .user-menu{
+  display:block !important;
+  position:relative !important;
+  z-index:60 !important;
+  margin-left:12px !important;
+}
+header .nav-links{
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  margin-left:auto !important;
+}
+header .nav-links a{
+  font-size:1rem !important;
+  padding:10px 12px !important;
+}
 header .nav{
   justify-content:flex-start !important;
 }
