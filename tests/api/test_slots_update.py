@@ -9,8 +9,6 @@ from sqlalchemy.orm import Session
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
 os.close(_DB_FD)
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
-os.environ.setdefault("BASE_URL", "http://testserver")
-os.environ.setdefault("FRONTEND_URL", "http://testserver")
 
 import app as app_module
 from models import Base, Provider, Slot
