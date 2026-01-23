@@ -2495,8 +2495,20 @@ def sitemap():
 
 
 @app.get("/healthz")
+def healthz():
+    status = {"ok": True, "service": "api", "time": _now().isoformat()}
+    try:
+        with Session(engine) as s:
+            s.execute(select(func.now()))
+        status["db"] = "ok"
+    except Exception as e:
+        status["db"] = "error"
+        status["db_error"] = str(e)
+    return jsonify(status)
+
+
 @app.get("/api/health")
-def health():
+def api_health():
     try:
         with Session(engine) as s:
             s.execute(select(func.now()))
