@@ -83,17 +83,20 @@
         margin-left:auto;
       }
       header .nav-links{
-        display:flex !important;
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
         width:100%;
-        justify-content:center;
-        flex-wrap:wrap;
-        gap:8px;
+        gap:6px;
         text-align:center;
         margin-top:4px;
+        white-space:nowrap;
       }
       header .nav-links a{
-        font-size:0.9rem;
-        padding:2px 6px;
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem);
+        padding:2px 2px;
+        line-height:1.05;
+        white-space:nowrap;
       }
     }
 
