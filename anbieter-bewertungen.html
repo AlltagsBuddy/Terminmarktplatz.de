@@ -1,149 +1,102 @@
-<!-- FILE: technik.html -->
 <!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Technik & Sicherheit | Terminmarktplatz</title>
-  <meta name="description" content="Technik, Sicherheit und Datenschutz hinter Terminmarktplatz – Hosting, Verschlüsselung und DSGVO-Konzept im Überblick." />
+  <title>Anbieter-Bewertungen | Terminmarktplatz</title>
+  <meta name="description" content="Bewertungen sammeln und Vertrauen aufbauen." />
   <meta name="theme-color" content="#6f53ff" />
 
-  <!-- Open Graph / Twitter -->
+  <!-- OG -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Technik & Sicherheit" />
-  <meta property="og:description" content="So funktioniert Terminmarktplatz technisch – sicher, EU-Hosting, datensparsam." />
+  <meta property="og:title" content="Anbieter-Bewertungen | Terminmarktplatz" />
+  <meta property="og:description" content="Transparente Bewertungen fuer mehr Buchungen." />
   <meta property="og:site_name" content="Terminmarktplatz" />
   <meta property="og:image" content="/static/og-cover.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
   <base href="/" />
-
-  <!-- Favicon & Fonts -->
   <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
-
-  <!-- Main CSS -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
-
-  <!-- Mobile-Optimierung & Menü-Styles -->
   <style>
-    html, body {
-      max-width: 100%;
-      overflow-x: hidden;
-    }
-
-    /* auth-in zunächst ausblenden – JS zeigt sie bei Login */
-    .auth-in {
-      display: none;
-    }
-
-    /* Weißer Menü-Button wie auf agb/preise/suche/suchende */
+    /* Weißer Menü-Button */
     .user-menu .btn {
-      background:#ffffff;
-      color:#0f172a;
-      border:1px solid #cbd5e1;
-      text-shadow:none;
-      background-image:none;
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
     }
 
-    /* HEADER + MENÜ – Menü direkt hinter Brand, Nav rechts */
+    /* Header Layout */
     header .nav{
       display:flex;
       align-items:center;
       gap:16px;
     }
-
     header .brand{
       display:flex;
       align-items:center;
       gap:12px;
     }
-
-    /* Menü-Button direkt hinter „Terminmarktplatz“ */
     header .user-menu{
       display:block;
       position:relative;
       z-index:60;
-      margin-left:12px; /* Abstand hinter Brand */
+      margin-left:12px;
     }
-
-    /* Hauptnavigation rechtsbündig */
     header .nav-links{
       display:flex;
-      gap:12px;
       align-items:center;
+      gap:16px;
       margin-left:auto;
     }
 
     @media (max-width: 768px) {
-      /* Header / Navigation */
-      header .nav {
+      .container.nav {
         flex-wrap: wrap;
         gap: 8px;
-        padding-inline: 16px;
         align-items: flex-start;
+        padding-inline: 16px;
       }
-
       .brand-title {
         font-size: 1.05rem;
       }
-
-      /* Brand links, Menü rechts in der ersten Zeile */
       header .user-menu{
         margin-left:auto;
       }
-
-      /* Links zweite Zeile, zentriert */
       header .nav-links {
+        display:flex !important;
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
         gap: 8px;
         text-align: center;
         margin-top: 4px;
-        margin-left: 0;
       }
-
-      header .nav-links a {
+      .nav-links a {
         font-size: 0.9rem;
-        padding: 4px 8px;
+        padding: 2px 6px;
       }
-
-      /* Hero / Intro */
       .hero {
-        padding: 28px 0 16px !important;
+        padding: 28px 0 14px !important;
       }
-
       .hero h1 {
-        font-size: 1.6rem;
+        font-size: 1.7rem;
         line-height: 1.25;
       }
-
       .hero .lead {
-        font-size: 0.95rem;
+        font-size: 0.96rem;
       }
-
-      /* Content-Panels */
-      .panel {
-        padding: 14px;
-      }
-
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      /* Footer-Spalten untereinander */
       .foot-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: 16px;
       }
-
       .foot-col {
         margin-top: 4px;
       }
@@ -156,7 +109,6 @@
     <div class="container nav"
          role="navigation"
          aria-label="Hauptnavigation">
-      <!-- Logo / Brand -->
       <a class="brand" href="index.html" aria-label="Startseite">
         <div class="brand-logo" aria-hidden="true">
           <img src="/static/terminmarktplatz-logo.png"
@@ -166,107 +118,60 @@
         <div class="brand-title">Terminmarktplatz</div>
       </a>
 
-      <!-- User-Menü direkt hinter „Terminmarktplatz“ -->
       <div class="user-menu">
         <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-          ☰ Menü
+          &#9776; Men&uuml;
         </button>
         <div id="userMenu" class="menu" role="menu" hidden>
-          <!-- nur sichtbar, wenn NICHT eingeloggt -->
           <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
 
-          <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
           <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
-          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto l&ouml;schen</button>
 
-          <!-- immer sichtbar -->
           <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
           <a href="hilfe.html" class="item" role="menuitem">Hilfe</a>
         </div>
       </div>
 
-      <!-- Hauptnavigation rechts -->
       <nav class="nav-links">
-        <a href="anbieter.html">Für Anbieter</a>
-        <a href="suchende.html">Für Suchende</a>
+        <a href="anbieter.html">F&uuml;r Anbieter</a>
+        <a href="suchende.html">F&uuml;r Suchende</a>
         <a href="preise.html">Preise</a>
       </nav>
     </div>
   </header>
 
-
   <main>
-    <!-- HERO -->
-    <section class="hero" style="padding:40px 0 18px">
+    <section class="hero" style="padding:40px 0 16px">
       <div class="container">
-        <span class="badge">Technik & Sicherheit</span>
-        <h1>Wie Terminmarktplatz technisch funktioniert.</h1>
+        <span class="badge">Anbieter</span>
+        <h1>Bewertungen &amp; Vertrauen</h1>
         <p class="lead">
-          Kurzer Überblick zu Hosting, Verschlüsselung, Datenspeicherung und Schnittstellen – transparent und verständlich.
+          Gute Bewertungen bringen mehr Buchungen. Pflege deinen Auftritt, reagier auf
+          Feedback und sammle neue Stimmen nach jedem Termin.
         </p>
-      </div>
-    </section>
-
-    <!-- Technik-Überblick -->
-    <section>
-      <div class="container" style="max-width:900px">
-        <div class="panel">
-          <h2>Architektur in Kürze</h2>
-          <p class="muted">
-            Die Plattform besteht aus einem öffentlichen Frontend (diese Website) und einer API/Backend-Komponente.
-            Alle Verbindungen laufen verschlüsselt über HTTPS. Datenbanken werden in der EU gehostet.
-          </p>
-          <div class="grid-2" style="margin-top:12px">
-            <div>
-              <h3>Frontend</h3>
-              <ul class="muted">
-                <li>Statische Seiten + API-Aufrufe per HTTPS</li>
-                <li>Responsives Layout für Mobil & Desktop</li>
-                <li>Kein Tracking außerhalb der dokumentierten Tools</li>
-              </ul>
-            </div>
-            <div>
-              <h3>Backend</h3>
-              <ul class="muted">
-                <li>API für Slots, Buchungen und Accounts</li>
-                <li>Serverstandort innerhalb der EU</li>
-                <li>Regelmäßige Updates & Security-Fixes</li>
-              </ul>
-            </div>
-          </div>
+        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+          <a class="btn primary" href="login.html">Zum Portal</a>
+          <a class="btn" href="anbieter-portal.html">Profil &amp; Bewertungen</a>
+          <a class="btn" href="hilfe.html">Tipps in der Hilfe</a>
         </div>
       </div>
     </section>
 
-    <!-- Sicherheit / Datenschutz -->
     <section>
-      <div class="container" style="max-width:900px">
-        <div class="panel">
-          <h2>Sicherheit & Datenschutz</h2>
-          <div class="grid-2" style="margin-top:10px">
-            <div>
-              <h3>Technische Maßnahmen</h3>
-              <ul class="muted">
-                <li>HTTPS/TLS-Verschlüsselung</li>
-                <li>Passwörter als Hash (kein Klartext)</li>
-                <li>Minimalprinzip bei Zugriffsrechten</li>
-              </ul>
-            </div>
-            <div>
-              <h3>Datenschutz</h3>
-              <ul class="muted">
-                <li>Datensparsame Formulare</li>
-                <li>Keine Pflicht-Accounts für Suchende</li>
-                <li>Details siehe <a href="datenschutz.html">Datenschutzerklärung</a></li>
-              </ul>
-            </div>
-          </div>
-          <p class="muted" style="margin-top:10px">
-            Für Fragen zu Technik, Sicherheit oder Integrationen kannst du jederzeit das
-            <a href="kontakt.html">Kontaktformular</a> nutzen.
+      <div class="container">
+        <div class="panel" style="padding:22px">
+          <h2>So sammelst du Bewertungen</h2>
+          <ul class="muted">
+            <li>Halte Kontakt- und Leistungsdaten aktuell.</li>
+            <li>Bitte zufriedene Kund:innen um Feedback.</li>
+            <li>Reagiere freundlich und zeitnah auf Rueckfragen.</li>
+          </ul>
+          <p class="muted">
+            Ein klares Profil und verlässliche Zeiten erhöhen die Abschlussquote.
           </p>
         </div>
       </div>
@@ -283,12 +188,12 @@
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
-        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte L&ouml;sungen f&uuml;r deinen Alltag.</p>
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
-        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
-        <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="anbieter.html">F&uuml;r Anbieter</a>
+        <a class="foot-link" href="suchende.html">F&uuml;r Suchende</a>
         <a class="foot-link" href="hilfe.html">Hilfe &amp; FAQ</a>
       </div>
       <div class="foot-col">
@@ -296,7 +201,8 @@
         <a class="foot-link" href="impressum.html">Impressum</a>
         <a class="foot-link" href="datenschutz.html">Datenschutz</a>
         <a class="foot-link" href="agb.html">AGB</a>
-        <a class="foot-link" href="widerruf.html">Widerruf</a>        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
       </div>
       <div class="foot-col">
         <h4>Kontakt</h4>
@@ -304,16 +210,14 @@
         <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
       </div>
     </div>
-    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+    <div class="container copyright">&copy; <span id="y"></span> Terminmarktplatz &middot; Alle Rechte vorbehalten.</div>
   </footer>
 
   <script>
-    // Footer-Jahr
     const yEl = document.getElementById('y');
     if (yEl) yEl.textContent = new Date().getFullYear();
   </script>
 
-  <!-- User-Menü Logik (mobil + Auth-Status), analog zu den anderen Seiten -->
   <script>
     (function(){
       const API = (typeof window.API === 'string')
@@ -330,23 +234,21 @@
 
       const btn  = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');
-      if (!btn || !menu) return;
+      if(!btn || !menu) return;
 
       function openMenu(open){
         menu.hidden = !open;
         btn.setAttribute('aria-expanded', String(open));
       }
 
-      // Menü ein-/ausklappen
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
         openMenu(menu.hidden);
       });
 
       document.addEventListener('click', ()=> openMenu(false));
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') openMenu(false); });
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openMenu(false); });
 
-      // Login-Status -> auth-in / auth-out steuern
       async function updateAuthUI(){
         let loggedIn = false;
         let isAdmin = false;
@@ -372,33 +274,31 @@
         });
       }
 
-      // Aktionen im Menü
       menu.addEventListener('click', async (e)=>{
         const el = e.target.closest('.item');
-        if (!el) return;
+        if(!el) return;
         const action = el.dataset.action;
 
-        if (action === 'logout'){
+        if(action === 'logout'){
           try{
             await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
           }catch(_){}
           location.href = '/login.html';
         }
 
-        if (action === 'delete'){
-          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
-          if (!ok) return;
-
+        if(action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen l&ouml;schen? Dieser Schritt ist endg&uuml;ltig.');
+          if(!ok) return;
           try{
             const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
-            if (res.ok){
+            if(res.ok){
               location.href = '/login.html?deleted=1';
             }else{
-              const data = await res.json().catch(()=> ({}));
-              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+              const data = await res.json().catch(()=>({}));
+              alert(data?.error ? `L&ouml;schen fehlgeschlagen: ${data.error}` : 'L&ouml;schen fehlgeschlagen.');
             }
           }catch(err){
-            alert('Netzwerkfehler – bitte später erneut versuchen.');
+            alert('Netzwerkfehler - bitte sp&auml;ter erneut versuchen.');
           }
         }
       });
@@ -406,29 +306,5 @@
       updateAuthUI();
     })();
   </script>
-
-  <!-- Google Analytics - nur nach Consent laden -->
-  <script>
-    (function(){
-      const cookieKey = 'tm_cookie_consent_v8';
-      if (localStorage.getItem(cookieKey) === 'accepted') {
-        const script1 = document.createElement('script');
-        script1.async = true;
-        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
-        document.head.appendChild(script1);
-        
-        const script2 = document.createElement('script');
-        script2.innerHTML = `
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-YNZ8GW523R');
-        `;
-        document.head.appendChild(script2);
-      }
-    })();
-  </script>
 </body>
 </html>
-
-
