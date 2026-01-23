@@ -324,19 +324,18 @@
         margin-left:auto !important;
       }
       .nav-links{
-        display:flex !important;
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
         width:100% !important;
-        justify-content:space-between !important;
-        flex-wrap:nowrap !important;
-        gap:8px !important;
+        gap:6px !important;
         text-align:center !important;
         margin-top:4px !important;
         margin-left:0 !important;
         white-space:nowrap !important;
-        overflow:hidden !important;
       }
       .nav-links a{
-        font-size:0.78rem !important;
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
         padding:2px 2px !important;
         line-height:1.05 !important;
         white-space:nowrap !important;
