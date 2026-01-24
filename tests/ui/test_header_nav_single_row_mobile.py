@@ -1,0 +1,66 @@
+import time
+
+import pytest
+from playwright.sync_api import Page, expect
+
+
+PAGES = [
+    "/",
+    "/anbieter.html",
+    "/suchende.html",
+    "/preise.html",
+    "/suche.html",
+    "/kategorien.html",
+    "/kontakt.html",
+    "/hilfe.html",
+    "/technik.html",
+    "/login.html",
+    "/impressum.html",
+    "/datenschutz.html",
+    "/agb.html",
+    "/widerruf.html",
+    "/anbieter-profil.html",
+    "/anbieter-portal.html",
+    "/anbieter-bewertungen.html",
+    "/cookie-einstellungen.html",
+]
+
+
+def _goto_with_retry(page: Page, url: str, attempts: int = 3) -> None:
+    last_error: Exception | None = None
+    for _ in range(attempts):
+        try:
+            page.goto(url, wait_until="domcontentloaded")
+            return
+        except Exception as exc:
+            last_error = exc
+            time.sleep(1.5)
+    if last_error:
+        raise last_error
+
+
+def _get_link_rows(page: Page, selector: str) -> list[float]:
+    handles = page.locator(selector)
+    rows: list[float] = []
+    for idx in range(handles.count()):
+        box = handles.nth(idx).bounding_box()
+        if not box:
+            continue
+        rows.append(round(box["y"], 1))
+    return rows
+
+
+@pytest.mark.parametrize("path", PAGES)
+def test_mobile_header_nav_links_single_row(app_base_url: str, page: Page, path: str) -> None:
+    page.set_viewport_size({"width": 390, "height": 844})
+    _goto_with_retry(page, f"{app_base_url}{path}")
+
+    nav_links = page.locator("header .nav-links a")
+    if nav_links.count() != 3:
+        pytest.skip("Header-nav nicht vorhanden")
+    expect(nav_links.first).to_be_visible()
+    expect(nav_links).to_have_count(3)
+
+    rows = _get_link_rows(page, "header .nav-links a")
+    assert rows, "No header nav links measured"
+    assert max(rows) - min(rows) <= 1.5

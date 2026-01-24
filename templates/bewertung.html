@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bewertung abgeben | Terminmarktplatz</title>
+  <meta name="description" content="Bewertung für einen Termin auf Terminmarktplatz." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+  <link rel="icon" href="static/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+  <style>
+    .rating-row{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+    .rating-row label{display:flex; align-items:center; gap:6px}
+  </style>
+</head>
+<body>
+  {% include "_header.html" %}
+  <main>
+    <section class="hero" style="padding:36px 0 18px">
+      <div class="container">
+        <span class="badge">Bewertung</span>
+        <h1>Deine Bewertung</h1>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="panel" style="max-width:720px; margin:0 auto;">
+          {% if error %}
+            <div class="msg err" style="display:block;">{{ error }}</div>
+          {% endif %}
+          {% if success %}
+            <div class="msg ok" style="display:block;">{{ success }}</div>
+          {% endif %}
+
+          {% if not error and not success %}
+            <p class="muted" style="margin-bottom:10px;">
+              Anbieter: <strong>{{ provider_name }}</strong><br>
+              Termin: <strong>{{ slot_title }}</strong><br>
+              Datum: {{ slot_date }} · {{ slot_time }}
+            </p>
+            <form method="post" action="/bewertung">
+              <input type="hidden" name="token" value="{{ token }}">
+              <div class="field">
+                <label>Bewertung <span class="req">*</span></label>
+                <div class="rating-row">
+                  {% for i in range(1,6) %}
+                    <label>
+                      <input type="radio" name="rating" value="{{ i }}" required>
+                      {{ i }} ⭐
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="field">
+                <label for="comment">Kommentar (optional)</label>
+                <textarea id="comment" name="comment" rows="4" placeholder="Dein Feedback…"></textarea>
+              </div>
+              <div class="toolbar">
+                <button class="btn primary" type="submit">Bewertung absenden</button>
+              </div>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

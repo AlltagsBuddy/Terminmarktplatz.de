@@ -2,8 +2,7 @@
 <header>
   <div class="container nav"
        role="navigation"
-       aria-label="Hauptnavigation"
-       style="flex-wrap:wrap; gap:8px; align-items:flex-start;">
+       aria-label="Hauptnavigation">
     <a class="brand" href="index.html" aria-label="Startseite">
       <div class="brand-logo" aria-hidden="true">
         <img src="static/terminmarktplatz-logo.png"
@@ -13,6 +12,24 @@
       </div>
       <div class="brand-title">Terminmarktplatz</div>
     </a>
+
+    <!-- Rechts: User-Dropdown (wenn eingeloggt) -->
+    <div class="user-menu" id="user-menu">
+      <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
+        ☰ Menü
+      </button>
+      <div id="userMenu" class="menu" role="menu" hidden>
+        <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+        <button class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+        <a class="item auth-in" href="anbieter-profil.html" role="menuitem">Profil</a>
+        <a class="item auth-in" href="anbieter-portal.html" role="menuitem">Slots</a>
+        <a class="item auth-in" href="anbieter-bewertungen.html" role="menuitem">Bewertungen</a>
+        <a class="item auth-in admin-only" href="https://api.terminmarktplatz.de/admin-rechnungen.html" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+        <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+        <a class="item" href="kontakt.html" role="menuitem">Kontakt</a>
+        <a class="item" href="hilfe.html" role="menuitem">Hilfe</a>
+      </div>
+    </div>
 
     <nav class="nav-links" id="nav-links">
       <a href="anbieter.html">Für Anbieter</a>
@@ -25,22 +42,87 @@
       <a class="btn" href="login.html?tab=login">Anmelden</a>
       <a class="btn primary" href="login.html?tab=register">Registrieren</a>
     </div>
-
-    <!-- Rechts: User-Dropdown (wenn eingeloggt) -->
-    <div class="user-menu" id="user-menu" hidden>
-      <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">
-        Konto ▾
-      </button>
-      <div id="userMenu" class="menu" role="menu" hidden>
-        <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
-        <button class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-        <a class="item auth-in" href="anbieter-portal.html" role="menuitem">Profil</a>
-        <a class="item auth-in" href="anbieter-portal.html#step-3" role="menuitem">Slot anlegen</a>
-        <a class="item auth-in admin-only" href="https://api.terminmarktplatz.de/admin-rechnungen.html" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
-        <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
-        <a class="item" href="kontakt.html" role="menuitem">Kontakt</a>
-        <a class="item" href="hilfe.html" role="menuitem">Hilfe</a>
-      </div>
-    </div>
   </div>
 </header>
+
+<script>
+  (function(){
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    const btn = document.getElementById('userMenuBtn');
+    const menu = document.getElementById('userMenu');
+    if (!btn || !menu) return;
+
+    btn.textContent = '☰ Menü';
+
+    const authOutEls = menu.querySelectorAll('.auth-out');
+    const authInEls = menu.querySelectorAll('.auth-in');
+    const adminOnlyEls = menu.querySelectorAll('.admin-only');
+
+    function setAuthVisible(isLoggedIn, isAdmin){
+      authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+      authInEls.forEach(el => { el.style.display = isLoggedIn ? '' : 'none'; });
+      adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
+    }
+
+    async function checkAuth(){
+      try{
+        const res = await fetch(`${API}/me`, { credentials:'include' });
+        if (res.ok) {
+          const data = await res.json().catch(()=> null);
+          setAuthVisible(true, data?.is_admin === true);
+        } else {
+          setAuthVisible(false, false);
+        }
+      }catch(e){
+        setAuthVisible(false, false);
+      }
+    }
+
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const isHidden = menu.hasAttribute('hidden');
+      if (isHidden) { menu.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
+      else { menu.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
+    });
+    document.addEventListener('click', (e)=>{
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.setAttribute('hidden', '');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.querySelector('[data-action="logout"]')?.addEventListener('click', async ()=>{
+      try { await fetch(`${API}/auth/logout`, {method:'POST', credentials:'include'}); } catch(e) {}
+      window.location.href = 'login.html?tab=login';
+    });
+    document.querySelector('[data-action="delete"]')?.addEventListener('click', async ()=>{
+      const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+      if (!ok) return;
+      try{
+        const res = await fetch(`${API}/me`, { method:'DELETE', credentials:'include' });
+        if (res.ok) { window.location.href = 'login.html?deleted=1'; }
+        else {
+          const data = await res.json().catch(()=> ({}));
+          alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+        }
+      }catch(err){
+        alert('Netzwerkfehler – bitte später erneut versuchen.');
+      }
+    });
+
+    checkAuth();
+  })();
+</script>

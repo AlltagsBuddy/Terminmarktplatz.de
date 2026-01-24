@@ -18,6 +18,7 @@
   <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
 
@@ -142,6 +143,178 @@
         margin-top:4px;
       }
     }
+
+    /* Header wie index.html */
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
+    }
+    header .nav{
+      display:flex !important;
+      align-items:center !important;
+      gap:16px !important;
+    }
+    header .brand{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+    }
+    header .user-menu{
+      display:block !important;
+      position:relative !important;
+      z-index:60 !important;
+      margin-left:12px !important;
+    }
+    header .nav-links{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+      margin-left:auto !important;
+    }
+    header, header .nav-links a, header .brand-title, #userMenuBtn{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+    }
+    header .nav-links a{
+      font-weight:700 !important;
+    }
+    header .brand-title{
+      font-weight:900 !important;
+    }
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start !important;
+      }
+    }
+    @media (max-width: 768px){
+      .container.nav{
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        align-items:flex-start !important;
+        padding-inline:16px !important;
+      }
+      header .brand{
+        margin-bottom:4px !important;
+      }
+      .brand-title{
+        font-size:1.05rem !important;
+      }
+      header .user-menu{
+        margin-left:auto !important;
+      }
+      .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        margin-top:4px !important;
+        margin-left:0 !important;
+        white-space:nowrap !important;
+      }
+      .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
+  <style>
+    /* Header-Override wie index.html */
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
+    }
+    header .nav{
+      display:flex !important;
+      align-items:center !important;
+      gap:16px !important;
+    }
+    header .brand{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+    }
+    header .user-menu{
+      display:block !important;
+      position:relative !important;
+      z-index:60 !important;
+      margin-left:12px !important;
+    }
+    header .nav-links{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+      margin-left:auto !important;
+    }
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start !important;
+      }
+    }
+    @media (max-width: 768px){
+      .container.nav{
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        align-items:flex-start !important;
+        padding-inline:16px !important;
+      }
+      header .brand{
+        margin-bottom:4px !important;
+      }
+      .brand-title{
+        font-size:1.05rem !important;
+      }
+      header .user-menu{
+        margin-left:auto !important;
+      }
+      .nav-links{
+        display:flex !important;
+        width:100% !important;
+        justify-content:center !important;
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        text-align:center !important;
+        margin-top:4px !important;
+        margin-left:0 !important;
+      }
+      .nav-links a{
+        font-size:0.9rem !important;
+        padding:2px 6px !important;
+      }
+    }
+  </style>
+  <style>
+    @media (max-width:768px){
+      header .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        white-space:nowrap !important;
+      }
+      header .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -171,8 +344,9 @@
 
           <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
+          <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
           <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
@@ -409,6 +583,7 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="hilfe.html">Hilfe & FAQ</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>

@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mein Profil | Terminmarktplatz</title>
+  <meta name="description" content="Anbieter-Profil verwalten und Passwort ändern." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <link rel="icon" href="static/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+
+  <style>
+    html, body { width: 100%; margin: 0; padding: 0; }
+    .page-portal .container { max-width: 1120px; box-sizing: border-box; }
+    .page-portal form,
+    .page-portal .panel,
+    .page-portal .field { width: 100%; box-sizing: border-box; }
+    .page-portal .field input,
+    .page-portal .field select,
+    .page-portal .field textarea { width: 100%; box-sizing: border-box; }
+    .page-portal .btn,
+    .page-portal .btn.primary { color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; }
+    .page-portal .panel{ border-radius:var(--r-3xl); box-shadow:var(--shadow-2); }
+    .grid{display:grid; gap:16px}
+    @media(min-width: 920px){ .grid-2{grid-template-columns:1fr 1fr} }
+    .field{ display:flex; flex-direction:column; gap:6px; border:1px solid var(--border); border-radius:12px; padding:10px; }
+    .field input,.field select,.field textarea{ background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28); border-radius:12px; padding:10px; }
+    .req{ color:#ef4444; font-weight:700 }
+    .req-text{ color:#ef4444; font-weight:600; font-size:12px; margin-left:6px; }
+    .muted{color:var(--ink-dim)}
+    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .logo-upload{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .logo-preview{ width:64px; height:64px; border-radius:12px; border:1px solid #e2e8f0; object-fit:cover; margin-top:6px; background:#fff; }
+    .gallery-preview{ display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top:8px; }
+    .gallery-preview .gallery-item{ position:relative; }
+    .gallery-preview img{ width:100%; height:90px; object-fit:cover; border-radius:10px; border:1px solid #e2e8f0; background:#fff; }
+    .gallery-preview button{
+      position:absolute;
+      top:6px; right:6px;
+      background:#ffffff;
+      border:1px solid #cbd5e1;
+      border-radius:10px;
+      padding:4px 6px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .password-wrapper{ position:relative; display:flex; align-items:center; }
+    .password-wrapper input{ padding-right:40px; width:100%; }
+    .password-toggle{ position:absolute; right:12px; background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:18px; }
+    .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
+    .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
+    .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
+
+    /* Header wie index.html */
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
+    }
+    header .nav{
+      display:flex !important;
+      align-items:center !important;
+      gap:16px !important;
+    }
+    header .brand{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+    }
+    header .user-menu{
+      display:block !important;
+      position:relative !important;
+      z-index:60 !important;
+      margin-left:12px !important;
+    }
+    header .nav-links{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+      margin-left:auto !important;
+    }
+    header, header .nav-links a, header .brand-title, #userMenuBtn{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+    }
+    header .nav-links a{
+      font-weight:700 !important;
+    }
+    header .brand-title{
+      font-weight:900 !important;
+    }
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start !important;
+      }
+    }
+    @media (max-width: 768px){
+      .container.nav{
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        align-items:flex-start !important;
+        padding-inline:16px !important;
+      }
+      header .brand{
+        margin-bottom:4px !important;
+      }
+      .brand-title{
+        font-size:1.05rem !important;
+      }
+      header .user-menu{
+        margin-left:auto !important;
+      }
+      .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        margin-top:4px !important;
+        margin-left:0 !important;
+        white-space:nowrap !important;
+      }
+      .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
+  <style>
+    /* Header-Override wie index.html */
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
+    }
+    header .nav{
+      display:flex !important;
+      align-items:center !important;
+      gap:16px !important;
+    }
+    header .brand{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+    }
+    header .user-menu{
+      display:block !important;
+      position:relative !important;
+      z-index:60 !important;
+      margin-left:12px !important;
+    }
+    header .nav-links{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+      margin-left:auto !important;
+    }
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start !important;
+      }
+    }
+    @media (max-width: 768px){
+      .container.nav{
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        align-items:flex-start !important;
+        padding-inline:16px !important;
+      }
+      header .brand{
+        margin-bottom:4px !important;
+      }
+      .brand-title{
+        font-size:1.05rem !important;
+      }
+      header .user-menu{
+        margin-left:auto !important;
+      }
+      .nav-links{
+        display:flex !important;
+        width:100% !important;
+        justify-content:center !important;
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        text-align:center !important;
+        margin-top:4px !important;
+        margin-left:0 !important;
+      }
+      .nav-links a{
+        font-size:0.9rem !important;
+        padding:2px 6px !important;
+      }
+    }
+  </style>
+  <style>
+    @media (max-width:768px){
+      header .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        white-space:nowrap !important;
+      }
+      header .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="page-portal">
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">☰ Menü</button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
+          <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" id="admin-invoices-link" style="display:none;">Rechnungen (Admin)</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <a href="hilfe.html" class="item" role="menuitem">Hilfe</a>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding:36px 0 18px">
+      <div class="container">
+        <span class="badge">Anbieter-Portal</span>
+        <h1>Profil</h1>
+        <p class="lead">Pflege deine Profilangaben und ändere dein Passwort.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container grid grid-2">
+        <div class="panel">
+          <h2>Profil</h2>
+          <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
+          <div style="margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px;">
+            <div style="font-size: 0.9rem; color: #0f172a; font-weight: 600; margin-bottom: 6px;">Deine Anbieter-Nummer:</div>
+            <div style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; min-height: 24px;" id="provider-id-display">Lade...</div>
+            <div style="font-size: 0.85rem; color: #475569; margin-top: 4px;">Diese Nummer ist eindeutig und wird auf Rechnungen angezeigt.</div>
+          </div>
+          <div id="public-profile-block" style="margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; display:none;">
+            <div style="font-size: 0.9rem; color: #0f172a; font-weight: 600; margin-bottom: 6px;">Öffentliche Profilseite:</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <input id="public-profile-url" type="text" readonly style="flex:1; min-width:220px;"/>
+              <button type="button" class="btn" id="public-profile-copy">Link kopieren</button>
+              <a class="btn" id="public-profile-open" target="_blank" rel="noopener">Öffnen</a>
+            </div>
+            <div class="hint" style="font-size: 12px; margin-top:6px;">Zeigt Profil und veröffentlichte Termine an.</div>
+          </div>
+          <form id="form-profile" class="grid" novalidate>
+            <div class="field">
+              <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
+              <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="pf-branch">Branche <span class="req">*</span></label>
+              <input id="pf-branch" name="branch" list="branch-list" placeholder="z. B. Friseur" required aria-required="true"/>
+              <datalist id="branch-list">
+                <option>Friseur</option><option>Kosmetik</option><option>Physiotherapie</option>
+                <option>Nagelstudio</option><option>Zahnarzt</option><option>Handwerk</option>
+                <option>KFZ-Service</option><option>Fitness</option><option>Coaching</option>
+                <option>Tierarzt</option><option>Behörde</option><option>Sonstiges</option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label for="pf-street">Straße & Nr. <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
+              <input id="pf-street" name="street" placeholder="Musterstraße 1" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="pf-zip">PLZ <span class="req">*</span></label>
+              <input id="pf-zip" name="zip" placeholder="12345" pattern="\d{5}" inputmode="numeric" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="pf-city">Ort <span class="req">*</span></label>
+              <input id="pf-city" name="city" placeholder="Musterstadt" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="pf-phone">Telefon <span class="req">*</span> <span class="req-text">(Pflichtfeld)</span></label>
+              <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required aria-required="true"/>
+            </div>
+            <div class="field">
+              <label for="pf-whatsapp">WhatsApp (optional)</label>
+              <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-about">Kurzbeschreibung (optional)</label>
+              <textarea id="pf-about" name="about_text" rows="3" placeholder="Kurz erklären, was du anbietest."></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-hours">Öffnungszeiten / Verfügbarkeit (optional)</label>
+              <textarea id="pf-hours" name="opening_hours" rows="3" placeholder="z. B. Mo–Fr 9–18, Sa 10–14"></textarea>
+            </div>
+            <div class="field">
+              <label for="pf-website">Website (optional)</label>
+              <input id="pf-website" name="website_url" placeholder="https://...">
+            </div>
+            <div class="field">
+              <label for="pf-instagram">Instagram (optional)</label>
+              <input id="pf-instagram" name="instagram_url" placeholder="https://instagram.com/...">
+            </div>
+            <div class="field">
+              <label for="pf-facebook">Facebook (optional)</label>
+              <input id="pf-facebook" name="facebook_url" placeholder="https://facebook.com/...">
+            </div>
+            <div class="field">
+              <label for="pf-tiktok">TikTok (optional)</label>
+              <input id="pf-tiktok" name="tiktok_url" placeholder="https://tiktok.com/@...">
+            </div>
+            <div class="field">
+              <label for="pf-languages">Sprachen (optional)</label>
+              <input id="pf-languages" name="languages" placeholder="Deutsch, Englisch, Türkisch">
+            </div>
+            <div class="field">
+              <label for="pf-specialties">Spezialisierungen (optional)</label>
+              <input id="pf-specialties" name="specialties" placeholder="z. B. Hochzeitsstyling, Steuerrecht">
+            </div>
+            <div class="field">
+              <label for="pf-payment">Zahlungsmethoden (optional)</label>
+              <input id="pf-payment" name="payment_methods" placeholder="Bar, Karte, PayPal">
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-cancel">Stornobedingungen (optional)</label>
+              <textarea id="pf-cancel" name="cancellation_policy" rows="3" placeholder="z. B. kostenfrei bis 24h vorher"></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-directions">Anfahrt / Parken (optional)</label>
+              <textarea id="pf-directions" name="directions" rows="3" placeholder="z. B. Parkplätze im Hof, 2 Min vom Bahnhof"></textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-gallery">Bilder/Galerie (optional)</label>
+              <textarea id="pf-gallery" name="gallery_urls" rows="3" placeholder="Eine Bild-URL pro Zeile"></textarea>
+              <span class="hint" style="font-size:12px;">Entweder Bild-URLs eintragen oder hier hochladen.</span>
+              <div class="logo-upload" style="margin-top:8px;">
+                <input id="pf-gallery-files" type="file" accept="image/jpeg,image/png" multiple>
+                <button type="button" class="btn" id="pf-gallery-upload-btn">Bilder hochladen</button>
+              </div>
+              <div class="hint" style="font-size:12px;">Max. 12 Bilder, JPG/PNG bis 500 KB.</div>
+              <div id="pf-gallery-preview" class="gallery-preview"></div>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="pf-logo-file">Logo (JPG/PNG, 512x512, max 20 KB)</label>
+              <div class="logo-upload">
+                <input id="pf-logo-file" type="file" accept="image/jpeg,image/png"/>
+                <button type="button" class="btn" id="pf-logo-upload-btn">Logo hochladen</button>
+                <button type="button" class="btn danger" id="pf-logo-delete-btn">Logo löschen</button>
+              </div>
+              <label class="check" style="margin-top:6px;">
+                <input type="checkbox" id="pf-logo-consent">
+                Ich willige ein, dass mein Logo in der Suche und bei meinen Angeboten öffentlich angezeigt wird.
+              </label>
+              <img id="pf-logo-preview" class="logo-preview" alt="Logo Vorschau" style="display:none;">
+              <span class="hint" style="font-size: 12px;">Wird in der Suche angezeigt und sorgt für Wiedererkennung.</span>
+            </div>
+            <div class="toolbar">
+              <button class="btn primary" type="submit">Profil speichern</button>
+              <span class="muted">Pflicht: Firma, Branche, Straße, PLZ, Ort, Telefon.</span>
+            </div>
+            <div id="msg-profile" class="msg"></div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Passwort ändern</h2>
+          <p class="muted">Ändere hier dein Passwort. Du musst dein aktuelles Passwort eingeben.</p>
+          <form id="form-change-password" class="grid" novalidate>
+            <div class="field col-2">
+              <label for="cp-old-password">Aktuelles Passwort <span class="req">*</span></label>
+              <div class="password-wrapper">
+                <input id="cp-old-password" name="old_password" type="password" placeholder="Aktuelles Passwort" required minlength="8" autocomplete="current-password">
+                <button type="button" class="password-toggle" aria-label="Passwort anzeigen" data-target="cp-old-password">👁️</button>
+              </div>
+            </div>
+            <div class="field col-2">
+              <label for="cp-new-password">Neues Passwort <span class="req">*</span></label>
+              <div class="password-wrapper">
+                <input id="cp-new-password" name="password" type="password" placeholder="Mind. 8 Zeichen" required minlength="8" autocomplete="new-password">
+                <button type="button" class="password-toggle" aria-label="Passwort anzeigen" data-target="cp-new-password">👁️</button>
+              </div>
+            </div>
+            <div class="field col-2">
+              <label for="cp-new-password2">Neues Passwort wiederholen <span class="req">*</span></label>
+              <div class="password-wrapper">
+                <input id="cp-new-password2" type="password" placeholder="Passwort bestätigen" required minlength="8" autocomplete="new-password">
+                <button type="button" class="password-toggle" aria-label="Passwort anzeigen" data-target="cp-new-password2">👁️</button>
+              </div>
+            </div>
+            <div class="toolbar">
+              <button class="btn primary" type="submit">Passwort ändern</button>
+            </div>
+            <div id="msg-change-password" class="msg"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    const $  = (q, root=document)=>root.querySelector(q);
+
+    function showMsg(id, text, ok=false){
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'msg ' + (ok ? 'ok' : 'err');
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(()=>{ el.style.display='none'; }, ok ? 2500 : 5000);
+    }
+
+    function splitStreetAndNumber(streetValue){
+      if (!streetValue) return { street:'', house_number:'' };
+      const match = String(streetValue).trim().match(/^(.{2,}?)\s+(\d{1,4}[a-zA-Z0-9\-\/]*)$/);
+      if (!match) return { street: streetValue.trim(), house_number:'' };
+      return { street: match[1].trim(), house_number: match[2].trim() };
+    }
+    function isValidZip(v){ return /^\d{5}$/.test((v||'').trim()); }
+    function isValidPhone(v){ return (v||'').trim().length >= 6; }
+    function isValidStreetWithNumber(v){ return /^.{2,}\s+\d{1,4}[a-zA-Z0-9\-\/]*$/.test((v||'').trim()); }
+
+    function setLogoPreview(url){
+      const img = document.getElementById('pf-logo-preview');
+      if (!img) return;
+      if (url) { img.src = url; img.style.display = 'block'; }
+      else { img.removeAttribute('src'); img.style.display = 'none'; }
+    }
+
+    function parseGalleryUrls(raw){
+      return String(raw || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+    }
+
+    function renderGalleryPreview(urls){
+      const wrap = document.getElementById('pf-gallery-preview');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      (urls || []).forEach(url => {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        const img = document.createElement('img');
+        img.alt = 'Galerie Bild';
+        img.src = url;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Entfernen';
+        btn.dataset.remove = url;
+        item.appendChild(img);
+        item.appendChild(btn);
+        wrap.appendChild(item);
+      });
+    }
+
+    function setPublicProfileLink(me){
+      const block = document.getElementById('public-profile-block');
+      const input = document.getElementById('public-profile-url');
+      const openBtn = document.getElementById('public-profile-open');
+      if (!block || !input || !openBtn) return;
+      const num = me?.provider_number;
+      if (!num) { block.style.display = 'none'; return; }
+      const url = `${location.origin}/anbieter/${num}`;
+      input.value = url;
+      openBtn.href = url;
+      block.style.display = 'block';
+    }
+
+    async function requireAuth(){
+      try{
+        const r = await fetch(`${API}/me`, { credentials:'include' });
+        if (!r.ok) {
+          if (r.status === 401 || r.status === 403) {
+            window.location.href = 'login.html?tab=login';
+            return;
+          }
+          showMsg('msg-profile', 'Anmeldung erforderlich oder API nicht erreichbar.', false);
+          return;
+        }
+        const ME = await r.json();
+        $('#pf-company').value  = ME.company_name || '';
+        $('#pf-branch').value   = ME.branch || '';
+        $('#pf-street').value = `${ME.street || ''}${ME.house_number ? ' ' + ME.house_number : ''}`.trim();
+        $('#pf-zip').value      = ME.zip || '';
+        $('#pf-city').value     = ME.city || '';
+        $('#pf-phone').value    = ME.phone || '';
+        $('#pf-whatsapp').value = ME.whatsapp || '';
+        $('#pf-about').value = ME.about_text || '';
+        $('#pf-hours').value = ME.opening_hours || '';
+        $('#pf-website').value = ME.website_url || '';
+        $('#pf-instagram').value = ME.instagram_url || '';
+        $('#pf-facebook').value = ME.facebook_url || '';
+        $('#pf-tiktok').value = ME.tiktok_url || '';
+        $('#pf-languages').value = ME.languages || '';
+        $('#pf-specialties').value = ME.specialties || '';
+        $('#pf-payment').value = ME.payment_methods || '';
+        $('#pf-cancel').value = ME.cancellation_policy || '';
+        $('#pf-directions').value = ME.directions || '';
+        $('#pf-gallery').value = ME.gallery_urls || '';
+        renderGalleryPreview(parseGalleryUrls(ME.gallery_urls));
+        const logoConsent = document.getElementById('pf-logo-consent');
+        if (logoConsent) logoConsent.checked = !!ME.consent_logo_display;
+        setLogoPreview(ME.logo_url || '');
+
+        const providerIdDisplay = document.getElementById('provider-id-display');
+        if (providerIdDisplay) {
+          providerIdDisplay.textContent = ME.provider_number ? `#${ME.provider_number}` : 'Wird zugewiesen...';
+        }
+        setPublicProfileLink(ME);
+      }catch(e){
+        showMsg('msg-profile', 'Netzwerkfehler – API aktuell nicht erreichbar.', false);
+      }
+    }
+
+    $('#form-profile').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const combined = $('#pf-street').value.trim();
+      const parsed = splitStreetAndNumber(combined);
+      const payload = {
+        company_name: $('#pf-company').value.trim(),
+        branch: $('#pf-branch').value.trim(),
+        street: parsed.street,
+        house_number: parsed.house_number,
+        zip: $('#pf-zip').value.trim(),
+        city: $('#pf-city').value.trim(),
+        phone: $('#pf-phone').value.trim(),
+        whatsapp: $('#pf-whatsapp').value.trim(),
+          about_text: $('#pf-about').value.trim(),
+          opening_hours: $('#pf-hours').value.trim(),
+          website_url: $('#pf-website').value.trim(),
+          instagram_url: $('#pf-instagram').value.trim(),
+          facebook_url: $('#pf-facebook').value.trim(),
+          tiktok_url: $('#pf-tiktok').value.trim(),
+          languages: $('#pf-languages').value.trim(),
+          specialties: $('#pf-specialties').value.trim(),
+          payment_methods: $('#pf-payment').value.trim(),
+          cancellation_policy: $('#pf-cancel').value.trim(),
+          directions: $('#pf-directions').value.trim(),
+          gallery_urls: $('#pf-gallery').value.trim(),
+        consent_logo_display: $('#pf-logo-consent')?.checked || false,
+      };
+      if (!isValidStreetWithNumber(combined) || !isValidZip(payload.zip) || !isValidPhone(payload.phone)) {
+        showMsg('msg-profile', 'Bitte Pflichtfelder korrekt ausfüllen.');
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/me`, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json().catch(()=> ({}));
+        if(r.ok){
+          showMsg('msg-profile', 'Gespeichert ✓', true);
+        }else{
+          showMsg('msg-profile', data.error || 'Konnte Profil nicht speichern.');
+        }
+      }catch(e){
+        showMsg('msg-profile','Netzwerkfehler.');
+      }
+    });
+
+    const logoUploadBtn = document.getElementById('pf-logo-upload-btn');
+    const logoInput = document.getElementById('pf-logo-file');
+    const logoDeleteBtn = document.getElementById('pf-logo-delete-btn');
+    if (logoUploadBtn && logoInput) {
+      logoUploadBtn.addEventListener('click', async ()=>{
+        const file = logoInput.files && logoInput.files[0];
+        if (!file) { showMsg('msg-profile', 'Bitte eine JPG- oder PNG-Datei auswählen.'); return; }
+        const logoConsent = document.getElementById('pf-logo-consent');
+        if (logoConsent && !logoConsent.checked) { showMsg('msg-profile', 'Bitte der Anzeige des Logos zustimmen.'); return; }
+        const isJpg = (file.type === 'image/jpeg') || (file.name || '').toLowerCase().endsWith('.jpg') || (file.name || '').toLowerCase().endsWith('.jpeg');
+        const isPng = (file.type === 'image/png') || (file.name || '').toLowerCase().endsWith('.png');
+        if (!(isJpg || isPng)) { showMsg('msg-profile', 'Nur JPG oder PNG sind erlaubt.'); return; }
+        if (file.size > 20 * 1024) { showMsg('msg-profile', 'Logo ist zu groß (max 20 KB).'); return; }
+        const form = new FormData();
+        form.append('logo', file);
+        form.append('consent_logo_display', 'true');
+        try {
+          const res = await fetch(`${API}/me/logo`, { method:'POST', credentials:'include', body: form });
+          const data = await res.json().catch(()=> ({}));
+          if (res.ok && data.logo_url) {
+            setLogoPreview(data.logo_url);
+            showMsg('msg-profile', 'Logo hochgeladen.', true);
+          } else {
+            showMsg('msg-profile', data.error || 'Logo-Upload fehlgeschlagen.');
+          }
+        } catch (e2) {
+          showMsg('msg-profile', 'Netzwerkfehler beim Logo-Upload.');
+        }
+      });
+    }
+    if (logoDeleteBtn) {
+      logoDeleteBtn.addEventListener('click', async ()=>{
+        try {
+          const res = await fetch(`${API}/me/logo`, { method:'DELETE', credentials:'include' });
+          const data = await res.json().catch(()=> ({}));
+          if (res.ok) {
+            setLogoPreview('');
+            const logoConsent = document.getElementById('pf-logo-consent');
+            if (logoConsent) logoConsent.checked = false;
+            showMsg('msg-profile', 'Logo gelöscht.', true);
+          } else {
+            showMsg('msg-profile', data.error || 'Logo konnte nicht gelöscht werden.');
+          }
+        } catch (e3) {
+          showMsg('msg-profile', 'Netzwerkfehler beim Löschen des Logos.');
+        }
+      });
+    }
+
+    const galleryInput = document.getElementById('pf-gallery');
+    const galleryUploadBtn = document.getElementById('pf-gallery-upload-btn');
+    const galleryFiles = document.getElementById('pf-gallery-files');
+    const galleryPreview = document.getElementById('pf-gallery-preview');
+
+    if (galleryInput) {
+      galleryInput.addEventListener('input', () => {
+        renderGalleryPreview(parseGalleryUrls(galleryInput.value));
+      });
+    }
+
+    if (galleryPreview) {
+      galleryPreview.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-remove]');
+        if (!btn || !galleryInput) return;
+        const url = btn.dataset.remove;
+        if (!url) return;
+
+        const current = parseGalleryUrls(galleryInput.value);
+        const next = current.filter(u => u !== url);
+        galleryInput.value = next.join('\n');
+        renderGalleryPreview(next);
+
+        if (url.startsWith('/static/uploads/provider-gallery/')) {
+          try{
+            const res = await fetch(`${API}/me/gallery`, {
+              method:'DELETE',
+              headers:{'Content-Type':'application/json'},
+              credentials:'include',
+              body: JSON.stringify({ url })
+            });
+            const data = await res.json().catch(()=> ({}));
+            if (!res.ok){
+              showMsg('msg-profile', data.error || 'Bild konnte nicht gelöscht werden.');
+            } else if (data.gallery_urls) {
+              galleryInput.value = data.gallery_urls.join('\n');
+              renderGalleryPreview(parseGalleryUrls(galleryInput.value));
+              showMsg('msg-profile', 'Bild entfernt.', true);
+            }
+          }catch(err){
+            showMsg('msg-profile', 'Netzwerkfehler beim Löschen des Bildes.');
+          }
+        }
+      });
+    }
+
+    if (galleryUploadBtn && galleryFiles && galleryInput) {
+      galleryUploadBtn.addEventListener('click', async ()=>{
+        const files = galleryFiles.files ? Array.from(galleryFiles.files) : [];
+        if (!files.length) {
+          showMsg('msg-profile', 'Bitte mindestens ein Bild auswählen.');
+          return;
+        }
+        const form = new FormData();
+        files.forEach(f => form.append('images', f));
+        try{
+          const res = await fetch(`${API}/me/gallery`, { method:'POST', credentials:'include', body: form });
+          const data = await res.json().catch(()=> ({}));
+          if (!res.ok) {
+            showMsg('msg-profile', data.error || 'Upload fehlgeschlagen.');
+            return;
+          }
+          if (Array.isArray(data.gallery_urls)) {
+            galleryInput.value = data.gallery_urls.join('\n');
+            renderGalleryPreview(parseGalleryUrls(galleryInput.value));
+          }
+          galleryFiles.value = '';
+          showMsg('msg-profile', 'Bilder hochgeladen.', true);
+        }catch(err){
+          showMsg('msg-profile', 'Netzwerkfehler beim Upload.');
+        }
+      });
+    }
+
+    $('#form-change-password').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const oldPassword = $('#cp-old-password').value;
+      const newPassword = $('#cp-new-password').value;
+      const newPassword2 = $('#cp-new-password2').value;
+      if (!oldPassword || !newPassword || !newPassword2) return showMsg('msg-change-password', 'Bitte alle Felder ausfüllen.');
+      if (newPassword.length < 8) return showMsg('msg-change-password', 'Neues Passwort muss mindestens 8 Zeichen haben.');
+      if (newPassword !== newPassword2) return showMsg('msg-change-password', 'Passwörter stimmen nicht überein.');
+      try {
+        const r = await fetch(`${API}/auth/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ old_password: oldPassword, password: newPassword })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok) {
+          showMsg('msg-change-password', 'Passwort wurde erfolgreich geändert.', true);
+          $('#form-change-password').reset();
+        } else {
+          showMsg('msg-change-password', data.error || 'Fehler beim Ändern des Passworts.');
+        }
+      } catch (e) {
+        showMsg('msg-change-password', 'Netzwerkfehler.');
+      }
+    });
+
+    document.getElementById('public-profile-copy')?.addEventListener('click', async ()=>{
+      const input = document.getElementById('public-profile-url');
+      if (!input || !input.value) return;
+      try{
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(input.value);
+        } else {
+          input.focus();
+          input.select();
+          document.execCommand('copy');
+        }
+        showMsg('msg-profile', 'Link zur Profilseite kopiert.', true);
+      }catch(e){
+        showMsg('msg-profile', 'Kopieren fehlgeschlagen.');
+      }
+    });
+
+    (async function init(){
+      await requireAuth();
+    })();
+  </script>
+
+  <script>
+    (function(){
+      const API_LOCAL = (typeof window.API === 'string')
+        ? window.API
+        : (() => {
+            const h = location.hostname;
+            const proto = location.protocol;
+            const isLocal =
+              h === 'localhost' ||
+              h === '127.0.0.1' ||
+              /^192\.168\./.test(h) ||
+              /^10\./.test(h) ||
+              h.endsWith('.local');
+            if (isLocal) return `${proto}//${h}:5000`;
+            if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+            return 'https://api.terminmarktplatz.de';
+          })();
+
+      const btn = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if (!btn || !menu) return;
+
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls = menu.querySelectorAll('.auth-in');
+      const adminOnlyEls = menu.querySelectorAll('.admin-only');
+
+      function setAuthVisible(isLoggedIn, isAdmin){
+        authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+        authInEls.forEach(el => { el.style.display = isLoggedIn ? '' : 'none'; });
+        adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
+      }
+
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { credentials:'include' });
+          if (res.ok) {
+            const data = await res.json().catch(()=> null);
+            setAuthVisible(true, data?.is_admin === true);
+          } else {
+            setAuthVisible(false, false);
+          }
+        }catch(e){
+          setAuthVisible(false, false);
+        }
+      }
+
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const isHidden = menu.hasAttribute('hidden');
+        if (isHidden) {
+          menu.removeAttribute('hidden');
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          menu.setAttribute('hidden', '');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.addEventListener('click', (e)=>{
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.setAttribute('hidden', '');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.querySelector('[data-action="logout"]')?.addEventListener('click', async ()=>{
+        try { await fetch(`${API_LOCAL}/auth/logout`, {method:'POST', credentials:'include'}); } catch(e) {}
+        window.location.href = 'login.html?tab=login';
+      });
+
+      document.querySelector('[data-action="delete"]')?.addEventListener('click', async ()=>{
+        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+        if (!ok) return;
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { method:'DELETE', credentials:'include' });
+          if (res.ok) { window.location.href = 'login.html?deleted=1'; }
+          else {
+            const data = await res.json().catch(()=> ({}));
+            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+          }
+        }catch(err){
+          alert('Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      });
+
+      checkAuth();
+    })();
+  </script>
+</body>
+</html>

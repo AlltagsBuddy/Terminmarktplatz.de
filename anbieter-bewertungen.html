@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bewertungen | Terminmarktplatz</title>
+  <meta name="description" content="Bewertungen verwalten und beantworten." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+  <link rel="icon" href="static/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+  <style>
+    html, body { width: 100%; margin: 0; padding: 0; }
+    .page-portal .container { max-width: 1120px; box-sizing: border-box; }
+    .page-portal .panel{ border-radius:var(--r-3xl); box-shadow:var(--shadow-2); }
+    .page-portal .btn{ color:#0f172a !important; background:#ffffff !important; border:1px solid #cbd5e1 !important; text-shadow:none !important; }
+    .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
+    .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
+    .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
+
+    /* Header wie index.html */
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
+    }
+    header .nav{
+      display:flex !important;
+      align-items:center !important;
+      gap:16px !important;
+    }
+    header .brand{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+    }
+    header .user-menu{
+      display:block !important;
+      position:relative !important;
+      z-index:60 !important;
+      margin-left:12px !important;
+    }
+    header .nav-links{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+      margin-left:auto !important;
+    }
+    header, header .nav-links a, header .brand-title, #userMenuBtn{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+    }
+    header .nav-links a{
+      font-weight:700 !important;
+    }
+    header .brand-title{
+      font-weight:900 !important;
+    }
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start !important;
+      }
+    }
+    @media (max-width: 768px){
+      .container.nav{
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        align-items:flex-start !important;
+        padding-inline:16px !important;
+      }
+      header .brand{
+        margin-bottom:4px !important;
+      }
+      .brand-title{
+        font-size:1.05rem !important;
+      }
+      header .user-menu{
+        margin-left:auto !important;
+      }
+      .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        margin-top:4px !important;
+        margin-left:0 !important;
+        white-space:nowrap !important;
+      }
+      .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
+  <style>
+    /* Header-Override wie index.html */
+    .user-menu .btn {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    #userMenuBtn:hover {
+      background:#e5e7eb !important;
+    }
+    header .nav{
+      display:flex !important;
+      align-items:center !important;
+      gap:16px !important;
+    }
+    header .brand{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+    }
+    header .user-menu{
+      display:block !important;
+      position:relative !important;
+      z-index:60 !important;
+      margin-left:12px !important;
+    }
+    header .nav-links{
+      display:flex !important;
+      align-items:center !important;
+      gap:12px !important;
+      margin-left:auto !important;
+    }
+    @media (min-width: 769px){
+      header .nav{
+        justify-content:flex-start !important;
+      }
+    }
+    @media (max-width: 768px){
+      .container.nav{
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        align-items:flex-start !important;
+        padding-inline:16px !important;
+      }
+      header .brand{
+        margin-bottom:4px !important;
+      }
+      .brand-title{
+        font-size:1.05rem !important;
+      }
+      header .user-menu{
+        margin-left:auto !important;
+      }
+      .nav-links{
+        display:flex !important;
+        width:100% !important;
+        justify-content:center !important;
+        flex-wrap:wrap !important;
+        gap:8px !important;
+        text-align:center !important;
+        margin-top:4px !important;
+        margin-left:0 !important;
+      }
+      .nav-links a{
+        font-size:0.9rem !important;
+        padding:2px 6px !important;
+      }
+    }
+  </style>
+  <style>
+    @media (max-width:768px){
+      header .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        white-space:nowrap !important;
+      }
+      header .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
+</head>
+<body class="page-portal">
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">☰ Menü</button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
+          <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
+          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <a href="hilfe.html" class="item" role="menuitem">Hilfe</a>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding:36px 0 18px">
+      <div class="container">
+        <span class="badge">Anbieter-Portal</span>
+        <h1>Bewertungen</h1>
+        <p class="lead">Hier kannst du Bewertungen lesen und beantworten.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="panel" style="padding:16px;">
+          <div id="reviews-list" class="grid" style="gap:12px;"></div>
+          <div id="msg-reviews" class="msg"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
+    const $  = (q, root=document)=>root.querySelector(q);
+
+    function showMsg(id, text, ok=false){
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'msg ' + (ok ? 'ok' : 'err');
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(()=>{ el.style.display='none'; }, ok ? 2500 : 5000);
+    }
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderReviews(items){
+      const wrap = document.getElementById('reviews-list');
+      if (!wrap) return;
+      if (!items || !items.length){
+        wrap.innerHTML = '<div class="muted">Noch keine Bewertungen vorhanden.</div>';
+        return;
+      }
+      wrap.innerHTML = '';
+      items.forEach(r => {
+        const ratingValue = Math.max(0, Math.min(5, Number(r.rating || 0)));
+        const stars = '★★★★★'.slice(0, ratingValue) + '☆☆☆☆☆'.slice(0, 5 - ratingValue);
+        const card = document.createElement('div');
+        card.className = 'panel';
+        card.style.padding = '12px';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+            <div style="font-weight:600;">${escapeHtml(r.reviewer_name || 'Anonym')}</div>
+            <div>${stars}</div>
+          </div>
+          ${r.comment ? `<div style="margin-top:6px; color:#475569;">${escapeHtml(r.comment)}</div>` : ''}
+          <div style="margin-top:10px;">
+            <label style="font-weight:600; display:block; margin-bottom:4px;">Antwort des Anbieters</label>
+            <textarea rows="2" style="width:100%;" data-reply="${r.id}" placeholder="Optional antworten…">${escapeHtml(r.reply_text || '')}</textarea>
+            <div class="toolbar" style="margin-top:6px;">
+              <button class="btn" data-reply-save="${r.id}">Antwort speichern</button>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(card);
+      });
+
+      wrap.querySelectorAll('[data-reply-save]').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.dataset.replySave;
+          const textarea = wrap.querySelector(`textarea[data-reply="${id}"]`);
+          const reply_text = textarea ? textarea.value.trim() : '';
+          try{
+            const res = await fetch(`${API}/provider/reviews/${id}/reply`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              credentials:'include',
+              body: JSON.stringify({ reply_text })
+            });
+            const data = await res.json().catch(()=> ({}));
+            if (!res.ok) {
+              showMsg('msg-reviews', data.error || 'Antwort konnte nicht gespeichert werden.');
+              return;
+            }
+            showMsg('msg-reviews', reply_text ? 'Antwort gespeichert.' : 'Antwort entfernt.', true);
+          }catch(e){
+            showMsg('msg-reviews', 'Netzwerkfehler.');
+          }
+        });
+      });
+    }
+
+    async function loadReviews(){
+      const wrap = document.getElementById('reviews-list');
+      if (wrap) wrap.innerHTML = '<div class="muted">Lade …</div>';
+      try{
+        const res = await fetch(`${API}/provider/reviews`, { credentials:'include' });
+        if (!res.ok){
+          if (res.status === 401 || res.status === 403) {
+            window.location.href = 'login.html?tab=login';
+            return;
+          }
+          showMsg('msg-reviews', 'Bewertungen konnten nicht geladen werden.');
+          return;
+        }
+        const data = await res.json();
+        renderReviews(data || []);
+      }catch(e){
+        showMsg('msg-reviews', 'Netzwerkfehler.');
+      }
+    }
+
+    (async function init(){ await loadReviews(); })();
+  </script>
+
+  <script>
+    (function(){
+      const API_LOCAL = (typeof window.API === 'string')
+        ? window.API
+        : (() => {
+            const h = location.hostname;
+            const proto = location.protocol;
+            const isLocal =
+              h === 'localhost' ||
+              h === '127.0.0.1' ||
+              /^192\.168\./.test(h) ||
+              /^10\./.test(h) ||
+              h.endsWith('.local');
+            if (isLocal) return `${proto}//${h}:5000`;
+            if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+            return 'https://api.terminmarktplatz.de';
+          })();
+
+      const btn = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if (!btn || !menu) return;
+      const authOutEls = menu.querySelectorAll('.auth-out');
+      const authInEls = menu.querySelectorAll('.auth-in');
+      const adminOnlyEls = menu.querySelectorAll('.admin-only');
+      function setAuthVisible(isLoggedIn, isAdmin){
+        authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
+        authInEls.forEach(el => { el.style.display = isLoggedIn ? '' : 'none'; });
+        adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
+      }
+      async function checkAuth(){
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { credentials:'include' });
+          if (res.ok) {
+            const data = await res.json().catch(()=> null);
+            setAuthVisible(true, data?.is_admin === true);
+          } else {
+            setAuthVisible(false, false);
+          }
+        }catch(e){
+          setAuthVisible(false, false);
+        }
+      }
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const isHidden = menu.hasAttribute('hidden');
+        if (isHidden) { menu.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
+        else { menu.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); }
+      });
+      document.addEventListener('click', (e)=>{
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.setAttribute('hidden', '');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+      document.querySelector('[data-action="logout"]')?.addEventListener('click', async ()=>{
+        try { await fetch(`${API_LOCAL}/auth/logout`, {method:'POST', credentials:'include'}); } catch(e) {}
+        window.location.href = 'login.html?tab=login';
+      });
+      document.querySelector('[data-action="delete"]')?.addEventListener('click', async ()=>{
+        const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+        if (!ok) return;
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { method:'DELETE', credentials:'include' });
+          if (res.ok) { window.location.href = 'login.html?deleted=1'; }
+          else {
+            const data = await res.json().catch(()=> ({}));
+            alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+          }
+        }catch(err){
+          alert('Netzwerkfehler – bitte später erneut versuchen.');
+        }
+      });
+      checkAuth();
+    })();
+  </script>
+</body>
+</html>

@@ -181,6 +181,25 @@
     }
   </style>
 
+  <style>
+    @media (max-width:768px){
+      header .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        white-space:nowrap !important;
+      }
+      header .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -219,8 +238,9 @@
 
           <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
+          <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
           <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 

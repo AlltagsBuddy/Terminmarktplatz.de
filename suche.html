@@ -139,13 +139,108 @@
       position: relative !important;
       z-index: 10 !important;
       touch-action: manipulation !important;
+      padding: 12px 18px;
+      font-size: 16px;
     }
 
     .provider-row{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
+      flex-wrap:wrap;
       gap:8px;
       margin-top:4px;
+    }
+    .provider-meta{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+    }
+    .provider-label{
+      font-weight:700;
+    }
+    .provider-name{
+      min-width:0;
+      max-width:100%;
+    }
+    .provider-link{
+      color:#ffffff;
+      font-weight:800;
+      font-size:1rem;
+      text-decoration:none;
+      padding:2px 8px;
+      border-radius:999px;
+      background:linear-gradient(135deg, rgba(124,58,237,.9), rgba(6,182,212,.9));
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
+      display:inline-block;
+      max-width:100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .provider-text{
+      font-weight:800;
+      color:#ffffff;
+      display:inline-block;
+      max-width:100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .provider-link:hover{
+      color:#ffffff;
+      transform:translateY(-1px);
+    }
+    .results-grid .card h3{
+      line-height:1.3;
+      margin-bottom:6px;
+    }
+    .results-grid .card .muted{
+      font-size:0.95rem;
+      line-height:1.5;
+    }
+    .results-grid .card p{
+      line-height:1.5;
+    }
+    .results-toolbar .inline-input{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .results-toolbar .view-toggle{
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .results-toolbar .view-toggle .btn{
+      padding:8px 12px;
+      border-radius:999px;
+    }
+    .fav-btn{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
+      border-radius:999px;
+      padding:8px 12px;
+      font-weight:800;
+      font-size:16px;
+      line-height:1;
+      cursor:pointer;
+      margin-bottom:8px;
+      min-width:40px;
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 8px 18px rgba(0,0,0,.2);
+      position:relative;
+      z-index:2;
+      pointer-events:auto;
+    }
+    .fav-btn.active{
+      background:linear-gradient(135deg, #f472b6, #f97316);
+      border-color:transparent;
     }
     .provider-logo,
     .provider-logo-fallback{
@@ -340,6 +435,19 @@
         grid-template-columns: 1fr;
       }
       
+      .results-grid .card h3{
+        font-size:1.1rem;
+      }
+
+      .provider-meta{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .provider-name{
+        width:100%;
+      }
+      
       /* Stelle sicher, dass Buttons in Cards auf Mobile klickbar sind */
       .card button[data-book],
       button[data-book] {
@@ -525,6 +633,25 @@
   })();
   </script>
 
+  <style>
+    @media (max-width:768px){
+      header .nav-links{
+        display:grid !important;
+        grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+        align-items:center !important;
+        width:100% !important;
+        gap:6px !important;
+        text-align:center !important;
+        white-space:nowrap !important;
+      }
+      header .nav-links a{
+        font-size:clamp(0.72rem, 2.6vw, 0.9rem) !important;
+        padding:2px 2px !important;
+        line-height:1.05 !important;
+        white-space:nowrap !important;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -553,8 +680,9 @@
 
           <!-- nur sichtbar, wenn eingeloggt -->
           <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
-          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Profil</a>
-          <a href="anbieter-portal.html#step-3" class="item auth-in" role="menuitem">Slot anlegen</a>
+          <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
+          <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
           <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
@@ -632,6 +760,15 @@
       <div class="container">
         <div class="results-toolbar">
           <div class="pill" id="summary">Suche wird geladen …</div>
+          <div class="view-toggle">
+            <button type="button" class="btn" id="view-both">Liste + Karte</button>
+            <button type="button" class="btn" id="view-list">Nur Liste</button>
+            <button type="button" class="btn" id="view-map">Nur Karte</button>
+            <label class="inline-input" style="margin-left:6px;">
+              <input type="checkbox" id="fav-only" />
+              Nur Favoriten
+            </label>
+          </div>
           <div class="input" style="max-width:320px">
             <select id="sort">
               <option value="soonest">Sortieren: demnächst</option>
@@ -689,6 +826,7 @@
         <h4>Produkt</h4>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="hilfe.html">Hilfe & FAQ</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>
@@ -719,6 +857,20 @@
         <label>E-Mail
           <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
+        <label>Telefon (optional für WhatsApp)
+          <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <label style="display:flex; gap:8px; align-items:center;">
+          <input id="book-reminder" type="checkbox" checked>
+          Erinnerung 24h vorher
+        </label>
+        <label style="display:flex; gap:8px; align-items:center;">
+          <span style="font-size:13px; color:#475569;">Erinnerung per:</span>
+          <select id="book-reminder-channel" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
+            <option value="email">E‑Mail</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </label>
         <div class="book-actions">
           <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
           <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
@@ -742,6 +894,21 @@
           <div style="margin-bottom:20px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail</label>
             <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
+            <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <input id="book-reminder-mobile" type="checkbox" checked />
+            <label for="book-reminder-mobile" style="font-weight:700; font-size:14px; color:#111;">Erinnerung 24h vorher</label>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Erinnerung per</label>
+            <select id="book-reminder-channel-mobile" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+              <option value="email">E‑Mail</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
           </div>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Buchung anfragen</button>
@@ -770,6 +937,27 @@
     // Utilities
     const $ = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
+    const FAVORITES_KEY = 'tm_favorites_v1';
+
+    function getFavorites(){
+      try{
+        const raw = localStorage.getItem(FAVORITES_KEY);
+        const data = raw ? JSON.parse(raw) : [];
+        return Array.isArray(data) ? data : [];
+      }catch(e){
+        return [];
+      }
+    }
+    function setFavorites(list){
+      try{
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
+      }catch(e){
+        // Speicher ggf. blockiert (Private Mode)
+      }
+    }
+    function isFavorite(id){
+      return getFavorites().includes(id);
+    }
     const fmtDate = (iso) => {
       const d = new Date(iso);
       return d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' });
@@ -936,6 +1124,47 @@
       return true;
     });
 
+    function buildParamsFromForm(){
+      const params = new URLSearchParams();
+      const qVal = $('#f-q')?.value?.trim() || '';
+      const ortVal = $('#f-ort')?.value?.trim() || '';
+      const radiusVal = $('#f-radius')?.value?.trim() || '';
+      const zeitVal = $('#f-zeit')?.value?.trim() || '';
+      const fromVal = $('#search-day-from')?.value?.trim() || '';
+      const toVal = $('#search-day-to')?.value?.trim() || '';
+      if (qVal) params.set('q', qVal);
+      if (ortVal) params.set('ort', ortVal);
+      if (radiusVal) params.set('radius', radiusVal);
+      if (zeitVal) params.set('zeit', zeitVal);
+      if (fromVal) params.set('day_from', fromVal);
+      if (toVal) params.set('day_to', toVal);
+      return params;
+    }
+    // Quick-Filters entfernt
+
+    function applyViewMode(mode){
+      const results = document.getElementById('results');
+      const mapSection = document.getElementById('map-section');
+      if (!results || !mapSection) return;
+      const mapAvailable = mapSection.dataset.available === '1';
+      if (mode === 'list') {
+        results.style.display = '';
+        mapSection.style.display = 'none';
+      } else if (mode === 'map' && mapAvailable) {
+        results.style.display = 'none';
+        mapSection.style.display = '';
+      } else {
+        results.style.display = '';
+      }
+      localStorage.setItem('tm_view_mode', mode);
+    }
+
+    document.getElementById('view-both')?.addEventListener('click', () => applyViewMode('both'));
+    document.getElementById('view-list')?.addEventListener('click', () => applyViewMode('list'));
+    document.getElementById('view-map')?.addEventListener('click', () => applyViewMode('map'));
+
+    document.getElementById('fav-only')?.addEventListener('change', () => load());
+
     // Fetch + Render
     async function load() {
       const summary = $('#summary');
@@ -1021,6 +1250,12 @@
         return (sortSel.value === 'latest') ? (db - da) : (da - db);
       });
 
+      const favOnly = document.getElementById('fav-only')?.checked;
+      if (favOnly) {
+        const favs = getFavorites();
+        items = items.filter(x => favs.includes(x.id));
+      }
+
       // Render
       if (items.length === 0) {
         summary.textContent = '0 Treffer';
@@ -1095,6 +1330,10 @@
         }
 
 
+        const profileUrl = p.provider_number
+          ? `${location.origin}/anbieter/${p.provider_number}`
+          : '';
+
         const el = document.createElement('div');
         el.className = 'card';
         el.innerHTML = `
@@ -1108,7 +1347,14 @@
               </p>
               <div class="provider-row">
                 ${providerBadge}
-                <div class="muted"><strong>Anbieter:</strong> ${providerName}</div>
+                <div class="muted provider-meta">
+                  <span class="provider-label"><strong>Anbieter:</strong></span>
+                  <span class="provider-name">
+                    ${profileUrl
+                      ? `<a href="${profileUrl}" class="provider-link">${providerName}</a>`
+                      : `<span class="provider-text">${providerName}</span>`}
+                  </span>
+                </div>
               </div>
               ${terminAddress ? `
                 <p class="muted" style="margin:2px 0 0;">
@@ -1120,6 +1366,7 @@
                 </p>` : ''}
             </div>
             <div>
+              <button class="fav-btn ${isFavorite(x.id) ? 'active' : ''}" data-fav="${x.id}" type="button" aria-pressed="${isFavorite(x.id) ? 'true' : 'false'}" title="Zu Favoriten">♥</button>
               <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
             </div>
           </div>
@@ -1138,6 +1385,10 @@
         if (mapSection) mapSection.style.display = 'none';
         clearMarkers();
       }
+      if (mapSection) mapSection.dataset.available = (hasSearch && mapItems.length > 0) ? '1' : '0';
+
+      const mode = localStorage.getItem('tm_view_mode') || 'both';
+      applyViewMode(mode);
 
       // Resort on change
       sortSel.onchange = () => load();
@@ -1164,6 +1415,12 @@
         document.getElementById('book-slot-id-mobile').value = slotId;
         document.getElementById('book-name-mobile').value = '';
         document.getElementById('book-email-mobile').value = '';
+        const phoneInput = document.getElementById('book-phone-mobile');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder-mobile');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel-mobile');
+        if (channel) channel.value = 'email';
         bookModalMobile.style.display = 'block';
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
@@ -1181,6 +1438,12 @@
         document.getElementById('book-slot-id').value = slotId;
         document.getElementById('book-name').value = '';
         document.getElementById('book-email').value = '';
+        const phoneInput = document.getElementById('book-phone');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel');
+        if (channel) channel.value = 'email';
         try {
           bookDialog.showModal();
           setTimeout(() => {
@@ -1241,6 +1504,9 @@
           const slot_id = document.getElementById('book-slot-id-mobile').value;
           const name = document.getElementById('book-name-mobile').value.trim();
           const email = document.getElementById('book-email-mobile').value.trim();
+          const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
           if (!slot_id || !name || !email) return;
 
           const btn = bookFormMobile.querySelector('button[type="submit"]');
@@ -1253,7 +1519,14 @@
             const r = await fetch(`${API}/public/book`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ slot_id, name, email })
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
@@ -1304,6 +1577,9 @@
           const slot_id = document.getElementById('book-slot-id').value;
           const name = document.getElementById('book-name').value.trim();
           const email = document.getElementById('book-email').value.trim();
+          const phone = document.getElementById('book-phone')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
           if (!slot_id || !name || !email) return;
 
           const btn = document.getElementById('book-submit');
@@ -1316,7 +1592,14 @@
             const r = await fetch(`${API}/public/book`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ slot_id, name, email })
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
@@ -1341,6 +1624,30 @@
     const resultsContainer = document.getElementById('results');
     if (resultsContainer) {
       resultsContainer.addEventListener('click', function(e) {
+        const favBtn = e.target.closest('[data-fav]');
+        if (favBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const slotId = favBtn.getAttribute('data-fav');
+          if (slotId) {
+            const favs = getFavorites();
+            const idx = favs.indexOf(slotId);
+            if (idx >= 0) {
+              favs.splice(idx, 1);
+              favBtn.classList.remove('active');
+              favBtn.setAttribute('aria-pressed', 'false');
+            } else {
+              favs.push(slotId);
+              favBtn.classList.add('active');
+              favBtn.setAttribute('aria-pressed', 'true');
+            }
+            setFavorites(favs);
+            if (document.getElementById('fav-only')?.checked) {
+              load();
+            }
+          }
+          return false;
+        }
         const btn = e.target.closest('[data-book]');
         if (btn) {
           e.preventDefault();

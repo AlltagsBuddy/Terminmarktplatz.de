@@ -1,6 +1,8 @@
 import os
+from uuid import uuid4
 import traceback
 from datetime import datetime, timedelta, timezone, date
+import threading
 from decimal import Decimal  # für Geldbeträge
 from typing import Optional
 
@@ -9,13 +11,14 @@ import hmac
 import hashlib
 import base64
 import re
+import io
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
 from email.utils import parseaddr, formataddr
 import smtplib
 import requests
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 # ZoneInfo robust (Backport bei < 3.9)
 try:
@@ -55,7 +58,7 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset
+from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset, Review
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -70,8 +73,17 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
 LOGO_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-logos")
+GALLERY_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-gallery")
 LOGO_MAX_BYTES = 20 * 1024
 LOGO_SIZE_PX = 512
+GALLERY_MAX_BYTES = 500 * 1024
+GALLERY_MAX_COUNT = 12
+GALLERY_MAX_DIM_PX = 1600
+GALLERY_JPEG_QUALITY = 82
+REMINDER_LEAD_HOURS = 24
+REMINDER_RUN_INTERVAL_SEC = 300
+_REMINDER_LAST_RUN = 0.0
+_REMINDER_LOCK = threading.Lock()
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -88,6 +100,7 @@ app = Flask(
 )
 
 os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
+os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -501,6 +514,18 @@ def _ensure_base_tables():
                   whatsapp TEXT,
                   logo_url TEXT,
                   consent_logo_display INTEGER DEFAULT 0,
+                  about_text TEXT,
+                  opening_hours TEXT,
+                  website_url TEXT,
+                  instagram_url TEXT,
+                  facebook_url TEXT,
+                  tiktok_url TEXT,
+                  languages TEXT,
+                  specialties TEXT,
+                  payment_methods TEXT,
+                  cancellation_policy TEXT,
+                  directions TEXT,
+                  gallery_urls TEXT,
                   status TEXT NOT NULL DEFAULT 'pending',
                   is_admin INTEGER NOT NULL DEFAULT 0,
                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -573,6 +598,61 @@ _ensure_base_tables()
 
 
 # --------------------------------------------------------
+# Reviews Tabelle hinzufügen
+# --------------------------------------------------------
+def _ensure_review_table():
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                ddl = """
+                CREATE TABLE IF NOT EXISTS public.review (
+                  id uuid PRIMARY KEY,
+                  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
+                  booking_id uuid NOT NULL REFERENCES public.booking(id) ON DELETE CASCADE,
+                  reviewer_name text,
+                  rating integer NOT NULL,
+                  comment text,
+                  reply_text text,
+                  replied_at timestamp without time zone,
+                  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                conn.exec_driver_sql(ddl)
+                conn.exec_driver_sql(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS review_booking_id_idx ON public.review(booking_id)"
+                )
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS review_provider_id_idx ON public.review(provider_id)"
+                )
+            else:
+                ddl = """
+                CREATE TABLE IF NOT EXISTS review (
+                  id TEXT PRIMARY KEY,
+                  provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                  booking_id TEXT NOT NULL REFERENCES booking(id) ON DELETE CASCADE,
+                  reviewer_name TEXT,
+                  rating INTEGER NOT NULL,
+                  comment TEXT,
+                  reply_text TEXT,
+                  replied_at DATETIME,
+                  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                conn.exec_driver_sql(ddl)
+                conn.exec_driver_sql(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS review_booking_id_idx ON review(booking_id)"
+                )
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS review_provider_id_idx ON review(provider_id)"
+                )
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_review_table fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_review_table()
+
+
+# --------------------------------------------------------
 # Provider: Logo-URL Feld hinzufügen (optional)
 # --------------------------------------------------------
 def _ensure_provider_logo_url():
@@ -628,6 +708,73 @@ def _ensure_provider_logo_consent():
 
 
 _ensure_provider_logo_consent()
+
+# Provider: Öffentliches Profil – zusätzliche Felder
+def _ensure_provider_public_profile_fields():
+    """
+    Fügt optionale Profilfelder zur provider Tabelle hinzu, falls sie noch nicht existieren.
+    """
+    fields = [
+        "about_text",
+        "opening_hours",
+        "website_url",
+        "instagram_url",
+        "facebook_url",
+        "tiktok_url",
+        "languages",
+        "specialties",
+        "payment_methods",
+        "cancellation_policy",
+        "directions",
+        "gallery_urls",
+    ]
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                for col in fields:
+                    conn.exec_driver_sql(f"ALTER TABLE provider ADD COLUMN IF NOT EXISTS {col} text;")
+            else:
+                cols = _sqlite_columns(conn, "provider")
+                for col in fields:
+                    if col not in cols:
+                        conn.exec_driver_sql(f"ALTER TABLE provider ADD COLUMN {col} TEXT")
+    except Exception as e:
+        print(f"⚠️  Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
+
+_ensure_provider_public_profile_fields()
+
+# Booking: Reminder Felder + Telefon
+def _ensure_booking_reminder_fields():
+    """
+    Fügt optionale Reminder-Felder zur booking Tabelle hinzu, falls sie noch nicht existieren.
+    """
+    fields = [
+        ("customer_phone", "text"),
+        ("reminder_opt_in", "boolean"),
+        ("reminder_channel", "text"),
+        ("reminder_sent_at", "timestamp without time zone"),
+    ]
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                for col, typ in fields:
+                    conn.exec_driver_sql(f"ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS {col} {typ};")
+            else:
+                cols = _sqlite_columns(conn, "booking")
+                type_map = {
+                    "text": "TEXT",
+                    "boolean": "INTEGER",
+                    "timestamp without time zone": "DATETIME",
+                }
+                for col, typ in fields:
+                    if col not in cols:
+                        conn.exec_driver_sql(
+                            f"ALTER TABLE booking ADD COLUMN {col} {type_map.get(typ, 'TEXT')}"
+                        )
+    except Exception as e:
+        print(f"⚠️  Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}", flush=True)
+
+_ensure_booking_reminder_fields()
 
 
 # --------------------------------------------------------
@@ -2348,8 +2495,20 @@ def sitemap():
 
 
 @app.get("/healthz")
+def healthz():
+    status = {"ok": True, "service": "api", "time": _now().isoformat()}
+    try:
+        with Session(engine) as s:
+            s.execute(select(func.now()))
+        status["db"] = "ok"
+    except Exception as e:
+        status["db"] = "error"
+        status["db_error"] = str(e)
+    return jsonify(status)
+
+
 @app.get("/api/health")
-def health():
+def api_health():
     try:
         with Session(engine) as s:
             s.execute(select(func.now()))
@@ -2415,6 +2574,26 @@ if _html_enabled():
     def anbieter_portal_page_html():
         return send_from_directory(APP_ROOT, "anbieter-portal.html")
 
+    @app.get("/anbieter-profil")
+    @auth_required()
+    def anbieter_profil_page():
+        return send_from_directory(APP_ROOT, "anbieter-profil.html")
+
+    @app.get("/anbieter-profil.html")
+    @auth_required()
+    def anbieter_profil_page_html():
+        return send_from_directory(APP_ROOT, "anbieter-profil.html")
+
+    @app.get("/anbieter-bewertungen")
+    @auth_required()
+    def anbieter_bewertungen_page():
+        return send_from_directory(APP_ROOT, "anbieter-bewertungen.html")
+
+    @app.get("/anbieter-bewertungen.html")
+    @auth_required()
+    def anbieter_bewertungen_page_html():
+        return send_from_directory(APP_ROOT, "anbieter-bewertungen.html")
+
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
     def suche_page():
@@ -2463,6 +2642,265 @@ if _html_enabled():
             return Response(content, mimetype="text/html")
         except FileNotFoundError:
             return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+
+    @app.get("/anbieter/<provider_number>")
+    def public_provider_profile(provider_number):
+        try:
+            if not str(provider_number).isdigit():
+                return _json_error("not_found", 404)
+            provider_number_int = int(provider_number)
+        except Exception:
+            return _json_error("not_found", 404)
+
+        try:
+            with Session(engine) as s:
+                p = (
+                    s.execute(
+                        select(Provider).where(Provider.provider_number == provider_number_int)
+                    )
+                    .scalars()
+                    .first()
+                )
+                if not p:
+                    return _json_error("not_found", 404)
+
+                now_db = _to_db_utc_naive(_now())
+                rows = (
+                    s.execute(
+                        select(Slot)
+                        .where(
+                            Slot.provider_id == p.id,
+                            Slot.status == SLOT_STATUS_PUBLISHED,
+                            Slot.archived == False,
+                            Slot.start_at >= now_db,
+                        )
+                        .order_by(Slot.start_at.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+
+                review_rows = (
+                    s.execute(
+                        select(Review)
+                        .where(Review.provider_id == p.id)
+                        .order_by(Review.created_at.desc())
+                    )
+                    .scalars()
+                    .all()
+                )
+
+            provider = {
+                "name": p.public_name,
+                "branch": p.branch,
+                "address": p.public_address,
+                "street": p.street,
+                "zip": p.zip,
+                "city": p.city,
+                "phone": p.phone,
+                "whatsapp": p.whatsapp,
+                "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
+                "about_text": getattr(p, "about_text", None),
+                "opening_hours": getattr(p, "opening_hours", None),
+                "website_url": getattr(p, "website_url", None),
+                "instagram_url": getattr(p, "instagram_url", None),
+                "facebook_url": getattr(p, "facebook_url", None),
+                "tiktok_url": getattr(p, "tiktok_url", None),
+                "languages": getattr(p, "languages", None),
+                "specialties": getattr(p, "specialties", None),
+                "payment_methods": getattr(p, "payment_methods", None),
+                "cancellation_policy": getattr(p, "cancellation_policy", None),
+                "directions": getattr(p, "directions", None),
+                "gallery_urls": getattr(p, "gallery_urls", None),
+            }
+
+            slots = []
+            availability_map: dict[date, list[dict]] = {}
+            for slot in rows:
+                start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+                end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
+                price_eur = None
+                if slot.price_cents:
+                    price_eur = f"{float(slot.price_cents) / 100:.2f}"
+                slots.append(
+                    {
+                        "id": str(slot.id),
+                        "title": slot.title,
+                        "category": slot.category,
+                        "start_date": start_local.strftime("%d.%m.%Y"),
+                        "start_time": start_local.strftime("%H:%M"),
+                        "end_time": end_local.strftime("%H:%M"),
+                        "address": slot.public_address(),
+                        "price_eur": price_eur,
+                        "description": slot.description,
+                    }
+                )
+                availability_map.setdefault(start_local.date(), []).append(
+                    {
+                        "title": slot.title,
+                        "start_time": start_local.strftime("%H:%M"),
+                        "end_time": end_local.strftime("%H:%M"),
+                    }
+                )
+
+            availability_days = []
+            today_local = _now().astimezone(BERLIN).date()
+            for i in range(14):
+                day = today_local + timedelta(days=i)
+                day_slots = availability_map.get(day, [])
+                availability_days.append(
+                    {
+                        "date": day,
+                        "label": day.strftime("%a, %d.%m"),
+                        "slots": day_slots,
+                        "count": len(day_slots),
+                    }
+                )
+
+            reviews = []
+            rating_sum = 0
+            for r in review_rows:
+                rating_sum += int(r.rating or 0)
+                name = (r.reviewer_name or "").strip()
+                display_name = name
+                if name and " " in name:
+                    first, *rest = name.split(" ")
+                    last_initial = f"{rest[-1][:1]}." if rest else ""
+                    display_name = f"{first} {last_initial}".strip()
+                reviews.append(
+                    {
+                        "id": str(r.id),
+                        "rating": int(r.rating or 0),
+                        "comment": r.comment,
+                        "reviewer_name": display_name or "Anonym",
+                        "created_at": r.created_at,
+                        "reply_text": r.reply_text,
+                        "replied_at": r.replied_at,
+                    }
+                )
+
+            review_count = len(reviews)
+            review_avg = round((rating_sum / review_count), 1) if review_count else None
+
+            return render_template(
+                "anbieter_profil.html",
+                provider=provider,
+                slots=slots,
+                availability_days=availability_days,
+                reviews=reviews,
+                review_avg=review_avg,
+                review_count=review_count,
+                frontend_url=FRONTEND_URL,
+            )
+        except Exception:
+            app.logger.exception("public_provider_profile failed")
+            return _json_error("server_error", 500)
+
+    @app.get("/bewertung")
+    def review_page():
+        token = request.args.get("token")
+        booking_id = _verify_review_token(token) if token else None
+        if not booking_id:
+            return render_template("bewertung.html", error="Ungültiger Bewertungslink.")
+
+        try:
+            with Session(engine) as s:
+                b = s.get(Booking, booking_id)
+                if not b:
+                    return render_template("bewertung.html", error="Buchung nicht gefunden.")
+                if b.status != "confirmed":
+                    return render_template("bewertung.html", error="Diese Buchung ist nicht bestätigt.")
+                slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+                provider_obj = s.get(Provider, b.provider_id) if b.provider_id else None
+                if not slot_obj or not provider_obj:
+                    return render_template("bewertung.html", error="Termin nicht gefunden.")
+
+                if _as_utc_aware(slot_obj.end_at) > _now():
+                    return render_template(
+                        "bewertung.html",
+                        error="Du kannst den Termin erst nach dem Stattfinden bewerten.",
+                    )
+
+                existing = (
+                    s.execute(select(Review).where(Review.booking_id == str(b.id)))
+                    .scalars()
+                    .first()
+                )
+                if existing:
+                    return render_template(
+                        "bewertung.html",
+                        success="Vielen Dank! Deine Bewertung wurde bereits gespeichert.",
+                    )
+
+                slot_start_local = _as_utc_aware(slot_obj.start_at).astimezone(BERLIN)
+                slot_end_local = _as_utc_aware(slot_obj.end_at).astimezone(BERLIN)
+
+                return render_template(
+                    "bewertung.html",
+                    token=token,
+                    provider_name=provider_obj.public_name,
+                    slot_title=slot_obj.title,
+                    slot_date=slot_start_local.strftime("%d.%m.%Y"),
+                    slot_time=f"{slot_start_local.strftime('%H:%M')} – {slot_end_local.strftime('%H:%M')}",
+                )
+        except Exception:
+            app.logger.exception("review_page failed")
+            return render_template("bewertung.html", error="Serverfehler.")
+
+    @app.post("/bewertung")
+    def review_submit():
+        token = request.form.get("token")
+        booking_id = _verify_review_token(token) if token else None
+        if not booking_id:
+            return render_template("bewertung.html", error="Ungültiger Bewertungslink.")
+
+        try:
+            rating = int(request.form.get("rating") or 0)
+        except Exception:
+            rating = 0
+        comment = (request.form.get("comment") or "").strip()
+        if rating < 1 or rating > 5:
+            return render_template("bewertung.html", error="Bitte eine Bewertung von 1 bis 5 auswählen.")
+        if len(comment) > 1000:
+            return render_template("bewertung.html", error="Kommentar ist zu lang (max. 1000 Zeichen).")
+
+        try:
+            with Session(engine) as s:
+                b = s.get(Booking, booking_id)
+                if not b or b.status != "confirmed":
+                    return render_template("bewertung.html", error="Buchung nicht gefunden.")
+                slot_obj = s.get(Slot, b.slot_id) if b.slot_id else None
+                if not slot_obj or _as_utc_aware(slot_obj.end_at) > _now():
+                    return render_template("bewertung.html", error="Bewertung noch nicht möglich.")
+
+                existing = (
+                    s.execute(select(Review).where(Review.booking_id == str(b.id)))
+                    .scalars()
+                    .first()
+                )
+                if existing:
+                    return render_template(
+                        "bewertung.html",
+                        success="Vielen Dank! Deine Bewertung wurde bereits gespeichert.",
+                    )
+
+                review = Review(
+                    provider_id=b.provider_id,
+                    booking_id=str(b.id),
+                    reviewer_name=b.customer_name,
+                    rating=rating,
+                    comment=comment or None,
+                )
+                s.add(review)
+                s.commit()
+
+            return render_template(
+                "bewertung.html",
+                success="Vielen Dank! Deine Bewertung wurde gespeichert.",
+            )
+        except Exception:
+            app.logger.exception("review_submit failed")
+            return render_template("bewertung.html", error="Serverfehler.")
 
     @app.get("/impressum")
     def impressum():
@@ -2578,7 +3016,7 @@ def public_contact():
         if not name or not email or not subject or not message:
             return _json_error("missing_fields", 400)
         try:
-            email = validate_email(email).email
+            email = validate_email(email).normalized
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
@@ -2676,7 +3114,7 @@ def register():
         password = data.get("password") or ""
 
         try:
-            email = validate_email(email).email
+            email = validate_email(email).normalized
         except EmailNotValidError:
             return _json_error("invalid_email")
         if len(password) < 8:
@@ -3190,6 +3628,14 @@ def me():
             except Exception:
                 pass
 
+        calendar_token = _provider_calendar_token(str(p.id))
+        base_url = _external_base()
+        calendar_ics_url = f"{base_url}/public/provider/{p.id}/calendar.ics?token={calendar_token}"
+        calendar_webcal_url = (
+            calendar_ics_url.replace("https://", "webcal://")
+            .replace("http://", "webcal://")
+        )
+
         return jsonify(
             {
                 "id": p.id,
@@ -3207,6 +3653,18 @@ def me():
                 "whatsapp": p.whatsapp,
                 "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
                 "consent_logo_display": bool(getattr(p, "consent_logo_display", False)),
+                "about_text": getattr(p, "about_text", None),
+                "opening_hours": getattr(p, "opening_hours", None),
+                "website_url": getattr(p, "website_url", None),
+                "instagram_url": getattr(p, "instagram_url", None),
+                "facebook_url": getattr(p, "facebook_url", None),
+                "tiktok_url": getattr(p, "tiktok_url", None),
+                "languages": getattr(p, "languages", None),
+                "specialties": getattr(p, "specialties", None),
+                "payment_methods": getattr(p, "payment_methods", None),
+                "cancellation_policy": getattr(p, "cancellation_policy", None),
+                "directions": getattr(p, "directions", None),
+                "gallery_urls": getattr(p, "gallery_urls", None),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -3217,6 +3675,8 @@ def me():
                 "slots_used_this_month": int(slots_used),
                 "slots_left_this_month": slots_left,
                 "slots_unlimited": unlimited,
+                "calendar_ics_url": calendar_ics_url,
+                "calendar_webcal_url": calendar_webcal_url,
             }
         )
 
@@ -3226,7 +3686,28 @@ def me():
 def me_update():
     try:
         data = request.get_json(force=True) or {}
-        allowed = {"company_name", "branch", "street", "zip", "city", "phone", "whatsapp", "logo_url"}
+        allowed = {
+            "company_name",
+            "branch",
+            "street",
+            "zip",
+            "city",
+            "phone",
+            "whatsapp",
+            "logo_url",
+            "about_text",
+            "opening_hours",
+            "website_url",
+            "instagram_url",
+            "facebook_url",
+            "tiktok_url",
+            "languages",
+            "specialties",
+            "payment_methods",
+            "cancellation_policy",
+            "directions",
+            "gallery_urls",
+        }
 
         def clean(v):
             if v is None:
@@ -3234,10 +3715,21 @@ def me_update():
             v = str(v).strip()
             return v or None
 
+        def clean_multiline(v):
+            if v is None:
+                return None
+            lines = [ln.strip() for ln in str(v).splitlines()]
+            lines = [ln for ln in lines if ln]
+            return "\n".join(lines) or None
+
         # house_number akzeptieren und verarbeiten
         house_number = clean(data.get("house_number"))
         
         upd = {k: clean(v) for k, v in data.items() if k in allowed}
+
+        for key in ("about_text", "opening_hours", "cancellation_policy", "directions", "gallery_urls"):
+            if key in data:
+                upd[key] = clean_multiline(data.get(key))
 
         # Wenn house_number vorhanden ist, mit street kombinieren
         if house_number:
@@ -3424,6 +3916,162 @@ def me_logo_delete():
         return jsonify({"error": "server_error"}), 500
 
 
+def _parse_gallery_urls(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    lines = [ln.strip() for ln in str(raw).splitlines()]
+    return [ln for ln in lines if ln]
+
+
+def _normalize_gallery_urls(urls: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for url in urls:
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append(url)
+    return out
+
+
+def _compress_gallery_image(file_storage) -> tuple[bytes, str]:
+    file_storage.stream.seek(0)
+    try:
+        img = Image.open(file_storage.stream)
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        raise ValueError("invalid_gallery_format")
+    fmt = (img.format or "").upper()
+    if fmt not in ("JPEG", "PNG"):
+        raise ValueError("invalid_gallery_format")
+
+    width, height = img.size
+    max_dim = max(width, height)
+    if max_dim > GALLERY_MAX_DIM_PX:
+        scale = GALLERY_MAX_DIM_PX / max_dim
+        new_size = (int(width * scale), int(height * scale))
+        img = img.resize(new_size, Image.LANCZOS)
+
+    has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+    out = io.BytesIO()
+    if fmt == "PNG" and has_alpha:
+        img.save(out, format="PNG", optimize=True)
+        ext = "png"
+    else:
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        img.save(out, format="JPEG", quality=GALLERY_JPEG_QUALITY, optimize=True, progressive=True)
+        ext = "jpg"
+    data = out.getvalue()
+    return data, ext
+
+
+@app.post("/me/gallery")
+@auth_required()
+def me_gallery_upload():
+    try:
+        files = request.files.getlist("images")
+        if not files and "image" in request.files:
+            files = [request.files["image"]]
+        if not files:
+            return _json_error("missing_file", 400)
+
+        new_urls: list[str] = []
+        for file in files:
+            if not file or not file.filename:
+                return _json_error("missing_file", 400)
+
+            file.stream.seek(0, os.SEEK_END)
+            size = file.stream.tell()
+            file.stream.seek(0)
+            if size > GALLERY_MAX_BYTES:
+                return _json_error("gallery_too_large", 400)
+
+            try:
+                img = Image.open(file.stream)
+                img.verify()
+            except UnidentifiedImageError:
+                return _json_error("invalid_gallery_format", 400)
+            except Exception:
+                return _json_error("invalid_gallery_format", 400)
+            finally:
+                file.stream.seek(0)
+
+            try:
+                img = Image.open(file.stream)
+                fmt = (img.format or "").upper()
+            except Exception:
+                return _json_error("invalid_gallery_format", 400)
+            finally:
+                file.stream.seek(0)
+
+            if fmt not in ("JPEG", "PNG"):
+                return _json_error("invalid_gallery_format", 400)
+
+            ext = "png" if fmt == "PNG" else "jpg"
+            filename = f"{request.provider_id}-{uuid4().hex}.{ext}"
+            target_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+            with open(target_path, "wb") as out:
+                out.write(file.stream.read())
+
+            new_urls.append(f"/static/uploads/provider-gallery/{filename}")
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            existing = _parse_gallery_urls(getattr(p, "gallery_urls", None))
+            merged = _normalize_gallery_urls(existing + new_urls)
+            if len(merged) > GALLERY_MAX_COUNT:
+                return _json_error("gallery_too_many", 400)
+            p.gallery_urls = "\n".join(merged) if merged else None
+            s.commit()
+
+        return jsonify({"ok": True, "gallery_urls": merged})
+    except Exception:
+        app.logger.exception("me_gallery_upload failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.delete("/me/gallery")
+@auth_required()
+def me_gallery_delete():
+    try:
+        data = request.get_json(force=True) or {}
+        url = (data.get("url") or "").strip()
+        if not url:
+            return _json_error("missing_url", 400)
+        clean_url = url.split("?", 1)[0]
+        if not clean_url.startswith("/static/uploads/provider-gallery/"):
+            return _json_error("invalid_gallery_url", 400)
+        filename = os.path.basename(clean_url)
+        if not filename or "/" in filename or "\\" in filename:
+            return _json_error("invalid_gallery_url", 400)
+
+        removed = False
+        path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                removed = True
+            except Exception:
+                pass
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            existing = _parse_gallery_urls(getattr(p, "gallery_urls", None))
+            filtered = [u for u in existing if u.split("?", 1)[0] != clean_url]
+            p.gallery_urls = "\n".join(filtered) if filtered else None
+            s.commit()
+
+        return jsonify({"ok": True, "deleted": removed, "gallery_urls": filtered})
+    except Exception:
+        app.logger.exception("me_gallery_delete failed")
+        return jsonify({"error": "server_error"}), 500
+
+
 @app.post("/me/cancel_plan")
 @auth_required()
 def cancel_plan():
@@ -3456,6 +4104,55 @@ def cancel_plan():
     except Exception:
         app.logger.exception("cancel_plan failed")
         return jsonify({"error": "server_error"}), 500
+
+
+# --------------------------------------------------------
+# Provider Reviews (Antworten)
+# --------------------------------------------------------
+@app.get("/provider/reviews")
+@auth_required()
+def provider_reviews_list():
+    try:
+        with Session(engine) as s:
+            rows = (
+                s.execute(
+                    select(Review)
+                    .where(Review.provider_id == request.provider_id)
+                    .order_by(Review.created_at.desc())
+                )
+                .scalars()
+                .all()
+            )
+            return jsonify([r.to_public_dict() for r in rows])
+    except Exception:
+        app.logger.exception("provider_reviews_list failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/provider/reviews/<review_id>/reply")
+@auth_required()
+def provider_reviews_reply(review_id):
+    try:
+        data = request.get_json(force=True) or {}
+        reply_text = (data.get("reply_text") or "").strip()
+        if len(reply_text) > 1000:
+            return _json_error("reply_too_long", 400)
+
+        with Session(engine) as s:
+            review = s.get(Review, review_id)
+            if not review or str(review.provider_id) != str(request.provider_id):
+                return _json_error("not_found", 404)
+            if reply_text:
+                review.reply_text = reply_text
+                review.replied_at = _to_db_utc_naive(_now())
+            else:
+                review.reply_text = None
+                review.replied_at = None
+            s.commit()
+            return jsonify({"ok": True, "review": review.to_public_dict()})
+    except Exception:
+        app.logger.exception("provider_reviews_reply failed")
+        return _json_error("server_error", 500)
 
 
 # --------------------------------------------------------
@@ -3769,6 +4466,85 @@ def notify_alerts_for_slot(slot_id: str) -> None:
                 return
 
 
+def _maybe_send_due_booking_reminders() -> None:
+    global _REMINDER_LAST_RUN
+    now_ts = time.time()
+    if now_ts - _REMINDER_LAST_RUN < REMINDER_RUN_INTERVAL_SEC:
+        return
+    if not _REMINDER_LOCK.acquire(blocking=False):
+        return
+    try:
+        _REMINDER_LAST_RUN = now_ts
+        now = _now()
+        window_end = now + timedelta(hours=REMINDER_LEAD_HOURS)
+        with Session(engine) as s:
+            rows = (
+                s.execute(
+                    select(Booking, Slot, Provider)
+                    .join(Slot, Slot.id == Booking.slot_id)
+                    .join(Provider, Provider.id == Booking.provider_id)
+                    .where(
+                        Booking.status == "confirmed",
+                        Booking.reminder_opt_in == True,
+                        Booking.reminder_sent_at.is_(None),
+                        Slot.start_at > _to_db_utc_naive(now),
+                        Slot.start_at <= _to_db_utc_naive(window_end),
+                    )
+                )
+                .all()
+            )
+            if not rows:
+                return
+            for b, slot, provider in rows:
+                try:
+                    slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+                    slot_end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
+                    start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+                    end_str = slot_end_local.strftime("%H:%M")
+                    slot_address = slot.public_address() if hasattr(slot, "public_address") else (slot.location or "")
+                    if not slot_address and provider:
+                        provider_address = f"{provider.zip or ''} {provider.city or ''}".strip()
+                        if provider.street:
+                            provider_address = f"{provider.street}, {provider_address}".strip()
+                        slot_address = provider_address
+
+                    channel = (getattr(b, "reminder_channel", None) or "email").lower()
+                    phone = (getattr(b, "customer_phone", None) or "").strip()
+                    if channel == "whatsapp" and phone:
+                        msg = (
+                            f"Erinnerung: Dein Termin steht an.\n"
+                            f"{slot.title} am {start_str}–{end_str}\n"
+                            f"{slot_address}".strip()
+                        )
+                        send_sms(phone, msg)
+                    else:
+                        email_body = f"Hallo {b.customer_name},\n\n"
+                        email_body += "Erinnerung: Dein Termin ist in ca. 24 Stunden.\n\n"
+                        email_body += f"Termin: {slot.title}\n"
+                        email_body += f"Kategorie: {slot.category}\n"
+                        email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+                        if slot_address:
+                            email_body += f"Ort: {slot_address}\n"
+                        if provider:
+                            email_body += f"Anbieter: {provider.company_name or provider.public_name}\n"
+                        email_body += "\nBis bald!\n"
+
+                        send_mail(
+                            b.customer_email,
+                            "Termin-Erinnerung (24h vorher)",
+                            text=email_body,
+                            tag="booking_reminder",
+                            metadata={"booking_id": str(b.id), "slot_id": str(slot.id)},
+                        )
+                    b.reminder_sent_at = _now()
+                    s.commit()
+                except Exception:
+                    app.logger.exception("booking reminder send failed")
+                    s.rollback()
+    finally:
+        _REMINDER_LOCK.release()
+
+
 @app.get("/api/alerts/stats")
 def alert_stats():
     email = (request.args.get("email") or "").strip().lower()
@@ -3776,7 +4552,7 @@ def alert_stats():
         return _json_error("email_required", 400)
 
     try:
-        email = validate_email(email).email
+        email = validate_email(email).normalized
     except EmailNotValidError:
         return _json_error("invalid_email", 400)
 
@@ -4109,7 +4885,7 @@ def create_alert():
             return _json_error("invalid_zip", 400)
 
         try:
-            email = validate_email(email).email
+            email = validate_email(email).normalized
         except EmailNotValidError:
             return _json_error("invalid_email", 400)
 
@@ -6334,6 +7110,64 @@ def _verify_booking_token(token: str) -> str | None:
         return None
 
 
+REVIEW_TOKEN_TTL_DAYS = 120
+
+
+def _review_token(booking_id: str) -> str:
+    return jwt.encode(
+        {
+            "sub": booking_id,
+            "typ": "review",
+            "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=REVIEW_TOKEN_TTL_DAYS)).timestamp()),
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+
+
+def _verify_review_token(token: str) -> str | None:
+    try:
+        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
+        return data.get("sub") if data.get("typ") == "review" else None
+    except Exception:
+        return None
+
+
+PROVIDER_CALENDAR_TOKEN_TTL_DAYS = 365
+
+
+def _provider_calendar_token(provider_id: str) -> str:
+    return jwt.encode(
+        {
+            "sub": provider_id,
+            "typ": "provider_calendar",
+            "iss": JWT_ISS,
+            "exp": int((_now() + timedelta(days=PROVIDER_CALENDAR_TOKEN_TTL_DAYS)).timestamp()),
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+
+
+def _verify_provider_calendar_token(token: str) -> str | None:
+    try:
+        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
+        return data.get("sub") if data.get("typ") == "provider_calendar" else None
+    except Exception:
+        return None
+
+
+def _escape_ical_text(text: str | None) -> str:
+    if not text:
+        return ""
+    text = str(text).replace("\\", "\\\\")
+    text = text.replace(",", "\\,")
+    text = text.replace(";", "\\;")
+    text = text.replace("\n", "\\n")
+    return text
+
+
 def _haversine_km(lat1, lon1, lat2, lon2):
     from math import radians, sin, cos, atan2, sqrt
 
@@ -6352,6 +7186,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 @app.get("/public/slots")
 def public_slots():
+    _maybe_send_due_booking_reminders()
     q_text = (request.args.get("q") or "").strip()
     location_raw = (request.args.get("location") or "").strip()
     if not location_raw:
@@ -6651,12 +7486,20 @@ def public_book():
     slot_id = (data.get("slot_id") or "").strip()
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
+    phone = (data.get("phone") or "").strip()
+    reminder_opt_in = data.get("reminder_opt_in", True)
+    reminder_channel = (data.get("reminder_channel") or "email").strip().lower()
 
     if not slot_id or not name or not email:
         return _json_error("missing_fields")
 
+    if reminder_channel not in ("email", "whatsapp"):
+        reminder_channel = "email"
+    if reminder_channel == "whatsapp" and not phone:
+        return _json_error("missing_phone_for_whatsapp", 400)
+
     try:
-        email = validate_email(email).email
+        email = validate_email(email).normalized
     except EmailNotValidError:
         return _json_error("invalid_email", 400)
 
@@ -6717,8 +7560,11 @@ def public_book():
             provider_id=slot.provider_id,
             customer_name=name,
             customer_email=email,
+            customer_phone=phone or None,
             status="hold",
             provider_fee_eur=fee,
+            reminder_opt_in=bool(reminder_opt_in),
+            reminder_channel=reminder_channel,
         )
         s.add(b)
         s.commit()
@@ -6769,12 +7615,14 @@ def public_book():
 
 @app.get("/public/confirm")
 def public_confirm():
+    _maybe_send_due_booking_reminders()
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
         return _json_error("invalid_token", 400)
 
     try:
+        similar_slots: list[dict] = []
         with Session(engine) as s:
             b = s.get(Booking, booking_id, with_for_update=True)
             if not b:
@@ -6846,6 +7694,17 @@ def public_confirm():
                     confirm_email_body += f"Preis: {price_euro:.2f} €\n"
                 confirm_email_body += f"\n"
                 confirm_email_body += f"Wir freuen uns auf deinen Besuch!\n"
+                review_link = f"{_external_base()}/bewertung?token={_review_token(str(b.id))}"
+                confirm_email_body += (
+                    "\nNach dem Termin freuen wir uns über eine kurze Bewertung:\n"
+                    f"{review_link}\n"
+                )
+                if getattr(b, "reminder_opt_in", True):
+                    channel = (getattr(b, "reminder_channel", None) or "email").lower()
+                    confirm_email_body += (
+                        f"\nErinnerung: Wir schicken dir 24h vorher eine Erinnerung per "
+                        f"{'WhatsApp' if channel == 'whatsapp' else 'E-Mail'}.\n"
+                    )
 
                 send_mail(
                     b.customer_email,
@@ -6936,6 +7795,41 @@ def public_confirm():
                     "city": provider_obj.city,
                     "street": provider_obj.street,
                 }
+
+            similar_slots = []
+            if slot_obj is not None and slot_obj.category:
+                sim_rows = (
+                    s.execute(
+                        select(Slot, Provider)
+                        .join(Provider, Provider.id == Slot.provider_id)
+                        .where(
+                            Slot.id != slot_obj.id,
+                            Slot.status == SLOT_STATUS_PUBLISHED,
+                            Slot.archived == False,
+                            Slot.category == slot_obj.category,
+                            Slot.start_at >= _to_db_utc_naive(_now()),
+                        )
+                        .order_by(Slot.start_at.asc())
+                        .limit(4)
+                    )
+                    .all()
+                )
+                for sim_slot, sim_provider in sim_rows:
+                    start_local = _as_utc_aware(sim_slot.start_at).astimezone(BERLIN)
+                    end_local = _as_utc_aware(sim_slot.end_at).astimezone(BERLIN)
+                    similar_slots.append(
+                        {
+                            "id": str(sim_slot.id),
+                            "title": sim_slot.title,
+                            "category": sim_slot.category,
+                            "start_date": start_local.strftime("%d.%m.%Y"),
+                            "start_time": start_local.strftime("%H:%M"),
+                            "end_time": end_local.strftime("%H:%M"),
+                            "provider_name": sim_provider.public_name,
+                            "provider_number": sim_provider.provider_number,
+                            "address": sim_slot.public_address() if hasattr(sim_slot, "public_address") else "",
+                        }
+                    )
 
         # Kalender-Links vorbereiten
         calendar_links = None
@@ -7030,6 +7924,7 @@ def public_confirm():
             base_url=BASE_URL,  # Backend-URL für Kalender-Download
             booking_token=token,  # Token für Kalender-Download
             calendar_links=calendar_links,  # Kalender-Links
+            similar_slots=similar_slots,
         )
     except Exception:
         app.logger.exception("public_confirm failed")
@@ -7147,6 +8042,120 @@ def public_booking_calendar(booking_id):
             
     except Exception as e:
         app.logger.exception("public_booking_calendar failed")
+        return _json_error("server_error", 500)
+
+
+@app.get("/public/provider/<provider_id>/calendar.ics")
+def public_provider_calendar(provider_id):
+    """Generiert eine .ics Datei für veröffentlichte Provider-Slots."""
+    token = request.args.get("token")
+    verified_provider_id = _verify_provider_calendar_token(token) if token else None
+
+    if not verified_provider_id or str(verified_provider_id) != str(provider_id):
+        return _json_error("invalid_token", 400)
+
+    try:
+        with Session(engine) as s:
+            provider_obj = s.get(Provider, provider_id)
+            if not provider_obj:
+                return _json_error("not_found", 404)
+
+            now_db = _to_db_utc_naive(_now())
+            booking_counts = (
+                select(Booking.slot_id, func.count().label("booked"))
+                .where(Booking.status == "confirmed")
+                .group_by(Booking.slot_id)
+                .subquery()
+            )
+
+            q = (
+                select(
+                    Slot,
+                    func.coalesce(booking_counts.c.booked, 0).label("booked"),
+                )
+                .outerjoin(booking_counts, booking_counts.c.slot_id == Slot.id)
+                .where(
+                    Slot.provider_id == provider_id,
+                    Slot.status == "PUBLISHED",
+                    Slot.archived == False,
+                    Slot.start_at >= now_db,
+                )
+                .order_by(Slot.start_at.asc())
+            )
+
+            rows = s.execute(q).all()
+
+        lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Terminmarktplatz//Provider Slots//DE",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+        ]
+
+        created_utc = _now().strftime("%Y%m%dT%H%M%SZ")
+
+        for slot_obj, booked in rows:
+            start_dt = _as_utc_aware(slot_obj.start_at)
+            end_dt = _as_utc_aware(slot_obj.end_at)
+            start_utc = start_dt.strftime("%Y%m%dT%H%M%SZ")
+            end_utc = end_dt.strftime("%Y%m%dT%H%M%SZ")
+
+            title = slot_obj.title or "Termin"
+            summary = title
+            if slot_obj.category:
+                summary = f"{title} ({slot_obj.category})"
+
+            slot_address = (
+                slot_obj.public_address()
+                if hasattr(slot_obj, "public_address")
+                else (slot_obj.location or "")
+            )
+
+            description_parts = [f"Termin: {title}"]
+            if slot_obj.category:
+                description_parts.append(f"Kategorie: {slot_obj.category}")
+            if slot_address:
+                description_parts.append(f"Ort: {slot_address}")
+            if slot_obj.notes:
+                description_parts.append(f"Hinweise: {slot_obj.notes}")
+
+            cap = int(slot_obj.capacity or 1)
+            booked_int = int(booked or 0)
+            if booked_int > 0:
+                description_parts.append(f"Gebucht: {booked_int}/{cap}")
+            else:
+                description_parts.append(f"Kapazität: {cap}")
+
+            description = "\n".join(description_parts)
+
+            lines.extend(
+                [
+                    "BEGIN:VEVENT",
+                    f"UID:slot-{slot_obj.id}@terminmarktplatz.de",
+                    f"DTSTAMP:{created_utc}",
+                    f"DTSTART:{start_utc}",
+                    f"DTEND:{end_utc}",
+                    f"SUMMARY:{_escape_ical_text(summary)}",
+                    f"DESCRIPTION:{_escape_ical_text(description)}",
+                    "STATUS:CONFIRMED",
+                    "SEQUENCE:0",
+                ]
+            )
+            if slot_address:
+                lines.append(f"LOCATION:{_escape_ical_text(slot_address)}")
+            lines.append("END:VEVENT")
+
+        lines.append("END:VCALENDAR")
+
+        ics_content = "\r\n".join(lines)
+        response = make_response(ics_content)
+        response.headers["Content-Type"] = "text/calendar; charset=utf-8"
+        response.headers["Content-Disposition"] = 'inline; filename="terminmarktplatz-slots.ics"'
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+    except Exception:
+        app.logger.exception("public_provider_calendar failed")
         return _json_error("server_error", 500)
 
 

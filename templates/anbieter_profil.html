@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ provider.name }} | Terminmarktplatz</title>
+  <meta name="description" content="Öffentliches Anbieterprofil mit verfügbaren Terminen." />
+  <meta name="theme-color" content="#6f53ff" />
+  <base href="/" />
+
+  <link rel="icon" href="static/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+
+  <style>
+    .profile-grid{display:grid; gap:16px}
+    @media(min-width: 920px){ .profile-grid{grid-template-columns: 1fr 1.2fr} }
+    .profile-card{display:flex; gap:12px; align-items:center}
+    .profile-logo{width:72px; height:72px; border-radius:14px; object-fit:cover; border:1px solid #e2e8f0; background:#fff}
+    .slot-table .badge{font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--border)}
+    .badge-cat{background:#eef2ff; color:#4338ca}
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#f8fafc;
+      color:#0f172a;
+      font-size:12px;
+      font-weight:600;
+    }
+    .price{font-weight:700}
+    .gallery-grid{
+      display:grid;
+      gap:10px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      margin-top:10px;
+    }
+    .gallery-grid img{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid #e2e8f0;
+      background:#fff;
+    }
+    .availability-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap:10px;
+      margin:10px 0 16px;
+    }
+    .availability-day{
+      padding:10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+    }
+    .availability-day strong{display:block; margin-bottom:4px;}
+    .availability-day .count{font-size:12px; color:#475569;}
+    .book-actions{
+      display:flex;
+      gap:8px;
+      justify-content:flex-end;
+      margin-top:6px;
+    }
+    .booking-cancel-btn{
+      background: rgba(111, 83, 255, 0.08);
+      border: 1px solid rgba(111, 83, 255, 0.35);
+      color: #111827;
+      box-shadow: none;
+    }
+    .booking-cancel-btn:hover{
+      background: rgba(111, 83, 255, 0.16);
+      border-color: rgba(111, 83, 255, 0.7);
+    }
+    #book-dialog{
+      border:none;
+      border-radius:18px;
+      padding:0;
+      max-width:480px;
+      width:calc(100% - 32px);
+      max-height:calc(100vh - 32px);
+      background:#fff;
+      color:#111;
+      box-shadow:0 10px 40px rgba(0,0,0,.25);
+    }
+    #book-dialog::backdrop{
+      background:rgba(20,16,40,.55);
+      backdrop-filter:blur(4px) saturate(130%);
+    }
+    .book-dialog-content{
+      padding:28px 24px;
+      max-height:calc(100vh - 32px);
+      overflow-y:auto;
+    }
+    .cta-group{ display:none !important; }
+  </style>
+</head>
+<body>
+  {% include "_header.html" %}
+
+  <main>
+    <section class="hero" style="padding:36px 0 18px">
+      <div class="container">
+        <span class="badge">Öffentliches Profil</span>
+        <h1>{{ provider.name }}</h1>
+        {% if provider.branch %}
+          <p class="lead">{{ provider.branch }}</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section>
+      <div class="container profile-grid">
+        <div class="panel">
+          <div class="profile-card">
+            {% if provider.logo_url %}
+              <img class="profile-logo" src="{{ provider.logo_url }}" alt="Logo {{ provider.name }}">
+            {% endif %}
+            <div>
+              <div style="font-weight:700; font-size:1.1rem;">{{ provider.name }}</div>
+              {% if provider.address %}
+                <div class="muted">{{ provider.address }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            {% if provider.phone %}
+              <div><strong>Telefon:</strong> <a href="tel:{{ provider.phone }}">{{ provider.phone }}</a></div>
+            {% endif %}
+            {% if provider.whatsapp %}
+              <div><strong>WhatsApp:</strong> <a href="https://wa.me/{{ provider.whatsapp|replace('+','') }}">{{ provider.whatsapp }}</a></div>
+            {% endif %}
+          </div>
+
+          {% if provider.website_url or provider.instagram_url or provider.facebook_url or provider.tiktok_url %}
+            <div style="margin-top:12px">
+              <strong>Links</strong>
+              {% if provider.website_url %}
+                <div>🌐 Website: <a href="{{ provider.website_url }}" target="_blank" rel="noopener">{{ provider.website_url }}</a></div>
+              {% endif %}
+              {% if provider.instagram_url %}
+                <div>📸 Instagram: <a href="{{ provider.instagram_url }}" target="_blank" rel="noopener">{{ provider.instagram_url }}</a></div>
+              {% endif %}
+              {% if provider.facebook_url %}
+                <div>👍 Facebook: <a href="{{ provider.facebook_url }}" target="_blank" rel="noopener">{{ provider.facebook_url }}</a></div>
+              {% endif %}
+              {% if provider.tiktok_url %}
+                <div>🎵 TikTok: <a href="{{ provider.tiktok_url }}" target="_blank" rel="noopener">{{ provider.tiktok_url }}</a></div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if provider.about_text %}
+            <div style="margin-top:12px">
+              <strong>Kurzbeschreibung</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.about_text }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.opening_hours %}
+            <div style="margin-top:12px">
+              <strong>Öffnungszeiten</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.opening_hours }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.languages %}
+            {% set langs = provider.languages.replace(';', ',').split(',') %}
+            <div style="margin-top:12px">
+              <strong>Sprachen</strong>
+              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                {% for l in langs %}
+                  {% if l.strip() %}
+                    <span class="tag">{{ l.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if provider.specialties %}
+            {% set specs = provider.specialties.replace(';', ',').split(',') %}
+            <div style="margin-top:12px">
+              <strong>Spezialisierungen</strong>
+              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                {% for s in specs %}
+                  {% if s.strip() %}
+                    <span class="tag">{{ s.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if provider.payment_methods %}
+            {% set pays = provider.payment_methods.replace(';', ',').split(',') %}
+            <div style="margin-top:12px">
+              <strong>Zahlungsmethoden</strong>
+              <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                {% for p in pays %}
+                  {% if p.strip() %}
+                    <span class="tag">{{ p.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if provider.cancellation_policy %}
+            <div style="margin-top:12px">
+              <strong>Stornobedingungen</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.cancellation_policy }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.directions %}
+            <div style="margin-top:12px">
+              <strong>Anfahrt / Parken</strong>
+              <div class="muted" style="margin-top:4px; white-space:pre-line;">{{ provider.directions }}</div>
+            </div>
+          {% endif %}
+
+          {% if provider.gallery_urls %}
+            {% set gallery = provider.gallery_urls.splitlines() %}
+            <div style="margin-top:12px">
+              <strong>Galerie</strong>
+              <div class="gallery-grid">
+                {% for url in gallery %}
+                  {% if url.strip() %}
+                    <img src="{{ url.strip() }}" alt="Galerie Bild">
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="panel">
+          <h2>Verfügbarkeit (nächste 14 Tage)</h2>
+          {% if availability_days %}
+            <div class="availability-grid">
+              {% for d in availability_days %}
+                <div class="availability-day">
+                  <strong>{{ d.label }}</strong>
+                  {% if d.count > 0 %}
+                    <div class="count">{{ d.count }} Termine</div>
+                    <div class="muted" style="margin-top:4px; font-size:12px;">
+                      {% for s in d.slots[:2] %}
+                        <div>{{ s.start_time }}–{{ s.end_time }} · {{ s.title }}</div>
+                      {% endfor %}
+                      {% if d.count > 2 %}
+                        <div>+{{ d.count - 2 }} weitere</div>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <div class="count">Keine Termine</div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <h2>Verfügbare Termine</h2>
+          {% if slots and slots|length > 0 %}
+            <div class="table-wrap slot-table">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Zeit</th>
+                    <th>Titel</th>
+                    <th>Kategorie</th>
+                    <th>Ort</th>
+                    <th>Preis</th>
+                    <th>Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for s in slots %}
+                  <tr>
+                    <td>{{ s.start_date }}</td>
+                    <td>{{ s.start_time }} – {{ s.end_time }}</td>
+                    <td>
+                      <div style="font-weight:600;">{{ s.title }}</div>
+                      {% if s.description %}
+                        <div class="muted" style="font-size:12px;">{{ s.description }}</div>
+                      {% endif %}
+                    </td>
+                    <td><span class="badge badge-cat">{{ s.category }}</span></td>
+                    <td>{{ s.address }}</td>
+                    <td class="price">{% if s.price_eur %}{{ s.price_eur }} €{% else %}-{% endif %}</td>
+                    <td>
+                      <button class="btn" type="button" data-book="{{ s.id }}">Buchen</button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="muted">Aktuell sind keine öffentlichen Termine verfügbar.</div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <dialog id="book-dialog" aria-labelledby="book-title">
+      <div class="book-dialog-content">
+        <h3 id="book-title" style="margin-top:0">Termin buchen</h3>
+        <p id="book-sub" class="subtext" style="margin-bottom:10px">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+        <form id="book-form" style="display:grid; gap:10px; text-align:left">
+          <input type="hidden" id="book-slot-id" />
+          <label>Dein Name
+            <input id="book-name" type="text" required autocomplete="name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+          </label>
+          <label>E-Mail
+            <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+          </label>
+          <label>Telefon (optional für WhatsApp)
+            <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+          </label>
+          <label style="display:flex; gap:8px; align-items:center;">
+            <input id="book-reminder" type="checkbox" checked>
+            Erinnerung 24h vorher
+          </label>
+          <label style="display:flex; gap:8px; align-items:center;">
+            <span style="font-size:13px; color:#475569;">Erinnerung per:</span>
+            <select id="book-reminder-channel" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
+              <option value="email">E‑Mail</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </label>
+          <div class="book-actions">
+            <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
+            <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <div id="book-modal-mobile" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:999999; background:rgba(0,0,0,0.7); overflow-y:auto; -webkit-overflow-scrolling:touch;">
+      <div style="min-height:100%; display:flex; align-items:flex-end; justify-content:center; padding:0;">
+        <div style="background:#fff; width:100%; max-width:100%; border-radius:18px 18px 0 0; padding:24px 20px; box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+          <h3 style="margin-top:0; margin-bottom:8px; color:#111; font-size:20px;">Termin buchen</h3>
+          <p style="margin-bottom:16px; color:#666; font-size:14px;">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+          <form id="book-form-mobile" style="display:block;">
+            <input type="hidden" id="book-slot-id-mobile" />
+            <div style="margin-bottom:16px;">
+              <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Dein Name</label>
+              <input id="book-name-mobile" type="text" required autocomplete="name" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+            </div>
+            <div style="margin-bottom:20px;">
+              <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail</label>
+              <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+            </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
+            <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <input id="book-reminder-mobile" type="checkbox" checked />
+            <label for="book-reminder-mobile" style="font-weight:700; font-size:14px; color:#111;">Erinnerung 24h vorher</label>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Erinnerung per</label>
+            <select id="book-reminder-channel-mobile" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+              <option value="email">E‑Mail</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Buchung anfragen</button>
+              <button type="button" id="book-cancel-mobile" style="width:100%; padding:12px; font-size:15px; border:1px solid #ddd; border-radius:12px; background:#f5f5f5; color:#333; font-weight:700; cursor:pointer;">Abbrechen</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <div class="container">
+        <div class="panel">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <h2 style="margin:0;">Bewertungen</h2>
+            {% if review_avg %}
+              <span class="badge">{{ review_avg }} ★</span>
+              <span class="muted">({{ review_count }} Bewertungen)</span>
+            {% else %}
+              <span class="muted">Noch keine Bewertungen</span>
+            {% endif %}
+          </div>
+
+          {% if reviews and reviews|length > 0 %}
+            <div style="margin-top:12px; display:grid; gap:12px;">
+              {% for r in reviews %}
+                <div style="border:1px solid var(--border); border-radius:12px; padding:12px;">
+                  <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                    <div style="font-weight:600;">{{ r.reviewer_name }}</div>
+                    <div>{{ "★" * r.rating }}{{ "☆" * (5 - r.rating) }}</div>
+                  </div>
+                  {% if r.comment %}
+                    <div style="margin-top:6px; color:#475569;">{{ r.comment }}</div>
+                  {% endif %}
+                  {% if r.reply_text %}
+                    <div style="margin-top:10px; padding:8px 10px; background:#f8fafc; border-radius:8px;">
+                      <div style="font-weight:600;">Antwort des Anbieters</div>
+                      <div class="muted" style="margin-top:4px;">{{ r.reply_text }}</div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
+      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://api.terminmarktplatz.de';
+    })();
+
+    const bookDialog = document.getElementById('book-dialog');
+    const bookModalMobile = document.getElementById('book-modal-mobile');
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    function openBook(slotId){
+      if (!slotId) {
+        alert('Fehler: Keine Slot-ID gefunden.');
+        return;
+      }
+
+      if (isMobile && bookModalMobile) {
+        document.getElementById('book-slot-id-mobile').value = slotId;
+        document.getElementById('book-name-mobile').value = '';
+        document.getElementById('book-email-mobile').value = '';
+        const phoneInput = document.getElementById('book-phone-mobile');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder-mobile');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel-mobile');
+        if (channel) channel.value = 'email';
+        bookModalMobile.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        window.scrollTo(0, 0);
+        setTimeout(() => {
+          const nameInput = document.getElementById('book-name-mobile');
+          if (nameInput) nameInput.focus();
+        }, 300);
+        return;
+      }
+
+      if (bookDialog && typeof bookDialog.showModal === 'function') {
+        document.getElementById('book-slot-id').value = slotId;
+        document.getElementById('book-name').value = '';
+        document.getElementById('book-email').value = '';
+        const phoneInput = document.getElementById('book-phone');
+        if (phoneInput) phoneInput.value = '';
+        const reminder = document.getElementById('book-reminder');
+        if (reminder) reminder.checked = true;
+        const channel = document.getElementById('book-reminder-channel');
+        if (channel) channel.value = 'email';
+        try {
+          bookDialog.showModal();
+          setTimeout(() => {
+            const nameInput = document.getElementById('book-name');
+            if (nameInput) nameInput.focus();
+          }, 200);
+        } catch (err) {
+          if (bookModalMobile) openBook(slotId);
+        }
+      } else if (bookModalMobile) {
+        openBook(slotId);
+      }
+    }
+
+    function closeBook(){
+      if (bookDialog) {
+        try { bookDialog.close(); } catch (err) {}
+      }
+      if (bookModalMobile) {
+        bookModalMobile.style.display = 'none';
+        bookModalMobile.style.visibility = 'hidden';
+      }
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+
+    document.querySelectorAll('[data-book]').forEach(btn => {
+      btn.addEventListener('click', () => openBook(btn.dataset.book));
+    });
+
+    if (bookModalMobile) {
+      bookModalMobile.addEventListener('click', function(e) {
+        const cancelBtn = e.target.closest('#book-cancel-mobile');
+        if (cancelBtn || e.target.id === 'book-cancel-mobile') {
+          e.preventDefault();
+          e.stopPropagation();
+          closeBook();
+          return false;
+        }
+        if (e.target === bookModalMobile) {
+          e.preventDefault();
+          closeBook();
+          return false;
+        }
+      });
+
+      const bookFormMobile = document.getElementById('book-form-mobile');
+      if (bookFormMobile) {
+        bookFormMobile.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const slot_id = document.getElementById('book-slot-id-mobile').value;
+          const name = document.getElementById('book-name-mobile').value.trim();
+          const email = document.getElementById('book-email-mobile').value.trim();
+          const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
+          if (!slot_id || !name || !email) return;
+
+          const btn = bookFormMobile.querySelector('button[type="submit"]');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Wird gesendet...';
+          }
+
+          try{
+            const r = await fetch(`${API}/public/book`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
+            });
+            const data = await r.json().catch(()=>({}));
+            if (!r.ok || data.error){
+              alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+            } else {
+              alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
+              closeBook();
+            }
+          } catch (err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Buchung anfragen';
+            }
+          }
+        });
+      }
+    }
+
+    if (bookDialog) {
+      bookDialog.addEventListener('click', function(e) {
+        if (e.target.id === 'book-cancel' || e.target.closest('#book-cancel')) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeBook();
+          return false;
+        }
+        if (e.target === bookDialog) {
+          closeBook();
+        }
+      });
+
+      bookDialog.addEventListener('cancel', function() {
+        closeBook();
+      });
+
+      const bookForm = document.getElementById('book-form');
+      if (bookForm) {
+        bookForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const slot_id = document.getElementById('book-slot-id').value;
+          const name = document.getElementById('book-name').value.trim();
+          const email = document.getElementById('book-email').value.trim();
+          const phone = document.getElementById('book-phone')?.value.trim() || '';
+          const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
+          const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
+          if (!slot_id || !name || !email) return;
+
+          const btn = document.getElementById('book-submit');
+          if (btn) {
+            btn.classList.add('loading');
+            btn.disabled = true;
+          }
+
+          try{
+            const r = await fetch(`${API}/public/book`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({
+                slot_id,
+                name,
+                email,
+                phone,
+                reminder_opt_in: reminderOptIn,
+                reminder_channel: reminderChannel
+              })
+            });
+            const data = await r.json().catch(()=>({}));
+            if (!r.ok || data.error){
+              alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+            } else {
+              alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
+              closeBook();
+            }
+          } catch (err){
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          } finally {
+            if (btn) {
+              btn.classList.remove('loading');
+              btn.disabled = false;
+            }
+          }
+        });
+      }
+    }
+  </script>
+
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+  </footer>
+
+  <script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
