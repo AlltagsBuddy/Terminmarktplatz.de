@@ -7353,15 +7353,18 @@ def public_slots():
                                 )
                             )
 
-                # Erweiterte Suche: Titel UND Kategorie mit Fuzzy-Matching
+                # Erweiterte Suche: Titel, Beschreibung UND Kategorie (inkl. Stichwörter)
                 if search_term:
                     pattern = f"%{search_term}%"
                     
                     # Finde passende Kategorien für den Suchbegriff
                     matching_categories = find_matching_categories(search_term)
                     
-                    # Baue OR-Bedingung: Titel ODER Kategorie (exakt) ODER Kategorie (Teilstring)
-                    conditions = [Slot.title.ilike(pattern)]
+                    # Baue OR-Bedingung: Titel ODER Beschreibung ODER Kategorie
+                    conditions = [
+                        Slot.title.ilike(pattern),
+                        Slot.description.ilike(pattern),
+                    ]
                     
                     if matching_categories:
                         # Exakte Kategorie-Übereinstimmungen
@@ -7369,6 +7372,25 @@ def public_slots():
                     else:
                         # Fallback: Teilstring-Suche in Kategorie
                         conditions.append(Slot.category.ilike(pattern))
+                    
+                    # Zusätzliche Stichwortsuche (z. B. mehrere Wörter)
+                    tokens = [t for t in re.split(r"\s+", search_term) if len(t) >= 2]
+                    if len(tokens) > 1:
+                        token_conditions = []
+                        for token in tokens:
+                            token_pattern = f"%{token}%"
+                            token_conditions.extend(
+                                [
+                                    Slot.title.ilike(token_pattern),
+                                    Slot.description.ilike(token_pattern),
+                                    Slot.category.ilike(token_pattern),
+                                ]
+                            )
+                            token_matches = find_matching_categories(token)
+                            if token_matches:
+                                token_conditions.append(Slot.category.in_(token_matches))
+                        if token_conditions:
+                            conditions.append(or_(*token_conditions))
                     
                     sq = sq.where(or_(*conditions))
 
