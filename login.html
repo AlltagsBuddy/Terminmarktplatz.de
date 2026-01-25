@@ -430,11 +430,7 @@
           if (isLocal) {
             return `${proto}//${h}:5000`;
           }
-          // Testsystem auf Render
-          if (h.includes('testsystem') || h.includes('onrender.com')) {
-            return `${location.protocol}//${location.host}`;
-          }
-          // Produktion
+          // Überall sonst (Render, Produktion): API immer auf api.terminmarktplatz.de
           return 'https://api.terminmarktplatz.de';
         })(location.hostname);
 
