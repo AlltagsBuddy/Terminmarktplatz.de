@@ -1563,16 +1563,17 @@ def _cookie_flags():
     Flags für set_cookie (alle Parameter).
     WICHTIG: SameSite=None nur für Cross-Origin (z.B. wenn Frontend auf anderer Domain).
     Für Same-Origin (Frontend und Backend auf derselben Domain) verwenden wir Lax.
+    Domain mit Punkt erlaubt Cookies über alle Subdomains (z.B. .terminmarktplatz.de).
     """
     if IS_RENDER:
         # IS_TESTSYSTEM wird bereits oben definiert (nach EMAILS_ENABLED)
         # Testsystem: Frontend und Backend auf derselben Domain -> SameSite=Lax
         # Produktion: Frontend auf terminmarktplatz.de, Backend auf api.terminmarktplatz.de -> SameSite=None
         if IS_TESTSYSTEM:
-            return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/"}
+            return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/", "domain": ".terminmarktplatz.de"}
         else:
             # Produktion: Cross-Origin zwischen terminmarktplatz.de und api.terminmarktplatz.de
-            return {"httponly": True, "secure": True, "samesite": "None", "path": "/"}
+            return {"httponly": True, "secure": True, "samesite": "None", "path": "/", "domain": ".terminmarktplatz.de"}
     return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
 
 
