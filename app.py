@@ -1654,7 +1654,8 @@ def _cookie_flags():
         # Testsystem: Frontend und Backend auf derselben Domain -> SameSite=Lax
         # Produktion: Frontend auf terminmarktplatz.de, Backend auf api.terminmarktplatz.de -> SameSite=None
         if IS_TESTSYSTEM:
-            return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/", "domain": ".terminmarktplatz.de"}
+            # Tests: gleiche Origin -> kein Domain-Attribut, sonst wird es verworfen
+            return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/"}
         else:
             # Produktion: Cross-Origin zwischen terminmarktplatz.de und api.terminmarktplatz.de
             return {"httponly": True, "secure": True, "samesite": "None", "path": "/", "domain": ".terminmarktplatz.de"}
