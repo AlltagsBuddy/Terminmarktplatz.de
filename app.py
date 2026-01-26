@@ -1560,13 +1560,27 @@ def _normalize_token(text: str) -> str:
     if not text:
         return ""
     val = text.lower().strip()
-    val = val.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    # Entferne Satzzeichen, behalte Zahlen und deutsche Umlaute
+    val = re.sub(r"[^a-z0-9äöüß]+", "", val)
     return val
 
 
+def _expand_umlaut_variants(val: str) -> list[str]:
+    variants: list[str] = []
+
+    def add(v: str) -> None:
+        if v and v not in variants:
+            variants.append(v)
+
+    add(val)
+    add(val.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss"))
+    add(val.replace("ae", "ä").replace("oe", "ö").replace("ue", "ü").replace("ss", "ß"))
+    return variants
+
+
 def _token_variants(token: str, max_variants: int = 12) -> list[str]:
-    base = _normalize_token(token)
-    if not base:
+    base_raw = _normalize_token(token)
+    if not base_raw:
         return []
     variants: list[str] = []
 
@@ -1574,34 +1588,40 @@ def _token_variants(token: str, max_variants: int = 12) -> list[str]:
         if v and v not in variants:
             variants.append(v)
 
-    add(base)
+    bases = _expand_umlaut_variants(base_raw)
 
-    # Singular/Plural naive handling
-    if base.endswith("e"):
-        add(base[:-1])
-        add(base + "n")
-    if base.endswith("en"):
-        add(base[:-1])
-        add(base[:-2])
-    if base.endswith("er"):
-        add(base + "n")
-    if base.endswith("n") and len(base) > 3:
-        add(base[:-1])
-    if base.endswith("s") and len(base) > 3:
-        add(base[:-1])
-    if len(base) > 3 and not base.endswith("e"):
-        add(base + "e")
-        add(base + "en")
+    for base in bases:
+        add(base)
+
+        # Singular/Plural naive handling
+        if base.endswith("e"):
+            add(base[:-1])
+            add(base + "n")
+        if base.endswith("en"):
+            add(base[:-1])
+            add(base[:-2])
+        if base.endswith("er"):
+            add(base + "n")
+        if base.endswith("n") and len(base) > 3:
+            add(base[:-1])
+        if base.endswith("s") and len(base) > 3:
+            add(base[:-1])
+        if len(base) > 3 and not base.endswith("e"):
+            add(base + "e")
+            add(base + "en")
+
+        if len(variants) >= max_variants:
+            break
 
     # Simple typo tolerance: delete one char, swap adjacent
-    if len(base) >= 4:
-        for i in range(len(base)):
-            add(base[:i] + base[i + 1 :])
+    if len(base_raw) >= 4:
+        for i in range(len(base_raw)):
+            add(base_raw[:i] + base_raw[i + 1 :])
             if len(variants) >= max_variants:
                 break
-    if len(base) >= 4 and len(variants) < max_variants:
-        for i in range(len(base) - 1):
-            swapped = base[:i] + base[i + 1] + base[i] + base[i + 2 :]
+    if len(base_raw) >= 4 and len(variants) < max_variants:
+        for i in range(len(base_raw) - 1):
+            swapped = base_raw[:i] + base_raw[i + 1] + base_raw[i] + base_raw[i + 2 :]
             add(swapped)
             if len(variants) >= max_variants:
                 break
