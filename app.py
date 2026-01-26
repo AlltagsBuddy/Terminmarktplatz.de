@@ -1519,6 +1519,17 @@ def find_matching_categories(search_term: str) -> list[str]:
         return []
     
     search_lower = search_term.lower().strip()
+
+    # Sammelkategorie: "Behörde" soll auch Ämter-Unterkategorien treffen
+    if search_lower in {"behörde", "behoerde", "ämter", "aemter"}:
+        return [
+            "Behörde",
+            "Bürgeramt",
+            "Kfz-Zulassungsstelle",
+            "Finanzamt",
+            "Ausländerbehörde",
+            "Jobcenter",
+        ]
     
     # 1. Exakte Übereinstimmung (case-insensitive)
     exact_matches = [cat for cat in BRANCHES if cat.lower() == search_lower]
