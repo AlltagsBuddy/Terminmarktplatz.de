@@ -1233,14 +1233,10 @@
         return;
       }
 
-      // Clientseitig nur noch Zeitfenster + Freitext (wenn keine exakte Kategorie)
-      const kw = (q2 || '').toLowerCase();
+      // Clientseitig nur Zeitfenster filtern (Freitext erledigt das Backend)
       let items = data.filter(x => {
         const okZeit = inZeitfenster(x.start_at, zeit2);
-        const okKW   = (isExactCategory || !kw)
-          ? true
-          : ((x.title||'').toLowerCase().includes(kw) || (x.category||'').toLowerCase().includes(kw));
-        return okZeit && okKW;
+        return okZeit;
       });
 
       // Sortierung
