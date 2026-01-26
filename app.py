@@ -1556,6 +1556,59 @@ def find_matching_categories(search_term: str) -> list[str]:
     return all_matches
 
 
+def _normalize_token(text: str) -> str:
+    if not text:
+        return ""
+    val = text.lower().strip()
+    val = val.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    return val
+
+
+def _token_variants(token: str, max_variants: int = 12) -> list[str]:
+    base = _normalize_token(token)
+    if not base:
+        return []
+    variants: list[str] = []
+
+    def add(v: str) -> None:
+        if v and v not in variants:
+            variants.append(v)
+
+    add(base)
+
+    # Singular/Plural naive handling
+    if base.endswith("e"):
+        add(base[:-1])
+        add(base + "n")
+    if base.endswith("en"):
+        add(base[:-1])
+        add(base[:-2])
+    if base.endswith("er"):
+        add(base + "n")
+    if base.endswith("n") and len(base) > 3:
+        add(base[:-1])
+    if base.endswith("s") and len(base) > 3:
+        add(base[:-1])
+    if len(base) > 3 and not base.endswith("e"):
+        add(base + "e")
+        add(base + "en")
+
+    # Simple typo tolerance: delete one char, swap adjacent
+    if len(base) >= 4:
+        for i in range(len(base)):
+            add(base[:i] + base[i + 1 :])
+            if len(variants) >= max_variants:
+                break
+    if len(base) >= 4 and len(variants) < max_variants:
+        for i in range(len(base) - 1):
+            swapped = base[:i] + base[i + 1] + base[i] + base[i + 2 :]
+            add(swapped)
+            if len(variants) >= max_variants:
+                break
+
+    return variants[:max_variants]
+
+
 def normalize_category(raw: str | None) -> str:
     if raw is None:
         return "Sonstiges"
@@ -7384,22 +7437,25 @@ def public_slots():
                         # Fallback: Teilstring-Suche in Kategorie
                         conditions.append(Slot.category.ilike(pattern))
                     
-                    # Zusätzliche Stichwortsuche (z. B. mehrere Wörter)
+                    # Zusätzliche Stichwortsuche (inkl. Schreibfehler/Einzahl-Mehrzahl)
                     tokens = [t for t in re.split(r"\s+", search_term) if len(t) >= 2]
-                    if len(tokens) > 1:
+                    if tokens:
                         token_conditions = []
                         for token in tokens:
-                            token_pattern = f"%{token}%"
-                            token_conditions.extend(
-                                [
-                                    Slot.title.ilike(token_pattern),
-                                    Slot.description.ilike(token_pattern),
-                                    Slot.category.ilike(token_pattern),
-                                ]
-                            )
-                            token_matches = find_matching_categories(token)
-                            if token_matches:
-                                token_conditions.append(Slot.category.in_(token_matches))
+                            for variant in _token_variants(token):
+                                token_pattern = f"%{variant}%"
+                                token_conditions.extend(
+                                    [
+                                        Slot.title.ilike(token_pattern),
+                                        Slot.description.ilike(token_pattern),
+                                        Slot.category.ilike(token_pattern),
+                                    ]
+                                )
+                                token_matches = find_matching_categories(variant)
+                                if token_matches:
+                                    token_conditions.append(
+                                        Slot.category.in_(token_matches)
+                                    )
                         if token_conditions:
                             conditions.append(or_(*token_conditions))
                     
