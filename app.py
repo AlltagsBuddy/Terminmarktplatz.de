@@ -84,6 +84,8 @@ REMINDER_LEAD_HOURS = 24
 REMINDER_RUN_INTERVAL_SEC = 300
 _REMINDER_LAST_RUN = 0.0
 _REMINDER_LOCK = threading.Lock()
+_STARTUP_MIGRATIONS_LOCK = threading.Lock()
+_STARTUP_MIGRATIONS_STARTED = False
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -592,9 +594,7 @@ def _ensure_base_tables():
         print(f"⚠️  Warnung: Basistabellen konnten nicht erstellt werden: {e}", flush=True)
 
 
-# Versuche beim Start, aber stürze nicht ab, wenn die DB nicht verfügbar ist
-# WICHTIG: Erst Basistabellen erstellen, dann Migrationen ausführen
-_ensure_base_tables()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -649,7 +649,7 @@ def _ensure_review_table():
         print(f"⚠️  Warnung: ensure_review_table fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_review_table()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -678,7 +678,7 @@ def _ensure_provider_logo_url():
         print(f"⚠️  Warnung: ensure_provider_logo_url fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_provider_logo_url()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -707,7 +707,7 @@ def _ensure_provider_logo_consent():
         print(f"⚠️  Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_provider_logo_consent()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 # Provider: Öffentliches Profil – zusätzliche Felder
 def _ensure_provider_public_profile_fields():
@@ -741,7 +741,7 @@ def _ensure_provider_public_profile_fields():
     except Exception as e:
         print(f"⚠️  Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
 
-_ensure_provider_public_profile_fields()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 # Booking: Reminder Felder + Telefon
 def _ensure_booking_reminder_fields():
@@ -774,7 +774,7 @@ def _ensure_booking_reminder_fields():
     except Exception as e:
         print(f"⚠️  Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}", flush=True)
 
-_ensure_booking_reminder_fields()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -834,7 +834,7 @@ def _ensure_geo_tables():
         print("   Die Tabellen werden beim ersten Request erstellt, wenn die DB verfügbar ist.", flush=True)
 
 
-_ensure_geo_tables()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -869,7 +869,7 @@ def _remove_category_constraint():
         print(f"⚠️  Warnung: remove_category_constraint fehlgeschlagen: {e}", flush=True)
 
 
-_remove_category_constraint()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -908,7 +908,7 @@ def _ensure_alert_deleted_at():
         print(f"⚠️  Warnung: ensure_alert_deleted_at fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_alert_deleted_at()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -974,7 +974,7 @@ def _ensure_password_reset_table():
         print(f"⚠️  Warnung: ensure_password_reset_table fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_password_reset_table()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -1067,7 +1067,7 @@ def _ensure_provider_number_field():
         print(f"⚠️  Warnung: ensure_provider_number_field fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_provider_number_field()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -1106,7 +1106,7 @@ def _ensure_last_login_field():
         print(f"⚠️  Warnung: ensure_last_login_field fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_last_login_field()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -1173,7 +1173,7 @@ def _ensure_archive_fields():
         print(f"⚠️  Warnung: ensure_archive_fields fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_archive_fields()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -1230,7 +1230,7 @@ def _ensure_slot_status_constraint():
         print(f"⚠️  Warnung: ensure_slot_status_constraint fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_slot_status_constraint()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 def _ensure_slot_description_field():
@@ -1254,7 +1254,7 @@ def _ensure_slot_description_field():
         print(f"⚠️  Warnung: ensure_slot_description_field fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_slot_description_field()
+# Startup-Migrationen werden unten non-blocking gestartet
 
 
 # --------------------------------------------------------
@@ -1333,7 +1333,49 @@ def _ensure_publish_quota_tables():
         print(f"⚠️  Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}", flush=True)
 
 
-_ensure_publish_quota_tables()
+# Startup-Migrationen werden unten non-blocking gestartet
+
+
+def _run_startup_migrations() -> None:
+    for fn in (
+        _ensure_base_tables,
+        _ensure_review_table,
+        _ensure_provider_logo_url,
+        _ensure_provider_logo_consent,
+        _ensure_provider_public_profile_fields,
+        _ensure_booking_reminder_fields,
+        _ensure_geo_tables,
+        _remove_category_constraint,
+        _ensure_alert_deleted_at,
+        _ensure_password_reset_table,
+        _ensure_provider_number_field,
+        _ensure_last_login_field,
+        _ensure_archive_fields,
+        _ensure_slot_status_constraint,
+        _ensure_slot_description_field,
+        _ensure_publish_quota_tables,
+    ):
+        try:
+            fn()
+        except Exception as e:
+            print(f"⚠️  Warnung: Startup-Migration fehlgeschlagen ({fn.__name__}): {e}", flush=True)
+
+
+def _start_startup_migrations() -> None:
+    global _STARTUP_MIGRATIONS_STARTED
+    with _STARTUP_MIGRATIONS_LOCK:
+        if _STARTUP_MIGRATIONS_STARTED:
+            return
+        _STARTUP_MIGRATIONS_STARTED = True
+    threading.Thread(
+        target=_run_startup_migrations,
+        name="startup-migrations",
+        daemon=True,
+    ).start()
+
+
+# Starte Migrationen im Hintergrund, damit der Port sofort binden kann
+_start_startup_migrations()
 
 
 def _gc_key(zip_code: str | None, city: str | None) -> str:
