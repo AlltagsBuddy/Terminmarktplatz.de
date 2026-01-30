@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS provider (
   whatsapp          text,
   status            text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   is_admin          boolean NOT NULL DEFAULT false,
-  created_at        timestamptz NOT NULL DEFAULT now()
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  last_login_at     timestamptz
 );
 
 CREATE TABLE IF NOT EXISTS slot (

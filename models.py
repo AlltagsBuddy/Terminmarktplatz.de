@@ -72,6 +72,7 @@ class Provider(Base):
         DateTime(timezone=False),
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
 
     # ---------------- Tarif / Plan ----------------
     plan: Mapped[str | None] = mapped_column(Text, nullable=True)

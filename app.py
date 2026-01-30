@@ -1071,6 +1071,45 @@ _ensure_provider_number_field()
 
 
 # --------------------------------------------------------
+# Last-Login Feld für Provider sicherstellen
+# --------------------------------------------------------
+def _ensure_last_login_field():
+    """
+    Erstellt das last_login_at Feld, falls es noch nicht existiert.
+    """
+    try:
+        with engine.begin() as conn:
+            column_exists = False
+            if IS_POSTGRESQL:
+                try:
+                    result = conn.execute(text("""
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_name = 'provider' AND column_name = 'last_login_at'
+                    """))
+                    column_exists = result.fetchone() is not None
+                except Exception:
+                    pass
+            else:
+                try:
+                    conn.execute(text("SELECT last_login_at FROM provider LIMIT 1"))
+                    column_exists = True
+                except Exception:
+                    column_exists = False
+
+            if not column_exists:
+                if IS_POSTGRESQL:
+                    conn.execute(text("ALTER TABLE provider ADD COLUMN IF NOT EXISTS last_login_at timestamptz"))
+                else:
+                    conn.execute(text("ALTER TABLE provider ADD COLUMN last_login_at DATETIME"))
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_last_login_field fehlgeschlagen: {e}", flush=True)
+
+
+_ensure_last_login_field()
+
+
+# --------------------------------------------------------
 # Archivierungs-Felder für Slots und Invoices hinzufügen
 # --------------------------------------------------------
 def _ensure_archive_fields():
@@ -3168,6 +3207,22 @@ def _authenticate(email: str, password: str):
             return None, "invalid_credentials"
         if not p.email_verified_at:
             return None, "email_not_verified"
+        try:
+            p.last_login_at = _now()
+            s.commit()
+        except Exception as e:
+            if "last_login_at" in str(e).lower() or "undefinedcolumn" in str(e).lower():
+                app.logger.warning("last_login_at column missing, running migration...")
+                try:
+                    _ensure_last_login_field()
+                    p = s.get(Provider, p.id)
+                    if p:
+                        p.last_login_at = _now()
+                        s.commit()
+                except Exception as e2:
+                    app.logger.exception("Migration failed during login: %r", e2)
+            else:
+                raise
         return p, None
 
 
