@@ -914,8 +914,17 @@
             hideLoading(); lockForm(form, false);
             return showAlert('login-alert', msg);
           }
-          // Erfolg → Portal
-          window.location.href = 'anbieter-portal.html';
+          // Erfolg → Profil nach Registrierung, sonst next/Portal
+          const params = new URLSearchParams(location.search);
+          const fromRegister = params.get('register') === '1' || params.get('verified') === '1';
+          const next = params.get('next');
+          if (fromRegister) {
+            window.location.href = 'anbieter-profil.html';
+          } else if (next) {
+            window.location.href = next;
+          } else {
+            window.location.href = 'anbieter-portal.html';
+          }
         }catch(err){
           hideLoading(); lockForm(form, false);
           showAlert('login-alert','Netzwerkfehler – bitte später erneut versuchen.');
