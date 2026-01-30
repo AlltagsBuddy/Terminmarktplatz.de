@@ -988,6 +988,19 @@
     let infoWindow = null;
     let markers = [];
     let pendingMapItems = null;
+    const bookingErrorMessage = (err) => {
+      const e = (err || '').toString();
+      if (e.startsWith('mail_failed')) {
+        return 'Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte prüfe deine E-Mail-Adresse oder versuche es später erneut. Bei Problemen: https://terminmarktplatz.de/kontakt.html oder support@terminmarktplatz.de';
+      }
+      if (e === 'slot_full') return 'Dieser Termin ist leider schon ausgebucht.';
+      if (e === 'not_bookable') return 'Dieser Termin ist nicht mehr buchbar.';
+      if (e === 'invalid_email') return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+      if (e === 'missing_fields') return 'Bitte alle Pflichtfelder ausfüllen.';
+      if (e === 'missing_phone_for_whatsapp') return 'Für WhatsApp-Benachrichtigung ist eine Handynummer nötig.';
+      if (e === 'not_found') return 'Der Termin wurde nicht gefunden.';
+      return 'Buchung leider nicht möglich: ' + (e || 'Fehler');
+    };
 
     function clearMarkers(){
       if (!markers) return;
@@ -1546,7 +1559,7 @@
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
-              alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+              alert(bookingErrorMessage(data.error));
             } else {
               alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
               closeBook();
@@ -1619,7 +1632,7 @@
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
-              alert('Buchung leider nicht möglich: ' + (data.error || 'Fehler'));
+              alert(bookingErrorMessage(data.error));
             } else {
               alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
               closeBook();

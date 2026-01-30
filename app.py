@@ -7770,13 +7770,20 @@ def public_book():
         email_body += f"Bitte bestätige deine Buchung:\n{confirm_link}\n\n"
         email_body += f"Stornieren:\n{cancel_link}\n"
         
-        send_mail(
+        ok, reason = send_mail(
             email,
             "Bitte Terminbuchung bestätigen",
             text=email_body,
             tag="booking_request",
             metadata={"slot_id": str(slot.id)},
         )
+        if not ok:
+            try:
+                b.status = "canceled"
+                s.commit()
+            except Exception:
+                pass
+            return _json_error(f"mail_failed:{reason}", 502)
         return jsonify({"ok": True})
 
 
