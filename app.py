@@ -3183,7 +3183,8 @@ def public_contact():
 def _authenticate(email: str, password: str):
     email = (email or "").strip().lower()
     pw = password or ""
-    with Session(engine) as s:
+    # expire_on_commit=False verhindert DetachedInstanceError nach Commit
+    with Session(engine, expire_on_commit=False) as s:
         try:
             p = s.scalar(select(Provider).where(Provider.email == email))
         except Exception as e:
