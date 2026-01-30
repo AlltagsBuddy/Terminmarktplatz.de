@@ -1015,10 +1015,29 @@
       clearMarkers();
       const bounds = new google.maps.LatLngBounds();
 
-      mapItems.forEach(item => {
+      const itemsWithAddress = mapItems.filter(item => item.address);
+      let pending = itemsWithAddress.length;
+      const finishBounds = () => {
+        if (pending > 0) return;
+        if (markers.length === 1) {
+          const pos = markers[0].getPosition();
+          if (pos) map.setCenter(pos);
+          map.setZoom(12);
+          return;
+        }
+        if (markers.length > 1) {
+          map.fitBounds(bounds, { padding: 50 });
+        }
+      };
+
+      itemsWithAddress.forEach(item => {
         if (!item.address) return;
         geocoder.geocode({ address: item.address }, (results, status) => {
-          if (status !== 'OK' || !results || !results[0]) return;
+          if (status !== 'OK' || !results || !results[0]) {
+            pending -= 1;
+            finishBounds();
+            return;
+          }
           const loc = results[0].geometry.location;
 
           const marker = new google.maps.Marker({
@@ -1050,7 +1069,8 @@
             infoWindow.open(map, marker);
           });
 
-          map.fitBounds(bounds);
+          pending -= 1;
+          finishBounds();
         });
       });
     }
