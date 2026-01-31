@@ -919,11 +919,27 @@
           const fromRegister = params.get('register') === '1' || params.get('verified') === '1';
           const next = params.get('next');
           if (fromRegister) {
+            // Newly registered -> force profile page
             window.location.href = 'anbieter-profil.html';
-          } else if (next) {
-            window.location.href = next;
           } else {
-            window.location.href = 'anbieter-portal.html';
+            // Check profile completeness via /me; if incomplete, send to profile page.
+            try{
+              const meRes = await fetch(`${API}/me`, { credentials: 'include' });
+              const ME = await meRes.json().catch(()=>({}));
+              const profileComplete = (ME && typeof ME.profile_complete === 'boolean') ? ME.profile_complete : false;
+              if (!profileComplete) {
+                window.location.href = 'anbieter-profil.html';
+                return;
+              }
+            }catch(_){
+              // If /me fails, fall back to portal
+            }
+
+            if (next) {
+              window.location.href = next;
+            } else {
+              window.location.href = 'anbieter-portal.html';
+            }
           }
         }catch(err){
           hideLoading(); lockForm(form, false);
