@@ -3445,7 +3445,9 @@ def auth_login_json():
         return _json_error(err, status)
 
     access, refresh = issue_tokens(p.id, p.is_admin)
-    resp = make_response(jsonify({"ok": True, "access": access}))
+    # Include profile completeness in JSON response so clients can decide redirect without extra /me call
+    profile_complete = is_profile_complete(p)
+    resp = make_response(jsonify({"ok": True, "access": access, "profile_complete": profile_complete}))
     return _set_auth_cookies(resp, access, refresh)
 
 
@@ -3467,8 +3469,22 @@ def auth_login_form():
             401,
         )
 
+
     access, refresh = issue_tokens(p.id, p.is_admin)
-    next_url = request.args.get("next") or url_for("anbieter_portal_page")
+    # If the provider's profile is incomplete, force them to the profile page first
+    next_param = request.args.get("next")
+    if next_param:
+        next_url = next_param
+    else:
+        try:
+            if not is_profile_complete(p):
+                next_url = url_for("anbieter_profil_page")
+            else:
+                next_url = url_for("anbieter_portal_page")
+        except Exception:
+            # On any unexpected error, fall back to portal
+            next_url = url_for("anbieter_portal_page")
+
     resp = make_response(redirect(next_url))
     return _set_auth_cookies(resp, access, refresh)
 

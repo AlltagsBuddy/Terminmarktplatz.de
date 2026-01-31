@@ -278,6 +278,10 @@
         <div class="panel">
           <h2>Profil</h2>
           <p class="muted">Diese Daten sieht der/die Kund:in bei deinen Angeboten.</p>
+          <div id="profile-incomplete-banner" style="display:none; margin-top:12px; padding:12px; border-radius:10px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); color: var(--ink);">
+            <strong id="profile-incomplete-title">Profil unvollständig</strong>
+            <div id="profile-incomplete-msg" style="margin-top:6px; color: var(--ink-dim);"></div>
+          </div>
           <div style="margin-bottom: 16px; padding: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px;">
             <div style="font-size: 0.9rem; color: #0f172a; font-weight: 600; margin-bottom: 6px;">Deine Anbieter-Nummer:</div>
             <div style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; min-height: 24px;" id="provider-id-display">Lade...</div>
@@ -403,6 +407,33 @@
             <div id="msg-profile" class="msg"></div>
           </form>
         </div>
+
+        <script>
+          (async function(){
+            try{
+              const API = (typeof window.API === 'string') ? window.API : 'https://api.terminmarktplatz.de';
+              const res = await fetch(`${API}/me`, { credentials: 'include' });
+              if(!res.ok) return;
+              const me = await res.json().catch(()=>null);
+              if(!me) return;
+              if(me.profile_complete === false){
+                const banner = document.getElementById('profile-incomplete-banner');
+                const msg = document.getElementById('profile-incomplete-msg');
+                const missing = [];
+                if(!me.company_name) missing.push('Firma');
+                if(!me.branch) missing.push('Branche');
+                if(!me.street) missing.push('Straße & Nr.');
+                if(!me.zip || !(String(me.zip).match(/^\d{5}$/))) missing.push('PLZ');
+                if(!me.city) missing.push('Ort');
+                if(!me.phone) missing.push('Telefon');
+                msg.textContent = missing.length ? 'Bitte ergänze: ' + missing.join(', ') + '.' : 'Bitte prüfe deine Profildaten.';
+                banner.style.display = 'block';
+              }
+            }catch(e){
+              // ignore
+            }
+          })();
+        </script>
 
         <div class="panel">
           <h2>Passwort ändern</h2>
