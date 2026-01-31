@@ -297,7 +297,7 @@
             <div style="font-weight:600;">${escapeHtml(r.reviewer_name || 'Anonym')}</div>
             <div>${stars}</div>
           </div>
-          ${r.comment ? `<div style="margin-top:6px; color:#475569;">${escapeHtml(r.comment)}</div>` : ''}
+          ${r.comment ? `<div style="margin-top:6px; color:var(--ink-dim);">${escapeHtml(r.comment)}</div>` : ''}
           <div style="margin-top:10px;">
             <label style="font-weight:600; display:block; margin-bottom:4px;">Antwort des Anbieters</label>
             <textarea rows="2" style="width:100%;" data-reply="${r.id}" placeholder="Optional antworten…">${escapeHtml(r.reply_text || '')}</textarea>
