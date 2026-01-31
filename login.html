@@ -919,22 +919,28 @@
           const fromRegister = params.get('register') === '1' || params.get('verified') === '1';
           const next = params.get('next');
           if (fromRegister) {
-            // Newly registered -> force profile page
             window.location.href = 'anbieter-profil.html';
           } else {
-            // Check profile completeness via /me; if incomplete, send to profile page.
-            try{
-              const meRes = await fetch(`${API}/me`, { credentials: 'include' });
-              const ME = await meRes.json().catch(()=>({}));
-              const profileComplete = (ME && typeof ME.profile_complete === 'boolean') ? ME.profile_complete : false;
-              if (!profileComplete) {
-                window.location.href = 'anbieter-profil.html';
-                return;
-              }
-            }catch(_){
-              // If /me fails, fall back to portal
+            // Prefer profile_complete from login response to avoid extra /me call
+            const profileCompleteFromLogin = (data && typeof data.profile_complete === 'boolean') ? data.profile_complete : null;
+            if (profileCompleteFromLogin === false) {
+              window.location.href = 'anbieter-profil.html';
+              return;
             }
-
+            // If login response did not include profile_complete, fall back to /me check
+            if (profileCompleteFromLogin === null) {
+              try{
+                const meRes = await fetch(`${API}/me`, { credentials: 'include' });
+                const ME = await meRes.json().catch(()=>({}));
+                const profileComplete = (ME && typeof ME.profile_complete === 'boolean') ? ME.profile_complete : false;
+                if (!profileComplete) {
+                  window.location.href = 'anbieter-profil.html';
+                  return;
+                }
+              }catch(_){
+                // If /me fails, fall back to portal
+              }
+            }
             if (next) {
               window.location.href = next;
             } else {
