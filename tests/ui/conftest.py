@@ -3,6 +3,7 @@ import re
 from typing import Any, Callable, Generator
 
 import pytest
+import requests
 from playwright.sync_api import Page, Playwright, sync_playwright
 
 
@@ -26,6 +27,16 @@ def playwright() -> Generator[Playwright, None, None]:
         yield pw
     finally:
         pw.stop()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _skip_ui_when_base_unreachable(app_base_url: str) -> None:
+    try:
+        response = requests.get(f"{app_base_url}/", timeout=5)
+    except Exception as exc:
+        pytest.skip(f"UI-Tests übersprungen: {app_base_url} nicht erreichbar ({exc})")
+    if not response.ok:
+        pytest.skip(f"UI-Tests übersprungen: {app_base_url} antwortet mit {response.status_code}")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
