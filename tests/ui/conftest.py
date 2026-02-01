@@ -3,7 +3,7 @@ import re
 from typing import Any, Callable, Generator
 
 import pytest
-from playwright.sync_api import Page
+from playwright.sync_api import Page, Playwright, sync_playwright
 
 
 @pytest.fixture(autouse=True)
@@ -14,6 +14,18 @@ def screenshot_on_failure(request: pytest.FixtureRequest, page: Page) -> Generat
         os.makedirs("test-artifacts", exist_ok=True)
         safe_name = re.sub(r"[^a-zA-Z0-9_.-]+", "_", request.node.nodeid)
         page.screenshot(path=os.path.join("test-artifacts", f"{safe_name}.png"), full_page=True)
+
+
+@pytest.fixture(scope="session")
+def playwright() -> Generator[Playwright, None, None]:
+    try:
+        pw = sync_playwright().start()
+    except Exception as e:
+        pytest.skip(f"Playwright nicht verfügbar: {e}")
+    try:
+        yield pw
+    finally:
+        pw.stop()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

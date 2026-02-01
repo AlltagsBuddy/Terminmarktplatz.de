@@ -95,7 +95,9 @@ def test_public_slots_from_to_iso(test_client):
     start_a, start_b, slot_a_id, slot_b_id = _seed_slots()
     from_iso = app_module._as_utc_aware(start_a).isoformat()
     to_iso = app_module._as_utc_aware(start_a + timedelta(hours=2)).isoformat()
-    r = test_client.get(f"/public/slots?from={from_iso}&to={to_iso}&include_full=1")
+    from urllib.parse import urlencode
+    qs = urlencode({"from": from_iso, "to": to_iso, "include_full": "1"})
+    r = test_client.get(f"/public/slots?{qs}")
     assert r.status_code == 200
     ids = {item["id"] for item in (r.get_json() or [])}
     assert slot_a_id in ids

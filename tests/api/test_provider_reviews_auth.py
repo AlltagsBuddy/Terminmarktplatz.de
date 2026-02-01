@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import pytest
+from uuid import uuid4
 from sqlalchemy.orm import Session
 
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
@@ -27,8 +28,9 @@ def _auth_headers(provider_id: str) -> dict[str, str]:
 
 def _seed_review() -> tuple[str, str]:
     with Session(app_module.engine) as s:
+        uniq = str(uuid4())[:8]
         provider = Provider(
-            email="auth-review@example.com",
+            email=f"auth-review-{uniq}@example.com",
             pw_hash="x",
             company_name="Auth GmbH",
             branch="Friseur",
@@ -43,14 +45,16 @@ def _seed_review() -> tuple[str, str]:
 
         review = Review(
             provider_id=provider.id,
-            booking_id="booking-1",
+            booking_id=str(uuid4()),
             reviewer_name="Max",
             rating=5,
             comment="Top",
         )
         s.add(review)
         s.commit()
-        return str(provider.id), str(review.id)
+        provider_id = str(provider.id)
+        review_id = str(review.id)
+        return provider_id, review_id
 
 
 def test_provider_reviews_requires_auth(test_client):

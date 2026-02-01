@@ -3,6 +3,7 @@ import tempfile
 from datetime import timedelta
 
 import pytest
+from uuid import uuid4
 from sqlalchemy.orm import Session
 
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
@@ -56,7 +57,7 @@ def _seed_provider_profile() -> int:
 
         review = Review(
             provider_id=provider.id,
-            booking_id="booking-1",
+            booking_id=str(uuid4()),
             reviewer_name="Max Mustermann",
             rating=4,
             comment="Gut",

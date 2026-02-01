@@ -1,24 +1,35 @@
-from tests.api.http_client import HttpClient
+import os
+import tempfile
+
+import pytest
+
+_DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
+os.close(_DB_FD)
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
+
+import app as app_module
 
 
-def test_robots_txt(app_base_url: str) -> None:
-    client = HttpClient()
-    response = client.get(f"{app_base_url}/robots.txt")
+@pytest.fixture(scope="function")
+def test_client():
+    return app_module.app.test_client()
+
+
+def test_robots_txt(test_client) -> None:
+    response = test_client.get("/robots.txt", follow_redirects=True)
     assert response.status_code == 200
-    body = response.text.lower()
+    body = response.get_data(as_text=True).lower()
     assert "user-agent" in body
 
 
-def test_sitemap_xml(app_base_url: str) -> None:
-    client = HttpClient()
-    response = client.get(f"{app_base_url}/sitemap.xml")
+def test_sitemap_xml(test_client) -> None:
+    response = test_client.get("/sitemap.xml")
     assert response.status_code == 200
-    body = response.text.lower()
+    body = response.get_data(as_text=True).lower()
     assert "<urlset" in body
 
 
-def test_main_stylesheet_is_reachable(app_base_url: str) -> None:
-    client = HttpClient()
-    response = client.get(f"{app_base_url}/static/style.css")
+def test_main_stylesheet_is_reachable(test_client) -> None:
+    response = test_client.get("/static/style.css")
     assert response.status_code == 200
-    assert "body" in response.text.lower()
+    assert "body" in response.get_data(as_text=True).lower()

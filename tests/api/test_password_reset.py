@@ -122,9 +122,10 @@ def test_reset_password_success(test_client):
 
 
 def test_reset_password_provider_not_found(test_client):
+    from uuid import uuid4
     with Session(app_module.engine) as s:
         reset = PasswordReset(
-            provider_id="missing-provider",
+            provider_id=str(uuid4()),
             token="missing-provider-token",
             expires_at=app_module._to_db_utc_naive(app_module._now() + timedelta(minutes=30)),
         )

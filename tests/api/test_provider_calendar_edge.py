@@ -40,9 +40,11 @@ def _seed_provider() -> str:
 
 
 def test_provider_calendar_not_found(test_client):
+    from uuid import uuid4
     provider_id = _seed_provider()
-    token = app_module._provider_calendar_token(provider_id)
-    r = test_client.get(f"/public/provider/00000000-0000-0000-0000-000000000000/calendar.ics?token={token}")
+    missing_provider_id = str(uuid4())
+    token = app_module._provider_calendar_token(missing_provider_id)
+    r = test_client.get(f"/public/provider/{missing_provider_id}/calendar.ics?token={token}")
     assert r.status_code == 404
     data = r.get_json() or {}
     assert data.get("error") == "not_found"

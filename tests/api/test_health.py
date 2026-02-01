@@ -1,9 +1,22 @@
-from tests.api.http_client import HttpClient
+import os
+import tempfile
+
+import pytest
+
+_DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
+os.close(_DB_FD)
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
+
+import app as app_module
 
 
-def test_api_health(app_base_url: str) -> None:
-    client = HttpClient()
-    response = client.get(f"{app_base_url}/api/health")
+@pytest.fixture(scope="function")
+def test_client():
+    return app_module.app.test_client()
+
+
+def test_api_health(test_client) -> None:
+    response = test_client.get("/api/health")
     assert response.status_code == 200
-    payload = response.json()
+    payload = response.get_json()
     assert payload.get("ok") is True

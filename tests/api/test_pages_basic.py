@@ -1,6 +1,18 @@
+import os
+import tempfile
+
 import pytest
 
-from tests.api.http_client import HttpClient
+_DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
+os.close(_DB_FD)
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
+
+import app as app_module
+
+
+@pytest.fixture(scope="function")
+def test_client():
+    return app_module.app.test_client()
 
 
 @pytest.mark.parametrize(
@@ -20,10 +32,9 @@ from tests.api.http_client import HttpClient
         ("/cookie-einstellungen", "Cookie-Einstellungen | Terminmarktplatz"),
     ],
 )
-def test_pages_are_reachable(app_base_url: str, path: str, expected_title: str) -> None:
-    client = HttpClient()
-    response = client.get(f"{app_base_url}{path}")
+def test_pages_are_reachable(test_client, path: str, expected_title: str) -> None:
+    response = test_client.get(path)
     assert response.status_code == 200
-    html = response.text.lower()
+    html = response.get_data(as_text=True).lower()
     assert "<html" in html
     assert expected_title.lower() in html

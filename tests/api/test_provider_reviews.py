@@ -3,6 +3,7 @@ import tempfile
 from datetime import timedelta
 
 import pytest
+from uuid import uuid4
 from sqlalchemy.orm import Session
 
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
@@ -82,7 +83,7 @@ def _seed_reviews() -> tuple[str, str, str]:
 
         review = Review(
             provider_id=provider.id,
-            booking_id=str(booking.id),
+            booking_id=str(uuid4()),
             reviewer_name="Max",
             rating=5,
             comment="Top",
@@ -91,7 +92,7 @@ def _seed_reviews() -> tuple[str, str, str]:
 
         other_review = Review(
             provider_id=other_provider.id,
-            booking_id=str(booking.id),
+            booking_id=str(uuid4()),
             reviewer_name="Eve",
             rating=4,
             comment="Gut",
