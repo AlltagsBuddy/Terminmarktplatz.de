@@ -55,6 +55,15 @@ def test_refresh_accepts_bearer_refresh_token(test_client):
     assert data.get("access")
 
 
+def test_refresh_rejects_access_token(test_client):
+    provider_id = _create_provider("refresh2@example.com", "testpass123")
+    access, _ = app_module.issue_tokens(provider_id, False)
+    r = test_client.post("/auth/refresh", headers={"Authorization": f"Bearer {access}"})
+    assert r.status_code == 401
+    data = r.get_json() or {}
+    assert data.get("error") == "unauthorized"
+
+
 def test_change_password_requires_fields(test_client):
     provider_id = _create_provider("cp1@example.com", "oldpass123")
     r = test_client.post("/auth/change-password", json={}, headers=_auth_headers(provider_id))
@@ -73,6 +82,18 @@ def test_change_password_invalid_old_password(test_client):
     assert r.status_code == 401
     data = r.get_json() or {}
     assert data.get("error") == "invalid_old_password"
+
+
+def test_change_password_too_short(test_client):
+    provider_id = _create_provider("cp2b@example.com", "oldpass123")
+    r = test_client.post(
+        "/auth/change-password",
+        json={"old_password": "oldpass123", "password": "short"},
+        headers=_auth_headers(provider_id),
+    )
+    assert r.status_code == 400
+    data = r.get_json() or {}
+    assert data.get("error") == "password_too_short"
 
 
 def test_change_password_success(test_client):

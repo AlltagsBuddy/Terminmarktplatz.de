@@ -65,6 +65,16 @@ def test_register_invalid_email(test_client):
     assert data.get("error") == "invalid_email"
 
 
+def test_register_password_too_short(test_client):
+    r = test_client.post(
+        "/auth/register",
+        json={"email": "short@example.com", "password": "short"},
+    )
+    assert r.status_code == 400
+    data = r.get_json() or {}
+    assert data.get("error") == "password_too_short"
+
+
 def test_login_success(test_client):
     _create_provider("login@example.com", "testpass123", verified=True)
     r = test_client.post(
@@ -86,3 +96,14 @@ def test_login_requires_verified_email(test_client):
     assert r.status_code == 403
     data = r.get_json() or {}
     assert data.get("error") == "email_not_verified"
+
+
+def test_login_invalid_credentials(test_client):
+    _create_provider("invalid@example.com", "testpass123", verified=True)
+    r = test_client.post(
+        "/auth/login",
+        json={"email": "invalid@example.com", "password": "wrongpass"},
+    )
+    assert r.status_code == 401
+    data = r.get_json() or {}
+    assert data.get("error") == "invalid_credentials"

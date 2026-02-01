@@ -119,3 +119,19 @@ def test_reset_password_success(test_client):
         assert app_module.ph.verify(updated.pw_hash, "newpass123")
         reset_row = s.query(PasswordReset).filter_by(token="valid-token").first()
         assert reset_row.used_at is not None
+
+
+def test_reset_password_provider_not_found(test_client):
+    with Session(app_module.engine) as s:
+        reset = PasswordReset(
+            provider_id="missing-provider",
+            token="missing-provider-token",
+            expires_at=app_module._to_db_utc_naive(app_module._now() + timedelta(minutes=30)),
+        )
+        s.add(reset)
+        s.commit()
+
+    r = test_client.post("/auth/reset-password", json={"token": "missing-provider-token", "password": "newpass123"})
+    assert r.status_code == 404
+    data = r.get_json() or {}
+    assert data.get("error") == "provider_not_found"
