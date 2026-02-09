@@ -5793,6 +5793,12 @@ def slots_update(slot_id):
     try:
         data = request.get_json(force=True) or {}
         published_now = False
+        def _should_apply_value(value: object) -> bool:
+            if value is None:
+                return False
+            if isinstance(value, str) and value.strip() == "":
+                return False
+            return True
 
         with Session(engine) as s:
             slot = s.get(Slot, slot_id, with_for_update=True)
@@ -5904,7 +5910,7 @@ def slots_update(slot_id):
                 "notes",
                 "description",
             ]:
-                if k in data:
+                if k in data and _should_apply_value(data[k]):
                     setattr(slot, k, data[k])
 
 
