@@ -1,7 +1,7 @@
 """Tests für GET /public/provider/<provider_id>/calendar.ics."""
 import os
 import tempfile
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import uuid4
 
 import pytest
@@ -36,6 +36,8 @@ def _seed_provider_with_slot() -> str:
             city="Teststadt",
             phone="1234567",
             status="approved",
+            plan="profi",
+            plan_valid_until=date.today() + timedelta(days=30),
         )
         s.add(provider)
         s.flush()

@@ -937,16 +937,20 @@
             </div>
           </div>
 
-          <div class="calendar-export">
+          <div class="calendar-export" id="calendar-export-block">
             <div style="font-weight:600; margin-bottom:6px;">Kalender-Export (nur lesen)</div>
-            <div class="calendar-row">
+            <div class="calendar-row" id="calendar-row">
               <input id="calendar-ics-url" class="calendar-input" type="text" readonly placeholder="Kalender-Link wird geladen …">
               <button class="btn" id="calendar-copy-btn" type="button">Link kopieren</button>
               <a class="btn" id="calendar-download-btn" target="_blank" rel="noopener">ICS laden</a>
             </div>
-            <div class="muted small" style="margin-top:6px;">
+            <div class="muted small" style="margin-top:6px;" id="calendar-tip">
               Tipp: Link als Kalender‑Abo in Google/Outlook hinzufügen (1‑Wege‑Sync).
               <a id="calendar-webcal-link" href="#" target="_blank" rel="noopener">webcal-Link öffnen</a>
+            </div>
+            <div id="calendar-upgrade-prompt" style="display:none; margin-top:8px; padding:10px; background:rgba(111,83,255,.08); border-radius:8px; border:1px solid rgba(111,83,255,.2);">
+              <strong>Automatische Termin-Synchronisation</strong> (iCal/Google/Outlook) ist im Profi-Paket enthalten.
+              <a href="preise.html#profi" class="btn small" style="margin-top:6px; display:inline-block;">Profi-Paket buchen</a>
             </div>
           </div>
 
@@ -1329,31 +1333,43 @@
       const downloadBtn = document.getElementById('calendar-download-btn');
       const copyBtn = document.getElementById('calendar-copy-btn');
       const webcalLink = document.getElementById('calendar-webcal-link');
+      const calendarRow = document.getElementById('calendar-row');
+      const calendarTip = document.getElementById('calendar-tip');
+      const upgradePrompt = document.getElementById('calendar-upgrade-prompt');
 
-      if (input) {
-        input.value = url;
-        input.placeholder = url ? '' : 'Kalender-Link nicht verfügbar';
-      }
-      if (downloadBtn) {
-        if (url) {
-          downloadBtn.href = url;
-          downloadBtn.style.display = '';
-        } else {
-          downloadBtn.removeAttribute('href');
-          downloadBtn.style.display = 'none';
+      if (HAS_PRO_FEATURES) {
+        if (calendarRow) calendarRow.style.display = '';
+        if (calendarTip) calendarTip.style.display = '';
+        if (upgradePrompt) upgradePrompt.style.display = 'none';
+        if (input) {
+          input.value = url;
+          input.placeholder = url ? '' : 'Kalender-Link nicht verfügbar';
         }
-      }
-      if (copyBtn) {
-        copyBtn.style.display = url ? '' : 'none';
-      }
-      if (webcalLink) {
-        if (webcalUrl) {
-          webcalLink.href = webcalUrl;
-          webcalLink.style.display = '';
-        } else {
-          webcalLink.removeAttribute('href');
-          webcalLink.style.display = 'none';
+        if (downloadBtn) {
+          if (url) {
+            downloadBtn.href = url;
+            downloadBtn.style.display = '';
+          } else {
+            downloadBtn.removeAttribute('href');
+            downloadBtn.style.display = 'none';
+          }
         }
+        if (copyBtn) {
+          copyBtn.style.display = url ? '' : 'none';
+        }
+        if (webcalLink) {
+          if (webcalUrl) {
+            webcalLink.href = webcalUrl;
+            webcalLink.style.display = '';
+          } else {
+            webcalLink.removeAttribute('href');
+            webcalLink.style.display = 'none';
+          }
+        }
+      } else {
+        if (calendarRow) calendarRow.style.display = 'none';
+        if (calendarTip) calendarTip.style.display = 'none';
+        if (upgradePrompt) upgradePrompt.style.display = 'block';
       }
     }
 

@@ -15,12 +15,28 @@ os.environ.setdefault("COPECART_PROFI_URL", "https://copecart.example/profi")
 import app as app_module
 from models import Base, Provider
 
+_COPECART_PROFI_URL = "https://copecart.example/profi"
+
 
 @pytest.fixture(scope="module")
 def test_client():
     Base.metadata.drop_all(app_module.engine)
     Base.metadata.create_all(app_module.engine)
     return app_module.app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def _ensure_copecart_urls():
+    """Stelle sicher, dass COPECART_PLAN_URLS für Profi gesetzt ist.
+    Die App kann von anderen Modulen vor diesem Import geladen worden sein,
+    dann war COPECART_PROFI_URL zum Import-Zeitpunkt noch None."""
+    orig = app_module.COPECART_PLAN_URLS.copy()
+    app_module.COPECART_PLAN_URLS = dict(orig)
+    app_module.COPECART_PLAN_URLS["profi"] = _COPECART_PROFI_URL
+    try:
+        yield
+    finally:
+        app_module.COPECART_PLAN_URLS = orig
 
 
 def _auth_headers(provider_id: str) -> dict[str, str]:

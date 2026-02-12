@@ -497,18 +497,21 @@
             </a>
           </div>
 
-          <div class="card">
-            <h3>Profi — 19,90 € / Monat <span class="pill warn">in Planung</span></h3>
+          <div class="card" id="profi">
+            <h3>Profi — 19,90 € / Monat</h3>
             <p class="muted">
-              • Unbegrenzt Slots<br>
+              • 500 Slots/Monat<br>
               • 📊 Status & Duplikate: Slots duplizieren, archivieren, exportieren<br>
               • Volle Transparenz über veröffentlichte Zeiten und Buchungsstatus<br>
               • Premium-Platzierung in Listen<br>
-              • Automatische Termin-Synchronisation (iCal/Google/Outlook)<br>
+              • <strong>Automatische Termin-Synchronisation</strong> (iCal/Google/Outlook)<br>
               • 2&nbsp;€ pro gebuchtem Slot
             </p>
-            <a class="btn auth-in" href="kontakt.html" style="margin-top:8px">
-              Profi-Paket vormerken
+            <a class="btn primary auth-in" href="#" id="btn-profi-preise" style="margin-top:8px">
+              Profi-Paket buchen
+            </a>
+            <a class="btn auth-out" href="login.html?next=preise.html#profi" style="margin-top:8px; display:none">
+              Anmelden zum Buchen
             </a>
           </div>
 
@@ -609,9 +612,13 @@
       const menu = document.getElementById('userMenu');
       if(!btn || !menu) return;
 
-      const authOutEls = menu.querySelectorAll('.auth-out');
-      const authInEls  = menu.querySelectorAll('.auth-in');
+      const authOutEls = document.querySelectorAll('.auth-out');
+      const authInEls  = document.querySelectorAll('.auth-in');
       const adminOnlyEls = menu.querySelectorAll('.admin-only');
+
+      // Profi-Button: CopeCart-Checkout über API (Login + subid)
+      const btnProfi = document.getElementById('btn-profi-preise');
+      if (btnProfi) btnProfi.href = `${APIforMenu}/copecart/kaufen?plan=profi`;
 
       function setAuthVisible(isLoggedIn, isAdmin){
         authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });

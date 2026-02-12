@@ -3120,23 +3120,6 @@ if _html_enabled():
             plan=plan,
         )
 
-    @app.get("/copecart/kaufen")
-    def copecart_kaufen():
-            plan_key = (request.args.get("plan") or "starter").strip().lower()
-            url = COPECART_PLAN_URLS.get(plan_key)
-            if not url:
-                abort(404)
-
-            provider_id = _current_provider_id_or_none()
-            if not provider_id:
-                next_url = url_for("copecart_kaufen", plan=plan_key)
-                login_url = url_for("login_page")
-                return redirect(f"{login_url}?next={next_url}&register=1")
-
-            sep = "&" if "?" in url else "?"
-            target = f"{url}{sep}subid={provider_id}"
-            return redirect(target, code=302)
-
     @app.get("/<path:slug>")
     def any_page(slug: str):
         # Spezifische Routen sollten bereits abgefangen worden sein
@@ -3161,12 +3144,32 @@ if _html_enabled():
 
 
 # --------------------------------------------------------
-# Login & Admin-Rechnungen Routes (auch im API_ONLY-Modus verfügbar)
+# Login, CopeCart-Kauf & Admin-Rechnungen (auch im API_ONLY-Modus verfügbar)
 # --------------------------------------------------------
 @app.get("/login")
 @app.get("/login.html")
 def login_page_always():
     return send_from_directory(APP_ROOT, "login.html")
+
+
+@app.get("/copecart/kaufen")
+def copecart_kaufen_always():
+    """Redirect zu CopeCart-Checkout; immer verfügbar (auch im API_ONLY-Modus)."""
+    plan_key = (request.args.get("plan") or "starter").strip().lower()
+    url = COPECART_PLAN_URLS.get(plan_key)
+    if not url:
+        abort(404)
+
+    provider_id = _current_provider_id_or_none()
+    if not provider_id:
+        next_url = url_for("copecart_kaufen_always", plan=plan_key)
+        login_url = url_for("login_page_always")
+        return redirect(f"{login_url}?next={next_url}&register=1")
+
+    sep = "&" if "?" in url else "?"
+    target = f"{url}{sep}subid={provider_id}"
+    return redirect(target, code=302)
+
 
 @app.get("/admin-rechnungen")
 @app.get("/admin-rechnungen.html")
@@ -3842,13 +3845,17 @@ def me():
             except Exception:
                 pass
 
-        calendar_token = _provider_calendar_token(str(p.id))
-        base_url = _external_base()
-        calendar_ics_url = f"{base_url}/public/provider/{p.id}/calendar.ics?token={calendar_token}"
-        calendar_webcal_url = (
-            calendar_ics_url.replace("https://", "webcal://")
-            .replace("http://", "webcal://")
-        )
+        # Kalender-Sync (iCal/Google/Outlook) nur für Profi/Business
+        calendar_ics_url = None
+        calendar_webcal_url = None
+        if _has_pro_features(p):
+            calendar_token = _provider_calendar_token(str(p.id))
+            base_url = _external_base()
+            calendar_ics_url = f"{base_url}/public/provider/{p.id}/calendar.ics?token={calendar_token}"
+            calendar_webcal_url = (
+                calendar_ics_url.replace("https://", "webcal://")
+                .replace("http://", "webcal://")
+            )
 
         return jsonify(
             {
@@ -8462,6 +8469,8 @@ def public_provider_calendar(provider_id):
             provider_obj = s.get(Provider, provider_id)
             if not provider_obj:
                 return _json_error("not_found", 404)
+            if not _has_pro_features(provider_obj):
+                return _json_error("plan_required", 403)
 
             now_db = _to_db_utc_naive(_now())
             booking_counts = (

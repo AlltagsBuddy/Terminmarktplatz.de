@@ -1,6 +1,6 @@
 import os
 import tempfile
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from sqlalchemy.orm import Session
@@ -33,6 +33,8 @@ def _seed_provider() -> str:
             city="Teststadt",
             phone="1234567",
             status="approved",
+            plan="profi",
+            plan_valid_until=date.today() + timedelta(days=30),
         )
         s.add(provider)
         s.commit()
@@ -59,6 +61,33 @@ def test_provider_calendar_empty_still_valid_ics(test_client):
     body = r.get_data(as_text=True)
     assert "BEGIN:VCALENDAR" in body
     assert "END:VCALENDAR" in body
+
+
+def test_provider_calendar_plan_required_for_non_profi(test_client):
+    """Provider ohne Profi/Business-Plan erhält 403 plan_required."""
+    with Session(app_module.engine) as s:
+        provider = Provider(
+            email="basic@example.com",
+            pw_hash="x",
+            company_name="Basic GmbH",
+            branch="Friseur",
+            street="Teststrasse",
+            zip="12345",
+            city="Teststadt",
+            phone="1234567",
+            status="approved",
+            plan="starter",  # kein Profi
+            plan_valid_until=date.today() + timedelta(days=30),
+        )
+        s.add(provider)
+        s.commit()
+        provider_id = str(provider.id)
+
+    token = app_module._provider_calendar_token(provider_id)
+    r = test_client.get(f"/public/provider/{provider_id}/calendar.ics?token={token}")
+    assert r.status_code == 403
+    data = r.get_json() or {}
+    assert data.get("error") == "plan_required"
 
 
 def test_provider_calendar_ignores_past_slots(test_client):

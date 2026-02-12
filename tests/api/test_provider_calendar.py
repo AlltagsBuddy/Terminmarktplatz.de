@@ -1,6 +1,6 @@
 import os
 import tempfile
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from sqlalchemy.orm import Session
@@ -33,6 +33,8 @@ def _seed_provider_with_slots() -> str:
             city="Teststadt",
             phone="1234567",
             status="approved",
+            plan="profi",
+            plan_valid_until=date.today() + timedelta(days=30),
         )
         s.add(provider)
         s.flush()
