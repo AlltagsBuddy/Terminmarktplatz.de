@@ -12,6 +12,7 @@ import hashlib
 import base64
 import re
 import io
+import csv
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
@@ -1850,6 +1851,19 @@ def _effective_monthly_limit(raw_limit) -> tuple[int, bool]:
     if raw < 0:
         return raw, True
     return raw, False
+
+
+def _has_pro_features(p: Provider) -> bool:
+    plan = (getattr(p, "plan", None) or "").strip().lower()
+    if plan not in ("profi", "business"):
+        return False
+    valid_until = getattr(p, "plan_valid_until", None)
+    if valid_until:
+        try:
+            return valid_until >= date.today()
+        except Exception:
+            return True
+    return True
 
 
 # --------------------------------------------------------
@@ -5629,6 +5643,108 @@ def slots_list():
     return _json_error("unknown_error", 500)
 
 
+@app.get("/slots/export")
+@auth_required()
+def slots_export():
+    try:
+        archived = request.args.get("archived")
+        show_archived = archived and archived.lower() in ("true", "1", "yes")
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_pro_features(p):
+                return _json_error("plan_required", 403)
+
+            bq = (
+                select(Booking.slot_id, func.count().label("booked"))
+                .where(Booking.status == "confirmed")
+                .group_by(Booking.slot_id)
+                .subquery()
+            )
+
+            q = (
+                select(
+                    Slot,
+                    func.coalesce(bq.c.booked, 0).label("booked"),
+                )
+                .outerjoin(bq, bq.c.slot_id == Slot.id)
+                .where(Slot.provider_id == request.provider_id)
+            )
+
+            if show_archived:
+                q = q.where(Slot.archived == True)
+            else:
+                q = q.where(Slot.archived == False)
+
+            rows = s.execute(q.order_by(Slot.start_at.desc())).all()
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(
+            [
+                "id",
+                "title",
+                "category",
+                "start_at",
+                "end_at",
+                "status",
+                "archived",
+                "capacity",
+                "booked",
+                "available",
+                "location",
+                "street",
+                "house_number",
+                "zip",
+                "city",
+                "price_cents",
+                "notes",
+                "description",
+                "created_at",
+                "published_at",
+            ]
+        )
+
+        for slot, booked in rows:
+            cap = slot.capacity or 1
+            booked_int = int(booked or 0)
+            available = max(0, cap - booked_int)
+            published_at = getattr(slot, "published_at", None)
+            writer.writerow(
+                [
+                    slot.id,
+                    slot.title or "",
+                    slot.category or "",
+                    _from_db_as_iso_utc(slot.start_at),
+                    _from_db_as_iso_utc(slot.end_at),
+                    slot.status or "",
+                    bool(getattr(slot, "archived", False)),
+                    cap,
+                    booked_int,
+                    available,
+                    slot.location or "",
+                    getattr(slot, "street", None) or "",
+                    getattr(slot, "house_number", None) or "",
+                    getattr(slot, "zip", None) or "",
+                    getattr(slot, "city", None) or "",
+                    slot.price_cents if slot.price_cents is not None else "",
+                    slot.notes or "",
+                    getattr(slot, "description", None) or "",
+                    _from_db_as_iso_utc(slot.created_at),
+                    _from_db_as_iso_utc(published_at) if published_at else "",
+                ]
+            )
+
+        data = output.getvalue()
+        output.close()
+        response = Response(data, mimetype="text/csv")
+        response.headers["Content-Disposition"] = "attachment; filename=slots-export.csv"
+        return response
+    except Exception as e:
+        app.logger.exception("slots_export failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
 # ... ab hier ist dein restlicher Code (Slots CRUD, Public Slots/Booking,
 # Admin, Stripe/CopeCart) unverändert lang.
 # Du kannst ihn aus deiner Version drunter lassen.
@@ -6021,6 +6137,10 @@ def slots_archive(slot_id):
     Archivierte Slots sind read-only und können nicht gelöscht werden.
     """
     with Session(engine) as s:
+        p = s.get(Provider, request.provider_id)
+        if not p or not _has_pro_features(p):
+            return _json_error("plan_required", 403)
+
         slot = s.get(Slot, slot_id)
         if not slot or slot.provider_id != request.provider_id:
             return _json_error("not_found", 404)
@@ -6029,6 +6149,51 @@ def slots_archive(slot_id):
         slot.status = SLOT_STATUS_EXPIRED
         s.commit()
         return jsonify({"ok": True, "archived": True})
+
+
+@app.post("/slots/<slot_id>/duplicate")
+@auth_required()
+def slots_duplicate(slot_id):
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_pro_features(p):
+                return _json_error("plan_required", 403)
+
+            slot = s.get(Slot, slot_id)
+            if not slot or slot.provider_id != request.provider_id:
+                return _json_error("not_found", 404)
+
+            new_slot = Slot(
+                provider_id=slot.provider_id,
+                title=slot.title,
+                category=slot.category,
+                start_at=slot.start_at,
+                end_at=slot.end_at,
+                street=getattr(slot, "street", None),
+                house_number=getattr(slot, "house_number", None),
+                zip=getattr(slot, "zip", None),
+                city=getattr(slot, "city", None),
+                location=slot.location,
+                lat=getattr(slot, "lat", None),
+                lng=getattr(slot, "lng", None),
+                capacity=slot.capacity,
+                contact_method=slot.contact_method,
+                booking_link=slot.booking_link,
+                price_cents=slot.price_cents,
+                notes=slot.notes,
+                description=getattr(slot, "description", None),
+                status=SLOT_STATUS_DRAFT,
+                archived=False,
+                published_at=None,
+            )
+            s.add(new_slot)
+            s.commit()
+            s.refresh(new_slot)
+            return jsonify(slot_to_json(new_slot)), 201
+    except Exception as e:
+        app.logger.exception("slots_duplicate failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
 
 
 @app.delete("/slots/<slot_id>")

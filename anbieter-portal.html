@@ -909,12 +909,17 @@
                 <button class="btn" id="btn-archive" disabled>Archivieren</button>
                 <button class="btn danger" id="btn-delete" disabled>Löschen</button>
                 <button class="btn" id="btn-refresh">Aktualisieren</button>
+                <button class="btn" id="btn-export" style="display:none;">Export (CSV)</button>
               </div>
             </div>
           </div>
 
           <div class="muted" style="margin:6px 0 12px">
             Hinweis: Neue Slots werden zunächst als <em>Entwurf</em> angelegt und sind erst nach dem Veröffentlichen öffentlich sichtbar.
+          </div>
+          <div id="pro-features-hint" class="muted small" style="display:none; margin-bottom:10px;">
+            Duplizieren, Archivieren und Export sind im <strong>Profi</strong>- und <strong>Business</strong>-Paket verfügbar.
+            <a href="preise.html">Paket ansehen</a>
           </div>
 
           <div class="stats-grid" id="slot-stats">
@@ -1355,6 +1360,11 @@
     // ---------- Auth / Profil laden ----------
     let ME = null;
     let CURRENT_FILTER = 'active'; // 'active' oder 'archived'
+    let HAS_PRO_FEATURES = false;
+    function computeProFeatures(){
+      const key = (ME?.plan || ME?.plan_key || '').toString().trim().toLowerCase();
+      HAS_PRO_FEATURES = (key === 'profi' || key === 'business');
+    }
     async function requireAuth(){
       try{
         const r = await fetch(`${API}/me`, { credentials:'include' });
@@ -1463,6 +1473,20 @@
           } else {
             cancelBtn.style.display = 'none';
           }
+        }
+
+        computeProFeatures();
+        const proHint = document.getElementById('pro-features-hint');
+        const exportBtn = document.getElementById('btn-export');
+        const archiveBtn = document.getElementById('btn-archive');
+        if (exportBtn) {
+          exportBtn.style.display = HAS_PRO_FEATURES ? 'inline-flex' : 'none';
+        }
+        if (archiveBtn) {
+          archiveBtn.style.display = HAS_PRO_FEATURES ? 'inline-flex' : 'none';
+        }
+        if (proHint) {
+          proHint.style.display = HAS_PRO_FEATURES ? 'none' : 'block';
         }
 
         setCalendarLinks();
@@ -2044,7 +2068,8 @@
           (canEdit && !isArchived) ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : '',
           (canPublish && !isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : '',
           (!isArchived) ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : '',
-          (isPublished && !isArchived) ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : '',
+          (HAS_PRO_FEATURES && isPublished && !isArchived) ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : '',
+          (HAS_PRO_FEATURES && !isArchived) ? `<button class="btn" data-dup="${s.id}">Duplizieren</button>` : '',
         ].filter(Boolean).join('');
 
         const archivedNote = isArchived ? `<span class="muted slot-actions-archived">Archiviert</span>` : '';
@@ -2101,6 +2126,12 @@
         b.addEventListener('click', async ()=>{
           await archiveSlot(b.dataset.archive);
           await loadSlots();
+        })
+      );
+
+      $$('#tbl-slots [data-dup]').forEach(b =>
+        b.addEventListener('click', async ()=>{
+          await duplicateSlot(b.dataset.dup);
         })
       );
 
@@ -2177,10 +2208,40 @@
         const r = await fetch(`${API}/slots/${id}/archive`, {method:'POST', credentials:'include'});
         if(!r.ok){
           const data = await r.json().catch(() => ({}));
-          showMsg('msg-slots', data.error ? `Konnte Slot nicht archivieren: ${data.error}` : 'Konnte Slot nicht archivieren.');
+          if (data.error === 'plan_required') {
+            showMsg('msg-slots', 'Archivieren ist nur im Profi- oder Business-Paket verfügbar.');
+          } else {
+            showMsg('msg-slots', data.error ? `Konnte Slot nicht archivieren: ${data.error}` : 'Konnte Slot nicht archivieren.');
+          }
         } else {
           showMsg('msg-slots', 'Slot wurde archiviert.', true);
           await loadSlots();
+        }
+      }catch(e){
+        showMsg('msg-slots','Netzwerkfehler.');
+      }
+    }
+
+    async function duplicateSlot(id){
+      if (!HAS_PRO_FEATURES) {
+        showMsg('msg-slots', 'Duplizieren ist nur im Profi- oder Business-Paket verfügbar.');
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/slots/${id}/duplicate`, {method:'POST', credentials:'include'});
+        const data = await r.json().catch(() => ({}));
+        if(!r.ok){
+          if (data.error === 'plan_required') {
+            showMsg('msg-slots', 'Duplizieren ist nur im Profi- oder Business-Paket verfügbar.');
+          } else {
+            showMsg('msg-slots', data.error ? `Konnte Slot nicht duplizieren: ${data.error}` : 'Konnte Slot nicht duplizieren.');
+          }
+          return;
+        }
+        showMsg('msg-slots', 'Slot wurde dupliziert. Du kannst ihn jetzt anpassen.', true);
+        await loadSlots();
+        if (data && data.id) {
+          enterEditMode(data);
         }
       }catch(e){
         showMsg('msg-slots','Netzwerkfehler.');
@@ -2280,6 +2341,38 @@
       ));
     }
 
+    async function exportSlots(){
+      if (!HAS_PRO_FEATURES) {
+        showMsg('msg-slots', 'Export ist nur im Profi- oder Business-Paket verfügbar.');
+        return;
+      }
+      try{
+        const url = CURRENT_FILTER === 'archived'
+          ? `${API}/slots/export?archived=true`
+          : `${API}/slots/export?archived=false`;
+        const r = await fetch(url, {credentials:'include'});
+        if(!r.ok){
+          const data = await r.json().catch(() => ({}));
+          if (data.error === 'plan_required') {
+            showMsg('msg-slots', 'Export ist nur im Profi- oder Business-Paket verfügbar.');
+          } else {
+            showMsg('msg-slots', 'Export fehlgeschlagen.');
+          }
+          return;
+        }
+        const blob = await r.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'slots-export.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      }catch(e){
+        showMsg('msg-slots','Netzwerkfehler.');
+      }
+    }
+
     $('#btn-publish')?.addEventListener('click', async ()=>{
       const ids = [...SELECTED];
       await bulkSetStatus(ids, 'PUBLISHED');
@@ -2298,6 +2391,7 @@
       await loadSlots();
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
+    $('#btn-export')?.addEventListener('click', exportSlots);
     $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
 
     // Filter-Buttons für Aktive/Archivierte Termine

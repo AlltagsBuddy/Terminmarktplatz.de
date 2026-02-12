@@ -1,6 +1,8 @@
+"""Tests für GET /public/provider/<provider_id>/calendar.ics."""
 import os
 import tempfile
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from sqlalchemy.orm import Session
@@ -8,10 +10,11 @@ from sqlalchemy.orm import Session
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
 os.close(_DB_FD)
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
-os.environ.setdefault("EMAILS_ENABLED", "false")
+os.environ.setdefault("BASE_URL", "http://testserver")
+os.environ.setdefault("FRONTEND_URL", "http://testserver")
 
 import app as app_module
-from models import Base, Provider, Slot, Booking
+from models import Base, Provider, Slot
 
 
 @pytest.fixture(scope="function")
@@ -21,14 +24,14 @@ def test_client():
     return app_module.app.test_client()
 
 
-def _seed_confirmed_booking() -> tuple[str, str]:
+def _seed_provider_with_slot() -> str:
     with Session(app_module.engine) as s:
         provider = Provider(
-            email="ics@example.com",
+            email="calendar@example.com",
             pw_hash="x",
-            company_name="ICS GmbH",
+            company_name="Calendar GmbH",
             branch="Friseur",
-            street="Teststrasse",
+            street="Teststrasse 1",
             zip="12345",
             city="Teststadt",
             phone="1234567",
@@ -41,7 +44,7 @@ def _seed_confirmed_booking() -> tuple[str, str]:
         end_at = start_at + timedelta(hours=1)
         slot = Slot(
             provider_id=provider.id,
-            title="Termin ICS",
+            title="Termin Cal",
             category="Friseur",
             start_at=start_at,
             end_at=end_at,
@@ -52,44 +55,42 @@ def _seed_confirmed_booking() -> tuple[str, str]:
             status="PUBLISHED",
         )
         s.add(slot)
-        s.flush()
-
-        booking = Booking(
-            slot_id=slot.id,
-            provider_id=provider.id,
-            customer_name="Max",
-            customer_email="max@example.com",
-            status="confirmed",
-        )
-        s.add(booking)
         s.commit()
-        return str(booking.id), str(slot.id)
+        return str(provider.id)
 
 
-def test_booking_calendar_requires_valid_token(test_client):
-    booking_id, _ = _seed_confirmed_booking()
-    r = test_client.get(f"/public/booking/{booking_id}/calendar.ics?token=invalid")
+def test_provider_calendar_invalid_token(test_client):
+    provider_id = _seed_provider_with_slot()
+    r = test_client.get(f"/public/provider/{provider_id}/calendar.ics?token=invalid")
     assert r.status_code == 400
     data = r.get_json() or {}
     assert data.get("error") == "invalid_token"
 
 
-def test_booking_calendar_returns_ics(test_client):
-    booking_id, _ = _seed_confirmed_booking()
-    token = app_module._booking_token(booking_id)
-    r = test_client.get(f"/public/booking/{booking_id}/calendar.ics?token={token}")
+def test_provider_calendar_missing_token(test_client):
+    provider_id = _seed_provider_with_slot()
+    r = test_client.get(f"/public/provider/{provider_id}/calendar.ics")
+    assert r.status_code == 400
+    data = r.get_json() or {}
+    assert data.get("error") == "invalid_token"
+
+
+def test_provider_calendar_valid_token_returns_ics(test_client):
+    provider_id = _seed_provider_with_slot()
+    token = app_module._provider_calendar_token(provider_id)
+    r = test_client.get(f"/public/provider/{provider_id}/calendar.ics?token={token}")
     assert r.status_code == 200
     assert r.headers.get("Content-Type", "").startswith("text/calendar")
     body = r.get_data(as_text=True)
     assert "BEGIN:VCALENDAR" in body
-    assert "SUMMARY:" in body
+    assert "Termin Cal" in body
+    assert "END:VCALENDAR" in body
 
 
-def test_booking_calendar_not_found(test_client):
-    from uuid import uuid4
+def test_provider_calendar_provider_not_found(test_client):
     fake_id = str(uuid4())
-    token = app_module._booking_token(fake_id)
-    r = test_client.get(f"/public/booking/{fake_id}/calendar.ics?token={token}")
+    token = app_module._provider_calendar_token(fake_id)
+    r = test_client.get(f"/public/provider/{fake_id}/calendar.ics?token={token}")
     assert r.status_code == 404
     data = r.get_json() or {}
     assert data.get("error") == "not_found"
