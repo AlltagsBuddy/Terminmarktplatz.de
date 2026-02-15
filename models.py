@@ -85,6 +85,9 @@ class Provider(Base):
         nullable=True,
     )
 
+    # Stripe Connect (Express): Für Anzahlungen beim Buchen
+    stripe_account_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     slots: Mapped[list["Slot"]] = relationship(
         "Slot",
         back_populates="provider",
@@ -209,6 +212,7 @@ class Slot(Base):
     booking_link: Mapped[str | None] = mapped_column(Text)
 
     price_cents: Mapped[int | None] = mapped_column(Integer)
+    deposit_cents: Mapped[int | None] = mapped_column(Integer)  # Anzahlung (optional)
     notes: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)  # Beschreibung für Suchende (öffentlich sichtbar)
 
@@ -272,6 +276,7 @@ class Slot(Base):
             "contact_method": self.contact_method,
             "booking_link": self.booking_link,
             "price_cents": self.price_cents,
+            "deposit_cents": self.deposit_cents,
             "notes": self.notes,
             "status": self.status,
             "published_at": self.published_at,
@@ -344,6 +349,10 @@ class Booking(Base):
     )
 
     billed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+
+    # Anzahlung via Stripe
+    deposit_paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    stripe_session_id: Mapped[str | None] = mapped_column(Text)  # checkout.session.id für Refunds
 
     slot: Mapped["Slot"] = relationship("Slot", back_populates="bookings")
     provider: Mapped["Provider"] = relationship("Provider", back_populates="bookings")

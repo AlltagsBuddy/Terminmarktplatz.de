@@ -870,6 +870,11 @@
                 <label for="sl-price">Preis (Euro, optional)</label>
                 <input id="sl-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
               </div>
+              <div class="field">
+                <label for="sl-deposit">Anzahlung (Euro, optional)</label>
+                <input id="sl-deposit" type="number" min="0" step="0.5" placeholder="z. B. 25"/>
+                <span class="hint" style="font-size: 12px;">Wird beim Buchen per Karte/SEPA erhoben. Erfordert <a href="#" id="link-stripe-setup">Zahlungen einrichten</a>.</span>
+              </div>
               <div class="field" style="grid-column:1/-1">
                 <label for="sl-description">Beschreibung (für Suchende sichtbar)</label>
                 <textarea id="sl-description" rows="3" placeholder="Optionale Beschreibung des Termins, die Suchende in den Suchergebnissen sehen können"></textarea>
@@ -1664,6 +1669,8 @@
       const location = `${streetCombined}, ${zip} ${city}`;
 
       const priceCents = (priceVal === '' ? null : Math.round(Number(priceVal) * 100));
+      const depositVal = $('#sl-deposit').value;
+      const depositCents = (depositVal === '' ? null : Math.round(Number(depositVal) * 100));
 
       const payload = {
         title,
@@ -1681,6 +1688,7 @@
 
         capacity: isNaN(capacity) ? 1 : capacity,
         price_cents: (priceCents === null || isNaN(priceCents)) ? null : priceCents,
+        deposit_cents: (depositCents === null || isNaN(depositCents) || depositCents <= 0) ? null : depositCents,
         description: description || null,
         notes: notes || null
       };
@@ -1737,6 +1745,8 @@
             showMsg('msg-slot', 'Endzeit muss nach der Startzeit liegen.', false);
           } else if (data.error === 'profile_incomplete') {
             showMsg('msg-slot', 'Profil unvollständig: Bitte Profil zuerst vollständig ausfüllen.', false);
+          } else if (data.error === 'stripe_onboarding_required') {
+            showMsg('msg-slot', (data.message || 'Für Anzahlungen musst du zuerst Zahlungen einrichten.') + ' Klicke auf „Zahlungen einrichten".', false);
           } else {
             showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.', false);
             // Scroll zum Formular, damit die Meldung sichtbar ist
@@ -1904,6 +1914,14 @@
           priceInput.value = (slot.price_cents / 100).toFixed(2);
         } else {
           priceInput.value = '';
+        }
+      }
+      const depositInput = document.getElementById('sl-deposit');
+      if (depositInput){
+        if (typeof slot.deposit_cents === 'number' && !isNaN(slot.deposit_cents) && slot.deposit_cents > 0){
+          depositInput.value = (slot.deposit_cents / 100).toFixed(2);
+        } else {
+          depositInput.value = '';
         }
       }
 
@@ -2407,6 +2425,22 @@
       await loadSlots();
     });
     $('#btn-refresh')?.addEventListener('click', loadSlots);
+
+    // Stripe Connect: Zahlungen einrichten (für Anzahlungen)
+    document.getElementById('link-stripe-setup')?.addEventListener('click', async function(e){
+      e.preventDefault();
+      try {
+        const r = await fetch(`${API}/me/stripe/onboard`, { method: 'POST', credentials: 'include' });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.url) {
+          window.location.href = data.url;
+        } else {
+          showMsg('msg-slot', data.error === 'stripe_not_configured' ? 'Zahlungen sind derzeit nicht verfügbar.' : (data.error || 'Fehler beim Einrichten.'), false);
+        }
+      } catch (err) {
+        showMsg('msg-slot', 'Netzwerkfehler.', false);
+      }
+    });
     $('#btn-export')?.addEventListener('click', exportSlots);
     $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
 
@@ -2436,6 +2470,16 @@
     if (btnShowActive) btnShowActive.classList.add('primary');
 
     (async function init(){
+      const sp = new URLSearchParams(location.search);
+      const stripeOnboard = sp.get('stripe_onboard');
+      if (stripeOnboard) {
+        history.replaceState(null, '', location.pathname);
+        if (stripeOnboard === 'success') {
+          showMsg('msg-slot', 'Zahlungen erfolgreich eingerichtet. Du kannst jetzt Anzahlungen bei Slots anbieten.', true);
+        } else if (stripeOnboard === 'refresh') {
+          showMsg('msg-slot', 'Der Einrichtungs-Link ist abgelaufen. Bitte erneut auf „Zahlungen einrichten" klicken.', false);
+        }
+      }
       await requireAuth();
       fillCategoryOptions();
       recalcEnd();

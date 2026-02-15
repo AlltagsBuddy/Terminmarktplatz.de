@@ -1334,6 +1334,43 @@ def _ensure_publish_quota_tables():
         print(f"⚠️  Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}", flush=True)
 
 
+def _ensure_stripe_connect_fields() -> None:
+    """Fügt Felder für Stripe Connect Anzahlungen hinzu."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("SELECT 1 FROM provider LIMIT 1"))
+    except Exception:
+        return
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.provider ADD COLUMN IF NOT EXISTS stripe_account_id text;"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS deposit_cents integer;"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS deposit_paid_at timestamp without time zone;"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS stripe_session_id text;"
+                )
+            else:
+                for col, typ, tbl in [
+                    ("stripe_account_id", "TEXT", "provider"),
+                    ("deposit_cents", "INTEGER", "slot"),
+                    ("deposit_paid_at", "DATETIME", "booking"),
+                    ("stripe_session_id", "TEXT", "booking"),
+                ]:
+                    try:
+                        conn.execute(text(f"SELECT {col} FROM {tbl} LIMIT 1"))
+                    except Exception:
+                        conn.exec_driver_sql(f"ALTER TABLE {tbl} ADD COLUMN {col} {typ}")
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}", flush=True)
+
+
 # Startup-Migrationen werden unten non-blocking gestartet
 
 
@@ -1355,6 +1392,7 @@ def _run_startup_migrations() -> None:
         _ensure_slot_status_constraint,
         _ensure_slot_description_field,
         _ensure_publish_quota_tables,
+        _ensure_stripe_connect_fields,
     ):
         try:
             fn()
@@ -1767,6 +1805,7 @@ def slot_to_json(x: Slot):
         "contact_method": x.contact_method,
         "booking_link": x.booking_link,
         "price_cents": x.price_cents,
+        "deposit_cents": getattr(x, "deposit_cents", None),
         "notes": x.notes,
         "description": getattr(x, "description", None),
         "status": x.status,
@@ -2372,6 +2411,79 @@ def send_sms(to: str, text: str) -> None:
         return
     print(f"[sms][stub] to={to} text={text}", flush=True)
 
+
+
+def _send_booking_deposit_confirmation_emails(
+    b: Booking,
+    slot: Slot | None,
+    provider: Provider | None,
+) -> None:
+    """E-Mails nach erfolgreicher Anzahlungszahlung (Stripe Checkout)."""
+    if not slot or not provider:
+        return
+    base = _external_base()
+    cancel_token = _booking_token(b.id)
+    cancel_link = f"{base}{url_for('public_cancel')}?token={cancel_token}"
+    slot_start = _as_utc_aware(slot.start_at).astimezone(BERLIN) if slot.start_at else None
+    start_str = slot_start.strftime("%d.%m.%Y %H:%M") if slot_start else "-"
+    deposit_eur = (getattr(slot, "deposit_cents", None) or 0) / 100
+
+    # An Suchenden: Buchung bestätigt
+    to_customer = (b.customer_email or "").strip().lower()
+    if to_customer:
+        body_c = f"""Hallo {b.customer_name or 'Kunde/Kundin'},
+
+deine Buchung wurde bestätigt. Die Anzahlung wurde erfolgreich verarbeitet.
+
+Termin: {slot.title}
+Datum & Zeit: {start_str} Uhr
+Anbieter: {provider.company_name or 'Anbieter'}
+Anzahlung: {deposit_eur:.2f} €
+
+Stornieren: {cancel_link}
+
+Viele Grüße
+Terminmarktplatz
+"""
+        try:
+            send_mail(
+                to_customer,
+                "Buchung bestätigt – Terminmarktplatz",
+                text=body_c,
+                tag="booking_deposit_confirmed",
+                metadata={"booking_id": str(b.id)},
+            )
+        except Exception as e:
+            app.logger.warning("send_mail booking_deposit_confirmed failed: %r", e)
+
+    # An Anbieter: Anzahlung erhalten
+    to_provider = (provider.email or "").strip().lower()
+    if to_provider:
+        body_p = f"""Hallo {provider.company_name or 'Anbieter/in'},
+
+du hast eine Anzahlung erhalten:
+
+Kunde/Kundin: {b.customer_name or '-'}
+E-Mail: {b.customer_email or '-'}
+Termin: {slot.title}
+Datum: {start_str} Uhr
+Anzahlung: {deposit_eur:.2f} €
+
+Die Buchung ist bestätigt.
+
+Viele Grüße
+Terminmarktplatz
+"""
+        try:
+            send_mail(
+                to_provider,
+                "Anzahlung erhalten – Terminmarktplatz",
+                text=body_p,
+                tag="booking_deposit_provider_notify",
+                metadata={"booking_id": str(b.id), "provider_id": str(provider.id)},
+            )
+        except Exception as e:
+            app.logger.warning("send_mail booking_deposit_provider_notify failed: %r", e)
 
 
 def send_email_plan_canceled(provider: Provider, old_plan: str | None):
@@ -3898,8 +4010,46 @@ def me():
                 "slots_unlimited": unlimited,
                 "calendar_ics_url": calendar_ics_url,
                 "calendar_webcal_url": calendar_webcal_url,
+                "stripe_account_id": getattr(p, "stripe_account_id", None),
             }
         )
+
+
+@app.post("/me/stripe/onboard")
+@auth_required()
+def me_stripe_onboard():
+    """Erstellt Stripe Connect Express Account und gibt Onboarding-Link zurück."""
+    if not (stripe and STRIPE_SECRET_KEY):
+        return _json_error("stripe_not_configured", 501)
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            acct_id = getattr(p, "stripe_account_id", None)
+            if not acct_id:
+                acct = stripe.Account.create(
+                    type="express",
+                    country="DE",
+                    email=p.email,
+                    metadata={"provider_id": str(p.id)},
+                )
+                acct_id = acct.id
+                p.stripe_account_id = acct_id
+                s.commit()
+            base = _external_base()
+            return_url = f"{base}/anbieter-portal.html?stripe_onboard=success"
+            refresh_url = f"{base}/anbieter-portal.html?stripe_onboard=refresh"
+            link = stripe.AccountLink.create(
+                account=acct_id,
+                refresh_url=refresh_url,
+                return_url=return_url,
+                type="account_onboarding",
+            )
+            return jsonify({"url": link.url})
+    except Exception as e:
+        app.logger.exception("me_stripe_onboard failed")
+        return _json_error("server_error", 500)
 
 
 @app.put("/me")
@@ -5790,6 +5940,22 @@ def slots_create():
         if cap < 1:
             return _json_error("bad_capacity", 400)
 
+        deposit_cents_val = data.get("deposit_cents")
+        deposit_cents_int = None
+        if deposit_cents_val not in (None, ""):
+            try:
+                deposit_cents_int = int(deposit_cents_val)
+            except (ValueError, TypeError):
+                pass
+        if deposit_cents_int is not None and deposit_cents_int > 0:
+            with Session(engine) as s_check:
+                p_check = s_check.get(Provider, request.provider_id)
+                if not p_check or not getattr(p_check, "stripe_account_id", None):
+                    return jsonify({
+                        "error": "stripe_onboarding_required",
+                        "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",
+                    }), 400
+
         start_db = _to_db_utc_naive(start)
         end_db = _to_db_utc_naive(end)
 
@@ -5860,6 +6026,7 @@ def slots_create():
                 contact_method=(data.get("contact_method") or "mail"),
                 booking_link=(data.get("booking_link") or None),
                 price_cents=(data.get("price_cents") or None),
+                deposit_cents=deposit_cents_int if (deposit_cents_int is not None and deposit_cents_int > 0) else None,
                 notes=(data.get("notes") or None),
                 description=(data.get("description") or None),
                 status=SLOT_STATUS_DRAFT,
@@ -6017,6 +6184,21 @@ def slots_update(slot_id):
                 except Exception:
                     return _json_error("bad_capacity", 400)
 
+            # Anzahlung: Anbieter braucht Stripe Connect
+            deposit_val = data.get("deposit_cents")
+            if deposit_val is not None:
+                try:
+                    d = int(deposit_val) if deposit_val != "" else 0
+                except (ValueError, TypeError):
+                    d = 0
+                if d > 0:
+                    provider = s.get(Provider, slot.provider_id)
+                    if not provider or not getattr(provider, "stripe_account_id", None):
+                        return jsonify({
+                            "error": "stripe_onboarding_required",
+                            "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",
+                        }), 400
+
             # WICHTIG: Updates dürfen NICHT nur bei capacity laufen
             for k in [
                 "title",
@@ -6030,6 +6212,7 @@ def slots_update(slot_id):
                 "contact_method",
                 "booking_link",
                 "price_cents",
+                "deposit_cents",
                 "notes",
                 "description",
             ]:
@@ -7240,6 +7423,32 @@ def stripe_webhook():
     if event["type"] == "checkout.session.completed":
         session_obj = event["data"]["object"]
         metadata = session_obj.get("metadata", {}) or {}
+        meta_type = metadata.get("type")
+
+        if meta_type == "booking_deposit":
+            booking_id = metadata.get("booking_id")
+            if not booking_id:
+                app.logger.warning("Stripe webhook: booking_deposit without booking_id")
+                return jsonify({"ok": True})
+            with Session(engine) as s:
+                b = s.get(Booking, booking_id, with_for_update=True)
+                if not b or b.status != "hold":
+                    app.logger.warning(f"Stripe webhook: booking {booking_id} not found or not hold")
+                    return jsonify({"ok": True})
+                now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+                b.status = "confirmed"
+                b.confirmed_at = now_utc
+                b.deposit_paid_at = now_utc
+                b.stripe_session_id = session_obj.get("id")
+                slot = s.get(Slot, b.slot_id)
+                provider = s.get(Provider, b.provider_id)
+                s.commit()
+            try:
+                _send_booking_deposit_confirmation_emails(b, slot, provider)
+            except Exception as e:
+                app.logger.exception("send_booking_deposit_confirmation_emails failed: %r", e)
+            return jsonify({"ok": True})
+
         provider_id = metadata.get("provider_id")
         plan_key = metadata.get("plan_key")
         plan = PLANS.get(plan_key)
@@ -7958,6 +8167,10 @@ def public_book():
         else:
             fee = Decimal("2.00")
 
+        deposit_cents = getattr(slot, "deposit_cents", None) or 0
+        stripe_acct = getattr(provider, "stripe_account_id", None) if provider else None
+        requires_deposit = deposit_cents > 0 and stripe_acct
+
         b = Booking(
             slot_id=slot.id,
             provider_id=slot.provider_id,
@@ -7971,6 +8184,50 @@ def public_book():
         )
         s.add(b)
         s.commit()
+
+        if requires_deposit and stripe and STRIPE_SECRET_KEY:
+            try:
+                frontend = FRONTEND_URL.rstrip("/")
+                success_url = f"{frontend}/suche.html?booking_deposit_success=1&booking_id={b.id}"
+                cancel_url = f"{frontend}/suche.html?booking_deposit_cancel=1"
+                session = stripe.checkout.Session.create(
+                    mode="payment",
+                    line_items=[
+                        {
+                            "price_data": {
+                                "currency": "eur",
+                                "unit_amount": deposit_cents,
+                                "product_data": {
+                                    "name": f"Anzahlung: {slot.title}",
+                                    "description": f"Termin am {_as_utc_aware(slot.start_at).astimezone(BERLIN).strftime('%d.%m.%Y %H:%M')} Uhr",
+                                },
+                            },
+                            "quantity": 1,
+                        }
+                    ],
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                    metadata={
+                        "type": "booking_deposit",
+                        "booking_id": str(b.id),
+                    },
+                    customer_email=email,
+                    stripe_account=stripe_acct,
+                )
+                return jsonify({
+                    "ok": True,
+                    "requires_deposit": True,
+                    "checkout_url": session.url,
+                    "booking_id": str(b.id),
+                })
+            except Exception as e:
+                app.logger.exception("Stripe checkout for deposit failed")
+                try:
+                    b.status = "canceled"
+                    s.commit()
+                except Exception:
+                    pass
+                return jsonify({"error": "stripe_error", "detail": str(e)}), 500
 
         token = _booking_token(b.id)
         base = _external_base()

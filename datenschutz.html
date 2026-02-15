@@ -439,7 +439,7 @@
           Hier erfährst du, welche personenbezogenen Daten wir auf Terminmarktplatz verarbeiten, zu welchen Zwecken,
           auf welcher Rechtsgrundlage, wie lange und welche Rechte du nach der DSGVO hast.
         </p>
-        <p class="note">Stand: 20. Juli 2025</p>
+        <p class="note">Stand: 15. Februar 2026</p>
       </div>
     </section>
 
@@ -507,6 +507,11 @@
                 <td>Art. 6 Abs. 1 lit. b DSGVO</td>
               </tr>
               <tr>
+                <td>Anzahlungszahlung (Stripe)</td>
+                <td>Abwicklung von Anzahlungen beim Buchen; Weiterleitung an Stripe; Bestätigung der Buchung nach Zahlung</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO</td>
+              </tr>
+              <tr>
                 <td>Transaktionsmails (z. B. Bestätigung, Erinnerungen)</td>
                 <td>Information über Status von Konto, Buchungen, Stornierungen</td>
                 <td>Art. 6 Abs. 1 lit. b DSGVO; teilweise lit. f DSGVO</td>
@@ -534,7 +539,7 @@
             <li><strong>Stammdaten:</strong> Name, Vorname, ggf. Firmenname, Kontaktdaten (E-Mail, Anschrift).</li>
             <li><strong>Zugangsdaten (Anbieter):</strong> E-Mail-Adresse, Passwort-Hash (Argon2), Verifizierungsstatus.</li>
             <li><strong>Profilinhalte (Anbieter):</strong> Logo/Bilddatei (sofern hochgeladen).</li>
-            <li><strong>Buchungsdaten:</strong> gebuchte Slots, Datum/Uhrzeit, Anbieter, Status (z. B. bestätigt, storniert).</li>
+            <li><strong>Buchungsdaten:</strong> gebuchte Slots, Datum/Uhrzeit, Anbieter, Status (z. B. bestätigt, storniert). Bei Buchungen mit Anzahlung: Buchungs-ID zur Zuordnung der Zahlung; die eigentlichen Zahlungsdaten (Kartennummer etc.) werden nicht von uns verarbeitet, sondern ausschließlich von Stripe.</li>
             <li><strong>Nutzungsdaten:</strong> Logfiles (IP-Adresse, Zeitpunkt, aufgerufene URL, HTTP-Status, User-Agent, Referrer).</li>
             <li><strong>Kommunikationsdaten:</strong> Inhalte von Nachrichten über das Kontaktformular oder per E-Mail.</li>
             <li><strong>Abrechnungs-/Vertragsdaten (Anbieter):</strong> gewähltes Paket, Laufzeiten, Rechnungsdaten.</li>
@@ -592,6 +597,13 @@
             Die Verarbeitung ist zur Anbahnung und Durchführung des Vertrags zwischen dir und dem Anbieter erforderlich
             (Art. 6 Abs. 1 lit. b DSGVO). Vertragspartner der Leistung ist ausschließlich der jeweilige Anbieter, nicht
             Terminmarktplatz.
+          </p>
+          <p>
+            <strong>Buchungen mit Anzahlung:</strong> Bietet ein Anbieter eine Anzahlung an, wirst du nach der Buchungsanfrage
+            zur Zahlungsseite von Stripe weitergeleitet. Wir übermitteln an Stripe deine E-Mail-Adresse, die Buchungs-ID und
+            den zu zahlenden Betrag. Die eigentliche Zahlung (Karte, SEPA etc.) erfolgt ausschließlich auf den Servern von Stripe;
+            wir speichern keine Kartendaten oder Bankverbindungen. Nach erfolgreicher Zahlung erhalten wir eine technische
+            Bestätigung und lösen die Buchungsbestätigung aus.
           </p>
 
           <h3>5.5 Transaktionsmails (z. B. Bestätigung, Storno, Konto-Infos)</h3>
@@ -693,7 +705,16 @@
               Beim Aufruf der Website verarbeitet STRATO technisch bedingt Server-Logdaten (siehe Punkt 5.1).
             </li>
             <li>
-              <strong>Zahlungsplattform (CopeCart)</strong>: Für den Kauf kostenpflichtiger Pakete/Leistungen nutzen wir CopeCart.
+              <strong>Zahlungsplattform (Stripe)</strong>: Für die Abwicklung von Anzahlungen beim Termin-Buchen nutzen wir Stripe.
+              Dienstanbieter: Stripe, Inc., 354 Oyster Point Blvd, South San Francisco, CA 94080, USA; für Europa: Stripe Payments Europe, Ltd., 1 Grand Canal Street Lower, Dublin 2, Irland.
+              Die Zahlung erfolgt auf der Stripe-Checkout-Seite. Wir übermitteln an Stripe: E-Mail-Adresse, Buchungs-ID und Betrag.
+              Karten- und Kontodaten werden ausschließlich von Stripe verarbeitet; wir erhalten keine Zahlungsdaten.
+              Wir erhalten von Stripe technische Benachrichtigungen (Webhooks) zum Zahlungsstatus, um die Buchung zu bestätigen.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragsdurchführung).
+              Weitere Informationen: <a href="https://stripe.com/de/privacy" target="_blank" rel="noopener noreferrer">Stripe Datenschutzerklärung</a>.
+            </li>
+            <li>
+              <strong>Zahlungsplattform (CopeCart)</strong>: Für den Kauf kostenpflichtiger Pakete/Leistungen (Anbieter-Tarife) nutzen wir CopeCart.
               Die Zahlungsabwicklung (inkl. Zahlungsdaten) erfolgt direkt über CopeCart. Wir erhalten typischerweise nur die zur Vertragsdurchführung
               erforderlichen Informationen (z. B. Zahlungsstatus, Produkt/Plan, Transaktions-/Bestell-ID, Rechnungs-/Kontaktinformationen, sofern von dir
               bei CopeCart angegeben) sowie ggf. technische Benachrichtigungen (Webhooks) zur Zuordnung deiner Zahlung.

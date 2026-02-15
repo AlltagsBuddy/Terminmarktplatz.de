@@ -367,7 +367,7 @@
           Diese AGB regeln die Nutzung von Terminmarktplatz durch Anbieter:innen („Anbieter“) und Nutzer:innen, die Termine suchen
           und buchen („Suchende“). Terminmarktplatz ist eine Vermittlungsplattform.
         </p>
-        <p class="note">Stand: 20. Juli 2025</p>
+        <p class="note">Stand: 15. Februar 2026</p>
       </div>
     </section>
 
@@ -442,10 +442,27 @@
             <li><strong>Direktbuchung über die Plattform:</strong> Suchende geben die abgefragten Daten (z. B. Name, E-Mail) an und bestätigen
                 die Buchung, ggf. per E-Mail-Link (Double-Opt-In). Ein Vertrag kommt zwischen Anbieter und Suchendem zustande, sobald
                 der Anbieter den Slot annimmt bzw. die Buchung nach dem im Angebot beschriebenen Ablauf bestätigt.</li>
+            <li><strong>Buchung mit Anzahlung:</strong> Bietet ein Anbieter eine Anzahlung an, erfolgt die Zahlung beim Buchen über die Plattform
+                (Stripe). Die Anzahlung wird direkt an den Anbieter ausbezahlt. Die Buchung ist nach erfolgreicher Zahlung sofort bestätigt;
+                eine zusätzliche Bestätigung per E-Mail-Link entfällt in diesem Fall.</li>
             <li><strong>Externer Link:</strong> Erfolgt die Buchung über einen externen Link, kommt der Vertrag ausschließlich außerhalb der
                 Plattform nach den Bedingungen des Anbieters zustande. Es gelten dann dessen AGB/Widerrufs- und Datenschutzbestimmungen.</li>
             <li>Wir versenden systemische E-Mails (z. B. Anfragen, Buchungsbestätigungen, Erinnerungen) im Auftrag bzw. Interesse
                 der Vertragsparteien.</li>
+          </ul>
+
+          <h3>5.1 Anzahlungen – Zahlung über die Plattform</h3>
+          <p>
+            Anbieter können optional eine Anzahlung für ihre Slots festlegen. Wird eine Anzahlung angeboten und der Anbieter
+            hat die technische Einrichtung hierfür (Stripe Connect) abgeschlossen, erfolgt die Zahlung der Anzahlung beim
+            Buchen über unser System. Die Abwicklung erfolgt über Stripe; die Zahlung geht direkt auf das Geschäftskonto des
+            Anbieters. Wir vermitteln lediglich die technische Abwicklung.
+          </p>
+          <ul>
+            <li>Der Suchende wird nach Absenden der Buchungsanfrage zur sicheren Zahlungsseite (Stripe Checkout) weitergeleitet.</li>
+            <li>Die Buchung ist nach erfolgreicher Zahlung unmittelbar bestätigt.</li>
+            <li>Stornierung und Rückzahlung von Anzahlungen regeln Anbieter und Suchende untereinander; bei Streitfällen
+                können gesetzliche Widerrufsrechte und die Stornobedingungen des Anbieters maßgeblich sein.</li>
           </ul>
 
           <h2>6. Preise, Pläne & Vermittlungsgebühr</h2>
@@ -489,9 +506,10 @@
               <a href="widerruf.html">Widerrufsbelehrung</a>.</li>
             <li>Stornobedingungen können vom Anbieter vorgegeben werden und sind – soweit angegeben – Bestandteil des jeweiligen Angebots.</li>
             <li>Die Abwicklung von Stornierungen und etwaigen Rückzahlungen erfolgt direkt zwischen Anbieter und Suchendem, sofern nichts anderes
-                im Einzelfall vereinbart ist.</li>
-            <li>No-Shows: Anbieter dürfen angemessene Maßnahmen zur Reduzierung von Ausfällen treffen (z. B. Erinnerungsmails, Stornofristen),
-                soweit diese mit geltendem Recht vereinbar sind.</li>
+                im Einzelfall vereinbart ist. Bei Buchungen mit Anzahlung liegt die Rückzahlung in der Verantwortung des Anbieters;
+                bei Streitfällen oder Chargebacks (Rückbuchungen durch die Kartenaussteller) kann Stripe bzw. der Anbieter beteiligt sein.</li>
+            <li>No-Shows: Anbieter dürfen angemessene Maßnahmen zur Reduzierung von Ausfällen treffen (z. B. Erinnerungsmails, Stornofristen,
+                Anzahlungen), soweit diese mit geltendem Recht vereinbar sind.</li>
           </ul>
 
           <h2>8. Bewertungen & Inhalte</h2>

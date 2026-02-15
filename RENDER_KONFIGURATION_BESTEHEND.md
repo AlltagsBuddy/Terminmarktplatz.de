@@ -44,8 +44,11 @@ Diese Anleitung zeigt, was Sie prüfen/anpassen müssen.
 | `RESEND_API_KEY` | Wenn `MAIL_PROVIDER=resend` |
 | `MAIL_FROM` | Immer (z.B. `Terminmarktplatz <info@terminmarktplatz.de>`) |
 | `GOOGLE_MAPS_API_KEY` | Falls Google Maps verwendet wird |
-| `STRIPE_SECRET_KEY` | Falls Stripe verwendet wird |
+| `STRIPE_SECRET_KEY` | Für Anzahlungen beim Buchen (Stripe Connect) |
+| `STRIPE_WEBHOOK_SECRET` | Webhook-Signatur für Stripe (zwingend bei STRIPE_SECRET_KEY) |
 | `COPECART_*` | Falls CopeCart verwendet wird |
+
+**Stripe-Setup:** Details siehe [STRIPE_ANLEITUNG.md](STRIPE_ANLEITUNG.md).
 
 ### Fehlende Variablen hinzufügen:
 
