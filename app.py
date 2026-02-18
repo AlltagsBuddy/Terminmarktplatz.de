@@ -839,6 +839,33 @@ def _ensure_geo_tables():
 
 
 # --------------------------------------------------------
+# Provider-Branch-Constraint entfernen (ermöglicht alle Branches aus BRANCHES)
+# --------------------------------------------------------
+def _remove_provider_branch_constraint():
+    """
+    Entfernt den alten CHECK-Constraint auf provider.branch aus db_init.sql.
+    Er erlaubte nur: Arzt, Handwerk, Friseur, Kosmetik, Therapie, Behoerde, Sonstiges.
+    Die App nutzt nun alle Werte aus BRANCHES (z. B. Physiotherapie, Nagelstudio, Behörde).
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                conn.exec_driver_sql("""
+                DO $$
+                BEGIN
+                  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.provider'::regclass AND conname = 'provider_branch_check')
+                  THEN
+                    ALTER TABLE public.provider DROP CONSTRAINT provider_branch_check;
+                  END IF;
+                END $$;
+                """)
+            else:
+                pass
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: remove_provider_branch_constraint fehlgeschlagen: {e}", flush=True)
+
+
+# --------------------------------------------------------
 # Kategorie-Constraint entfernen (ermöglicht alle Kategorien)
 # --------------------------------------------------------
 def _remove_category_constraint():
@@ -1383,6 +1410,7 @@ def _run_startup_migrations() -> None:
         _ensure_provider_public_profile_fields,
         _ensure_booking_reminder_fields,
         _ensure_geo_tables,
+        _remove_provider_branch_constraint,
         _remove_category_constraint,
         _ensure_alert_deleted_at,
         _ensure_password_reset_table,

@@ -642,7 +642,14 @@
         if(r.ok){
           showMsg('msg-profile', 'Gespeichert ✓', true);
         }else{
-          showMsg('msg-profile', data.error || 'Konnte Profil nicht speichern.');
+          const errMsg = (data.error === 'invalid_zip')
+            ? 'Bitte PLZ mit genau 5 Ziffern eingeben.'
+            : (data.error === 'invalid_logo_url')
+              ? 'Logo-URL ist ungültig.'
+              : (data.error === 'db_constraint_error')
+                ? 'Ein Feld wurde abgelehnt (z. B. Branche). Bitte andere Werte wählen.'
+                : (data.error || 'Konnte Profil nicht speichern.');
+          showMsg('msg-profile', errMsg);
         }
       }catch(e){
         showMsg('msg-profile','Netzwerkfehler.');
