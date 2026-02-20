@@ -67,7 +67,21 @@ Für Anzahlungen nutzt die Plattform **Stripe Connect Express**. Anbieter müsse
 
 ---
 
-## 4. Webhook für Connect-Events
+## 4. Profi-Paket-Kauf
+
+Der Kauf des Profi-Pakets läuft ebenfalls über Stripe Checkout:
+
+1. Anbieter klickt auf der Preise-Seite auf „Profi-Paket buchen“
+2. `POST /paket-buchen` erstellt eine Stripe Checkout-Session
+3. Weiterleitung zu Stripe → Zahlung abwickeln
+4. Nach Erfolg: Redirect zu `anbieter-portal.html?plan_success=1`
+5. Webhook `checkout.session.completed` mit `metadata.plan_key` aktiviert das Paket
+
+Der gleiche Webhook verarbeitet sowohl Anzahlungen als auch Paket-Käufe.
+
+---
+
+## 5. Webhook für Connect-Events
 
 Connect-Zahlungen werden ebenfalls über den gleichen Webhook verarbeitet.
 
@@ -88,6 +102,7 @@ In neueren Stripe-Versionen werden Connect-Events automatisch an den Plattform-W
 - [ ] Testzahlung mit `4242 4242 4242 4242` ( beliebiges zukünftiges Datum, beliebiger CVC )
 - [ ] Webhook erhält `checkout.session.completed` → Buchung wird bestätigt
 - [ ] E-Mails an Suchenden und Anbieter werden versendet
+- [ ] Profi-Paket-Kauf: „Profi-Paket buchen“ auf preise.html → Stripe Checkout → Webhook aktiviert Paket
 
 ### Produktion
 
@@ -100,7 +115,7 @@ In neueren Stripe-Versionen werden Connect-Events automatisch an den Plattform-W
 
 ---
 
-## 6. Häufige Probleme
+## 7. Häufige Probleme
 
 ### Webhook liefert 400 „Invalid signature“
 
@@ -131,7 +146,7 @@ Die CLI gibt einen temporären `whsec_...` aus; diesen als `STRIPE_WEBHOOK_SECRE
 
 ---
 
-## 8. Links
+## 9. Links
 
 - [Stripe Connect Dokumentation](https://stripe.com/docs/connect)
 - [Stripe Checkout](https://stripe.com/docs/payments/checkout)

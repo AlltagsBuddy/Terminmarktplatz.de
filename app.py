@@ -5978,7 +5978,14 @@ def slots_create():
         if deposit_cents_int is not None and deposit_cents_int > 0:
             with Session(engine) as s_check:
                 p_check = s_check.get(Provider, request.provider_id)
-                if not p_check or not getattr(p_check, "stripe_account_id", None):
+                if not p_check:
+                    return _json_error("not_found", 404)
+                if not _has_pro_features(p_check):
+                    return jsonify({
+                        "error": "profi_plan_required",
+                        "message": "Anzahlungen sind nur mit dem Profi- oder Business-Paket möglich.",
+                    }), 400
+                if not getattr(p_check, "stripe_account_id", None):
                     return jsonify({
                         "error": "stripe_onboarding_required",
                         "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",
@@ -6221,7 +6228,14 @@ def slots_update(slot_id):
                     d = 0
                 if d > 0:
                     provider = s.get(Provider, slot.provider_id)
-                    if not provider or not getattr(provider, "stripe_account_id", None):
+                    if not provider:
+                        return _json_error("not_found", 404)
+                    if not _has_pro_features(provider):
+                        return jsonify({
+                            "error": "profi_plan_required",
+                            "message": "Anzahlungen sind nur mit dem Profi- oder Business-Paket möglich.",
+                        }), 400
+                    if not getattr(provider, "stripe_account_id", None):
                         return jsonify({
                             "error": "stripe_onboarding_required",
                             "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",

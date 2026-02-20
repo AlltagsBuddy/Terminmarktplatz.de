@@ -16,11 +16,11 @@ Das Profi-Paket ist über CopeCart buchbar und bietet u. a. **automatische Termi
 In `.env` bzw. Render-Umgebung:
 
 ```env
-# Produkt-ID aus CopeCart (z. B. aus Produkt-URL)
-COPECART_PRODUCT_PROFI_ID=deine_profi_produkt_id
+# Produkt-ID aus CopeCart (aus der Checkout-URL: .../products/a06e5188/...)
+COPECART_PRODUCT_PROFI_ID=a06e5188
 
-# Checkout-URL (z. B. https://copecart.com/products/DEINE_ID/checkout)
-COPECART_PROFI_URL=https://copecart.com/products/DEINE_ID/checkout
+# Checkout-URL (Profi-Paket)
+COPECART_PROFI_URL=https://copecart.com/products/a06e5188/checkout
 
 # Webhook-Secret (aus CopeCart Webhook-Einstellungen)
 COPECART_WEBHOOK_SECRET=dein_webhook_secret

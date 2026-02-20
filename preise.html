@@ -616,14 +616,47 @@
       const authInEls  = document.querySelectorAll('.auth-in');
       const adminOnlyEls = menu.querySelectorAll('.admin-only');
 
-      // Profi-Button: CopeCart-Checkout über API (Login + subid)
+      // Profi-Button: Stripe Checkout über POST /paket-buchen
       const btnProfi = document.getElementById('btn-profi-preise');
-      if (btnProfi) btnProfi.href = `${APIforMenu}/copecart/kaufen?plan=profi`;
+      if (btnProfi) {
+        btnProfi.href = '#';
+        btnProfi.addEventListener('click', async (e) => {
+          e.preventDefault();
+          if (!btnProfi.dataset.ready) return; // erst nach Auth-Check
+          btnProfi.disabled = true;
+          btnProfi.textContent = 'Wird geladen…';
+          try {
+            const res = await fetch(`${APIforMenu}/paket-buchen`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plan: 'profi' }),
+              credentials: 'include',
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.checkout_url) {
+              location.href = data.checkout_url;
+              return;
+            }
+            if (res.ok && data.mode === 'manual_no_stripe') {
+              location.href = '/anbieter-portal.html?plan_success=1';
+              return;
+            }
+            const err = data.error || data.detail || 'Unbekannter Fehler';
+            alert('Profi-Paket konnte nicht gestartet werden: ' + err);
+          } catch (err) {
+            alert('Netzwerkfehler – bitte später erneut versuchen.');
+          } finally {
+            btnProfi.disabled = false;
+            btnProfi.textContent = 'Profi-Paket buchen';
+          }
+        });
+      }
 
       function setAuthVisible(isLoggedIn, isAdmin){
         authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
         authInEls.forEach(el  => { el.style.display  = isLoggedIn ? '' : 'none'; });
         adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
+        if (btnProfi) btnProfi.dataset.ready = isLoggedIn ? '1' : '';
       }
 
       async function checkAuth(){

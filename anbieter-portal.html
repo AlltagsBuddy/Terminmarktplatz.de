@@ -870,10 +870,11 @@
                 <label for="sl-price">Preis (Euro, optional)</label>
                 <input id="sl-price" type="number" min="0" step="1" placeholder="z. B. 49"/>
               </div>
-              <div class="field">
-                <label for="sl-deposit">Anzahlung (Euro, optional)</label>
+              <div class="field" id="field-deposit">
+                <label for="sl-deposit">Anzahlung (Euro, optional) <span class="pill" style="font-size:11px">Profi/Business</span></label>
                 <input id="sl-deposit" type="number" min="0" step="0.5" placeholder="z. B. 25"/>
-                <span class="hint" style="font-size: 12px;">Wird beim Buchen per Karte/SEPA erhoben. Erfordert <a href="#" id="link-stripe-setup">Zahlungen einrichten</a>.</span>
+                <span class="hint" style="font-size: 12px;" id="hint-deposit">Wird beim Buchen per Karte/SEPA erhoben. Erfordert <a href="#" id="link-stripe-setup">Zahlungen einrichten</a>.</span>
+                <span class="hint" style="font-size: 12px; display:none;" id="hint-deposit-profi">Nur mit <a href="preise.html">Profi- oder Business-Paket</a> verfügbar.</span>
               </div>
               <div class="field" style="grid-column:1/-1">
                 <label for="sl-description">Beschreibung (für Suchende sichtbar)</label>
@@ -1500,6 +1501,16 @@
         const proHint = document.getElementById('pro-features-hint');
         const exportBtn = document.getElementById('btn-export');
         const archiveBtn = document.getElementById('btn-archive');
+        // Anzahlung: nur für Profi/Business aktivieren
+        const slDeposit = document.getElementById('sl-deposit');
+        const hintDeposit = document.getElementById('hint-deposit');
+        const hintDepositProfi = document.getElementById('hint-deposit-profi');
+        if (slDeposit) {
+          slDeposit.disabled = !HAS_PRO_FEATURES;
+          if (hintDeposit) hintDeposit.style.display = HAS_PRO_FEATURES ? '' : 'none';
+          if (hintDepositProfi) hintDepositProfi.style.display = HAS_PRO_FEATURES ? 'none' : '';
+          if (!HAS_PRO_FEATURES) slDeposit.value = '';
+        }
         if (exportBtn) {
           exportBtn.style.display = HAS_PRO_FEATURES ? 'inline-flex' : 'none';
         }
@@ -1747,6 +1758,8 @@
             showMsg('msg-slot', 'Profil unvollständig: Bitte Profil zuerst vollständig ausfüllen.', false);
           } else if (data.error === 'stripe_onboarding_required') {
             showMsg('msg-slot', (data.message || 'Für Anzahlungen musst du zuerst Zahlungen einrichten.') + ' Klicke auf „Zahlungen einrichten".', false);
+          } else if (data.error === 'profi_plan_required') {
+            showMsg('msg-slot', (data.message || 'Anzahlungen sind nur mit dem Profi- oder Business-Paket möglich.'), false);
           } else {
             showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.', false);
             // Scroll zum Formular, damit die Meldung sichtbar ist
@@ -1918,7 +1931,7 @@
       }
       const depositInput = document.getElementById('sl-deposit');
       if (depositInput){
-        if (typeof slot.deposit_cents === 'number' && !isNaN(slot.deposit_cents) && slot.deposit_cents > 0){
+        if (HAS_PRO_FEATURES && typeof slot.deposit_cents === 'number' && !isNaN(slot.deposit_cents) && slot.deposit_cents > 0){
           depositInput.value = (slot.deposit_cents / 100).toFixed(2);
         } else {
           depositInput.value = '';
@@ -2472,12 +2485,22 @@
     (async function init(){
       const sp = new URLSearchParams(location.search);
       const stripeOnboard = sp.get('stripe_onboard');
+      const planSuccess = sp.get('plan_success');
+      const planCancel = sp.get('plan_cancel');
       if (stripeOnboard) {
         history.replaceState(null, '', location.pathname);
         if (stripeOnboard === 'success') {
           showMsg('msg-slot', 'Zahlungen erfolgreich eingerichtet. Du kannst jetzt Anzahlungen bei Slots anbieten.', true);
         } else if (stripeOnboard === 'refresh') {
           showMsg('msg-slot', 'Der Einrichtungs-Link ist abgelaufen. Bitte erneut auf „Zahlungen einrichten" klicken.', false);
+        }
+      }
+      if (planSuccess || planCancel) {
+        history.replaceState(null, '', location.pathname);
+        if (planSuccess === '1') {
+          showMsg('msg-slot', 'Profi-Paket erfolgreich aktiviert. Du hast jetzt Zugriff auf alle Profi-Features.', true);
+        } else if (planCancel === '1') {
+          showMsg('msg-slot', 'Zahlung abgebrochen. Du kannst das Profi-Paket jederzeit erneut buchen.', false);
         }
       }
       await requireAuth();
