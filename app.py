@@ -7462,6 +7462,20 @@ def stripe_webhook():
         app.logger.exception("stripe webhook signature error")
         return jsonify({"error": "invalid_signature", "detail": str(e)}), 400
 
+    if event["type"] == "checkout.session.expired":
+        session_obj = event["data"]["object"]
+        metadata = session_obj.get("metadata", {}) or {}
+        if metadata.get("type") == "booking_deposit":
+            booking_id = metadata.get("booking_id")
+            if booking_id:
+                with Session(engine) as s:
+                    b = s.get(Booking, booking_id, with_for_update=True)
+                    if b and b.status == "hold" and not getattr(b, "deposit_paid_at", None):
+                        b.status = "canceled"
+                        s.commit()
+                        app.logger.info("Stripe checkout expired: hold booking %s canceled", booking_id)
+        return jsonify({"ok": True})
+
     if event["type"] == "checkout.session.completed":
         session_obj = event["data"]["object"]
         metadata = session_obj.get("metadata", {}) or {}
@@ -8230,10 +8244,14 @@ def public_book():
         if requires_deposit and stripe and STRIPE_SECRET_KEY:
             try:
                 frontend = FRONTEND_URL.rstrip("/")
+                base = _external_base()
+                token = _booking_token(b.id)
                 success_url = f"{frontend}/suche.html?booking_deposit_success=1&booking_id={b.id}"
-                cancel_url = f"{frontend}/suche.html?booking_deposit_cancel=1"
+                cancel_url = f"{base}{url_for('public_cancel')}?token={token}"
+                session_expires = int((_now() + timedelta(minutes=15)).timestamp())
                 session = stripe.checkout.Session.create(
                     mode="payment",
+                    expires_at=session_expires,
                     line_items=[
                         {
                             "price_data": {
