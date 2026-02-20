@@ -8248,7 +8248,7 @@ def public_book():
                 token = _booking_token(b.id)
                 success_url = f"{frontend}/suche.html?booking_deposit_success=1&booking_id={b.id}"
                 cancel_url = f"{base}{url_for('public_cancel')}?token={token}"
-                session_expires = int((_now() + timedelta(minutes=15)).timestamp())
+                session_expires = int((_now() + timedelta(minutes=30)).timestamp())
                 session = stripe.checkout.Session.create(
                     mode="payment",
                     expires_at=session_expires,

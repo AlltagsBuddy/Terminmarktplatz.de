@@ -44,7 +44,7 @@ Diese Anleitung beschreibt die Konfiguration und den Einsatz von Stripe Connect 
 2. **Endpoint URL**: `https://api.terminmarktplatz.de/webhook/stripe`
 3. **Events to send**: `checkout.session.completed`, `checkout.session.expired`
    - `completed`: Anzahlung bezahlt → Buchung bestätigen
-   - `expired`: Checkout abgelaufen (nach 15 Min ohne Zahlung) → Hold stornieren, Slot freigeben
+   - `expired`: Checkout abgelaufen (nach 30 Min ohne Zahlung) → Hold stornieren, Slot freigeben
 4. Nach dem Erstellen: **Signing secret** kopieren (`whsec_...`)
 5. Als `STRIPE_WEBHOOK_SECRET` in der Umgebung setzen
 
