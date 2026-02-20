@@ -748,6 +748,14 @@
                 <option value="nachts">Nachts (22–6)</option>
               </select>
             </label>
+            <label class="input" aria-label="Anzahlung">
+              💳
+              <select name="deposit" id="f-deposit">
+                <option value="">Mit oder ohne Anzahlung</option>
+                <option value="with">Mit Anzahlung</option>
+                <option value="without">Ohne Anzahlung</option>
+              </select>
+            </label>
             <button class="btn primary" type="submit">Aktualisieren</button>
           </div>
           <div class="trust">Es werden nur <strong>freie</strong> Slots angezeigt.</div>
@@ -1132,12 +1140,14 @@
     const dayLegacy = (sp.get('day')||'').trim();
     const zeit   = (sp.get('zeit')||'').trim().toLowerCase();
     const radius = (sp.get('radius')||'').trim();
+    const deposit = (sp.get('deposit')||'').trim().toLowerCase();
 
     // Felder füllen (damit Auswahl stehen bleibt)
     $('#f-q').value      = q;
     $('#f-ort').value    = ort;
     $('#f-zeit').value   = zeit;
     $('#f-radius').value = radius;
+    $('#f-deposit').value = (deposit === 'with' || deposit === 'without') ? deposit : '';
     const dayFromInput = document.getElementById('search-day-from');
     const dayToInput = document.getElementById('search-day-to');
     if (dayFromInput) dayFromInput.value = dayFromUrl || dayLegacy;
@@ -1187,6 +1197,8 @@
       if (zeitVal) params.set('zeit', zeitVal);
       if (fromVal) params.set('day_from', fromVal);
       if (toVal) params.set('day_to', toVal);
+      const depositVal = $('#f-deposit')?.value?.trim() || '';
+      if (depositVal === 'with' || depositVal === 'without') params.set('deposit', depositVal);
       return params;
     }
     // Quick-Filters entfernt
@@ -1234,8 +1246,9 @@
       const dayLegacy2 = (s2.get('day')||'').trim();
       const zeit2 = (s2.get('zeit')||'').trim().toLowerCase();
       const rad2  = (s2.get('radius')||'').trim();
+      const deposit2 = (s2.get('deposit')||'').trim().toLowerCase();
 
-      const hasSearch = !!(q2 || ort2 || dayFrom2 || dayTo2 || dayLegacy2 || zeit2 || rad2);
+      const hasSearch = !!(q2 || ort2 || dayFrom2 || dayTo2 || dayLegacy2 || zeit2 || rad2 || (deposit2 === 'with' || deposit2 === 'without'));
 
       // ---- API-Parameter (day optional + SLOT-LOCATION + radius)
       const params = new URLSearchParams();
@@ -1282,10 +1295,12 @@
         return;
       }
 
-      // Clientseitig nur Zeitfenster filtern (Freitext erledigt das Backend)
+      // Clientseitig: Zeitfenster und Anzahlung filtern (Freitext erledigt das Backend)
       let items = data.filter(x => {
         const okZeit = inZeitfenster(x.start_at, zeit2);
-        return okZeit;
+        const hasDeposit = (x.deposit_cents || 0) > 0;
+        const okDeposit = deposit2 === 'with' ? hasDeposit : (deposit2 === 'without' ? !hasDeposit : true);
+        return okZeit && okDeposit;
       });
 
       // Sortierung
