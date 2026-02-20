@@ -873,8 +873,10 @@
               <div class="field" id="field-deposit">
                 <label for="sl-deposit">Anzahlung (Euro, optional) <span class="pill" style="font-size:11px">Profi/Business</span></label>
                 <input id="sl-deposit" type="number" min="0" step="0.5" placeholder="z. B. 25"/>
-                <span class="hint" style="font-size: 12px;" id="hint-deposit">Wird beim Buchen per Karte/SEPA erhoben. Erfordert <a href="#" id="link-stripe-setup">Zahlungen einrichten</a>.</span>
                 <span class="hint" style="font-size: 12px; display:none;" id="hint-deposit-profi">Nur mit <a href="preise.html">Profi- oder Business-Paket</a> verfügbar.</span>
+                <div class="deposit-setup-required" id="deposit-setup-required" style="display:none; margin-top:12px;">
+                  <a href="#" id="link-stripe-setup" style="font-size:1.5rem; font-weight:600; display:inline-block; text-decoration:underline;">Erfordert Zahlung einrichten</a>
+                </div>
               </div>
               <div class="field" style="grid-column:1/-1">
                 <label for="sl-description">Beschreibung (für Suchende sichtbar)</label>
@@ -1503,12 +1505,16 @@
         const archiveBtn = document.getElementById('btn-archive');
         // Anzahlung: nur für Profi/Business aktivieren
         const slDeposit = document.getElementById('sl-deposit');
-        const hintDeposit = document.getElementById('hint-deposit');
         const hintDepositProfi = document.getElementById('hint-deposit-profi');
+        const depositSetupRequired = document.getElementById('deposit-setup-required');
+        const hasStripeSetup = !!(ME && ME.stripe_account_id);
         if (slDeposit) {
           slDeposit.disabled = !HAS_PRO_FEATURES;
-          if (hintDeposit) hintDeposit.style.display = HAS_PRO_FEATURES ? '' : 'none';
           if (hintDepositProfi) hintDepositProfi.style.display = HAS_PRO_FEATURES ? 'none' : '';
+          // "Erfordert Zahlung einrichten" nur anzeigen, wenn Profi/Business UND Zahlung noch nicht eingerichtet
+          if (depositSetupRequired) {
+            depositSetupRequired.style.display = (HAS_PRO_FEATURES && !hasStripeSetup) ? 'block' : 'none';
+          }
           if (!HAS_PRO_FEATURES) slDeposit.value = '';
         }
         if (exportBtn) {
