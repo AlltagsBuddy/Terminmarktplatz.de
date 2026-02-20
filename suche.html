@@ -1361,6 +1361,9 @@
         const availableBadge = (typeof x.available === 'number')
           ? `<span class="pill" style="margin-left:8px">${x.available} frei</span>`
           : '';
+        const depositBadge = (x.deposit_cents || 0) > 0
+          ? `<span class="pill" style="margin-left:6px; background:#e0f2fe; color:#0369a1;">Anzahlung ${((x.deposit_cents||0)/100).toFixed(2)} €</span>`
+          : '';
 
         if (terminAddress) {
           mapItems.push({
@@ -1384,7 +1387,7 @@
         el.innerHTML = `
           <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start">
             <div>
-              <h3>${x.title || 'Termin'} ${availableBadge}</h3>
+              <h3>${x.title || 'Termin'} ${availableBadge}${depositBadge}</h3>
               <p class="muted">
                 <b>${fmtDate(x.start_at)}</b> · ${fmtTimeRange(x.start_at, x.end_at)}
                 · Kategorie: ${x.category || '—'}
@@ -1410,10 +1413,10 @@
                   ${x.description}
                 </p>` : ''}
               ${((x.deposit_cents || 0) > 0 || (x.price_cents || 0) > 0) ? `
-                <p class="muted" style="margin:4px 0 0;">
-                  ${(x.deposit_cents || 0) > 0 ? `Anzahlung: ${((x.deposit_cents||0)/100).toFixed(2)} €` : ''}
-                  ${(x.deposit_cents || 0) > 0 && (x.price_cents || 0) > 0 ? ' · ' : ''}
-                  ${(x.price_cents || 0) > 0 ? `Preis: ${((x.price_cents||0)/100).toFixed(2)} €` : ''}
+                <p class="muted" style="margin:4px 0 0; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                  ${(x.deposit_cents || 0) > 0 ? `<span style="font-weight:600;" title="Anzahlung bei Buchung fällig">Anzahlung bei Buchung: ${((x.deposit_cents||0)/100).toFixed(2)} €</span>` : ''}
+                  ${(x.deposit_cents || 0) > 0 && (x.price_cents || 0) > 0 ? `<span>·</span>` : ''}
+                  ${(x.price_cents || 0) > 0 ? `<span>Preis: ${((x.price_cents||0)/100).toFixed(2)} €</span>` : ''}
                 </p>` : ''}
             </div>
             <div>
@@ -1582,8 +1585,9 @@
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
               alert(bookingErrorMessage(data.error));
-            } else if (data.checkout_url && data.requires_deposit) {
-              window.location.href = data.checkout_url;
+            } else if (data.requires_deposit) {
+              alert(data.message || 'E-Mail mit Zahlungslink gesendet. Bitte zahle die Anzahlung innerhalb von 30 Minuten.');
+              closeBook();
             } else {
               alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
               closeBook();
@@ -1657,8 +1661,9 @@
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
               alert(bookingErrorMessage(data.error));
-            } else if (data.checkout_url && data.requires_deposit) {
-              window.location.href = data.checkout_url;
+            } else if (data.requires_deposit) {
+              alert(data.message || 'E-Mail mit Zahlungslink gesendet. Bitte zahle die Anzahlung innerhalb von 30 Minuten.');
+              closeBook();
             } else {
               alert('Fast geschafft! Bitte bestätige die Buchung über den Link in deiner E-Mail.');
               closeBook();

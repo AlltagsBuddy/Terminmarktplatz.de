@@ -8274,11 +8274,74 @@ def public_book():
                     customer_email=email,
                     stripe_account=stripe_acct,
                 )
+                checkout_url = session.url
+
+                slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+                slot_end_local = _as_utc_aware(slot.end_at).astimezone(BERLIN)
+                start_str = slot_start_local.strftime("%d.%m.%Y %H:%M")
+                end_str = slot_end_local.strftime("%H:%M")
+                deposit_eur = deposit_cents / 100
+
+                slot_address = slot.public_address() if hasattr(slot, "public_address") else (slot.location or "")
+                if not slot_address and provider:
+                    provider_address = f"{provider.zip or ''} {provider.city or ''}".strip()
+                    if provider.street:
+                        provider_address = f"{provider.street}, {provider_address}".strip()
+                    slot_address = provider_address
+
+                email_body = f"Hallo {name},\n\n"
+                email_body += f"du hast eine Buchungsanfrage für folgenden Termin gestellt:\n\n"
+                email_body += f"Termin: {slot.title}\n"
+                email_body += f"Kategorie: {slot.category}\n"
+                email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+                if slot_address:
+                    email_body += f"Ort: {slot_address}\n"
+                if provider:
+                    email_body += f"Anbieter: {provider.company_name or 'Unbekannt'}\n"
+                email_body += f"\n"
+                email_body += f"Anzahlung: {deposit_eur:.2f} €\n\n"
+                email_body += f"Bitte zahle die Anzahlung innerhalb von 30 Minuten, um den Termin zu bestätigen:\n\n"
+                email_body += f"{checkout_url}\n\n"
+                email_body += f"Wenn du nicht zahlst, wird der Termin nach 30 Minuten wieder freigegeben.\n\n"
+                email_body += f"Stornieren (ohne Zahlung):\n{base}{url_for('public_cancel')}?token={token}\n"
+
+                ok, reason = send_mail(
+                    email,
+                    "Bitte Anzahlung zahlen – Buchungsanfrage",
+                    text=email_body,
+                    tag="booking_deposit_request",
+                    metadata={"booking_id": str(b.id), "slot_id": str(slot.id)},
+                )
+                if not ok:
+                    try:
+                        b.status = "canceled"
+                        s.commit()
+                    except Exception:
+                        pass
+                    return _json_error(f"mail_failed:{reason}", 502)
+
+                if provider and provider.email:
+                    prov_body = f"Hallo,\n\n"
+                    prov_body += f"Neue Buchungsanfrage von {name} ({email}) für:\n\n"
+                    prov_body += f"Termin: {slot.title}\n"
+                    prov_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
+                    prov_body += f"Anzahlung: {deposit_eur:.2f} €\n\n"
+                    prov_body += f"Die Buchung wird bestätigt, sobald die Anzahlung erfolgt ist.\n"
+                    try:
+                        send_mail(
+                            provider.email,
+                            f"Buchungsanfrage – wartet auf Anzahlung",
+                            text=prov_body,
+                            tag="booking_deposit_pending_provider",
+                            metadata={"booking_id": str(b.id)},
+                        )
+                    except Exception:
+                        pass
+
                 return jsonify({
                     "ok": True,
                     "requires_deposit": True,
-                    "checkout_url": session.url,
-                    "booking_id": str(b.id),
+                    "message": "E-Mail mit Zahlungslink gesendet. Bitte zahle die Anzahlung innerhalb von 30 Minuten.",
                 })
             except Exception as e:
                 app.logger.exception("Stripe checkout for deposit failed")
