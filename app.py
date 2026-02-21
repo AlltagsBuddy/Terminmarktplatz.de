@@ -3322,7 +3322,7 @@ def copecart_kaufen_always():
     if not provider_id:
         next_url = url_for("copecart_kaufen_always", plan=plan_key)
         login_url = url_for("login_page_always")
-        return redirect(f"{login_url}?next={next_url}&register=1")
+        return redirect(f"{login_url}?tab=register&next={next_url}")
 
     sep = "&" if "?" in url else "?"
     target = f"{url}{sep}subid={provider_id}"

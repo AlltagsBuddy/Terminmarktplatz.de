@@ -405,8 +405,6 @@
         <div class="price-hero-actions">
           <!-- Nicht eingeloggt: erst registrieren -->
           <a class="btn primary auth-out" href="login.html?tab=register">Jetzt kostenlos starten</a>
-          <!-- Eingeloggt: direkt in Paket-Buchung -->
-          <a class="btn primary auth-in" href="/copecart/kaufen?plan=starter">Paket buchen</a>
         </div>
       </div>
     </section>
@@ -482,9 +480,10 @@
       <div class="container">
         <h2>Premium-Modelle für Anbieter</h2>
         <p class="sub">Mehr Reichweite, Komfort & Automatisierung. <strong>Monatlich kündbar</strong>, automatische Verlängerung.</p>
+        <p class="muted" style="margin-top:8px; font-size:0.95rem;">Pakete können nur von registrierten Anbietern gebucht werden.</p>
 
         <div class="features" style="margin-top:6px">
-          <div class="card">
+          <div class="card" id="starter">
             <h3>Starter — 9,90 € / Monat</h3>
             <p class="muted">
               • <strong>50 Slots/Monat</strong><br>
@@ -492,26 +491,28 @@
               • Basis-Listing in der Suche<br>
               • 2&nbsp;€ pro gebuchtem Slot
             </p>
-            <a class="btn primary auth-in" href="/copecart/kaufen?plan=starter" style="margin-top:8px">
+            <a class="btn primary auth-in" href="https://copecart.com/products/dfc204cf/checkout" target="_blank" rel="noopener" style="margin-top:8px">
               Starter-Paket buchen
+            </a>
+            <a class="btn auth-out" href="login.html?next=preise.html#starter" style="margin-top:8px; display:none">
+              Anmelden zum Buchen
             </a>
           </div>
 
           <div class="card" id="profi">
             <h3>Profi — 19,90 € / Monat</h3>
             <p class="muted">
-              • 500 Slots/Monat<br>
+              • 100 Slots/Monat<br>
               • 📊 Status & Duplikate: Slots duplizieren, archivieren, exportieren<br>
               • Volle Transparenz über veröffentlichte Zeiten und Buchungsstatus<br>
-              • Premium-Platzierung in Listen<br>
               • <strong>Automatische Termin-Synchronisation</strong> (iCal/Google/Outlook)<br>
               • 2&nbsp;€ pro gebuchtem Slot
             </p>
             <a class="btn primary auth-in" href="/copecart/kaufen?plan=profi" style="margin-top:8px">
               Profi-Paket buchen
             </a>
-            <a class="btn auth-out" href="login.html?next=preise.html#profi" style="margin-top:8px; display:none">
-              Anmelden zum Buchen
+            <a class="btn auth-out" href="login.html?tab=register&next=preise.html#profi" style="margin-top:8px; display:none">
+              Registrieren zum Buchen
             </a>
           </div>
 
@@ -521,7 +522,7 @@
               • Alles aus „Profi“<br>
               • 📊 Status & Duplikate: Slots duplizieren, archivieren, exportieren<br>
               • Volle Transparenz über veröffentlichte Zeiten und Buchungsstatus<br>
-              • Marken-Features (Logo, erweiterte Darstellung)<br>
+              • Premium-Platzierung in Listen<br>
               • <em>API-Integration</em><br>
               • Erweiterte Statistiken & Export
             </p>
