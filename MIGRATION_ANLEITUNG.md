@@ -106,7 +106,7 @@ Nachdem die Spalte erstellt wurde:
    - Oder warte auf automatischen Neustart
 
 2. **Migration verifizieren**
-   - Öffne: `GET https://api.terminmarktplatz.de/admin/debug/provider-numbers`
+   - Öffne: `GET https://terminmarktplatz.de/admin/debug/provider-numbers`
    - Sollte zeigen: `column_exists: true` und alle Provider haben eine Nummer
 
 3. **Im Anbieter-Portal prüfen**

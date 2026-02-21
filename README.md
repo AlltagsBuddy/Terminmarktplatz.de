@@ -13,12 +13,12 @@
 - New Web Service → Python → Start Command: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2`
 - Add-ons: PostgreSQL
 - Environment: die Variablen aus `.env.example` setzen, `DATABASE_URL` von Render-Postgres übernehmen
-- Custom Domain: `api.terminmarktplatz.de` → CNAME auf Render, SSL aktivieren
+- Custom Domain: `terminmarktplatz.de` → CNAME auf Render, SSL aktivieren
 
 
 ## Strato Frontend
 - Lege eine Subdomain/Weiterleitung an, die auf dieses Backend zeigt oder belasse die statischen Seiten hier.
-- Für getrennte Hosts: Kopiere `static/login.html` & `static/portal.html` zu Strato und setze `API = 'https://api.terminmarktplatz.de'` im JS.
+- Für getrennte Hosts: Kopiere `static/login.html` & `static/portal.html` zu Strato und setze `API = 'https://terminmarktplatz.de'` im JS.
 
 
 ## Admin

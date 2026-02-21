@@ -167,7 +167,7 @@ def _cfg(name: str, default: str | None = None) -> str:
 
 BASE_URL = _cfg(
     "BASE_URL",
-    "https://api.terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000",
+    "https://terminmarktplatz.de" if IS_RENDER else "http://127.0.0.1:5000",
 )
 FRONTEND_URL = _cfg(
     "FRONTEND_URL",
@@ -1800,13 +1800,13 @@ def _cookie_flags():
     if IS_RENDER:
         # IS_TESTSYSTEM wird bereits oben definiert (nach EMAILS_ENABLED)
         # Testsystem: Frontend und Backend auf derselben Domain -> SameSite=Lax
-        # Produktion: Frontend auf terminmarktplatz.de, Backend auf api.terminmarktplatz.de -> SameSite=None
+        # Produktion: Frontend und Backend beide auf terminmarktplatz.de -> Same-Origin, SameSite=Lax
         if IS_TESTSYSTEM:
             # Tests: gleiche Origin -> kein Domain-Attribut, sonst wird es verworfen
             return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/"}
         else:
-            # Produktion: Cross-Origin zwischen terminmarktplatz.de und api.terminmarktplatz.de
-            return {"httponly": True, "secure": True, "samesite": "None", "path": "/", "domain": ".terminmarktplatz.de"}
+            # Produktion: Same-Origin auf terminmarktplatz.de
+            return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/"}
     return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
 
 

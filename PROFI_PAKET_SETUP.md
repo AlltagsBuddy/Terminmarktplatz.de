@@ -29,7 +29,7 @@ COPECART_WEBHOOK_SECRET=dein_webhook_secret
 ### 3. Webhook in CopeCart konfigurieren
 
 1. In CopeCart: Webhook-URL eintragen:  
-   `https://api.terminmarktplatz.de/webhook/copecart`
+   `https://terminmarktplatz.de/webhook/copecart`
 2. Webhook-Secret kopieren und in `COPECART_WEBHOOK_SECRET` eintragen
 
 ### 4. Ablauf nach Kauf

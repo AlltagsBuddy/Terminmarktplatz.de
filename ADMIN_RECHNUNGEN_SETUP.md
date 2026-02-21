@@ -8,7 +8,7 @@ Basierend auf Ihren Screenshots:
 - `DATABASE_URL` ✅ (korrekt gesetzt)
 - `SECRET_KEY` ✅ (vorhanden)
 - `API_ONLY=1` ✅ (korrekt)
-- `BASE_URL` ✅ (`https://api.terminmarktplatz.de`)
+- `BASE_URL` ✅ (`https://terminmarktplatz.de`)
 - `FRONTEND_URL` ✅ (`https://terminmarktplatz.de`)
 - `JWT_ISS`, `JWT_AUD` ✅ (vorhanden)
 - Mail-Konfiguration ✅ (RESEND_API_KEY vorhanden)
@@ -19,7 +19,7 @@ Basierend auf Ihren Screenshots:
 - **Start Command**: `gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT app:app` ✅
 
 ### ✅ Custom Domain:
-- `api.terminmarktplatz.de` ✅ (Domain Verified, Certificate Issued)
+- `terminmarktplatz.de` ✅ (Domain Verified, Certificate Issued)
 
 ### ✅ Datenbank:
 - Alle Tabellen vorhanden (provider, slot, booking, invoice, etc.) ✅
@@ -67,7 +67,7 @@ Die Code-Änderungen für Admin-Rechnungen sind bereits gemacht. Render sollte a
 Stellen Sie sicher, dass Ihr Account Admin-Rechte hat (siehe vorherige Anleitung mit DBeaver).
 
 ### 4. Testen:
-Öffnen Sie: `https://api.terminmarktplatz.de/admin-rechnungen.html`
+Öffnen Sie: `https://terminmarktplatz.de/admin-rechnungen.html`
 - Als Admin eingeloggt: Seite sollte laden
 - Nicht als Admin: Weiterleitung zu Login
 
@@ -112,7 +112,7 @@ Stellen Sie sicher, dass Ihr Account Admin-Rechte hat (siehe vorherige Anleitung
    - Prüfen Sie, ob der Service ohne Fehler läuft
 
 2. **Testen Sie die Admin-Route:**
-   - Öffnen Sie: `https://api.terminmarktplatz.de/admin-rechnungen.html`
+   - Öffnen Sie: `https://terminmarktplatz.de/admin-rechnungen.html`
    - Als Admin eingeloggt: Seite sollte funktionieren
    - Falls 404: Code möglicherweise noch nicht deployed
 

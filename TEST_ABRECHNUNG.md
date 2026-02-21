@@ -58,7 +58,7 @@ fetch('/admin/billing_overview', { credentials: 'include' })
 
 **Test mit curl:**
 ```bash
-curl -X GET "https://api.terminmarktplatz.de/admin/billing_overview" \
+curl -X GET "https://terminmarktplatz.de/admin/billing_overview" \
   -H "Cookie: access_token=DEIN_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -113,7 +113,7 @@ fetch('/admin/run_billing', {
 
 **Test mit curl:**
 ```bash
-curl -X POST "https://api.terminmarktplatz.de/admin/run_billing" \
+curl -X POST "https://terminmarktplatz.de/admin/run_billing" \
   -H "Cookie: access_token=DEIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"year": 2025, "month": 12}'

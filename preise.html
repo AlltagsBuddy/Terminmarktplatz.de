@@ -372,7 +372,7 @@
           <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
           <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
-          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+          <a href="https://terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -605,7 +605,7 @@
             if (h.includes('testsystem') || h.includes('onrender.com')) {
               return `${location.protocol}//${location.host}`;
             }
-            return 'https://api.terminmarktplatz.de';
+            return 'https://terminmarktplatz.de';
           })(location.hostname);
 
       const btn  = document.getElementById('userMenuBtn');

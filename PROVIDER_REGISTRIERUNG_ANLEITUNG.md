@@ -54,7 +54,7 @@ Falls du die Registrierung programmatisch testen möchtest:
 
 ```javascript
 // In der Browser-Console (F12)
-fetch('https://api.terminmarktplatz.de/auth/register', {
+fetch('https://terminmarktplatz.de/auth/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

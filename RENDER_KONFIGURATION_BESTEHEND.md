@@ -33,7 +33,7 @@ Diese Anleitung zeigt, was Sie prüfen/anpassen müssen.
 | `JWT_ISS` | `terminmarktplatz` |
 | `JWT_AUD` | `terminmarktplatz_client` |
 | `API_ONLY` | `1` (wenn nur API) oder `0` (für vollständige App) |
-| `BASE_URL` | `https://api.terminmarktplatz.de` |
+| `BASE_URL` | `https://terminmarktplatz.de` |
 | `FRONTEND_URL` | `https://terminmarktplatz.de` |
 
 ### Optionale Variablen (je nach Bedarf):
@@ -122,17 +122,18 @@ Falls `DATABASE_URL` fehlt oder falsch ist:
 
 1. Gehen Sie zu Ihrem Web Service → **"Settings"**
 2. Scrollen Sie zu **"Custom Domains"**
-3. Prüfen Sie, ob `api.terminmarktplatz.de` bereits konfiguriert ist:
+3. Prüfen Sie, ob `terminmarktplatz.de` bereits konfiguriert ist:
    - Falls **JA**: Status sollte "SSL Enabled" sein
    - Falls **NEIN**: Siehe unten
 
 ### Custom Domain hinzufügen (falls nicht vorhanden):
 
 1. Klicken Sie auf **"Add Custom Domain"**
-2. Geben Sie ein: `api.terminmarktplatz.de`
-3. Render zeigt einen **CNAME-Eintrag** an
+2. Geben Sie ein: `terminmarktplatz.de`
+3. Render zeigt einen **CNAME- oder A-Eintrag** an
 4. Gehen Sie zu Ihrem DNS-Provider (z.B. Strato):
-   - Erstellen Sie CNAME: `api` → `your-service.onrender.com`
+   - Für Root-Domain: A-Eintrag oder CNAME `@` → `your-service.onrender.com` (je nach Provider)
+   - Für www: CNAME `www` → `your-service.onrender.com`
 5. Warten Sie 5-60 Minuten
 6. Zurück in Render: Klicken Sie auf **"Add"** neben der Domain
 7. SSL wird automatisch generiert (1-5 Minuten)
@@ -154,7 +155,7 @@ Falls `DATABASE_URL` fehlt oder falsch ist:
 ## Schritt 8: Service testen
 
 1. Öffnen Sie in einem Browser:
-   - `https://api.terminmarktplatz.de/healthz`
+   - `https://terminmarktplatz.de/healthz`
    - Oder: `https://your-service.onrender.com/healthz`
 2. Erwartete Antwort:
    ```json
@@ -184,7 +185,7 @@ Falls `DATABASE_URL` fehlt oder falsch ist:
 - [ ] `SECRET_KEY` ist gesetzt (langer, zufälliger String)
 - [ ] `JWT_ISS` = `terminmarktplatz`
 - [ ] `JWT_AUD` = `terminmarktplatz_client`
-- [ ] `BASE_URL` = `https://api.terminmarktplatz.de`
+- [ ] `BASE_URL` = `https://terminmarktplatz.de`
 - [ ] `FRONTEND_URL` = `https://terminmarktplatz.de`
 - [ ] `API_ONLY` ist gesetzt (`1` oder `0`)
 - [ ] Build Command = `pip install -r requirements.txt`

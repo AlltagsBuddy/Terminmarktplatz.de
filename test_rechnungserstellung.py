@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Konfiguration
-API_BASE = "https://api.terminmarktplatz.de"
+API_BASE = "https://terminmarktplatz.de"
 # Für lokale Tests: API_BASE = "http://127.0.0.1:5000"
 
 # Admin-Credentials (müssen Sie anpassen!)
@@ -114,7 +114,7 @@ def main():
             print(f"   - Keine Buchungen mit provider_fee_eur > 0")
         
         print(f"\n💡 Tipp: Sie können die Rechnungen jetzt in der Admin-Übersicht einsehen:")
-        print(f"   https://api.terminmarktplatz.de/admin-rechnungen.html")
+        print(f"   https://terminmarktplatz.de/admin-rechnungen.html")
         
     except requests.exceptions.RequestException as e:
         print(f"❌ Netzwerkfehler bei Rechnungserstellung: {e}")

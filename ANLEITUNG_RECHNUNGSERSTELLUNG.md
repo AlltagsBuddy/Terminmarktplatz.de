@@ -41,7 +41,7 @@ Das Skript zeigt:
 ### Schritt 5: Rechnungen in Admin-Übersicht ansehen
 
 Nach erfolgreicher Ausführung können Sie die Rechnungen hier einsehen:
-- **Admin-Rechnungen-Seite**: https://api.terminmarktplatz.de/admin-rechnungen.html
+- **Admin-Rechnungen-Seite**: https://terminmarktplatz.de/admin-rechnungen.html
 
 ## 🔍 Was wird abgerechnet?
 
@@ -78,13 +78,13 @@ Falls Sie das Skript nicht verwenden möchten, können Sie auch direkt den Endpo
 
 ```bash
 # 1. Login (Token speichern)
-curl -X POST https://api.terminmarktplatz.de/auth/login \
+curl -X POST https://terminmarktplatz.de/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"info@terminmarktplatz.de","password":"IHR_PASSWORT"}' \
   -c cookies.txt
 
 # 2. Rechnungserstellung
-curl -X POST https://api.terminmarktplatz.de/admin/run_billing \
+curl -X POST https://terminmarktplatz.de/admin/run_billing \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{"year":2025,"month":12}'

@@ -429,8 +429,8 @@
           h.endsWith('.local');
 
         if (isLocal) return `${proto}//${h}:5000`;
-        if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
-        return 'https://api.terminmarktplatz.de';
+        if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') return `${proto}//${h}`;
+        return 'https://terminmarktplatz.de';
       })();
 
       function qp(name){

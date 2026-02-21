@@ -476,8 +476,8 @@
       if (h.includes('testsystem') || h.includes('onrender.com')) {
         return `${proto}//${location.host}`;
       }
-      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
-      return 'https://api.terminmarktplatz.de';
+      if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://terminmarktplatz.de';
     })();
 
     function qs(name){

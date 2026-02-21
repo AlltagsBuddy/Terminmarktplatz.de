@@ -24,7 +24,7 @@
         <a class="item auth-in" href="anbieter-profil.html" role="menuitem">Profil</a>
         <a class="item auth-in" href="anbieter-portal.html" role="menuitem">Slots</a>
         <a class="item auth-in" href="anbieter-bewertungen.html" role="menuitem">Bewertungen</a>
-        <a class="item auth-in admin-only" href="https://api.terminmarktplatz.de/admin-rechnungen.html" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+        <a class="item auth-in admin-only" href="https://terminmarktplatz.de/admin-rechnungen.html" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
         <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
         <a class="item" href="kontakt.html" role="menuitem">Kontakt</a>
         <a class="item" href="hilfe.html" role="menuitem">Hilfe</a>
@@ -58,8 +58,8 @@
         h.endsWith('.local');
       if (isLocal) return `${proto}//${h}:5000`;
       if (h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
-      if (h === 'api.terminmarktplatz.de') return `${proto}//${h}`;
-      return 'https://api.terminmarktplatz.de';
+      if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') return `${proto}//${h}`;
+      return 'https://terminmarktplatz.de';
     })();
 
     const btn = document.getElementById('userMenuBtn');

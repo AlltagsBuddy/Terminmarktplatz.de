@@ -144,7 +144,7 @@ WHERE email = 'deine@email.de';
 1. **Environment Variable:** `SUPER_ADMIN_EMAIL=deine@email.de` in Render setzen
 2. **Externer Cronjob:** Einrichten (z.B. Render Cronjob oder cron-job.org)
    - Zeitpunkt: 1. Tag des Monats, 8:00 Uhr
-   - Endpoint: `POST https://api.terminmarktplatz.de/admin/cron/create-monthly-invoices`
+   - Endpoint: `POST https://terminmarktplatz.de/admin/cron/create-monthly-invoices`
 
 ### ✅ Frontend (optional, später)
 

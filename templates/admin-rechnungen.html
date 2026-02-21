@@ -97,7 +97,7 @@
           <a href="https://terminmarktplatz.de/anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="https://terminmarktplatz.de/anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
           <a href="https://terminmarktplatz.de/anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
-          <a href="https://api.terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
+          <a href="https://terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
           <!-- immer sichtbar -->
@@ -200,10 +200,10 @@
       if (h.includes('testsystem') || h.includes('onrender.com')) {
         return `${proto}//${location.host}`;
       }
-      if (h === 'api.terminmarktplatz.de') {
+      if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') {
         return `${proto}//${h}`;
       }
-      return 'https://api.terminmarktplatz.de';
+      return 'https://terminmarktplatz.de';
     })();
     window.API = API;
 
@@ -534,7 +534,7 @@
             if (h.includes('testsystem') || h.includes('onrender.com')) {
               return `${proto}//${location.host}`;
             }
-            return 'https://api.terminmarktplatz.de';
+            return 'https://terminmarktplatz.de';
           })();
 
       const btn = document.getElementById('userMenuBtn');

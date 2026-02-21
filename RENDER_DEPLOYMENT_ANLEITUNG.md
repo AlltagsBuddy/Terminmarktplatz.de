@@ -116,7 +116,7 @@ Klicken Sie auf **"Add Environment Variable"** und fügen Sie folgende Variablen
     - **Wert**: `https://terminmarktplatz.de`
 
 14. **BASE_URL**
-    - **Wert**: `https://api.terminmarktplatz.de`
+    - **Wert**: `https://terminmarktplatz.de`
 
 ### Plan auswählen:
 - **Free**: Für Test/Entwicklung (kostenlos, aber mit Einschränkungen)
@@ -155,9 +155,9 @@ Klicken Sie auf **"Add Environment Variable"** und fügen Sie folgende Variablen
 1. Gehen Sie zu Ihrem Web Service (Schritt 3)
 2. Scrollen Sie nach unten zu **"Custom Domains"**
 3. Klicken Sie auf **"Add Custom Domain"**
-4. Geben Sie ein: `api.terminmarktplatz.de`
+4. Geben Sie ein: `terminmarktplatz.de`
 5. Render zeigt Ihnen einen **CNAME-Eintrag**, den Sie in Ihrem DNS konfigurieren müssen
-   - Beispiel: `api.terminmarktplatz.de` → `your-service.onrender.com`
+   - Beispiel: `terminmarktplatz.de` → `your-service.onrender.com`
 
 ### DNS-Konfiguration (bei Ihrem Domain-Provider, z.B. Strato):
 
@@ -181,11 +181,11 @@ Klicken Sie auf **"Add Environment Variable"** und fügen Sie folgende Variablen
 
 ## Schritt 7: Testen
 
-1. Öffnen Sie in einem Browser: `https://api.terminmarktplatz.de/healthz`
+1. Öffnen Sie in einem Browser: `https://terminmarktplatz.de/healthz`
 2. Sie sollten sehen: `{"ok": true, "service": "api", "time": "..."}`
 3. Testen Sie andere Endpoints:
-   - `https://api.terminmarktplatz.de/api/health`
-   - `https://api.terminmarktplatz.de/` (wenn API_ONLY=0)
+   - `https://terminmarktplatz.de/api/health`
+   - `https://terminmarktplatz.de/` (wenn API_ONLY=0)
 
 ---
 

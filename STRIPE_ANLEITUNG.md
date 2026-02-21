@@ -41,7 +41,7 @@ Diese Anleitung beschreibt die Konfiguration und den Einsatz von Stripe Connect 
 ### 2.2 STRIPE_WEBHOOK_SECRET setzen
 
 1. **Developers** → **Webhooks** → **Add endpoint**
-2. **Endpoint URL**: `https://api.terminmarktplatz.de/webhook/stripe`
+2. **Endpoint URL**: `https://terminmarktplatz.de/webhook/stripe`
 3. **Events to send**: `checkout.session.completed`, `checkout.session.expired`
    - `completed`: Anzahlung bezahlt → Buchung bestätigen
    - `expired`: Checkout abgelaufen (nach 30 Min ohne Zahlung) → Hold stornieren, Slot freigeben
@@ -109,7 +109,7 @@ In neueren Stripe-Versionen werden Connect-Events automatisch an den Plattform-W
 ### Produktion
 
 - [ ] `STRIPE_SECRET_KEY` auf `sk_live_...` wechseln
-- [ ] Neuen Webhook unter **Live** anlegen: `https://api.terminmarktplatz.de/webhook/stripe`
+- [ ] Neuen Webhook unter **Live** anlegen: `https://terminmarktplatz.de/webhook/stripe`
 - [ ] `STRIPE_WEBHOOK_SECRET` mit dem **Live**-Signing Secret aktualisieren
 - [ ] Render-Service neu starten (passiert bei Env-Änderung automatisch)
 - [ ] Echte Test-Buchung mit kleiner Anzahlung (z.B. 1 €) durchführen
