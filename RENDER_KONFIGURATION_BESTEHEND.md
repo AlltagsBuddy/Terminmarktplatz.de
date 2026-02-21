@@ -32,7 +32,7 @@ Diese Anleitung zeigt, was Sie prüfen/anpassen müssen.
 | `SECRET_KEY` | Ein langer, zufälliger String (min. 32 Zeichen) |
 | `JWT_ISS` | `terminmarktplatz` |
 | `JWT_AUD` | `terminmarktplatz_client` |
-| `API_ONLY` | `1` (wenn nur API) oder `0` (für vollständige App) |
+| `API_ONLY` | `0` (für vollständige App mit HTML-Seiten auf terminmarktplatz.de) – `1` nur wenn Frontend separat gehostet wird |
 | `BASE_URL` | `https://terminmarktplatz.de` |
 | `FRONTEND_URL` | `https://terminmarktplatz.de` |
 

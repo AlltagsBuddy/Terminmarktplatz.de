@@ -112,6 +112,14 @@ if not IS_RENDER:
 print("MODE       :", "API-only" if API_ONLY else "Full (API + HTML)")
 print("TEMPLATES  :", TEMPLATE_DIR)
 print("STATIC     :", STATIC_DIR)
+print("APP_ROOT   :", APP_ROOT)
+_index_path = os.path.join(APP_ROOT, "index.html")
+if os.path.isfile(_index_path):
+    with open(_index_path, "rb") as f:
+        _idx_size = len(f.read())
+    print("index.html exists: True,", _idx_size, "bytes")
+else:
+    print("index.html exists: False - HTML-Dateien fehlen im Deployment!")
 
 # --------------------------------------------------------
 # Config
@@ -2838,6 +2846,16 @@ def api_health():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.get("/_debug_html")
+def debug_html():
+    """Diagnose: Zeigt direkt erzeugtes HTML (ohne Datei). Falls das sichtbar ist, liegt das Problem bei send_from_directory."""
+    return Response(
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Debug</title></head>"
+        "<body><h1>Terminmarktplatz Debug</h1><p>Wenn du das siehst, funktioniert die App – das Problem liegt bei den HTML-Dateien.</p></body></html>",
+        mimetype="text/html; charset=utf-8",
+    )
+
+
 # --------------------------------------------------------
 # API-only Gate (optional)
 # --------------------------------------------------------
@@ -2862,7 +2880,7 @@ def maybe_api_only():
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
         or request.path.startswith("/alerts/")   # ✅ verify + cancel Links aus Mails erlauben
-        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt")
+        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html")
         or request.path.startswith("/static/")
     ):
         return _json_error("api_only", 404)

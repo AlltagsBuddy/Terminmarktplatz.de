@@ -7,7 +7,7 @@ Basierend auf Ihren Screenshots:
 ### ✅ Environment Variables (alle vorhanden):
 - `DATABASE_URL` ✅ (korrekt gesetzt)
 - `SECRET_KEY` ✅ (vorhanden)
-- `API_ONLY=1` ✅ (korrekt)
+- `API_ONLY` → **`0`** setzen, damit die vollständige Website (index, suche, anbieter, etc.) auf terminmarktplatz.de funktioniert. Bei `1` wird nur die API bereitgestellt.
 - `BASE_URL` ✅ (`https://terminmarktplatz.de`)
 - `FRONTEND_URL` ✅ (`https://terminmarktplatz.de`)
 - `JWT_ISS`, `JWT_AUD` ✅ (vorhanden)
