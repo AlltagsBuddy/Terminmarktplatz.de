@@ -629,6 +629,7 @@
   <!-- User-Menü Logik inkl. Auth-Status -->
   <script>
     (function(){
+      try {
       const API = (typeof window.API === 'string')
         ? window.API
         : ((h) => {
@@ -724,6 +725,9 @@
 
       // beim Laden Auth-Status prüfen und Menü/CTA anpassen
       checkAuth();
+      } catch (e) {
+        console.error('[User-Menü] Fehler:', e);
+      }
     })();
   </script>
 
