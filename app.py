@@ -7398,6 +7398,13 @@ def paket_buchen_start():
     if not plan:
         return _json_error("unknown_plan", 400)
 
+    # Starter & Profi: immer über CopeCart (nicht Stripe)
+    copecart_url = COPECART_PLAN_URLS.get(plan_key)
+    if copecart_url:
+        # Redirect-URL für CopeCart (kompatibel mit altem Frontend, das checkout_url erwartet)
+        target = f"{FRONTEND_URL.rstrip('/')}/copecart/kaufen?plan={plan_key}"
+        return jsonify({"ok": True, "checkout_url": target, "plan": plan_key})
+
     if stripe and STRIPE_SECRET_KEY:
         try:
             checkout_session = stripe.checkout.Session.create(
