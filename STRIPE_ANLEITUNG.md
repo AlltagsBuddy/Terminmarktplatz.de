@@ -73,7 +73,7 @@ Für Anzahlungen nutzt die Plattform **Stripe Connect Express**. Anbieter müsse
 
 Der Kauf des Profi-Pakets läuft ebenfalls über Stripe Checkout:
 
-1. Anbieter klickt auf der Preise-Seite auf „Profi-Paket buchen“
+1. Anbieter klickt auf der Preise-Seite auf „Profi-Paket buchen“ (läuft über CopeCart, nicht Stripe)
 2. `POST /paket-buchen` erstellt eine Stripe Checkout-Session
 3. Weiterleitung zu Stripe → Zahlung abwickeln
 4. Nach Erfolg: Redirect zu `anbieter-portal.html?plan_success=1`
@@ -104,7 +104,7 @@ In neueren Stripe-Versionen werden Connect-Events automatisch an den Plattform-W
 - [ ] Testzahlung mit `4242 4242 4242 4242` ( beliebiges zukünftiges Datum, beliebiger CVC )
 - [ ] Webhook erhält `checkout.session.completed` → Buchung wird bestätigt
 - [ ] E-Mails an Suchenden und Anbieter werden versendet
-- [ ] Profi-Paket-Kauf: „Profi-Paket buchen“ auf preise.html → Stripe Checkout → Webhook aktiviert Paket
+- [ ] Profi-Paket-Kauf: „Profi-Paket buchen“ auf preise.html → CopeCart Checkout → Webhook aktiviert Paket (Stripe nur für Anzahlungen)
 
 ### Produktion
 

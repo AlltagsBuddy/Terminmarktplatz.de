@@ -406,7 +406,7 @@
           <!-- Nicht eingeloggt: erst registrieren -->
           <a class="btn primary auth-out" href="login.html?tab=register">Jetzt kostenlos starten</a>
           <!-- Eingeloggt: direkt in Paket-Buchung -->
-          <a class="btn primary auth-in" href="/paket-buchen?plan=starter">Paket buchen</a>
+          <a class="btn primary auth-in" href="/copecart/kaufen?plan=starter">Paket buchen</a>
         </div>
       </div>
     </section>
@@ -492,7 +492,7 @@
               • Basis-Listing in der Suche<br>
               • 2&nbsp;€ pro gebuchtem Slot
             </p>
-            <a class="btn primary auth-in" href="https://copecart.com/products/dfc204cf/checkout" style="margin-top:8px">
+            <a class="btn primary auth-in" href="/copecart/kaufen?plan=starter" style="margin-top:8px">
               Starter-Paket buchen
             </a>
           </div>
@@ -507,7 +507,7 @@
               • <strong>Automatische Termin-Synchronisation</strong> (iCal/Google/Outlook)<br>
               • 2&nbsp;€ pro gebuchtem Slot
             </p>
-            <a class="btn primary auth-in" href="#" id="btn-profi-preise" style="margin-top:8px">
+            <a class="btn primary auth-in" href="/copecart/kaufen?plan=profi" style="margin-top:8px">
               Profi-Paket buchen
             </a>
             <a class="btn auth-out" href="login.html?next=preise.html#profi" style="margin-top:8px; display:none">
@@ -616,47 +616,12 @@
       const authInEls  = document.querySelectorAll('.auth-in');
       const adminOnlyEls = menu.querySelectorAll('.admin-only');
 
-      // Profi-Button: Stripe Checkout über POST /paket-buchen
-      const btnProfi = document.getElementById('btn-profi-preise');
-      if (btnProfi) {
-        btnProfi.href = '#';
-        btnProfi.addEventListener('click', async (e) => {
-          e.preventDefault();
-          if (!btnProfi.dataset.ready) return; // erst nach Auth-Check
-          btnProfi.disabled = true;
-          btnProfi.textContent = 'Wird geladen…';
-          try {
-            const res = await fetch(`${APIforMenu}/paket-buchen`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ plan: 'profi' }),
-              credentials: 'include',
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok && data.checkout_url) {
-              location.href = data.checkout_url;
-              return;
-            }
-            if (res.ok && data.mode === 'manual_no_stripe') {
-              location.href = '/anbieter-portal.html?plan_success=1';
-              return;
-            }
-            const err = data.error || data.detail || 'Unbekannter Fehler';
-            alert('Profi-Paket konnte nicht gestartet werden: ' + err);
-          } catch (err) {
-            alert('Netzwerkfehler – bitte später erneut versuchen.');
-          } finally {
-            btnProfi.disabled = false;
-            btnProfi.textContent = 'Profi-Paket buchen';
-          }
-        });
-      }
+      // Profi-Button: CopeCart Checkout über /copecart/kaufen?plan=profi (einfacher Link)
 
       function setAuthVisible(isLoggedIn, isAdmin){
         authOutEls.forEach(el => { el.style.display = isLoggedIn ? 'none' : ''; });
         authInEls.forEach(el  => { el.style.display  = isLoggedIn ? '' : 'none'; });
         adminOnlyEls.forEach(el => { el.style.display = (isLoggedIn && isAdmin) ? '' : 'none'; });
-        if (btnProfi) btnProfi.dataset.ready = isLoggedIn ? '1' : '';
       }
 
       async function checkAuth(){
