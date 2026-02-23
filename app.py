@@ -228,7 +228,7 @@ PLANS = {
         "name": "Profi",
         "price_eur": Decimal("19.90"),
         "price_cents": 1990,
-        "free_slots": 500,
+        "free_slots": 100,
     },
     "business": {
         "key": "business",
