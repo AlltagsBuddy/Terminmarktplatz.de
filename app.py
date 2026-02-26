@@ -4084,8 +4084,8 @@ def me_stripe_onboard():
                 p.stripe_account_id = acct_id
                 s.commit()
             base = _external_base()
-            return_url = f"{base}/anbieter-portal.html?stripe_onboard=success"
-            refresh_url = f"{base}/anbieter-portal.html?stripe_onboard=refresh"
+            return_url = f"{base}/anbieter-profil.html?stripe_onboard=success"
+            refresh_url = f"{base}/anbieter-profil.html?stripe_onboard=refresh"
             link = stripe.AccountLink.create(
                 account=acct_id,
                 refresh_url=refresh_url,
