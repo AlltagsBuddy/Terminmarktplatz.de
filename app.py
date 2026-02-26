@@ -2863,13 +2863,13 @@ def debug_html():
 def maybe_api_only():
     if not API_ONLY:
         return
-    if not (
-        request.path == "/"  # ✅ Root-Route erlauben für Healthchecks
+    if (
+        request.path == "/"  # Root-Route erlauben
         or request.path.startswith("/auth/")
         or request.path.startswith("/admin/")
-        or request.path.startswith("/admin-rechnungen")  # ✅ Admin-Rechnungen Route erlauben
-        or request.path.startswith("/login")  # ✅ Login-Route erlauben für Admin-Auth
-        or request.path.startswith("/reset-password")  # ✅ Passwort-Reset-Seite erlauben
+        or request.path.startswith("/admin-rechnungen")
+        or request.path.startswith("/login")
+        or request.path.startswith("/reset-password")
         or request.path.startswith("/public/")
         or request.path.startswith("/slots")
         or request.path.startswith("/provider/")
@@ -2879,11 +2879,14 @@ def maybe_api_only():
         or request.path.startswith("/webhook/copecart")
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
-        or request.path.startswith("/alerts/")   # ✅ verify + cancel Links aus Mails erlauben
+        or request.path.startswith("/alerts/")
         or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html")
         or request.path.startswith("/static/")
+        or request.path.endswith(".html")  # HTML-Seiten erlauben
+        or request.path.strip("/") in ("", "index", "suche", "preise", "anbieter", "suchende", "kontakt", "hilfe", "agb", "impressum", "datenschutz", "widerruf")
     ):
-        return _json_error("api_only", 404)
+        return
+    return _json_error("api_only", 404)
 
 
 # --------------------------------------------------------
@@ -3340,7 +3343,22 @@ if not _html_enabled():
 
     @app.route("/", methods=["GET", "HEAD"])
     def api_root():
-        return jsonify({"ok": True, "service": "api", "time": _now().isoformat()})
+        return send_from_directory(APP_ROOT, "index.html")
+
+    @app.get("/<path:slug>")
+    def api_only_html_fallback(slug: str):
+        """HTML-Seiten auch im API_ONLY-Modus ausliefern."""
+        if slug in ("me", "auth", "api", "slots", "public", "alerts", "provider", "webhook", "healthz") or \
+           slug.startswith(("auth/", "api/", "slots", "public/", "alerts/", "provider/", "webhook/", "admin/")):
+            abort(404)
+        filename = slug if slug.endswith(".html") else f"{slug}.html"
+        file_path = os.path.join(APP_ROOT, filename)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(APP_ROOT, filename)
+        try:
+            return render_template(filename)
+        except Exception:
+            abort(404)
 
 
 # --------------------------------------------------------
