@@ -110,6 +110,8 @@ if not IS_RENDER:
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 print("MODE       :", "API-only" if API_ONLY else "Full (API + HTML)")
+if stripe and STRIPE_SECRET_KEY:
+    print("STRIPE     : Deposit-Testmodus" if STRIPE_DEPOSIT_TEST_MODE else "STRIPE     : Connect (Anbieter-Konten)")
 print("TEMPLATES  :", TEMPLATE_DIR)
 print("STATIC     :", STATIC_DIR)
 print("APP_ROOT   :", APP_ROOT)
@@ -185,8 +187,13 @@ FRONTEND_URL = _cfg(
 # Stripe Config
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-# Testmodus: Anzahlung auf Plattform-Konto statt Connect – kein Ausweis nötig
-STRIPE_DEPOSIT_TEST_MODE = os.getenv("STRIPE_DEPOSIT_TEST_MODE") == "1"
+# Testmodus: Anzahlung auf Plattform statt Connect (kein Ausweis nötig)
+# Standard: aktiv bei sk_test_*, sonst per STRIPE_DEPOSIT_TEST_MODE=1
+_stripe_test_mode_env = os.getenv("STRIPE_DEPOSIT_TEST_MODE")
+STRIPE_DEPOSIT_TEST_MODE = (
+    _stripe_test_mode_env == "1"
+    or (_stripe_test_mode_env != "0" and (STRIPE_SECRET_KEY or "").startswith("sk_test_"))
+)
 
 if stripe and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
