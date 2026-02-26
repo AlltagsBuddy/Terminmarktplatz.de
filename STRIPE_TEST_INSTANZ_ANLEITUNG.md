@@ -82,12 +82,15 @@ Der Webhook sagt Stripe: „Wenn eine Zahlung fertig ist, rufe diese URL auf.“
 1. **[dashboard.render.com](https://dashboard.render.com)** öffnen
 2. Deinen **Web Service** (Terminmarktplatz) auswählen
 3. Links: **Environment** (Umgebung) anklicken
-4. Zwei Variablen anlegen bzw. prüfen:
+4. Variablen anlegen bzw. prüfen:
 
 | Key | Value |
 |-----|-------|
 | `STRIPE_SECRET_KEY` | `sk_test_...` (aus Schritt 2) |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (aus Schritt 4) |
+| `STRIPE_DEPOSIT_TEST_MODE` | `1` *(optional)* – Anzahlung auf Plattform statt Connect, **kein Ausweis nötig** |
+
+**STRIPE_DEPOSIT_TEST_MODE=1:** Ermöglicht Test-Zahlungen ohne Stripe Connect Identitätsprüfung. Die Anzahlung geht auf das Plattform-Konto (nicht an den Anbieter). **Nur für Tests – vor Live-Betrieb auf `0` oder entfernen!**
 
 5. **Save Changes** – der Service startet automatisch neu
 

@@ -185,6 +185,8 @@ FRONTEND_URL = _cfg(
 # Stripe Config
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+# Testmodus: Anzahlung auf Plattform-Konto statt Connect – kein Ausweis nötig
+STRIPE_DEPOSIT_TEST_MODE = os.getenv("STRIPE_DEPOSIT_TEST_MODE") == "1"
 
 if stripe and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
@@ -6021,7 +6023,7 @@ def slots_create():
                         "error": "profi_plan_required",
                         "message": "Anzahlungen sind nur mit dem Profi- oder Business-Paket möglich.",
                     }), 400
-                if not getattr(p_check, "stripe_account_id", None):
+                if not getattr(p_check, "stripe_account_id", None) and not STRIPE_DEPOSIT_TEST_MODE:
                     return jsonify({
                         "error": "stripe_onboarding_required",
                         "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",
@@ -6271,7 +6273,7 @@ def slots_update(slot_id):
                             "error": "profi_plan_required",
                             "message": "Anzahlungen sind nur mit dem Profi- oder Business-Paket möglich.",
                         }), 400
-                    if not getattr(provider, "stripe_account_id", None):
+                    if not getattr(provider, "stripe_account_id", None) and not STRIPE_DEPOSIT_TEST_MODE:
                         return jsonify({
                             "error": "stripe_onboarding_required",
                             "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",
@@ -8270,7 +8272,9 @@ def public_book():
 
         deposit_cents = getattr(slot, "deposit_cents", None) or 0
         stripe_acct = getattr(provider, "stripe_account_id", None) if provider else None
-        requires_deposit = deposit_cents > 0 and stripe_acct
+        # Testmodus: Charge auf Plattform (kein Connect/Identitätsprüfung nötig)
+        use_connect = stripe_acct and not STRIPE_DEPOSIT_TEST_MODE
+        requires_deposit = deposit_cents > 0 and (stripe_acct or STRIPE_DEPOSIT_TEST_MODE)
 
         b = Booking(
             slot_id=slot.id,
@@ -8294,10 +8298,10 @@ def public_book():
                 success_url = f"{frontend}/suche.html?booking_deposit_success=1&booking_id={b.id}"
                 cancel_url = f"{base}{url_for('public_cancel')}?token={token}"
                 session_expires = int((_now() + timedelta(minutes=30)).timestamp())
-                session = stripe.checkout.Session.create(
-                    mode="payment",
-                    expires_at=session_expires,
-                    line_items=[
+                create_params = {
+                    "mode": "payment",
+                    "expires_at": session_expires,
+                    "line_items": [
                         {
                             "price_data": {
                                 "currency": "eur",
@@ -8310,15 +8314,17 @@ def public_book():
                             "quantity": 1,
                         }
                     ],
-                    success_url=success_url,
-                    cancel_url=cancel_url,
-                    metadata={
+                    "success_url": success_url,
+                    "cancel_url": cancel_url,
+                    "metadata": {
                         "type": "booking_deposit",
                         "booking_id": str(b.id),
                     },
-                    customer_email=email,
-                    stripe_account=stripe_acct,
-                )
+                    "customer_email": email,
+                }
+                if use_connect:
+                    create_params["stripe_account"] = stripe_acct
+                session = stripe.checkout.Session.create(**create_params)
                 checkout_url = session.url
 
                 slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
