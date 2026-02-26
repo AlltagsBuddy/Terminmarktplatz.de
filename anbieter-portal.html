@@ -756,6 +756,13 @@
           </button>
         </div>
 
+        <!-- Zahlungen einrichten (sichtbar für Profi/Business ohne Stripe-Setup) -->
+        <div id="stripe-setup-card" class="panel" style="display:none; margin-top:16px; padding:20px; background:linear-gradient(135deg, rgba(111,83,255,.08) 0%, rgba(99,102,241,.06) 100%); border:1px solid rgba(111,83,255,.2);">
+          <h3 style="margin:0 0 8px 0; font-size:1.1rem;">Zahlungen einrichten</h3>
+          <p class="muted" style="margin:0 0 12px 0; font-size:14px;">Für Anzahlungen bei Terminbuchungen musst du einmalig dein Zahlungskonto (Stripe Connect) verbinden.</p>
+          <a href="#" id="link-stripe-setup-main" class="btn primary" style="font-weight:600;">Zahlungen einrichten</a>
+        </div>
+
       </div>
     </section>
 
@@ -1514,6 +1521,11 @@
           // "Erfordert Zahlung einrichten" nur anzeigen, wenn Profi/Business UND Zahlung noch nicht eingerichtet
           if (depositSetupRequired) {
             depositSetupRequired.style.display = (HAS_PRO_FEATURES && !hasStripeSetup) ? 'block' : 'none';
+          }
+          // Oberer "Zahlungen einrichten"-Bereich (sichtbar auf der Startseite)
+          const stripeSetupCard = document.getElementById('stripe-setup-card');
+          if (stripeSetupCard) {
+            stripeSetupCard.style.display = (HAS_PRO_FEATURES && !hasStripeSetup) ? 'block' : 'none';
           }
           if (!HAS_PRO_FEATURES) slDeposit.value = '';
         }
@@ -2446,8 +2458,7 @@
     $('#btn-refresh')?.addEventListener('click', loadSlots);
 
     // Stripe Connect: Zahlungen einrichten (für Anzahlungen)
-    document.getElementById('link-stripe-setup')?.addEventListener('click', async function(e){
-      e.preventDefault();
+    async function doStripeOnboard() {
       try {
         const r = await fetch(`${API}/me/stripe/onboard`, { method: 'POST', credentials: 'include' });
         const data = await r.json().catch(() => ({}));
@@ -2459,7 +2470,9 @@
       } catch (err) {
         showMsg('msg-slot', 'Netzwerkfehler.', false);
       }
-    });
+    }
+    document.getElementById('link-stripe-setup')?.addEventListener('click', function(e){ e.preventDefault(); doStripeOnboard(); });
+    document.getElementById('link-stripe-setup-main')?.addEventListener('click', function(e){ e.preventDefault(); doStripeOnboard(); });
     $('#btn-export')?.addEventListener('click', exportSlots);
     $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
 
