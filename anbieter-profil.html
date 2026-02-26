@@ -435,26 +435,25 @@
           })();
         </script>
 
-        <!-- Zahlung einrichten (einmalig pro Anbieter, für Anzahlungen bei Terminbuchungen) -->
-        <div class="panel" id="stripe-setup-panel" style="margin-bottom:20px;">
-          <h2>Zahlung einrichten</h2>
-          <p class="muted">Einmalige Einrichtung für Anzahlungen bei Terminbuchungen. Nur mit Profi- oder Business-Paket.</p>
-          <div id="stripe-setup-status">
-            <span class="muted">Lade …</span>
-          </div>
-          <div id="stripe-setup-actions" style="margin-top:12px; display:none;">
-            <a href="#" id="link-stripe-setup-profile" class="btn primary" style="font-weight:600;">Zahlung einrichten</a>
-          </div>
-          <div id="stripe-setup-done" style="display:none; padding:12px; background:#dcfce7; color:#065f46; border-radius:12px; border:1px solid #16a34a;">
-            ✓ Zahlungen eingerichtet
-          </div>
-          <div id="stripe-setup-profi-hint" style="display:none; margin-top:8px;">
-            <a href="preise.html#pakete" class="btn small">Profi-Paket buchen</a>
-          </div>
-        </div>
-
+        <!-- Zahlung & Passwort: kompakt in einem Panel -->
         <div class="panel">
-          <h2>Passwort ändern</h2>
+          <div id="stripe-setup-row" style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding-bottom:20px; border-bottom:1px solid var(--border); margin-bottom:20px;">
+            <span style="font-weight:600;">Zahlung:</span>
+            <span id="stripe-setup-status" class="muted" style="display:inline;">Lade …</span>
+            <span id="stripe-setup-actions" style="display:none;">
+              <a href="#" id="link-stripe-setup-profile" class="btn primary small">Einrichten</a>
+            </span>
+            <span id="stripe-setup-done" style="display:none; align-items:center; gap:8px;">
+              <span style="color:#16a34a;">✓ Eingerichtet</span>
+              <a href="#" id="link-stripe-update-profile" class="btn small">Anpassen</a>
+            </span>
+            <span id="stripe-setup-profi-hint" style="display:none;">
+              <a href="preise.html#pakete" class="btn small">Profi-Paket</a>
+            </span>
+            <div id="msg-stripe" class="msg" style="flex-basis:100%; margin-top:8px;"></div>
+          </div>
+
+          <h2 style="margin-top:0;">Passwort ändern</h2>
           <p class="muted">Ändere hier dein Passwort. Du musst dein aktuelles Passwort eingeben.</p>
           <form id="form-change-password" class="grid" novalidate>
             <div class="field col-2">
@@ -638,30 +637,31 @@
       doneEl.style.display = 'none';
       profiHintEl.style.display = 'none';
       if (hasProfi && hasStripe) {
-        doneEl.style.display = 'block';
+        doneEl.style.display = 'inline-flex';
       } else if (hasProfi && !hasStripe) {
-        actionsEl.style.display = 'block';
+        actionsEl.style.display = 'inline';
       } else {
         statusEl.style.display = 'inline';
-        statusEl.textContent = 'Für Anzahlungen brauchst du das Profi- oder Business-Paket.';
-        profiHintEl.style.display = 'block';
+        statusEl.textContent = 'Profi- oder Business-Paket erforderlich.';
+        profiHintEl.style.display = 'inline';
       }
     }
 
-    document.getElementById('link-stripe-setup-profile')?.addEventListener('click', async function(e){
-      e.preventDefault();
+    async function doStripeOnboardOrUpdate() {
       try {
         const r = await fetch(`${API}/me/stripe/onboard`, { method: 'POST', credentials: 'include' });
         const data = await r.json().catch(() => ({}));
         if (r.ok && data.url) {
           window.location.href = data.url;
         } else {
-          showMsg('msg-profile', data.error === 'stripe_not_configured' ? 'Zahlungen sind derzeit nicht verfügbar.' : (data.error || 'Fehler beim Einrichten.'), false);
+          showMsg('msg-stripe', data.error === 'stripe_not_configured' ? 'Zahlungen sind derzeit nicht verfügbar.' : (data.error || 'Fehler beim Einrichten.'), false);
         }
       } catch (err) {
-        showMsg('msg-profile', 'Netzwerkfehler.', false);
+        showMsg('msg-stripe', 'Netzwerkfehler.', false);
       }
-    });
+    }
+    document.getElementById('link-stripe-setup-profile')?.addEventListener('click', function(e){ e.preventDefault(); doStripeOnboardOrUpdate(); });
+    document.getElementById('link-stripe-update-profile')?.addEventListener('click', function(e){ e.preventDefault(); doStripeOnboardOrUpdate(); });
 
     $('#form-profile').addEventListener('submit', async (e)=>{
       e.preventDefault();
