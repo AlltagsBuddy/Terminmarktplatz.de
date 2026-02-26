@@ -7491,8 +7491,10 @@ def paket_buchen_start():
     return jsonify({"ok": True, "provider_id": request.provider_id, "plan": plan_key, "mode": "manual_no_stripe"})
 
 
-@app.post("/webhook/stripe")
+@app.route("/webhook/stripe", methods=["GET", "POST"])
 def stripe_webhook():
+    if request.method == "GET":
+        return jsonify({"ok": True, "message": "Stripe webhook endpoint - Stripe sends POST"}), 200
     if not (stripe and STRIPE_WEBHOOK_SECRET):
         return jsonify({"error": "stripe_not_configured"}), 501
 
