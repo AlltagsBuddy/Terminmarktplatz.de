@@ -157,7 +157,7 @@ WHERE email = 'deine@email.de';
 ✅ **Sauberes Design:** Provider sehen nur ihre eigenen Daten (kein Admin nötig)  
 ✅ **Skalierbar:** Klare Trennung zwischen Provider- und Admin-Rechten  
 ✅ **Automatisiert:** Monatliche Rechnungsstellung per Cronjob  
-✅ **DSGVO-konform:** Provider sehen nur ihre eigenen Rechnungen  
+✅ **Datenschutz:** Provider sehen nur ihre eigenen Rechnungen  
 
 ## Nächste Schritte (wenn du zustimmst)
 

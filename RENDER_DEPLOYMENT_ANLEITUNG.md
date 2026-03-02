@@ -22,7 +22,7 @@ Diese Anleitung führt Sie durch die vollständige Einrichtung eines Flask-Backe
    - **Name**: z.B. `terminmarktplatz-db`
    - **Database**: z.B. `terminmarktplatz` (wird automatisch generiert)
    - **User**: wird automatisch generiert
-   - **Region**: Wählen Sie `Frankfurt` oder `EU` (für DSGVO-Konformität)
+   - **Region**: Wählen Sie `Frankfurt` oder `EU` (falls verfügbar)
    - **PostgreSQL Version**: Neueste Version (z.B. `16`)
    - **Plan**: Wählen Sie `Free` (für Test) oder `Starter` (für Produktion)
 4. Klicken Sie auf **"Create Database"**
