@@ -536,7 +536,7 @@
             if (h === 'localhost' || h === '127.0.0.1') {
               return 'http://127.0.0.1:5000';
             }
-            if (h.includes('testsystem') || h.includes('onrender.com')) {
+            if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
               return `${location.protocol}//${location.host}`;
             }
             return 'https://terminmarktplatz.de';

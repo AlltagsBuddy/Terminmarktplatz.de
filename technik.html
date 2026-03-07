@@ -239,6 +239,10 @@
             Die Plattform besteht aus einem öffentlichen Frontend (diese Website) und einer API/Backend-Komponente.
             Alle Verbindungen laufen verschlüsselt über HTTPS.
           </p>
+          <p class="muted" style="margin-top:8px">
+            <strong>Hosting:</strong> Backend, Website und Datenbank werden ausschließlich auf Servern der Hetzner Online GmbH
+            in Deutschland (Rechenzentren Falkenstein/Nürnberg) betrieben – DSGVO-konform, keine Datenverarbeitung in Drittländern.
+          </p>
           <div class="grid-2" style="margin-top:12px">
             <div>
               <h3>Frontend</h3>
@@ -341,7 +345,7 @@
             if (h === 'localhost' || h === '127.0.0.1') {
               return 'http://127.0.0.1:5000';
             }
-            if (h.includes('testsystem') || h.includes('onrender.com')) {
+            if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
               return `${location.protocol}//${location.host}`;
             }
             return 'https://terminmarktplatz.de';

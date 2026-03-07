@@ -1,0 +1,42 @@
+# ---------------------------------------------------------
+# Hetzner TESTSYSTEM – .env für /opt/terminmarktplatz-test/
+# ---------------------------------------------------------
+# Diese Datei als Vorlage: Inhalt auf Server nach /opt/terminmarktplatz-test/.env kopieren
+
+# Flask / App
+SECRET_KEY=test-geheimer-schluessel-anders-als-live-min-32-zeichen-abc123
+
+# Datenbank (Test) – IHR_PASSWORT = dasselbe wie Live (PostgreSQL terminmarktplatz_user)
+DATABASE_URL=postgresql+psycopg://terminmarktplatz_user:Abc1234.@localhost:5432/terminmarktplatz_test
+
+# Mail (Test: nur Konsole)
+MAIL_PROVIDER=console
+EMAILS_ENABLED=false
+
+ADMIN_NOTIFY_TO=info@terminmarktplatz.de
+CONTACT_TO=hello@terminmarktplatz.de
+
+# JWT
+JWT_ISS=terminmarktplatz
+JWT_AUD=terminmarktplatz_client
+
+# URLs (Test-Subdomain)
+BASE_URL=https://test.terminmarktplatz.de
+FRONTEND_URL=https://test.terminmarktplatz.de
+API_ONLY=0
+
+# Stripe TEST (sk_test_ und Test-Webhook!)
+STRIPE_SECRET_KEY=pk_test_51T0t2JHLsjPgJT9Dq2bsrHRTmjYMyBatd7kH7RrGUhjBT4gAoVKAFfg0Xra18bhmqWJyTjmx02fzJA1M9LVAfnBO00IHvMPbPR
+STRIPE_WEBHOOK_SECRET=whsec_G32AJfsLghZofEL9JWcdagIUz2WEqmks
+
+# CopeCart (Test – falls vorhanden)
+COPECART_WEBHOOK_SECRET=KeinGeheimniss!
+COPECART_PRODUCT_STARTER_ID=dfc204cf
+COPECART_PRODUCT_PROFI_ID=a06e5188
+COPECART_PRODUCT_BUSINESS_ID=345678
+COPECART_STARTER_URL=https://copecart.com/products/dfc204cf/checkout
+COPECART_PROFI_URL=https://copecart.com/products/a06e5188/checkout
+COPECART_BUSINESS_URL=https://copecart.com/...dein_business_checkout...
+
+# Google Maps
+GOOGLE_MAPS_API_KEY=AIzaSyAYaQ0WOx05nwuCF5-JTc8CK0mc_XUjBvs

@@ -367,7 +367,7 @@
           Diese AGB regeln die Nutzung von Terminmarktplatz durch Anbieter:innen („Anbieter“) und Nutzer:innen, die Termine suchen
           und buchen („Suchende“). Terminmarktplatz ist eine Vermittlungsplattform.
         </p>
-        <p class="note">Stand: 15. Februar 2026</p>
+        <p class="note">Stand: März 2026</p>
       </div>
     </section>
 
@@ -679,7 +679,7 @@
             if (h === 'localhost' || h === '127.0.0.1') {
               return 'http://127.0.0.1:5000';
             }
-            if (h.includes('testsystem') || h.includes('onrender.com')) {
+            if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
               return `${location.protocol}//${location.host}`;
             }
             return 'https://terminmarktplatz.de';

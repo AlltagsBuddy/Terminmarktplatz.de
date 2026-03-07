@@ -70,53 +70,64 @@ Klicken Sie auf **"Add Environment Variable"** und fügen Sie folgende Variablen
 #### Erforderliche Variablen:
 
 1. **DATABASE_URL**
-   - **Wert**: Kopieren Sie die **"Internal Database URL"** aus Schritt 2
-   - Format: `postgresql://user:password@host/database`
-   - **WICHTIG**: Ersetzen Sie `postgresql://` NICHT, auch wenn Render `postgres://` zeigt
+   - **PostgreSQL** (empfohlen): Kopieren Sie die **"Internal Database URL"** aus Schritt 2
+     - Format: `postgresql://user:password@host/database`
+     - **WICHTIG**: Ersetzen Sie `postgresql://` NICHT, auch wenn Render `postgres://` zeigt
+   - **SQLite mit persistentem Disk** (Alternative): `sqlite:////data/terminmarktplatz.db`
+     - **4 Slashes** = absoluter Linux-Pfad `/data/terminmarktplatz.db`
+     - Erfordert: Persistent Disk unter `/data` im Web Service (Disks → Add disk → Mount path: `/data`) + **DATA_DIR** (siehe unten)
 
-2. **SECRET_KEY**
+2. **DATA_DIR** (nur bei SQLite + persistentem Disk)
+   - **Wert**: `/data`
+   - DB und Uploads liegen dann unter `/data` (z.B. `/data/uploads`)
+
+3. **SECRET_KEY**
    - **Wert**: Generieren Sie einen langen, zufälligen String (z.B. mit `python -c "import secrets; print(secrets.token_urlsafe(64))"`)
    - Mindestens 32 Zeichen, idealerweise 64+
    - Beispiel: `my-super-secret-key-change-this-in-production-1234567890abcdef`
 
-3. **JWT_ISS**
+4. **JWT_ISS**
    - **Wert**: `terminmarktplatz`
 
-4. **JWT_AUD**
+5. **JWT_AUD**
    - **Wert**: `terminmarktplatz_client`
 
-5. **API_ONLY**
+6. **API_ONLY**
    - **Wert**: `1` (wenn nur API, ohne HTML-Routen)
    - **ODER**: Lassen Sie leer oder setzen Sie `0` (für vollständige App mit HTML)
 
 #### Optionale Variablen (je nach Bedarf):
 
-6. **MAIL_PROVIDER**
+7. **MAIL_PROVIDER**
    - **Wert**: `resend` (Standard), `postmark`, `smtp`, oder `console`
 
 7. **RESEND_API_KEY** (wenn MAIL_PROVIDER=resend)
    - **Wert**: Ihr Resend API Key von https://resend.com
 
-8. **POSTMARK_API_TOKEN** (wenn MAIL_PROVIDER=postmark)
+9. **POSTMARK_API_TOKEN** (wenn MAIL_PROVIDER=postmark)
    - **Wert**: Ihr Postmark API Token
 
-9. **SMTP_HOST**, **SMTP_PORT**, **SMTP_USER**, **SMTP_PASS** (wenn MAIL_PROVIDER=smtp)
+10. **SMTP_HOST**, **SMTP_PORT**, **SMTP_USER**, **SMTP_PASS** (wenn MAIL_PROVIDER=smtp)
    - **Werte**: Ihre SMTP-Server-Details
 
-10. **MAIL_FROM**
+11. **MAIL_FROM**
     - **Wert**: z.B. `Terminmarktplatz <info@terminmarktplatz.de>`
 
-11. **GOOGLE_MAPS_API_KEY** (falls verwendet)
+12. **GOOGLE_MAPS_API_KEY** (falls verwendet)
     - **Wert**: Ihr Google Maps API Key
 
 12. **STRIPE_SECRET_KEY** (falls Stripe verwendet wird)
     - **Wert**: Ihr Stripe Secret Key
 
-13. **FRONTEND_URL**
+14. **FRONTEND_URL**
     - **Wert**: `https://terminmarktplatz.de`
 
-14. **BASE_URL**
+15. **BASE_URL**
     - **Wert**: `https://terminmarktplatz.de`
+
+### Persistent Disk (nur bei SQLite):
+- Unter **Disks** → **Add disk** → Mount path: `/data` → Größe wählen
+- Ohne Disk: DB und Uploads gehen bei jedem Deploy verloren
 
 ### Plan auswählen:
 - **Free**: Für Test/Entwicklung (kostenlos, aber mit Einschränkungen)

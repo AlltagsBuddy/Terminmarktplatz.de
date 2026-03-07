@@ -439,7 +439,7 @@
           Hier erfährst du, welche personenbezogenen Daten wir auf Terminmarktplatz verarbeiten, zu welchen Zwecken,
           auf welcher Rechtsgrundlage, wie lange und welche Rechte du nach der DSGVO hast.
         </p>
-        <p class="note">Stand: 15. Februar 2026</p>
+        <p class="note">Stand: März 2026 (Hosting auf Hetzner, Deutschland)</p>
       </div>
     </section>
 
@@ -695,14 +695,11 @@
           </p>
           <ul>
             <li>
-              <strong>Backend-Service & Datenbank (Render)</strong>: Wir betreiben die Server-Komponenten (API) und die Datenbank über
-              Render (render.com). Dabei werden u. a. Verbindungsdaten/Logdaten (z. B. IP-Adresse, Zeitstempel, angeforderte URL, HTTP-Status,
-              User-Agent) sowie die im Rahmen der Plattformnutzung anfallenden Daten (z. B. Konto-, Slot- und Buchungsdaten) verarbeitet,
-              soweit dies für den Betrieb erforderlich ist.
-            </li>
-            <li>
-              <strong>Website-Hosting (STRATO)</strong>: Die öffentliche Website (statische Seiten) wird über STRATO AG, Deutschland, bereitgestellt.
-              Beim Aufruf der Website verarbeitet STRATO technisch bedingt Server-Logdaten (siehe Punkt 5.1).
+              <strong>Backend-Service, Website & Datenbank (Hetzner)</strong>: Wir betreiben die Server-Komponenten (API), die Website und die Datenbank
+              auf Servern der Hetzner Online GmbH in Deutschland (Rechenzentren Falkenstein/Nürnberg). Dabei werden u. a. Verbindungsdaten/Logdaten
+              (z. B. IP-Adresse, Zeitstempel, angeforderte URL, HTTP-Status, User-Agent) sowie die im Rahmen der Plattformnutzung anfallenden Daten
+              (z. B. Konto-, Slot- und Buchungsdaten) verarbeitet, soweit dies für den Betrieb erforderlich ist.
+              <strong>Alle Kern-Daten verbleiben in der EU/Deutschland.</strong>
             </li>
             <li>
               <strong>Zahlungsplattform (Stripe)</strong>: Für die Abwicklung von Anzahlungen beim Termin-Buchen nutzen wir Stripe.
@@ -745,8 +742,8 @@
             </li>
           </ul>
           <p class="note">
-            <strong>Hinweis:</strong> Je nach technischer Ausgestaltung können Hosting-/Infrastruktur-Dienstleister auch außerhalb der EU/des EWR
-            eingebunden sein. Details zur Drittlandübermittlung findest du in Punkt 8.
+            <strong>Hinweis:</strong> Unser Kern-Hosting (Hetzner) erfolgt ausschließlich in Deutschland. Externe Dienste (Google, Stripe, CopeCart, E-Mail)
+            können teilweise in Drittländern verarbeiten. Details zur Drittlandübermittlung findest du in Punkt 8.
           </p>
 
           <h2>8. Datenübermittlung in Drittländer</h2>
@@ -765,9 +762,8 @@
             <a href="https://policies.google.com/privacy/frameworks" target="_blank" rel="noopener noreferrer">Google Privacy Frameworks</a>.
           </p>
           <p>
-            <strong>Render / Infrastruktur:</strong> Soweit im Rahmen des Hostings/der Infrastruktur eine Verarbeitung außerhalb der EU/des EWR
-            erfolgt, stützen wir diese – sofern erforderlich – auf geeignete Garantien (z. B. Standardvertragsklauseln) und angemessene
-            technische und organisatorische Maßnahmen.
+            <strong>Hosting (Hetzner):</strong> Unser Backend, die Website und die Datenbank werden ausschließlich auf Servern der Hetzner Online GmbH
+            in Deutschland betrieben. Es erfolgt keine Verarbeitung personenbezogener Daten in Drittländern im Rahmen des Hostings.
           </p>
           <p>
             <strong>Google Maps:</strong> Google Maps wird von Google Ireland Limited bereitgestellt, die Datenverarbeitung kann auch in den USA
@@ -903,7 +899,7 @@
             if (h === 'localhost' || h === '127.0.0.1') {
               return 'http://127.0.0.1:5000';
             }
-            if (h.includes('testsystem') || h.includes('onrender.com')) {
+            if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
               return `${location.protocol}//${location.host}`;
             }
             return 'https://terminmarktplatz.de';

@@ -731,6 +731,16 @@
         </div>
 
         <div class="faq-item">
+          <div class="faq-question">Wo werden meine Daten gespeichert? Ist das DSGVO-konform?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Ja. Alle Kern-Daten (Backend, Website, Datenbank) werden ausschließlich auf Servern der <strong>Hetzner Online GmbH in Deutschland</strong> (Rechenzentren Falkenstein/Nürnberg) betrieben. Es erfolgt keine Verarbeitung personenbezogener Daten in Drittländern im Rahmen des Hostings.</p>
+              <p>Details findest du in unserer <a href="datenschutz.html">Datenschutzerklärung</a> und unter <a href="technik.html">Technik & Sicherheit</a>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
           <div class="faq-question">Wie kann ich mein Passwort zurücksetzen?</div>
           <div class="faq-answer">
             <div class="faq-answer-content">
@@ -994,7 +1004,7 @@
           if (h === 'localhost' || h === '127.0.0.1') {
             return 'http://127.0.0.1:5000';
           }
-          if (h.includes('testsystem') || h.includes('onrender.com')) {
+          if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
             return `${location.protocol}//${location.host}`;
           }
           return 'https://terminmarktplatz.de';
