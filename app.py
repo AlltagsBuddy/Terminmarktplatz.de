@@ -381,8 +381,11 @@ if IS_RENDER:
             "https://www.terminmarktplatz.de",
         ]
 else:
-    # Lokale Entwicklung: Erlaube localhost, 127.0.0.1 und lokale IP-Adressen
+    # Hetzner / Lokal: Produktions-URLs + Test-Subdomain + localhost für Entwicklung
     ALLOWED_ORIGINS = [
+        "https://terminmarktplatz.de",
+        "https://www.terminmarktplatz.de",
+        "https://test.terminmarktplatz.de",
         "http://localhost:5000",
         "http://127.0.0.1:5000",
     ]
@@ -1844,7 +1847,9 @@ def _cookie_flags():
         else:
             # Produktion: Same-Origin auf terminmarktplatz.de
             return {"httponly": True, "secure": True, "samesite": "Lax", "path": "/"}
-    return {"httponly": True, "secure": False, "samesite": "Lax", "path": "/"}
+    # Hetzner / Lokal: secure=True wenn BASE_URL HTTPS (Produktion)
+    use_secure = (BASE_URL or "").startswith("https://")
+    return {"httponly": True, "secure": use_secure, "samesite": "Lax", "path": "/"}
 
 
 def _cookie_delete_flags():
