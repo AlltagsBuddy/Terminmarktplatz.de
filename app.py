@@ -73,8 +73,14 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
 TEMPLATE_DIR = os.path.join(APP_ROOT, "templates")
-LOGO_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-logos")
-GALLERY_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads", "provider-gallery")
+# Render: DATA_DIR=/data → DB und Uploads persistent unter /data
+DATA_DIR = os.environ.get("DATA_DIR", "").strip()
+if DATA_DIR:
+    UPLOAD_BASE = os.path.join(DATA_DIR, "uploads")
+else:
+    UPLOAD_BASE = os.path.join(STATIC_DIR, "uploads")
+LOGO_UPLOAD_DIR = os.path.join(UPLOAD_BASE, "provider-logos")
+GALLERY_UPLOAD_DIR = os.path.join(UPLOAD_BASE, "provider-gallery")
 LOGO_MAX_BYTES = 20 * 1024
 LOGO_SIZE_PX = 512
 GALLERY_MAX_BYTES = 500 * 1024
@@ -94,6 +100,12 @@ IS_RENDER = bool(
     or os.environ.get("RENDER_EXTERNAL_URL")
 )
 API_ONLY = os.environ.get("API_ONLY") == "1"
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")  # früh laden, da in print() verwendet
+_stripe_test_env = os.getenv("STRIPE_DEPOSIT_TEST_MODE")
+STRIPE_DEPOSIT_TEST_MODE = (
+    _stripe_test_env == "1"
+    or (_stripe_test_env != "0" and (STRIPE_SECRET_KEY or "").startswith("sk_test_"))
+)
 
 app = Flask(
     __name__,
@@ -105,6 +117,13 @@ app = Flask(
 os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 
+# Render: Uploads unter /data → eigene Route, da außerhalb von static/
+if DATA_DIR:
+
+    @app.route("/static/uploads/<path:filename>")
+    def serve_uploads(filename: str):
+        return send_from_directory(UPLOAD_BASE, filename)
+
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
@@ -114,6 +133,7 @@ if stripe and STRIPE_SECRET_KEY:
     print("STRIPE     : Deposit-Testmodus" if STRIPE_DEPOSIT_TEST_MODE else "STRIPE     : Connect (Anbieter-Konten)")
 print("TEMPLATES  :", TEMPLATE_DIR)
 print("STATIC     :", STATIC_DIR)
+print("UPLOAD     :", UPLOAD_BASE)
 print("APP_ROOT   :", APP_ROOT)
 _index_path = os.path.join(APP_ROOT, "index.html")
 if os.path.isfile(_index_path):
