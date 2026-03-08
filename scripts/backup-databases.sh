@@ -11,14 +11,14 @@ DATE=$(date +%Y%m%d_%H%M%S)
 
 mkdir -p "$BACKUP_DIR"
 
-# Live-Datenbank
+# Live-Datenbank (HOME=/tmp vermeidet "could not change directory to /root" Warnung)
 echo "[$(date)] Backup: terminmarktplatz"
-sudo -u postgres pg_dump terminmarktplatz | gzip > "$BACKUP_DIR/terminmarktplatz_${DATE}.sql.gz"
+sudo -u postgres env HOME=/tmp pg_dump terminmarktplatz | gzip > "$BACKUP_DIR/terminmarktplatz_${DATE}.sql.gz"
 
 # Test-Datenbank (falls vorhanden)
-if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw terminmarktplatz_test; then
+if sudo -u postgres env HOME=/tmp psql -lqt | cut -d \| -f 1 | grep -qw terminmarktplatz_test; then
   echo "[$(date)] Backup: terminmarktplatz_test"
-  sudo -u postgres pg_dump terminmarktplatz_test | gzip > "$BACKUP_DIR/terminmarktplatz_test_${DATE}.sql.gz"
+  sudo -u postgres env HOME=/tmp pg_dump terminmarktplatz_test | gzip > "$BACKUP_DIR/terminmarktplatz_test_${DATE}.sql.gz"
 fi
 
 # Alte Backups löschen (älter als RETENTION_DAYS)
