@@ -4141,13 +4141,35 @@ def me_stripe_onboard():
             refresh_url = f"{base}/anbieter-profil.html?stripe_onboard=refresh"
             # account_update für bestehende Konten (Bankdaten ändern), account_onboarding für Erst-Einrichtung
             link_type = "account_onboarding" if is_new else "account_update"
-            link = stripe.AccountLink.create(
-                account=acct_id,
-                refresh_url=refresh_url,
-                return_url=return_url,
-                type=link_type,
-            )
-            return jsonify({"url": link.url})
+            try:
+                link = stripe.AccountLink.create(
+                    account=acct_id,
+                    refresh_url=refresh_url,
+                    return_url=return_url,
+                    type=link_type,
+                )
+                return jsonify({"url": link.url})
+            except stripe.error.InvalidRequestError as e:
+                # Alter Account gehört zu anderer Plattform (z.B. nach Migration Render→Hetzner)
+                if "not connected to your platform" in str(e).lower() or "does not exist" in str(e).lower():
+                    app.logger.info("Stripe account %s invalid (migration?), creating new: %s", acct_id, e)
+                    p.stripe_account_id = None
+                    acct = stripe.Account.create(
+                        type="express",
+                        country="DE",
+                        email=p.email,
+                        metadata={"provider_id": str(p.id)},
+                    )
+                    p.stripe_account_id = acct.id
+                    s.commit()
+                    link = stripe.AccountLink.create(
+                        account=acct.id,
+                        refresh_url=refresh_url,
+                        return_url=return_url,
+                        type="account_onboarding",
+                    )
+                    return jsonify({"url": link.url})
+                raise
     except stripe.error.StripeError as e:
         app.logger.exception("me_stripe_onboard Stripe API failed: %s", e)
         return jsonify({"error": "stripe_error", "message": str(e)}), 400
