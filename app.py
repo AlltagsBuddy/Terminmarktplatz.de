@@ -4150,8 +4150,9 @@ def me_stripe_onboard():
                 )
                 return jsonify({"url": link.url})
             except stripe.error.InvalidRequestError as e:
+                err_msg = str(e).lower()
                 # Alter Account gehört zu anderer Plattform (z.B. nach Migration Render→Hetzner)
-                if "not connected to your platform" in str(e).lower() or "does not exist" in str(e).lower():
+                if "not connected to your platform" in err_msg or "does not exist" in err_msg:
                     app.logger.info("Stripe account %s invalid (migration?), creating new: %s", acct_id, e)
                     p.stripe_account_id = None
                     acct = stripe.Account.create(
@@ -4164,6 +4165,16 @@ def me_stripe_onboard():
                     s.commit()
                     link = stripe.AccountLink.create(
                         account=acct.id,
+                        refresh_url=refresh_url,
+                        return_url=return_url,
+                        type="account_onboarding",
+                    )
+                    return jsonify({"url": link.url})
+                # Account noch nicht vollständig onboarded – nur account_onboarding erlaubt
+                if "account_update" in err_msg and "account_onboarding" in err_msg:
+                    app.logger.info("Stripe account %s requires onboarding, retrying with account_onboarding", acct_id)
+                    link = stripe.AccountLink.create(
+                        account=acct_id,
                         refresh_url=refresh_url,
                         return_url=return_url,
                         type="account_onboarding",
