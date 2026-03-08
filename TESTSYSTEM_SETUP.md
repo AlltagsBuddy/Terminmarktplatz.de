@@ -1,0 +1,192 @@
+# Testsystem (test.terminmarktplatz.de) – Einrichtung & Fehlersuche
+
+Wenn **https://test.terminmarktplatz.de** nicht erreichbar ist, prüfen Sie die folgenden Punkte auf dem Hetzner-Server (per SSH).
+
+---
+
+## 1. DNS prüfen
+
+**Auf Ihrem PC (PowerShell):**
+```powershell
+nslookup test.terminmarktplatz.de
+```
+
+- **Ergebnis:** Eine IP-Adresse (z.B. Ihre Hetzner-Server-IP) → DNS ist korrekt.
+- **Ergebnis:** „nicht gefunden“ oder andere Domain → DNS-Eintrag fehlt oder zeigt auf falsche IP.
+
+**Lösung:** Bei Ihrem DNS-Provider (z.B. Strato, Cloudflare) einen **A-Eintrag** anlegen:
+- **Name:** `test` (oder `test.terminmarktplatz.de`, je nach Provider)
+- **Typ:** A
+- **Wert:** IP-Adresse Ihres Hetzner-Servers
+- **TTL:** 300 oder 3600
+
+---
+
+## 2. App-Verzeichnis prüfen
+
+**Auf dem Hetzner-Server (SSH):**
+```bash
+ls -la /opt/terminmarktplatz-test/
+```
+
+- **Wenn das Verzeichnis nicht existiert:** Testsystem ist noch nicht installiert.
+
+**Installation:**
+```bash
+sudo mkdir -p /opt/terminmarktplatz-test
+cd /opt/terminmarktplatz-test
+sudo git clone https://github.com/IHR_REPO/Terminmarktplatz.de.git .
+# Oder: rsync von lokalem Projekt
+```
+
+---
+
+## 3. Python-Umgebung & Abhängigkeiten
+
+```bash
+cd /opt/terminmarktplatz-test
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+## 4. Test-Datenbank anlegen
+
+```bash
+sudo -u postgres psql
+```
+
+```sql
+CREATE DATABASE terminmarktplatz_test;
+GRANT ALL PRIVILEGES ON DATABASE terminmarktplatz_test TO terminmarktplatz_user;
+\q
+```
+
+---
+
+## 5. .env-Datei anlegen
+
+```bash
+nano /opt/terminmarktplatz-test/.env
+```
+
+Inhalt aus `env-test-template.txt` kopieren und anpassen:
+- `DATABASE_URL` mit korrektem Passwort für `terminmarktplatz_test`
+- `SECRET_KEY` (mind. 32 Zeichen, anderer Wert als Live)
+
+---
+
+## 6. Systemd-Service für Testsystem
+
+**Datei anlegen:** `/etc/systemd/system/terminmarktplatz-test.service`
+
+```ini
+[Unit]
+Description=Terminmarktplatz Testsystem (Flask)
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/terminmarktplatz-test
+Environment="PATH=/opt/terminmarktplatz-test/venv/bin"
+EnvironmentFile=/opt/terminmarktplatz-test/.env
+ExecStart=/opt/terminmarktplatz-test/venv/bin/gunicorn app:app --bind 127.0.0.1:8001 --workers 2
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Hinweis:** Port **8001** (nicht 8000), damit Live und Test parallel laufen können.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable terminmarktplatz-test
+sudo systemctl start terminmarktplatz-test
+sudo systemctl status terminmarktplatz-test
+```
+
+---
+
+## 7. Nginx für test.terminmarktplatz.de
+
+**Datei anlegen:** `/etc/nginx/sites-available/terminmarktplatz-test`
+
+```nginx
+server {
+    listen 80;
+    server_name test.terminmarktplatz.de;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name test.terminmarktplatz.de;
+
+    ssl_certificate /etc/letsencrypt/live/test.terminmarktplatz.de/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/test.terminmarktplatz.de/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static/ {
+        alias /opt/terminmarktplatz-test/static/;
+    }
+}
+```
+
+**Aktivieren:**
+```bash
+sudo ln -s /etc/nginx/sites-available/terminmarktplatz-test /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+---
+
+## 8. SSL-Zertifikat (Let's Encrypt)
+
+**Zuerst:** DNS muss auf den Server zeigen (Schritt 1).
+
+```bash
+sudo certbot --nginx -d test.terminmarktplatz.de
+```
+
+Falls Certbot noch nicht installiert:
+```bash
+sudo apt install certbot python3-certbot-nginx
+```
+
+---
+
+## 9. Schnell-Checkliste
+
+| Schritt | Befehl | Erwartung |
+|---------|--------|-----------|
+| DNS | `nslookup test.terminmarktplatz.de` | Hetzner-IP |
+| Verzeichnis | `ls /opt/terminmarktplatz-test` | Dateien sichtbar |
+| Service | `sudo systemctl status terminmarktplatz-test` | active (running) |
+| Lokal | `curl http://127.0.0.1:8001/healthz` | `{"ok":true,...}` |
+| Nginx | `sudo nginx -t` | syntax is ok |
+| SSL | `curl -I https://test.terminmarktplatz.de` | 200 OK |
+
+---
+
+## 10. Logs bei Fehlern
+
+```bash
+# App-Logs
+sudo journalctl -u terminmarktplatz-test -f
+
+# Nginx-Logs
+sudo tail -f /var/log/nginx/error.log
+sudo tail -f /var/log/nginx/access.log
+```

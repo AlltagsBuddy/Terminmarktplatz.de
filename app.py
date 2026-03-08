@@ -4116,7 +4116,7 @@ def me():
 @app.post("/me/stripe/onboard")
 @auth_required()
 def me_stripe_onboard():
-    """Erstellt Stripe Connect Express Account und gibt Onboarding-Link zurück."""
+    """Erstellt Stripe Connect Express Account und gibt Onboarding- oder Update-Link zurück."""
     if not (stripe and STRIPE_SECRET_KEY):
         return _json_error("stripe_not_configured", 501)
     try:
@@ -4125,6 +4125,7 @@ def me_stripe_onboard():
             if not p:
                 return _json_error("not_found", 404)
             acct_id = getattr(p, "stripe_account_id", None)
+            is_new = not acct_id
             if not acct_id:
                 acct = stripe.Account.create(
                     type="express",
@@ -4138,15 +4139,20 @@ def me_stripe_onboard():
             base = _external_base()
             return_url = f"{base}/anbieter-profil.html?stripe_onboard=success"
             refresh_url = f"{base}/anbieter-profil.html?stripe_onboard=refresh"
+            # account_update für bestehende Konten (Bankdaten ändern), account_onboarding für Erst-Einrichtung
+            link_type = "account_onboarding" if is_new else "account_update"
             link = stripe.AccountLink.create(
                 account=acct_id,
                 refresh_url=refresh_url,
                 return_url=return_url,
-                type="account_onboarding",
+                type=link_type,
             )
             return jsonify({"url": link.url})
+    except stripe.error.StripeError as e:
+        app.logger.exception("me_stripe_onboard Stripe API failed: %s", e)
+        return jsonify({"error": "stripe_error", "message": str(e)}), 400
     except Exception as e:
-        app.logger.exception("me_stripe_onboard failed")
+        app.logger.exception("me_stripe_onboard failed: %s", e)
         return _json_error("server_error", 500)
 
 

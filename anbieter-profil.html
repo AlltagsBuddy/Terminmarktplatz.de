@@ -654,7 +654,10 @@
         if (r.ok && data.url) {
           window.location.href = data.url;
         } else {
-          showMsg('msg-stripe', data.error === 'stripe_not_configured' ? 'Zahlungen sind derzeit nicht verfügbar.' : (data.error || 'Fehler beim Einrichten.'), false);
+          const msg = data.error === 'stripe_not_configured' ? 'Zahlungen sind derzeit nicht verfügbar.'
+            : data.error === 'stripe_error' ? (data.message || 'Stripe-Fehler. Bitte später erneut versuchen.')
+            : (data.error || 'Fehler beim Einrichten.');
+          showMsg('msg-stripe', msg, false);
         }
       } catch (err) {
         showMsg('msg-stripe', 'Netzwerkfehler.', false);
