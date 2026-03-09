@@ -579,7 +579,7 @@
           if (h === 'localhost' || h === '127.0.0.1') {
             return 'http://127.0.0.1:5000';
           }
-          if (h.includes('testsystem') || h.includes('onrender.com')) {
+          if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
             return `${location.protocol}//${location.host}`;
           }
           return 'https://terminmarktplatz.de';
@@ -852,6 +852,17 @@
     <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
   </footer>
 
+  <!-- Cookie Banner (auch auf Suche, da häufiger Einstieg) -->
+  <div class="cookie" id="cookie" style="display:none">
+    <div class="wrap">
+      <p>Wir verwenden Cookies, um die Funktion der Seite zu gewährleisten und die Nutzung zu analysieren (Google Analytics). <a href="/datenschutz.html">Mehr erfahren</a></p>
+      <div class="btns">
+        <button class="btn" id="cookie-decline">Ablehnen</button>
+        <button class="btn primary" id="cookie-accept">Akzeptieren</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Quick-Book Modal - HTML5 Dialog für moderne Browser -->
   <dialog id="book-dialog" aria-labelledby="book-title">
     <div class="book-dialog-content">
@@ -931,12 +942,28 @@
     // Jahr im Footer
     document.getElementById('y').textContent = new Date().getFullYear();
 
+    // Cookie-Banner (Einwilligung für Google Analytics)
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      const $cookie = document.getElementById('cookie');
+      const consent = localStorage.getItem(cookieKey);
+      if (consent === 'accepted') {
+        if ($cookie) $cookie.style.display = 'none';
+      } else if (!consent && $cookie) {
+        $cookie.style.display = 'block';
+      }
+      const acceptBtn = document.getElementById('cookie-accept');
+      const declineBtn = document.getElementById('cookie-decline');
+      if (acceptBtn) acceptBtn.onclick = ()=>{ localStorage.setItem(cookieKey,'accepted'); if($cookie)$cookie.remove(); location.reload(); };
+      if (declineBtn) declineBtn.onclick = ()=>{ localStorage.setItem(cookieKey,'declined'); if($cookie)$cookie.remove(); };
+    })();
+
     // API-Basis
     const API = (()=> {
       const h = location.hostname;
       const proto = location.protocol;
       if (h === 'localhost' || h === '127.0.0.1') return 'http://127.0.0.1:5000';
-      if (h.includes('testsystem') || h.includes('onrender.com')) {
+      if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
         return `${proto}//${location.host}`;
       }
       return 'https://terminmarktplatz.de';
