@@ -1,5 +1,7 @@
 # Testsystem (test.terminmarktplatz.de) – Einrichtung & Fehlersuche
 
+Das Testsystem läuft **immer auf dem `develop`-Branch**. So können Sie neue Entwicklungen testen, ohne das Live-System (main) zu beeinträchtigen.
+
 Wenn **https://test.terminmarktplatz.de** nicht erreichbar ist, prüfen Sie die folgenden Punkte auf dem Hetzner-Server (per SSH).
 
 ---
@@ -31,13 +33,14 @@ ls -la /opt/terminmarktplatz-test/
 
 - **Wenn das Verzeichnis nicht existiert:** Testsystem ist noch nicht installiert.
 
-**Installation:**
+**Installation (mit develop-Branch):**
 ```bash
 sudo mkdir -p /opt/terminmarktplatz-test
 cd /opt/terminmarktplatz-test
-sudo git clone https://github.com/IHR_REPO/Terminmarktplatz.de.git .
-# Oder: rsync von lokalem Projekt
+sudo git clone -b develop https://github.com/IHR_REPO/Terminmarktplatz.de.git .
 ```
+
+**Wichtig:** Nach dem Klonen sollte `git branch` den Branch `develop` anzeigen.
 
 ---
 
@@ -167,10 +170,35 @@ sudo apt install certbot python3-certbot-nginx
 
 ---
 
-## 9. Schnell-Checkliste
+## 9. Testsystem aktualisieren (Deploy develop)
+
+Nach Änderungen am `develop`-Branch auf dem Hetzner-Server:
+
+**Option A – Deploy-Script (empfohlen):**
+```bash
+cd /opt/terminmarktplatz-test
+sudo bash scripts/deploy-testsystem.sh
+```
+
+**Option B – Manuell:**
+```bash
+cd /opt/terminmarktplatz-test
+git fetch origin develop
+git checkout develop
+git pull origin develop
+venv/bin/pip install -r requirements.txt -q
+sudo systemctl restart terminmarktplatz-test
+```
+
+**Branch prüfen:** `git branch` muss `* develop` zeigen. Steht dort `main`, läuft das Testsystem mit dem falschen Code.
+
+---
+
+## 10. Schnell-Checkliste
 
 | Schritt | Befehl | Erwartung |
 |---------|--------|-----------|
+| **Branch** | `cd /opt/terminmarktplatz-test && git branch` | `* develop` |
 | DNS | `nslookup test.terminmarktplatz.de` | Hetzner-IP |
 | Verzeichnis | `ls /opt/terminmarktplatz-test` | Dateien sichtbar |
 | Service | `sudo systemctl status terminmarktplatz-test` | active (running) |
@@ -180,7 +208,7 @@ sudo apt install certbot python3-certbot-nginx
 
 ---
 
-## 10. Logs bei Fehlern
+## 11. Logs bei Fehlern
 
 ```bash
 # App-Logs
