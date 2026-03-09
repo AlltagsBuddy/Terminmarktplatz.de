@@ -223,7 +223,26 @@ sudo tail -f /var/log/nginx/access.log
 
 ---
 
-## 12. Troubleshooting: Neuer Code erscheint nicht
+## 12. Testsystem reparieren (Login/Slots funktionieren nicht)
+
+**Einmal-Script ausführen** – behebt .env, Datenbank und Provider-Status:
+
+```bash
+cd /opt/terminmarktplatz-test
+sudo bash scripts/fix-testsystem.sh
+```
+
+Das Script:
+- Setzt `DATABASE_URL` auf `terminmarktplatz_test`
+- Kopiert Live-Daten (Provider, Slots) in die Test-DB
+- Setzt alle Provider auf `status=approved` und `email_verified_at`
+- Startet den Service neu
+
+Danach: Login mit denselben Zugangsdaten wie auf der Live-Seite.
+
+---
+
+## 13. Troubleshooting: Neuer Code erscheint nicht
 
 **Diagnose-Script auf dem Server ausführen:**
 ```bash
