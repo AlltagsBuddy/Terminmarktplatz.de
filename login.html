@@ -814,8 +814,8 @@
       if (isLocal) {
         return `${proto}//${h}:5000`;
       }
-      // Testsystem auf Render
-      if (h.includes('testsystem') || h.includes('onrender.com')) {
+      // Testsystem (Hetzner test.terminmarktplatz.de oder Render)
+      if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
         return `${proto}//${location.host}`;
       }
       // Produktion
