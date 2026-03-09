@@ -1333,8 +1333,13 @@
         if (!res.ok) throw new Error(`API ${res.status}`);
         data = await res.json();
       } catch (e) {
-        console.error(e);
-        summary.textContent = 'Fehler beim Laden der Slots.';
+        console.error('[Suche] Slots-API Fehler:', e);
+        const msg = (e && e.message) ? e.message : '';
+        if (msg.includes('500') || msg.includes('DB')) {
+          summary.textContent = 'Server vorübergehend nicht erreichbar. Bitte in Kürze erneut versuchen.';
+        } else {
+          summary.textContent = 'Fehler beim Laden der Slots.';
+        }
         // Karte verstecken / Marker leeren
         const mapSection = document.getElementById('map-section');
         if (mapSection) mapSection.style.display = 'none';

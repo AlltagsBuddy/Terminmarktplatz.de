@@ -16,9 +16,10 @@ if [ ! -f "$DIR/.env" ] && [ -f "$DIR/env-test-template.txt" ]; then
   cp "$DIR/env-test-template.txt" "$DIR/.env"
   echo "   ✓ .env aus Template erstellt"
 elif [ -f "$DIR/.env" ]; then
-  # Bestehende .env: DATABASE_URL korrigieren (nur DB-Name, nicht user)
+  # Bestehende .env: DATABASE_URL korrigieren (nur DB-Name nach 5432/, nicht user)
   sed -i 's|5432/terminmarktplatz$|5432/terminmarktplatz_test|' "$DIR/.env" 2>/dev/null || true
   sed -i 's|5432/terminmarktplatz"|5432/terminmarktplatz_test"|' "$DIR/.env" 2>/dev/null || true
+  sed -i 's|5432/terminmarktplatz |5432/terminmarktplatz_test |' "$DIR/.env" 2>/dev/null || true
   echo "   ✓ DATABASE_URL in .env korrigiert"
 fi
 chmod 640 "$DIR/.env" 2>/dev/null || true

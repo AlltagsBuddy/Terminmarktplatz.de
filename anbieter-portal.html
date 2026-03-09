@@ -1022,8 +1022,8 @@
       if (isLocal) {
         return `${proto}//${h}:5000`;
       }
-      // Testsystem auf Render
-      if (h.includes('testsystem') || h.includes('onrender.com')) {
+      // Testsystem (test.terminmarktplatz.de, Render)
+      if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
         return `${proto}//${location.host}`;
       }
       if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') {
@@ -2545,8 +2545,8 @@
               h.endsWith('.local');
 
             if (isLocal) return `${proto}//${h}:5000`;
-            // Testsystem auf Render
-            if (h.includes('testsystem') || h.includes('onrender.com')) {
+            // Testsystem (test.terminmarktplatz.de, Render)
+            if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
               return `${proto}//${location.host}`;
             }
             if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') return `${proto}//${h}`;

@@ -33,3 +33,9 @@ else
   echo "[$(date)] ✗ Fehler: Service nicht aktiv. Logs: journalctl -u $SERVICE -n 50"
   exit 1
 fi
+
+# Wenn .env auf Live-DB zeigt: Fix-Script ausführen
+if [ -f "$DIR/.env" ] && ! grep -q "terminmarktplatz_test" "$DIR/.env" 2>/dev/null; then
+  echo "[$(date)] ⚠ DATABASE_URL zeigt nicht auf Test-DB – führe fix-testsystem.sh aus..."
+  bash "$DIR/scripts/fix-testsystem.sh" || true
+fi
