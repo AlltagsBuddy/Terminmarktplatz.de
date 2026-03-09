@@ -46,15 +46,12 @@ def _auth_headers(provider_id: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access}"}
 
 
-def _jpeg_under_limit() -> bytes:
-    img = Image.new("RGB", (app_module.LOGO_SIZE_PX, app_module.LOGO_SIZE_PX), color=(120, 140, 160))
-    for quality in (60, 50, 40, 30, 20, 10):
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=quality, optimize=True)
-        data = buf.getvalue()
-        if len(data) <= app_module.LOGO_MAX_BYTES:
-            return data
-    return data
+def _jpeg_logo() -> bytes:
+    """JPEG-Logo unter dem Limit (max 2 MB, max 2048px)."""
+    img = Image.new("RGB", (400, 400), color=(120, 140, 160))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85, optimize=True)
+    return buf.getvalue()
 
 
 def test_logo_upload_requires_consent(test_client, provider_id):
@@ -62,7 +59,7 @@ def test_logo_upload_requires_consent(test_client, provider_id):
     res = test_client.put("/me", json=payload, headers=_auth_headers(provider_id))
     assert res.status_code == 200
 
-    data = _jpeg_under_limit()
+    data = _jpeg_logo()
     res = test_client.post(
         "/me/logo",
         data={"logo": (io.BytesIO(data), "logo.jpg")},
@@ -74,7 +71,7 @@ def test_logo_upload_requires_consent(test_client, provider_id):
 
 
 def test_logo_upload_and_delete_flow(test_client, provider_id):
-    data = _jpeg_under_limit()
+    data = _jpeg_logo()
     res = test_client.post(
         "/me/logo",
         data={"logo": (io.BytesIO(data), "logo.jpg"), "consent_logo_display": "true"},

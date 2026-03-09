@@ -82,8 +82,9 @@ else:
     UPLOAD_BASE = os.path.join(STATIC_DIR, "uploads")
 LOGO_UPLOAD_DIR = os.path.join(UPLOAD_BASE, "provider-logos")
 GALLERY_UPLOAD_DIR = os.path.join(UPLOAD_BASE, "provider-gallery")
-LOGO_MAX_BYTES = 20 * 1024
-LOGO_SIZE_PX = 512
+LOGO_MAX_BYTES = 2 * 1024 * 1024  # 2 MB – Standard-Bilder als Profilbild erlauben
+LOGO_MAX_PX = 2048  # Max. Kantenlänge beim Upload
+LOGO_SIZE_PX = 512  # Zielgröße für Speicherung (wird beim Upload skaliert)
 GALLERY_MAX_BYTES = 500 * 1024
 GALLERY_MAX_COUNT = 12
 GALLERY_MAX_DIM_PX = 1600
@@ -4396,7 +4397,7 @@ def me_logo_upload():
 
         if fmt not in ("JPEG", "PNG"):
             return _json_error("invalid_logo_format", 400)
-        if width != LOGO_SIZE_PX or height != LOGO_SIZE_PX:
+        if width > LOGO_MAX_PX or height > LOGO_MAX_PX:
             return _json_error("invalid_logo_size", 400)
 
         ext = "png" if fmt == "PNG" else "jpg"
@@ -4409,8 +4410,18 @@ def me_logo_upload():
                     os.remove(old_path)
                 except Exception:
                     pass
-        with open(target_path, "wb") as out:
-            out.write(file.stream.read())
+
+        # Auf Zielgröße skalieren (Seitenverhältnis beibehalten)
+        file.stream.seek(0)
+        img = Image.open(file.stream)
+        if ext == "png":
+            if img.mode != "RGBA":
+                img = img.convert("RGBA")
+        else:
+            img = img.convert("RGB")
+        img.thumbnail((LOGO_SIZE_PX, LOGO_SIZE_PX), Image.Resampling.LANCZOS)
+        save_kw = {"format": "PNG"} if ext == "png" else {"format": "JPEG", "quality": 88, "optimize": True}
+        img.save(target_path, **save_kw)
 
         logo_path = f"/static/uploads/provider-logos/{filename}"
 

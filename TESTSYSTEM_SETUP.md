@@ -192,6 +192,8 @@ sudo systemctl restart terminmarktplatz-test
 
 **Branch prüfen:** `git branch` muss `* develop` zeigen. Steht dort `main`, läuft das Testsystem mit dem falschen Code.
 
+**Deploy prüfen:** `https://test.terminmarktplatz.de/healthz` zeigt unter `deploy` den Branch und Commit. Oder auf dem Server: `bash scripts/check-testsystem-deploy.sh`
+
 ---
 
 ## 10. Schnell-Checkliste
@@ -218,3 +220,22 @@ sudo journalctl -u terminmarktplatz-test -f
 sudo tail -f /var/log/nginx/error.log
 sudo tail -f /var/log/nginx/access.log
 ```
+
+---
+
+## 12. Troubleshooting: Neuer Code erscheint nicht
+
+**Diagnose-Script auf dem Server ausführen:**
+```bash
+cd /opt/terminmarktplatz-test
+bash scripts/check-testsystem-deploy.sh
+```
+
+**Häufige Ursachen:**
+
+| Problem | Lösung |
+|--------|--------|
+| **Nginx leitet test.terminmarktplatz.de auf Port 8000 (Live) statt 8001 (Test)** | In `/etc/nginx/sites-available/terminmarktplatz-test` prüfen: `proxy_pass http://127.0.0.1:8001` muss stehen. Danach `sudo nginx -t` und `sudo systemctl reload nginx` |
+| **Dateien auf Disk sind veraltet** | `sudo bash scripts/deploy-testsystem.sh` ausführen |
+| **Browser-Cache** | Strg+Shift+R (Hard Reload) oder Inkognito-Fenster |
+| **Service läuft nicht** | `sudo systemctl status terminmarktplatz-test` und ggf. `sudo systemctl restart terminmarktplatz-test` |
