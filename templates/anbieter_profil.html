@@ -15,6 +15,11 @@
   <link rel="stylesheet" href="static/style.css?v=20251103" />
 
   <style>
+    /* Mobile: Kein horizontales Scrollen */
+    body.page-profile { overflow-x: hidden; max-width: 100vw; }
+    body.page-profile .container { padding-inline: 16px; box-sizing: border-box; }
+    @media(min-width: 768px){ body.page-profile .container { padding-inline: 24px; } }
+
     .profile-grid{display:grid; gap:16px}
     @media(min-width: 920px){ .profile-grid{grid-template-columns: 1fr 1.2fr} }
     .profile-card{display:flex; gap:12px; align-items:center}
@@ -98,9 +103,39 @@
       overflow-y:auto;
     }
     .cta-group{ display:none !important; }
+
+    /* Links: Lange URLs umbrechen, kein Overflow */
+    .panel a[href^="http"], .panel a[href^="https"] { word-break: break-all; }
+
+    /* Mobile: Slots als Karten statt Tabelle */
+    @media (max-width: 768px) {
+      .slot-table .table-wrap { overflow: visible; }
+      .slot-table table { display: none; }
+      .slot-cards { display: block !important; }
+      .slot-card {
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+      }
+      .slot-card:last-child { margin-bottom: 0; }
+      .slot-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+      .slot-card-title { font-weight: 700; font-size: 1rem; }
+      .slot-card-meta { display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 13px; color: var(--ink-dim); margin-bottom: 10px; }
+      .slot-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+      .slot-card-desc { font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; line-height: 1.4; }
+      .slot-card-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+      .availability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .profile-card { flex-wrap: wrap; }
+      .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 769px) {
+      .slot-cards { display: none !important; }
+    }
   </style>
 </head>
-<body>
+<body class="page-profile">
   {% include "_header.html" %}
 
   <main>
@@ -302,6 +337,29 @@
                   {% endfor %}
                 </tbody>
               </table>
+            </div>
+            <!-- Mobile: Karten-Layout (ersetzt Tabelle auf schmalen Screens) -->
+            <div class="slot-cards" style="display:none;">
+              {% for s in slots %}
+              <div class="slot-card">
+                <div class="slot-card-header">
+                  <span class="slot-card-title">{{ s.title }}</span>
+                  <span class="badge badge-cat">{{ s.category }}</span>
+                </div>
+                <div class="slot-card-meta">
+                  <span>📅 {{ s.start_date }}</span>
+                  <span>🕐 {{ s.start_time }} – {{ s.end_time }}</span>
+                  {% if s.address %}<span>📍 {{ s.address }}</span>{% endif %}
+                  <span class="price">{% if s.price_eur %}{{ s.price_eur }} €{% else %}-{% endif %}</span>
+                </div>
+                {% if s.description %}
+                <div class="slot-card-desc">{{ s.description }}</div>
+                {% endif %}
+                <div class="slot-card-actions">
+                  <button class="btn primary" type="button" data-book="{{ s.id }}" data-has-description="{{ '1' if (s.description or '')|trim else '0' }}">Buchen</button>
+                </div>
+              </div>
+              {% endfor %}
             </div>
           {% else %}
             <div class="muted">Aktuell sind keine öffentlichen Termine verfügbar.</div>
