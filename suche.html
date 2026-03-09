@@ -879,6 +879,15 @@
         <label>Telefon (optional für WhatsApp)
           <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
+        <label>Notiz an den Anbieter (optional)
+          <textarea id="book-message" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px; resize:vertical"></textarea>
+        </label>
+        <div id="book-description-check-wrap" style="display:none;">
+          <label style="display:flex; gap:8px; align-items:flex-start;">
+            <input id="book-description-read" type="checkbox" required>
+            <span id="book-description-label">Ich habe die Beschreibung des Termins gelesen.</span>
+          </label>
+        </div>
         <label style="display:flex; gap:8px; align-items:center;">
           <input id="book-reminder" type="checkbox" checked>
           Erinnerung 24h vorher
@@ -917,6 +926,16 @@
           <div style="margin-bottom:16px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
             <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Notiz an den Anbieter (optional)</label>
+            <textarea id="book-message-mobile" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; resize:vertical;"></textarea>
+          </div>
+          <div id="book-description-check-wrap-mobile" style="display:none; margin-bottom:12px;">
+            <label style="display:flex; gap:8px; align-items:flex-start;">
+              <input id="book-description-read-mobile" type="checkbox" required />
+              <span id="book-description-label-mobile">Ich habe die Beschreibung des Termins gelesen.</span>
+            </label>
           </div>
           <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
             <input id="book-reminder-mobile" type="checkbox" checked />
@@ -1048,6 +1067,7 @@
       if (e === 'invalid_email') return 'Bitte eine gültige E-Mail-Adresse eingeben.';
       if (e === 'missing_fields') return 'Bitte alle Pflichtfelder ausfüllen.';
       if (e === 'missing_phone_for_whatsapp') return 'Für WhatsApp-Benachrichtigung ist eine Handynummer nötig.';
+      if (e === 'description_read_required') return 'Bitte bestätige, dass du die Beschreibung gelesen hast.';
       if (e === 'not_found') return 'Der Termin wurde nicht gefunden.';
       if (e === 'stripe_error' || e.startsWith('stripe_')) return 'Zahlung konnte nicht gestartet werden. Bitte später erneut versuchen.';
       return 'Buchung leider nicht möglich: ' + (e || 'Fehler');
@@ -1374,8 +1394,9 @@
 
       const frag = document.createDocumentFragment();
       const mapItems = [];
-
+      window.slotsMap = window.slotsMap || {};
       items.forEach((x) => {
+        window.slotsMap[x.id] = { description: (x.description || '').trim() };
         // Provider-Infos aus Backend
         const p = x.provider || {};
         const providerName = p.name || p.company_name || p.email || 'Anbieter';
@@ -1463,7 +1484,7 @@
             </div>
             <div>
               <button class="fav-btn ${isFavorite(x.id) ? 'active' : ''}" data-fav="${x.id}" type="button" aria-pressed="${isFavorite(x.id) ? 'true' : 'false'}" title="Zu Favoriten">♥</button>
-              <button class="btn primary" data-book="${x.id}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
+              <button class="btn primary" data-book="${x.id}" data-has-description="${(x.description || '').trim() ? '1' : '0'}" type="button" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer; pointer-events: auto; position: relative; z-index: 10;">Buchen</button>
             </div>
           </div>
         `;
@@ -1505,6 +1526,8 @@
         alert('Fehler: Keine Slot-ID gefunden.');
         return;
       }
+      const slotInfo = (window.slotsMap || {})[slotId] || {};
+      const hasDescription = !!(slotInfo.description && slotInfo.description.length > 0);
       
       // Mobile: Verwende einfaches Overlay (garantiert funktioniert)
       if (isMobile && bookModalMobile) {
@@ -1513,6 +1536,12 @@
         document.getElementById('book-email-mobile').value = '';
         const phoneInput = document.getElementById('book-phone-mobile');
         if (phoneInput) phoneInput.value = '';
+        const msgInput = document.getElementById('book-message-mobile');
+        if (msgInput) msgInput.value = '';
+        const descWrap = document.getElementById('book-description-check-wrap-mobile');
+        const descCheck = document.getElementById('book-description-read-mobile');
+        if (descWrap) descWrap.style.display = hasDescription ? 'block' : 'none';
+        if (descCheck) { descCheck.required = hasDescription; descCheck.checked = false; }
         const reminder = document.getElementById('book-reminder-mobile');
         if (reminder) reminder.checked = true;
         const channel = document.getElementById('book-reminder-channel-mobile');
@@ -1536,6 +1565,12 @@
         document.getElementById('book-email').value = '';
         const phoneInput = document.getElementById('book-phone');
         if (phoneInput) phoneInput.value = '';
+        const msgInput = document.getElementById('book-message');
+        if (msgInput) msgInput.value = '';
+        const descWrap = document.getElementById('book-description-check-wrap');
+        const descCheck = document.getElementById('book-description-read');
+        if (descWrap) descWrap.style.display = hasDescription ? 'block' : 'none';
+        if (descCheck) { descCheck.required = hasDescription; descCheck.checked = false; }
         const reminder = document.getElementById('book-reminder');
         if (reminder) reminder.checked = true;
         const channel = document.getElementById('book-reminder-channel');
@@ -1601,6 +1636,9 @@
           const name = document.getElementById('book-name-mobile').value.trim();
           const email = document.getElementById('book-email-mobile').value.trim();
           const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
+          const message = document.getElementById('book-message-mobile')?.value.trim() || '';
+          const descCheck = document.getElementById('book-description-read-mobile');
+          const descriptionRead = descCheck ? descCheck.checked : true;
           const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
           const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
           if (!slot_id || !name || !email) return;
@@ -1620,6 +1658,8 @@
                 name,
                 email,
                 phone,
+                message: message || undefined,
+                description_read: descriptionRead,
                 reminder_opt_in: reminderOptIn,
                 reminder_channel: reminderChannel
               })
@@ -1677,6 +1717,9 @@
           const name = document.getElementById('book-name').value.trim();
           const email = document.getElementById('book-email').value.trim();
           const phone = document.getElementById('book-phone')?.value.trim() || '';
+          const message = document.getElementById('book-message')?.value.trim() || '';
+          const descCheck = document.getElementById('book-description-read');
+          const descriptionRead = descCheck ? descCheck.checked : true;
           const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
           const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
           if (!slot_id || !name || !email) return;
@@ -1696,6 +1739,8 @@
                 name,
                 email,
                 phone,
+                message: message || undefined,
+                description_read: descriptionRead,
                 reminder_opt_in: reminderOptIn,
                 reminder_channel: reminderChannel
               })

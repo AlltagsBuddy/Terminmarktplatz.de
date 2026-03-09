@@ -784,16 +784,17 @@ def _ensure_provider_public_profile_fields():
 
 # Startup-Migrationen werden unten non-blocking gestartet
 
-# Booking: Reminder Felder + Telefon
+# Booking: Reminder Felder + Telefon + Kundennotiz
 def _ensure_booking_reminder_fields():
     """
-    Fügt optionale Reminder-Felder zur booking Tabelle hinzu, falls sie noch nicht existieren.
+    Fügt optionale Reminder-Felder und customer_message zur booking Tabelle hinzu, falls sie noch nicht existieren.
     """
     fields = [
         ("customer_phone", "text"),
         ("reminder_opt_in", "boolean"),
         ("reminder_channel", "text"),
         ("reminder_sent_at", "timestamp without time zone"),
+        ("customer_message", "text"),
     ]
     try:
         with engine.begin() as conn:
@@ -8273,8 +8274,10 @@ def public_book():
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
     phone = (data.get("phone") or "").strip()
+    message = (data.get("message") or "").strip() or None
     reminder_opt_in = data.get("reminder_opt_in", True)
     reminder_channel = (data.get("reminder_channel") or "email").strip().lower()
+    description_read = data.get("description_read", False)
 
     if not slot_id or not name or not email:
         return _json_error("missing_fields")
@@ -8296,6 +8299,10 @@ def public_book():
 
         if slot.status != SLOT_STATUS_PUBLISHED or _as_utc_aware(slot.start_at) <= _now():
             return _json_error("not_bookable", 409)
+
+        slot_description = (getattr(slot, "description", None) or "").strip()
+        if slot_description and not description_read:
+            return _json_error("description_read_required", 400)
 
         active = (
             s.scalar(
@@ -8353,6 +8360,7 @@ def public_book():
             customer_name=name,
             customer_email=email,
             customer_phone=phone or None,
+            customer_message=message,
             status="hold",
             provider_fee_eur=fee,
             reminder_opt_in=bool(reminder_opt_in),
@@ -8447,8 +8455,10 @@ def public_book():
                     prov_body += f"Neue Buchungsanfrage von {name} ({email}) für:\n\n"
                     prov_body += f"Termin: {slot.title}\n"
                     prov_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
-                    prov_body += f"Anzahlung: {deposit_eur:.2f} €\n\n"
-                    prov_body += f"Die Buchung wird bestätigt, sobald die Anzahlung erfolgt ist.\n"
+                    prov_body += f"Anzahlung: {deposit_eur:.2f} €\n"
+                    if message:
+                        prov_body += f"\nNotiz des Suchenden: {message}\n"
+                    prov_body += f"\nDie Buchung wird bestätigt, sobald die Anzahlung erfolgt ist.\n"
                     try:
                         send_mail(
                             provider.email,
@@ -8645,6 +8655,8 @@ def public_confirm():
                         provider_email_body += f"Kunden-Details:\n"
                         provider_email_body += f"Name: {b.customer_name}\n"
                         provider_email_body += f"E-Mail: {b.customer_email}\n"
+                        if getattr(b, "customer_message", None):
+                            provider_email_body += f"\nNotiz des Suchenden: {b.customer_message}\n"
                         provider_email_body += f"\n"
                         provider_email_body += f"Viele Grüße\n"
                         provider_email_body += f"Terminmarktplatz"
