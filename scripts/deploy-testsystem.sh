@@ -12,11 +12,11 @@ SERVICE="terminmarktplatz-test"
 echo "[$(date)] Deploy Testsystem (develop)..."
 
 cd "$DIR"
-echo "   Vorher: $(git branch --show-current) @ $(git rev-parse --short HEAD)"
+echo "   Vorher: $(git branch --show-current) @ $(git rev-parse --short HEAD 2>/dev/null || echo '?')"
 
 git fetch origin develop
-git checkout develop
-# Lokale Änderungen verwerfen, damit develop sauber gezogen wird
+# Untracked Dateien entfernen (außer .env), lokale Änderungen verwerfen
+git clean -fd -e .env 2>/dev/null || true
 git reset --hard origin/develop
 
 echo "[$(date)] Abhängigkeiten aktualisieren..."
