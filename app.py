@@ -3019,7 +3019,12 @@ if _html_enabled():
                     'const gmKey = "";',
                     content
                 )
-            return Response(content, mimetype="text/html")
+            resp = Response(content, mimetype="text/html")
+            # Testsystem: Kein Caching, damit neue Versionen sofort sichtbar sind
+            if "test.terminmarktplatz" in (BASE_URL or ""):
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+            return resp
         except FileNotFoundError:
             # Fallback: Versuche Template-Verzeichnis
             return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
@@ -3038,7 +3043,11 @@ if _html_enabled():
                     f'const gmKey = "{GOOGLE_MAPS_API_KEY}";',
                     content
                 )
-            return Response(content, mimetype="text/html")
+            resp = Response(content, mimetype="text/html")
+            if "test.terminmarktplatz" in (BASE_URL or ""):
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+            return resp
         except FileNotFoundError:
             return render_template("suche.html", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
