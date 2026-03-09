@@ -1,4 +1,5 @@
 import os
+import subprocess
 from uuid import uuid4
 import traceback
 from datetime import datetime, timedelta, timezone, date
@@ -2858,6 +2859,24 @@ def sitemap():
     return send_from_directory(app.root_path, "sitemap.xml", mimetype="application/xml")
 
 
+def _deploy_info():
+    """Git-Branch und Commit für Deploy-Diagnose (Testsystem vs. Live)."""
+    try:
+        branch = subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=APP_ROOT, capture_output=True, text=True, timeout=2
+        )
+        commit = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=APP_ROOT, capture_output=True, text=True, timeout=2
+        )
+        if branch.returncode == 0 and commit.returncode == 0:
+            return {"branch": branch.stdout.strip(), "commit": commit.stdout.strip()}
+    except Exception:
+        pass
+    return {}
+
+
 @app.get("/healthz")
 def healthz():
     status = {"ok": True, "service": "api", "time": _now().isoformat()}
@@ -2868,6 +2887,9 @@ def healthz():
     except Exception as e:
         status["db"] = "error"
         status["db_error"] = str(e)
+    deploy = _deploy_info()
+    if deploy:
+        status["deploy"] = deploy
     return jsonify(status)
 
 

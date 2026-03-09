@@ -12,9 +12,12 @@ SERVICE="terminmarktplatz-test"
 echo "[$(date)] Deploy Testsystem (develop)..."
 
 cd "$DIR"
+echo "   Vorher: $(git branch --show-current) @ $(git rev-parse --short HEAD)"
+
 git fetch origin develop
 git checkout develop
-git pull origin develop
+# Lokale Änderungen verwerfen, damit develop sauber gezogen wird
+git reset --hard origin/develop
 
 echo "[$(date)] Abhängigkeiten aktualisieren..."
 "$DIR/venv/bin/pip" install -r "$DIR/requirements.txt" -q
