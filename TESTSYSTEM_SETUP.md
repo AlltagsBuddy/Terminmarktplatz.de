@@ -225,20 +225,20 @@ sudo tail -f /var/log/nginx/access.log
 
 ## 12. Testsystem reparieren (Login/Slots funktionieren nicht)
 
-**Einmal-Script ausführen** – behebt .env, Datenbank und Provider-Status:
+**Ein Befehl – alles repariert.** Per SSH auf den Hetzner-Server, dann:
 
 ```bash
-cd /opt/terminmarktplatz-test
-sudo bash scripts/fix-testsystem.sh
+cd /opt/terminmarktplatz-test && sudo git pull origin develop && sudo bash scripts/fix-testsystem.sh
 ```
 
 Das Script:
-- Setzt `DATABASE_URL` auf `terminmarktplatz_test`
-- Kopiert Live-Daten (Provider, Slots) in die Test-DB
-- Setzt alle Provider auf `status=approved` und `email_verified_at`
-- Startet den Service neu
+- Legt `terminmarktplatz_test` an, falls nicht vorhanden
+- Setzt `DATABASE_URL` korrekt (Passwort aus Live-.env übernommen)
+- Importiert Live-Daten in die Test-DB
+- Setzt Provider auf `approved` und `email_verified_at`
+- Startet den Service neu und prüft die Slots-API
 
-Danach: Login mit denselben Zugangsdaten wie auf der Live-Seite.
+**Falls Passwort anders:** In `/opt/terminmarktplatz-test/.env` die Zeile `DATABASE_URL=...` manuell mit dem richtigen Passwort anpassen (dasselbe wie in `/opt/terminmarktplatz/.env`).
 
 ---
 
