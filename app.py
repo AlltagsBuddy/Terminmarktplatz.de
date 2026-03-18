@@ -6020,8 +6020,8 @@ def slots_list():
                 if show_archived:
                     q = q.where(Slot.archived == True)
                 else:
-                    # Standard: nur nicht-archivierte Slots
-                    q = q.where(Slot.archived == False)
+                    # Standard: nur nicht-archivierte (inkl. NULL für ältere Einträge)
+                    q = q.where(or_(Slot.archived == False, Slot.archived.is_(None)))
 
                 rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
@@ -6136,7 +6136,7 @@ def slots_export():
             if show_archived:
                 q = q.where(Slot.archived == True)
             else:
-                q = q.where(Slot.archived == False)
+                q = q.where(or_(Slot.archived == False, Slot.archived.is_(None)))
 
             rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
