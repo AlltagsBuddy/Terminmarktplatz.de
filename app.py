@@ -1925,6 +1925,17 @@ def _cookie_delete_flags():
     return {"path": "/"}
 
 
+def _slot_archived_clause(show_archived: bool):
+    """
+    Filter für slot.archived – funktioniert mit INTEGER (0/1) und BOOLEAN.
+    PostgreSQL erlaubt keinen integer=boolean Vergleich; ältere Schemas haben archived als INTEGER.
+    """
+    cast_expr = "slot.archived::text" if IS_POSTGRESQL else "CAST(slot.archived AS TEXT)"
+    if show_archived:
+        return text(f"(slot.archived IS NOT NULL AND {cast_expr} IN ('1','t','true'))")
+    return text(f"(slot.archived IS NULL OR {cast_expr} IN ('0','f','false'))")
+
+
 def slot_to_json(x: Slot):
     published_at = getattr(x, "published_at", None)
     return {
@@ -3221,7 +3232,7 @@ if _html_enabled():
                         .where(
                             Slot.provider_id == p.id,
                             Slot.status == SLOT_STATUS_PUBLISHED,
-                            Slot.archived == False,
+                            _slot_archived_clause(False),
                             Slot.start_at >= now_db,
                         )
                         .order_by(Slot.start_at.asc())
@@ -6046,12 +6057,8 @@ def slots_list():
                 if status:
                     q = q.where(Slot.status == status)
                 
-                # Archiv-Filter: Standard nur nicht-archivierte, explizit archived=true zeigt nur archivierte
-                if show_archived:
-                    q = q.where(Slot.archived == True)
-                else:
-                    # Standard: nur nicht-archivierte (inkl. NULL für ältere Einträge)
-                    q = q.where(or_(Slot.archived == False, Slot.archived.is_(None)))
+                # Archiv-Filter: funktioniert mit INTEGER (0/1) und BOOLEAN (ältere Schemas)
+                q = q.where(_slot_archived_clause(show_archived))
 
                 rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
@@ -6163,10 +6170,7 @@ def slots_export():
                 .where(Slot.provider_id == request.provider_id)
             )
 
-            if show_archived:
-                q = q.where(Slot.archived == True)
-            else:
-                q = q.where(or_(Slot.archived == False, Slot.archived.is_(None)))
+            q = q.where(_slot_archived_clause(show_archived))
 
             rows = s.execute(q.order_by(Slot.start_at.desc())).all()
 
@@ -8994,7 +8998,7 @@ def public_confirm():
                         .where(
                             Slot.id != slot_obj.id,
                             Slot.status == SLOT_STATUS_PUBLISHED,
-                            Slot.archived == False,
+                            _slot_archived_clause(False),
                             Slot.category == slot_obj.category,
                             Slot.start_at >= _to_db_utc_naive(_now()),
                         )
@@ -9268,7 +9272,7 @@ def public_provider_calendar(provider_id):
                 .where(
                     Slot.provider_id == provider_id,
                     Slot.status == "PUBLISHED",
-                    Slot.archived == False,
+                    _slot_archived_clause(False),
                     Slot.start_at >= now_db,
                 )
                 .order_by(Slot.start_at.asc())
