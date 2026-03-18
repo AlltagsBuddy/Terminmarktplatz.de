@@ -167,13 +167,18 @@ if IS_RENDER:
     RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
     IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
 else:
-    IS_TESTSYSTEM = False
+    # Hetzner: test.terminmarktplatz.de über BASE_URL/FRONTEND_URL erkennen
+    _base = (os.environ.get("BASE_URL") or os.environ.get("FRONTEND_URL") or "").lower()
+    IS_TESTSYSTEM = "test.terminmarktplatz" in _base
 
-# Testsystem: Google Maps und Mail-Versand automatisch deaktivieren
+# Testsystem: Google Maps deaktivieren; E-Mails nur wenn explizit EMAILS_ENABLED=true
 if IS_TESTSYSTEM:
     GOOGLE_MAPS_API_KEY = None  # Deaktiviert Google Maps im Testsystem
-    EMAILS_ENABLED = False  # Deaktiviert Mail-Versand im Testsystem
-    app.logger.info("⚠️  Testsystem erkannt: Google Maps und Mail-Versand sind deaktiviert")
+    if os.environ.get("EMAILS_ENABLED", "").lower() != "true":
+        EMAILS_ENABLED = False  # Standard: Mail aus, außer explizit aktiviert
+        app.logger.info("⚠️  Testsystem erkannt: E-Mails deaktiviert (EMAILS_ENABLED=true in .env zum Testen)")
+    else:
+        app.logger.info("⚠️  Testsystem: E-Mails aktiviert für Tests")
 
 # RESEND (HTTPS)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")

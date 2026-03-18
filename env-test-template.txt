@@ -9,9 +9,10 @@ SECRET_KEY=test-geheimer-schluessel-anders-als-live-min-32-zeichen-abc123
 # Datenbank (Test) – IHR_PASSWORT = dasselbe wie Live (PostgreSQL terminmarktplatz_user)
 DATABASE_URL=postgresql+psycopg://terminmarktplatz_user:Abc1234.@localhost:5432/terminmarktplatz_test
 
-# Mail (Test: nur Konsole)
-MAIL_PROVIDER=console
-EMAILS_ENABLED=false
+# Mail (Test: E-Mails aktiviert – RESEND_API_KEY von resend.com eintragen)
+MAIL_PROVIDER=resend
+EMAILS_ENABLED=true
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
 
 ADMIN_NOTIFY_TO=info@terminmarktplatz.de
 CONTACT_TO=hello@terminmarktplatz.de
