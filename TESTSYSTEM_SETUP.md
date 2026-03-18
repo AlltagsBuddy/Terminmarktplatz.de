@@ -78,7 +78,7 @@ nano /opt/terminmarktplatz-test/.env
 Inhalt aus `env-test-template.txt` kopieren und anpassen:
 - `DATABASE_URL` mit korrektem Passwort für `terminmarktplatz_test`
 - `SECRET_KEY` (mind. 32 Zeichen, anderer Wert als Live)
-- **E-Mails testen:** `RESEND_API_KEY` von [resend.com](https://resend.com) eintragen (Template hat bereits `EMAILS_ENABLED=true`)
+- **E-Mails testen:** `sudo bash /opt/terminmarktplatz-test/scripts/fix-test-mail.sh` – übernimmt die Mail-Konfiguration aus der Live-.env (SMTP/Strato oder Resend). Main nutzt typischerweise SMTP (Strato).
 
 ---
 

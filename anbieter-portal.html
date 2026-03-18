@@ -2253,8 +2253,8 @@
 
       try{
         const url = CURRENT_FILTER === 'archived' 
-          ? `${API}/slots?archived=true&debug=1`
-          : `${API}/slots?archived=false&debug=1`;
+          ? `${API}/slots?archived=true`
+          : `${API}/slots?archived=false`;
         const r = await fetch(url, {credentials:'include'});
         if(!r.ok){
           let msg = (r.status === 401 || r.status === 403) ? 'Bitte (erneut) anmelden.' : `Fehler ${r.status}. Bitte später erneut versuchen oder Seite neu laden.`;

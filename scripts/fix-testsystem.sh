@@ -56,6 +56,34 @@ else
   echo "   ✗ FEHLER: $DIR/.env nicht gefunden!"
   exit 1
 fi
+# E-Mail: EMAILS_ENABLED=true + Konfiguration aus Live (SMTP oder Resend)
+if [ -f "$DIR/.env" ]; then
+  grep -q "^EMAILS_ENABLED=" "$DIR/.env" 2>/dev/null || echo "EMAILS_ENABLED=true" >> "$DIR/.env"
+  sed -i 's/^EMAILS_ENABLED=.*/EMAILS_ENABLED=true/' "$DIR/.env"
+  if [ -f "$LIVE_DIR/.env" ]; then
+    LIVE_PROVIDER=$(grep "^MAIL_PROVIDER=" "$LIVE_DIR/.env" 2>/dev/null | cut -d= -f2-)
+    LIVE_PROVIDER=${LIVE_PROVIDER:-smtp}
+    if [ "$LIVE_PROVIDER" = "smtp" ]; then
+      for var in MAIL_PROVIDER MAIL_FROM SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_USE_TLS; do
+        LIVE_VAL=$(grep "^${var}=" "$LIVE_DIR/.env" 2>/dev/null | head -1)
+        if [ -n "$LIVE_VAL" ]; then
+          grep -q "^${var}=" "$DIR/.env" && sed -i "s|^${var}=.*|$LIVE_VAL|" "$DIR/.env" || echo "$LIVE_VAL" >> "$DIR/.env"
+        fi
+      done
+      echo "   ✓ SMTP-Konfiguration aus Live übernommen"
+    else
+      LIVE_RESEND=$(grep "^RESEND_API_KEY=" "$LIVE_DIR/.env" 2>/dev/null | head -1)
+      if [ -n "$LIVE_RESEND" ] && ! echo "$LIVE_RESEND" | grep -q "xxxxxxxx"; then
+        grep -q "^RESEND_API_KEY=" "$DIR/.env" && sed -i "s|^RESEND_API_KEY=.*|$LIVE_RESEND|" "$DIR/.env" || echo "$LIVE_RESEND" >> "$DIR/.env"
+        echo "   ✓ RESEND_API_KEY aus Live übernommen"
+      fi
+      LIVE_MAIL=$(grep "^MAIL_FROM=" "$LIVE_DIR/.env" 2>/dev/null | head -1)
+      if [ -n "$LIVE_MAIL" ]; then
+        grep -q "^MAIL_FROM=" "$DIR/.env" && sed -i "s|^MAIL_FROM=.*|$LIVE_MAIL|" "$DIR/.env" || echo "$LIVE_MAIL" >> "$DIR/.env"
+      fi
+    fi
+  fi
+fi
 chmod 640 "$DIR/.env" 2>/dev/null || true
 echo ""
 
