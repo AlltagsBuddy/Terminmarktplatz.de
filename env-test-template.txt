@@ -9,16 +9,14 @@ SECRET_KEY=test-geheimer-schluessel-anders-als-live-min-32-zeichen-abc123
 # Datenbank (Test) – IHR_PASSWORT = dasselbe wie Live (PostgreSQL terminmarktplatz_user)
 DATABASE_URL=postgresql+psycopg://terminmarktplatz_user:Abc1234.@localhost:5432/terminmarktplatz_test
 
-# Mail (Test: gleiche Konfiguration wie main – SMTP/Strato oder Resend)
-# Option A: SMTP (Strato/Hetzner) – wie auf main, wird von fix-test-mail.sh aus Live übernommen
-# Option B: Resend – RESEND_API_KEY + MAIL_FROM=onboarding@resend.dev
+# Mail (Test: SMTP Strato – info@terminmarktplatz.de)
+# SMTP_PASS manuell in .env eintragen (Strato-Postfachpasswort)
 MAIL_PROVIDER=smtp
 EMAILS_ENABLED=true
-MAIL_FROM=Terminmarktplatz <no-reply@terminmarktplatz.de>
-# SMTP (Strato: smtp.strato.de, Port 587, TLS) – aus Live-.env übernommen
+MAIL_FROM=Terminmarktplatz <info@terminmarktplatz.de>
 SMTP_HOST=smtp.strato.de
 SMTP_PORT=587
-SMTP_USER=
+SMTP_USER=info@terminmarktplatz.de
 SMTP_PASS=
 SMTP_USE_TLS=true
 
