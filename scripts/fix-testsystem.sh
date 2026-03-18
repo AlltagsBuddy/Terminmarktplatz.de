@@ -79,9 +79,13 @@ else
 fi
 echo ""
 
-# 2b. Rechte setzen (falls Tabellen von postgres erstellt wurden)
-echo "   Rechte für terminmarktplatz_user prüfen..."
-sudo -u postgres psql -d terminmarktplatz_test -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO terminmarktplatz_user; GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO terminmarktplatz_user; GRANT USAGE ON SCHEMA public TO terminmarktplatz_user;" 2>/dev/null && echo "   ✓ Rechte gesetzt" || true
+# 2b. Schema + Rechte (fehlende Spalten, Rechte)
+echo "   Schema und Rechte prüfen..."
+if [ -f "$DIR/scripts/fix-test-db-schema.sh" ]; then
+  bash "$DIR/scripts/fix-test-db-schema.sh" 2>/dev/null && echo "   ✓ Schema OK" || true
+else
+  sudo -u postgres psql -d terminmarktplatz_test -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO terminmarktplatz_user; GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO terminmarktplatz_user;" 2>/dev/null && echo "   ✓ Rechte gesetzt" || true
+fi
 echo ""
 
 # 3. Provider freischalten
