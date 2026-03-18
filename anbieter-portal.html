@@ -2257,7 +2257,8 @@
           : `${API}/slots?archived=false`;
         const r = await fetch(url, {credentials:'include'});
         if(!r.ok){
-          tbody.innerHTML = `<tr><td colspan="9" class="muted">Bitte (erneut) anmelden.</td></tr>`;
+          const msg = (r.status === 401 || r.status === 403) ? 'Bitte (erneut) anmelden.' : `Fehler ${r.status}. Bitte später erneut versuchen oder Seite neu laden.`;
+          tbody.innerHTML = `<tr><td colspan="9" class="muted">${msg}</td></tr>`;
           return;
         }
         LAST_ITEMS = await r.json();
