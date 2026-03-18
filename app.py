@@ -1274,6 +1274,35 @@ def _ensure_archive_fields():
         print(f"⚠️  Warnung: ensure_archive_fields fehlgeschlagen: {e}", flush=True)
 
 
+# --------------------------------------------------------
+# archived-Spalte: INTEGER → BOOLEAN (PostgreSQL)
+# --------------------------------------------------------
+def _ensure_slot_archived_is_boolean():
+    """
+    Konvertiert slot.archived von INTEGER (0/1) zu BOOLEAN.
+    Ältere Schemas/SQLite-Dumps hatten archived als INTEGER; PostgreSQL erlaubt keinen
+    integer=boolean Vergleich → Slot.archived == False führt zu 500.
+    """
+    try:
+        with engine.begin() as conn:
+            if not IS_POSTGRESQL:
+                return
+            # Prüfe ob archived als integer existiert
+            r = conn.execute(text("""
+                SELECT data_type FROM information_schema.columns
+                WHERE table_schema='public' AND table_name='slot' AND column_name='archived'
+            """)).fetchone()
+            if not r or r[0] != "integer":
+                return
+            conn.exec_driver_sql("""
+                ALTER TABLE public.slot
+                ALTER COLUMN archived TYPE boolean USING (COALESCE(archived, 0) = 1)
+            """)
+            print("✓ slot.archived: INTEGER → BOOLEAN konvertiert", flush=True)
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_slot_archived_is_boolean fehlgeschlagen: {e}", flush=True)
+
+
 # Startup-Migrationen werden unten non-blocking gestartet
 
 
@@ -1491,6 +1520,7 @@ def _run_startup_migrations() -> None:
         _ensure_last_login_field,
         _ensure_provider_warevision_webhook,
         _ensure_archive_fields,
+        _ensure_slot_archived_is_boolean,
         _ensure_slot_status_constraint,
         _ensure_slot_description_field,
         _ensure_publish_quota_tables,

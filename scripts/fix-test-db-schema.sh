@@ -26,6 +26,24 @@ ALTER TABLE slot ADD COLUMN IF NOT EXISTS street TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS house_number TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS zip TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS city TEXT;
+" 2>/dev/null || true
+
+# archived war in älteren Schemas INTEGER (0/1) – PostgreSQL erlaubt keinen integer=boolean Vergleich
+# Konvertiere zu BOOLEAN, falls die Spalte noch INTEGER ist
+echo "Slot archived: INTEGER→BOOLEAN falls nötig..."
+sudo -u postgres psql -d "$DB" -c "
+DO \$\$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='slot' AND column_name='archived' AND data_type='integer'
+  ) THEN
+    ALTER TABLE slot ALTER COLUMN archived TYPE boolean USING (COALESCE(archived, 0) = 1);
+  END IF;
+END \$\$;
+" 2>/dev/null || true
+
+sudo -u postgres psql -d "$DB" -c "
 UPDATE slot SET archived = false WHERE archived IS NULL;
 " 2>/dev/null || true
 
