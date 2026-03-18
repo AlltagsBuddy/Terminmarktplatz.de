@@ -6072,7 +6072,7 @@ def slots_list():
 
                 return jsonify(out)
         
-        except (OperationalError, PsycopgOperationalError, DisconnectionError) as e:
+        except (OperationalError, DisconnectionError) as e:
             last_error = e
             error_str = str(e).lower()
             # Prüfe ob es ein SSL- oder Verbindungsfehler ist
