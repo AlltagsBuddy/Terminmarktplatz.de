@@ -31,7 +31,7 @@ except Exception:
 BERLIN = ZoneInfo("Europe/Berlin")
 
 import time
-from sqlalchemy import create_engine, select, and_, or_, func, text
+from sqlalchemy import create_engine, select, and_, or_, func, text, cast, String
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError, DisconnectionError
 
@@ -1929,11 +1929,12 @@ def _slot_archived_clause(show_archived: bool):
     """
     Filter für slot.archived – funktioniert mit INTEGER (0/1) und BOOLEAN.
     PostgreSQL erlaubt keinen integer=boolean Vergleich; ältere Schemas haben archived als INTEGER.
+    Nutzt cast() über das Model, damit Tabellen-Aliase korrekt sind.
     """
-    cast_expr = "slot.archived::text" if IS_POSTGRESQL else "CAST(slot.archived AS TEXT)"
+    archived_str = cast(Slot.archived, String)
     if show_archived:
-        return text(f"(slot.archived IS NOT NULL AND {cast_expr} IN ('1','t','true'))")
-    return text(f"(slot.archived IS NULL OR {cast_expr} IN ('0','f','false'))")
+        return and_(Slot.archived.isnot(None), archived_str.in_(["1", "t", "true"]))
+    return or_(Slot.archived.is_(None), archived_str.in_(["0", "f", "false"]))
 
 
 def slot_to_json(x: Slot):
@@ -6030,6 +6031,7 @@ def slots_list():
     status = status.strip().upper() if status else None
     archived = request.args.get("archived")
     show_archived = archived and archived.lower() in ("true", "1", "yes")
+    debug_mode = request.args.get("debug", "").lower() in ("1", "true", "yes")
 
     # Retry-Mechanismus für SSL-Fehler und Verbindungsprobleme
     max_retries = 3
@@ -6127,11 +6129,27 @@ def slots_list():
                     return _json_error("database_error", 500)
             else:
                 # Anderer Fehler, nicht retry
+                if debug_mode:
+                    return jsonify({
+                        "error": "slots_list_failed",
+                        "debug": True,
+                        "exception_type": type(e).__name__,
+                        "message": str(e),
+                        "traceback": traceback.format_exc(),
+                    }), 500
                 raise
         
         except Exception as e:
             # Andere Fehler nicht retry
             app.logger.error(f"Unexpected error in slots_list: {e}")
+            if debug_mode:
+                return jsonify({
+                    "error": "slots_list_failed",
+                    "debug": True,
+                    "exception_type": type(e).__name__,
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }), 500
             raise
     
     # Falls alle Retries fehlgeschlagen sind

@@ -15,7 +15,7 @@ ALTER TABLE provider ADD COLUMN IF NOT EXISTS webhook_url TEXT;
 ALTER TABLE provider ADD COLUMN IF NOT EXISTS webhook_api_key TEXT;
 " 2>/dev/null || true
 
-# Slot: archived, description, published_at, deposit_cents, street, house_number, zip, city
+# Slot: archived, description, published_at, deposit_cents, street, house_number, zip, city, lat, lng
 echo "Slot-Spalten..."
 sudo -u postgres psql -d "$DB" -c "
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT false;
@@ -26,6 +26,8 @@ ALTER TABLE slot ADD COLUMN IF NOT EXISTS street TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS house_number TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS zip TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE slot ADD COLUMN IF NOT EXISTS lat NUMERIC(10,7);
+ALTER TABLE slot ADD COLUMN IF NOT EXISTS lng NUMERIC(10,7);
 " 2>/dev/null || true
 
 # archived war in älteren Schemas INTEGER (0/1) – PostgreSQL erlaubt keinen integer=boolean Vergleich
@@ -47,11 +49,13 @@ sudo -u postgres psql -d "$DB" -c "
 UPDATE slot SET archived = false WHERE archived IS NULL;
 " 2>/dev/null || true
 
-# Booking: deposit_paid_at, stripe_session_id
+# Booking: deposit_paid_at, stripe_session_id, customer_message, customer_phone
 echo "Booking-Spalten..."
 sudo -u postgres psql -d "$DB" -c "
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS deposit_paid_at TIMESTAMP;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS stripe_session_id TEXT;
+ALTER TABLE booking ADD COLUMN IF NOT EXISTS customer_message TEXT;
+ALTER TABLE booking ADD COLUMN IF NOT EXISTS customer_phone TEXT;
 " 2>/dev/null || true
 
 # Rechte

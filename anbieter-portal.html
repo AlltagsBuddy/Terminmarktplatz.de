@@ -2253,11 +2253,17 @@
 
       try{
         const url = CURRENT_FILTER === 'archived' 
-          ? `${API}/slots?archived=true`
-          : `${API}/slots?archived=false`;
+          ? `${API}/slots?archived=true&debug=1`
+          : `${API}/slots?archived=false&debug=1`;
         const r = await fetch(url, {credentials:'include'});
         if(!r.ok){
-          const msg = (r.status === 401 || r.status === 403) ? 'Bitte (erneut) anmelden.' : `Fehler ${r.status}. Bitte später erneut versuchen oder Seite neu laden.`;
+          let msg = (r.status === 401 || r.status === 403) ? 'Bitte (erneut) anmelden.' : `Fehler ${r.status}. Bitte später erneut versuchen oder Seite neu laden.`;
+          if (r.status === 500) {
+            try {
+              const d = await r.json();
+              if (d && d.debug && d.message) msg += ` [${d.exception_type || 'Error'}: ${d.message}]`;
+            } catch (_) {}
+          }
           tbody.innerHTML = `<tr><td colspan="9" class="muted">${msg}</td></tr>`;
           return;
         }
