@@ -367,6 +367,18 @@
               <label for="pf-payment">Zahlungsmethoden (optional)</label>
               <input id="pf-payment" name="payment_methods" placeholder="Bar, Karte, PayPal">
             </div>
+            <div class="field" style="grid-column:1/-1; padding:14px; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:12px;">
+              <div style="font-weight:600; margin-bottom:8px;">Warenwirtschaft / WareVision (optional)</div>
+              <p class="muted" style="font-size:0.9rem; margin-bottom:12px;">Buchungen automatisch an dein Warenwirtschaftssystem senden. Webhook-URL und API-Schlüssel aus den WareVision-Einstellungen eintragen.</p>
+              <div class="field" style="margin-bottom:12px;">
+                <label for="pf-webhook-url">Webhook-URL</label>
+                <input id="pf-webhook-url" name="webhook_url" type="url" placeholder="https://.../api/v1/appointments/webhook/termin-marktplatz"/>
+              </div>
+              <div class="field">
+                <label for="pf-webhook-api-key">API-Schlüssel</label>
+                <input id="pf-webhook-api-key" name="webhook_api_key" type="password" placeholder="tm-wv-secret-..." autocomplete="off"/>
+              </div>
+            </div>
             <div class="field" style="grid-column:1/-1">
               <label for="pf-cancel">Stornobedingungen (optional)</label>
               <textarea id="pf-cancel" name="cancellation_policy" rows="3" placeholder="z. B. kostenfrei bis 24h vorher"></textarea>
@@ -602,6 +614,10 @@
         $('#pf-cancel').value = ME.cancellation_policy || '';
         $('#pf-directions').value = ME.directions || '';
         $('#pf-gallery').value = ME.gallery_urls || '';
+        const pfWebhookUrl = document.getElementById('pf-webhook-url');
+        const pfWebhookKey = document.getElementById('pf-webhook-api-key');
+        if (pfWebhookUrl) pfWebhookUrl.value = ME.webhook_url || '';
+        if (pfWebhookKey) pfWebhookKey.value = ME.webhook_api_key || '';
         renderGalleryPreview(parseGalleryUrls(ME.gallery_urls));
         const logoConsent = document.getElementById('pf-logo-consent');
         if (logoConsent) logoConsent.checked = !!ME.consent_logo_display;
@@ -691,6 +707,8 @@
           cancellation_policy: $('#pf-cancel').value.trim(),
           directions: $('#pf-directions').value.trim(),
           gallery_urls: $('#pf-gallery').value.trim(),
+          webhook_url: ($('#pf-webhook-url')?.value || '').trim() || null,
+          webhook_api_key: ($('#pf-webhook-api-key')?.value || '').trim() || null,
         consent_logo_display: $('#pf-logo-consent')?.checked || false,
       };
       if (!isValidStreetWithNumber(combined) || !isValidZip(payload.zip) || !isValidPhone(payload.phone)) {
@@ -712,6 +730,8 @@
             ? 'Bitte PLZ mit genau 5 Ziffern eingeben.'
             : (data.error === 'invalid_logo_url')
               ? 'Logo-URL ist ungültig.'
+              : (data.error === 'invalid_webhook_url')
+                ? 'Webhook-URL muss mit https:// oder http:// beginnen.'
               : (data.error === 'db_constraint_error')
                 ? 'Ein Feld wurde abgelehnt (z. B. Branche). Bitte andere Werte wählen.'
                 : (data.error || 'Konnte Profil nicht speichern.');

@@ -1177,6 +1177,31 @@ def _ensure_last_login_field():
         print(f"⚠️  Warnung: ensure_last_login_field fehlgeschlagen: {e}", flush=True)
 
 
+# --------------------------------------------------------
+# WareVision-Webhook-Felder für Provider
+# --------------------------------------------------------
+def _ensure_provider_warevision_webhook():
+    """Provider: webhook_url, webhook_api_key für WareVision/Warenwirtschaft."""
+    try:
+        with engine.begin() as conn:
+            for col, typ in [("webhook_url", "TEXT"), ("webhook_api_key", "TEXT")]:
+                if IS_POSTGRESQL:
+                    try:
+                        conn.execute(text(f"ALTER TABLE provider ADD COLUMN IF NOT EXISTS {col} {typ}"))
+                    except Exception:
+                        try:
+                            conn.execute(text(f"SELECT {col} FROM provider LIMIT 1"))
+                        except Exception:
+                            conn.execute(text(f"ALTER TABLE provider ADD COLUMN {col} {typ}"))
+                else:
+                    try:
+                        conn.execute(text(f"SELECT {col} FROM provider LIMIT 1"))
+                    except Exception:
+                        conn.execute(text(f"ALTER TABLE provider ADD COLUMN {col} {typ}"))
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"⚠️  Warnung: ensure_provider_warevision_webhook fehlgeschlagen: {e}", flush=True)
+
+
 # Startup-Migrationen werden unten non-blocking gestartet
 
 
@@ -1459,6 +1484,7 @@ def _run_startup_migrations() -> None:
         _ensure_password_reset_table,
         _ensure_provider_number_field,
         _ensure_last_login_field,
+        _ensure_provider_warevision_webhook,
         _ensure_archive_fields,
         _ensure_slot_status_constraint,
         _ensure_slot_description_field,
@@ -2557,6 +2583,86 @@ Terminmarktplatz
             )
         except Exception as e:
             app.logger.warning("send_mail booking_deposit_provider_notify failed: %r", e)
+
+
+def _send_warevision_webhook(
+    provider: Provider | None,
+    action: str,
+    booking_id: str,
+    starts_at: datetime,
+    ends_at: datetime,
+    customer_name: str | None = None,
+    customer_email: str | None = None,
+    customer_phone: str | None = None,
+    slot_title: str | None = None,
+    description: str | None = None,
+) -> None:
+    """
+    Sendet Buchungs-Events an WareVision/Warenwirtschaft (Webhook).
+    action: 'booking' | 'cancel' | 'update'
+    """
+    if not provider:
+        return
+    url = (getattr(provider, "webhook_url", None) or "").strip()
+    api_key = (getattr(provider, "webhook_api_key", None) or "").strip()
+    if not url or not api_key:
+        return
+
+    # ISO 8601 mit Zeitzone (Berlin)
+    def _iso_berlin(dt: datetime) -> str:
+        if dt.tzinfo is None:
+            dt = _as_utc_aware(dt)
+        return dt.astimezone(BERLIN).strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    def _fmt_tz(s: str) -> str:
+        if len(s) >= 5 and s[-5] in ("+", "-"):
+            return s[:-2] + ":" + s[-2:]
+        return s
+
+    payload = {
+        "external_booking_id": f"tm-{booking_id}",
+        "action": action,
+    }
+    if action == "cancel":
+        pass  # payload hat nur external_booking_id + action
+    elif action in ("booking", "update"):
+        payload["starts_at"] = _fmt_tz(_iso_berlin(starts_at))
+        payload["ends_at"] = _fmt_tz(_iso_berlin(ends_at))
+        if action == "booking":
+            payload["title"] = (slot_title or "Termin (Terminmarktplatz)").strip()
+            if description:
+                payload["description"] = description
+
+            # Name aufteilen: Vorname / Nachname
+            name = (customer_name or "").strip()
+            if name:
+                parts = name.split(None, 1)
+                payload["customer_first_name"] = parts[0]
+                payload["customer_last_name"] = parts[1] if len(parts) > 1 else ""
+            if customer_email:
+                payload["customer_email"] = customer_email.strip()
+            if customer_phone:
+                payload["customer_phone"] = customer_phone.strip()
+
+    try:
+        r = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "X-API-Key": api_key,
+            },
+            json=payload,
+            timeout=10,
+        )
+        if r.status_code != 200:
+            app.logger.warning(
+                "WareVision webhook %s failed: %r %r",
+                action,
+                r.status_code,
+                r.text[:200],
+            )
+    except Exception as e:
+        app.logger.warning("WareVision webhook %s error: %r", action, e)
 
 
 def send_email_plan_canceled(provider: Provider, old_plan: str | None):
@@ -4142,6 +4248,8 @@ def me():
                 "calendar_ics_url": calendar_ics_url,
                 "calendar_webcal_url": calendar_webcal_url,
                 "stripe_account_id": getattr(p, "stripe_account_id", None),
+                "webhook_url": getattr(p, "webhook_url", None),
+                "webhook_api_key": getattr(p, "webhook_api_key", None),
             }
         )
 
@@ -4248,6 +4356,8 @@ def me_update():
             "cancellation_policy",
             "directions",
             "gallery_urls",
+            "webhook_url",
+            "webhook_api_key",
         }
 
         def clean(v):
@@ -4297,6 +4407,16 @@ def me_update():
                 if not (url.startswith("https://") or url.startswith("http://") or url.startswith("/static/")):
                     return _json_error("invalid_logo_url", 400)
                 upd["logo_url"] = url
+
+        if "webhook_url" in data:
+            wu = clean(data.get("webhook_url"))
+            if wu and len(wu) > 500:
+                return _json_error("invalid_webhook_url", 400)
+            if wu and not (wu.startswith("https://") or wu.startswith("http://")):
+                return _json_error("invalid_webhook_url", 400)
+            upd["webhook_url"] = wu
+        if "webhook_api_key" in data:
+            upd["webhook_api_key"] = clean(data.get("webhook_api_key"))
 
         consent_val = data.get("consent_logo_display")
         if consent_val is not None:
@@ -6447,6 +6567,31 @@ def slots_update(slot_id):
                 s.rollback()
                 return jsonify({"error": "db_error", "detail": str(e)}), 400
 
+            # WareVision: Bei Terminänderung alle bestätigten Buchungen benachrichtigen
+            if start_changed or end_changed:
+                provider_obj = s.get(Provider, slot.provider_id)
+                if provider_obj and (getattr(provider_obj, "webhook_url", None) or "").strip():
+                    confirmed_bookings = (
+                        s.execute(
+                            select(Booking).where(
+                                Booking.slot_id == slot_id,
+                                Booking.status == "confirmed",
+                            )
+                        )
+                        .scalars().all()
+                    )
+                    for b in confirmed_bookings:
+                        try:
+                            _send_warevision_webhook(
+                                provider_obj,
+                                "update",
+                                str(b.id),
+                                _as_utc_aware(slot.start_at),
+                                _as_utc_aware(slot.end_at),
+                            )
+                        except Exception as e:
+                            app.logger.warning("slots_update: WareVision webhook failed for %s: %r", b.id, e)
+
         if published_now:
             try:
                 notify_alerts_for_slot(slot_id)
@@ -6668,6 +6813,17 @@ def provider_cancel_booking(booking_id):
 
             b.status = "canceled"
             s.commit()
+
+        try:
+            _send_warevision_webhook(
+                provider_obj,
+                "cancel",
+                booking_id_str,
+                _as_utc_aware(slot_obj.start_at) if slot_obj else datetime.now(timezone.utc),
+                _as_utc_aware(slot_obj.end_at) if slot_obj else datetime.now(timezone.utc),
+            )
+        except Exception as e:
+            app.logger.warning("provider_cancel_booking: WareVision webhook failed: %r", e)
 
         try:
             if customer_email:
@@ -7664,6 +7820,21 @@ def stripe_webhook():
                 _send_booking_deposit_confirmation_emails(b, slot, provider)
             except Exception as e:
                 app.logger.exception("send_booking_deposit_confirmation_emails failed: %r", e)
+            try:
+                _send_warevision_webhook(
+                    provider,
+                    "booking",
+                    str(b.id),
+                    _as_utc_aware(slot.start_at),
+                    _as_utc_aware(slot.end_at),
+                    customer_name=b.customer_name,
+                    customer_email=b.customer_email,
+                    customer_phone=getattr(b, "customer_phone", None),
+                    slot_title=slot.title,
+                    description=getattr(b, "customer_message", None),
+                )
+            except Exception as e:
+                app.logger.warning("Stripe webhook: WareVision webhook failed: %r", e)
             return jsonify({"ok": True})
 
         provider_id = metadata.get("provider_id")
@@ -8717,6 +8888,23 @@ def public_confirm():
                     except Exception as e:
                         app.logger.warning("public_confirm: send_mail to provider failed: %r", e)
 
+                # WareVision-Webhook: Buchung an Warenwirtschaft senden
+                try:
+                    _send_warevision_webhook(
+                        provider_obj,
+                        "booking",
+                        str(b.id),
+                        _as_utc_aware(slot_obj.start_at),
+                        _as_utc_aware(slot_obj.end_at),
+                        customer_name=b.customer_name,
+                        customer_email=b.customer_email,
+                        customer_phone=getattr(b, "customer_phone", None),
+                        slot_title=slot_obj.title,
+                        description=getattr(b, "customer_message", None),
+                    )
+                except Exception as e:
+                    app.logger.warning("public_confirm: WareVision webhook failed: %r", e)
+
             elif b.status == "canceled":
                 return _json_error("booking_canceled", 409)
 
@@ -9210,6 +9398,16 @@ def public_cancel():
                 }
 
         if just_canceled:
+            try:
+                _send_warevision_webhook(
+                    provider_obj,
+                    "cancel",
+                    str(booking["id"]),
+                    _as_utc_aware(slot_obj.start_at),
+                    _as_utc_aware(slot_obj.end_at),
+                )
+            except Exception as e:
+                app.logger.warning("public_cancel: WareVision webhook failed: %r", e)
             try:
                 if customer_email:
                     # Slot-Details für E-Mail formatieren

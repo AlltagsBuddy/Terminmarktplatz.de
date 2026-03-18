@@ -88,6 +88,10 @@ class Provider(Base):
     # Stripe Connect (Express): Für Anzahlungen beim Buchen
     stripe_account_id: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # WareVision / Warenwirtschaft: Webhook für Buchungs-Sync
+    webhook_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    webhook_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     slots: Mapped[list["Slot"]] = relationship(
         "Slot",
         back_populates="provider",
