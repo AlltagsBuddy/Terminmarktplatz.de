@@ -172,6 +172,7 @@ else:
     IS_TESTSYSTEM = "test.terminmarktplatz" in _base
 
 # Testsystem: Google Maps deaktivieren; E-Mails nur wenn explizit EMAILS_ENABLED=true
+# Live-System: E-Mails immer aktiv (ignoriert EMAILS_ENABLED=false in .env)
 if IS_TESTSYSTEM:
     GOOGLE_MAPS_API_KEY = None  # Deaktiviert Google Maps im Testsystem
     if os.environ.get("EMAILS_ENABLED", "").lower() != "true":
@@ -179,6 +180,8 @@ if IS_TESTSYSTEM:
         app.logger.info("⚠️  Testsystem erkannt: E-Mails deaktiviert (EMAILS_ENABLED=true in .env zum Testen)")
     else:
         app.logger.info("⚠️  Testsystem: E-Mails aktiviert für Tests")
+else:
+    EMAILS_ENABLED = True  # Live: E-Mails immer aktiv
 
 # RESEND (HTTPS)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
