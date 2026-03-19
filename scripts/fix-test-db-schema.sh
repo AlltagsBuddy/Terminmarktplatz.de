@@ -49,7 +49,7 @@ sudo -u postgres psql -d "$DB" -c "
 UPDATE slot SET archived = false WHERE archived IS NULL;
 " 2>/dev/null || true
 
-# Booking: deposit_paid_at, stripe_session_id, customer_message, customer_phone
+# Booking: deposit_paid_at, stripe_session_id, customer_message, customer_phone, vehicle_license_plate, reminder_*
 echo "Booking-Spalten..."
 sudo -u postgres psql -d "$DB" -c "
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS deposit_paid_at TIMESTAMP;
@@ -57,6 +57,9 @@ ALTER TABLE booking ADD COLUMN IF NOT EXISTS stripe_session_id TEXT;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS customer_message TEXT;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS customer_phone TEXT;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS vehicle_license_plate TEXT;
+ALTER TABLE booking ADD COLUMN IF NOT EXISTS reminder_opt_in BOOLEAN DEFAULT true;
+ALTER TABLE booking ADD COLUMN IF NOT EXISTS reminder_channel TEXT;
+ALTER TABLE booking ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP;
 " 2>/dev/null || true
 
 # Rechte

@@ -1539,6 +1539,12 @@ def _start_startup_migrations() -> None:
         if _STARTUP_MIGRATIONS_STARTED:
             return
         _STARTUP_MIGRATIONS_STARTED = True
+    # Kritische Migrationen (booking-Spalten) blockierend, damit Buchungen sofort funktionieren
+    for fn in (_ensure_booking_reminder_fields, _ensure_provider_warevision_webhook):
+        try:
+            fn()
+        except Exception as e:
+            print(f"⚠️  Warnung: Kritische Migration {fn.__name__} fehlgeschlagen: {e}", flush=True)
     threading.Thread(
         target=_run_startup_migrations,
         name="startup-migrations",
@@ -8579,7 +8585,7 @@ def public_book():
 
 
 def _public_book_impl():
-    data = request.get_json(force=True)
+    data = request.get_json(silent=True, force=True) or {}
     slot_id = (data.get("slot_id") or "").strip()
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
