@@ -4,11 +4,10 @@ import pytest
 
 
 def _get_base_url() -> str:
+    # TEST_BASE_URL hat Vorrang (z. B. http://127.0.0.1:5000 für lokale UI-Tests)
     preferred = os.getenv("TEST_BASE_URL") or os.getenv("BASE_URL")
     if preferred:
-        preferred = preferred.rstrip("/")
-        if not preferred.startswith(("http://127.0.0.1", "http://localhost")):
-            return preferred
+        return preferred.rstrip("/")
     return "https://testsystem-terminmarktplatz-de.onrender.com"
 
 

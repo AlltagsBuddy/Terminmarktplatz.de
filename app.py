@@ -323,6 +323,10 @@ _is_postgresql_url = DB_URL and ("postgresql" in DB_URL.lower() or "postgres" in
 # --------------------------------------------------------
 # connect_args nur für PostgreSQL setzen (SQLite unterstützt kein sslmode)
 if _is_postgresql_url:
+    # Lokale PostgreSQL (127.0.0.1/localhost) unterstützt oft kein SSL → disable
+    _pg_host = "127.0.0.1" in (DB_URL or "") or "localhost" in (DB_URL or "")
+    _default_sslmode = "disable" if _pg_host else "require"
+    _sslmode = os.getenv("PGSSLMODE", _default_sslmode)
     engine = create_engine(
         DB_URL,
         pool_pre_ping=True,     # prüft Verbindung vor Benutzung
@@ -332,8 +336,7 @@ if _is_postgresql_url:
         max_overflow=10,
         echo=False,
         connect_args={
-            # bei Render/Supabase/managed Postgres fast immer korrekt:
-            "sslmode": os.getenv("PGSSLMODE", "require"),
+            "sslmode": _sslmode,
             "connect_timeout": 10,  # Timeout für initiale Verbindung
         },
     )
