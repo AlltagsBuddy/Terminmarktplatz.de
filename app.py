@@ -3089,6 +3089,40 @@ def api_health():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.get("/_debug_slots")
+def debug_slots():
+    """Diagnose: Slot-Schema und -Anzahl prüfen (für Fehlersuche bei leeren Slots)."""
+    try:
+        with Session(engine) as s:
+            # Slot-Spalten prüfen
+            cols = s.execute(
+                text(
+                    "SELECT column_name, data_type FROM information_schema.columns "
+                    "WHERE table_schema='public' AND table_name='slot' ORDER BY ordinal_position"
+                )
+            ).fetchall()
+            columns = {c[0]: c[1] for c in cols}
+            archived_type = columns.get("archived", "MISSING")
+            # Anzahl Slots nach Status
+            counts = s.execute(
+                text("SELECT status, COUNT(*) FROM slot GROUP BY status")
+            ).fetchall()
+            total = s.execute(text("SELECT COUNT(*) FROM slot")).scalar()
+            published = s.execute(
+                text("SELECT COUNT(*) FROM slot WHERE status = 'PUBLISHED'")
+            ).scalar()
+        return jsonify({
+            "slot_columns": columns,
+            "archived_type": archived_type,
+            "slot_counts_by_status": dict(counts),
+            "total_slots": total,
+            "published_slots": published,
+            "hint": "archived muss BOOLEAN sein (nicht integer). Fehlende Spalten: fix-live-db-schema.sh ausführen.",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e), "type": type(e).__name__}), 500
+
+
 @app.get("/_debug_html")
 def debug_html():
     """Diagnose: Zeigt direkt erzeugtes HTML (ohne Datei). Falls das sichtbar ist, liegt das Problem bei send_from_directory."""
@@ -3123,7 +3157,7 @@ def maybe_api_only():
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
         or request.path.startswith("/alerts/")
-        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html")
+        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html", "/_debug_slots")
         or request.path.startswith("/static/")
         or request.path.endswith(".html")  # HTML-Seiten erlauben
         or request.path.strip("/") in ("", "index", "suche", "preise", "anbieter", "suchende", "kontakt", "hilfe", "agb", "impressum", "datenschutz", "widerruf")
@@ -8260,6 +8294,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 @app.get("/public/slots")
 def public_slots():
     _maybe_send_due_booking_reminders()
+    debug_mode = request.args.get("debug") == "1"
     q_text = (request.args.get("q") or "").strip()
     location_raw = (request.args.get("location") or "").strip()
     if not location_raw:
@@ -8569,13 +8604,24 @@ def public_slots():
                 continue
             else:
                 app.logger.exception("public_slots: DB connection error after retries")
-                return jsonify({"error": "DB connection error"}), 500
+                out = {"error": "DB connection error"}
+                if debug_mode:
+                    out["debug_detail"] = str(e)
+                return jsonify(out), 500
         except SQLAlchemyError as e:
             app.logger.exception("public_slots: DB error")
-            return jsonify({"error": "DB error"}), 500
+            out = {"error": "DB error"}
+            if debug_mode:
+                out["debug_detail"] = str(e)
+                out["exception_type"] = type(e).__name__
+            return jsonify(out), 500
         except Exception as e:
             app.logger.exception("public_slots: Unexpected error")
-            return jsonify({"error": "server_error"}), 500
+            out = {"error": "server_error"}
+            if debug_mode:
+                out["debug_detail"] = str(e)
+                out["exception_type"] = type(e).__name__
+            return jsonify(out), 500
 
 
 @app.post("/public/book")
