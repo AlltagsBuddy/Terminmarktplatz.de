@@ -2449,20 +2449,30 @@ def send_mail(
                 headers={
                     "Authorization": f"Bearer {RESEND_API_KEY}",
                     "Content-Type": "application/json",
+                    "User-Agent": "Terminmarktplatz/1.0 (Flask)",
                 },
                 json=payload,
                 timeout=15,
             )
             ok = 200 <= r.status_code < 300
-            print("[resend]", r.status_code, r.text, flush=True)
+            print("[resend]", r.status_code, r.text[:500] if r.text else "", flush=True)
             if ok and text:
                 print(f"[resend][debug] text length={len(text)}, preview={text[:100]}...", flush=True)
             if not ok:
                 try:
-                    print("[resend][payload]", payload, flush=True)
+                    print("[resend][ERROR] payload=", payload, flush=True)
                 except Exception:
                     pass
-            return ok, str(r.status_code)
+                # Resend-Fehlertext für bessere Diagnose
+                reason = r.text[:200] if r.text else str(r.status_code)
+                try:
+                    j = r.json()
+                    if isinstance(j, dict) and "message" in j:
+                        reason = j.get("message", reason)
+                except Exception:
+                    pass
+                return False, reason
+            return True, str(r.status_code)
 
         # POSTMARK
         if provider == "postmark":
@@ -3150,6 +3160,25 @@ def debug_mail():
     return jsonify({"mail_config": checks, "hints": hints})
 
 
+@app.get("/_debug_mail_test")
+def debug_mail_test():
+    """
+    Test-E-Mail senden. Nur wenn DEBUG_MAIL_TEST_ALLOWED=1 in .env.
+    Aufruf: /_debug_mail_test?to=deine@email.com
+    """
+    if os.getenv("DEBUG_MAIL_TEST_ALLOWED", "").lower() != "1":
+        return jsonify({"error": "DEBUG_MAIL_TEST_ALLOWED=1 in .env erforderlich"}), 403
+    to = (request.args.get("to") or "").strip()
+    if not to or "@" not in to:
+        return jsonify({"error": "Parameter to=email@example.com erforderlich"}), 400
+    ok, reason = send_mail(
+        to,
+        "Test-E-Mail von Terminmarktplatz",
+        text="Dies ist eine Test-E-Mail. Wenn du diese erhältst, funktioniert der Mail-Versand.",
+    )
+    return jsonify({"ok": ok, "reason": reason})
+
+
 @app.get("/_debug_html")
 def debug_html():
     """Diagnose: Zeigt direkt erzeugtes HTML (ohne Datei). Falls das sichtbar ist, liegt das Problem bei send_from_directory."""
@@ -3184,7 +3213,7 @@ def maybe_api_only():
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
         or request.path.startswith("/alerts/")
-        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html", "/_debug_slots", "/_debug_mail")
+        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html", "/_debug_slots", "/_debug_mail", "/_debug_mail_test")
         or request.path.startswith("/static/")
         or request.path.endswith(".html")  # HTML-Seiten erlauben
         or request.path.strip("/") in ("", "index", "suche", "preise", "anbieter", "suchende", "kontakt", "hilfe", "agb", "impressum", "datenschutz", "widerruf")

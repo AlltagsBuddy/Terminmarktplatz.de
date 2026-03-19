@@ -1067,7 +1067,11 @@
     const bookingErrorMessage = (err) => {
       const e = (err || '').toString();
       if (e.startsWith('mail_failed')) {
-        return 'Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte prüfe deine E-Mail-Adresse oder versuche es später erneut. Bei Problemen: https://terminmarktplatz.de/kontakt.html oder support@terminmarktplatz.de';
+        const reason = e.includes(':') ? e.split(':').slice(1).join(':').trim() : '';
+        let msg = 'Die Bestätigungs-E-Mail konnte nicht gesendet werden.';
+        if (reason && reason.length < 120) msg += ' (' + reason + ')';
+        msg += ' Bitte später erneut versuchen oder Kontakt: https://terminmarktplatz.de/kontakt.html';
+        return msg;
       }
       if (e === 'slot_full') return 'Dieser Termin ist leider schon ausgebucht.';
       if (e === 'not_bookable') return 'Dieser Termin ist nicht mehr buchbar.';
