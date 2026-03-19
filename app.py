@@ -3123,6 +3123,30 @@ def debug_slots():
         return jsonify({"error": str(e), "type": type(e).__name__}), 500
 
 
+@app.get("/_debug_mail")
+def debug_mail():
+    """Diagnose: Mail-Konfiguration prüfen (keine Secrets sichtbar)."""
+    provider = (MAIL_PROVIDER or "resend").strip().lower()
+    checks = {
+        "emails_enabled": EMAILS_ENABLED,
+        "mail_provider": provider,
+        "mail_from": MAIL_FROM or "(nicht gesetzt)",
+        "resend_api_key": "gesetzt" if (RESEND_API_KEY and len(RESEND_API_KEY) > 5) else "fehlt",
+        "postmark_token": "gesetzt" if (POSTMARK_API_TOKEN and len(POSTMARK_API_TOKEN) > 5) else "fehlt",
+        "smtp_configured": bool(SMTP_HOST and SMTP_USER and SMTP_PASS),
+    }
+    hints = []
+    if not EMAILS_ENABLED:
+        hints.append("EMAILS_ENABLED=false in .env – E-Mails sind deaktiviert.")
+    if provider == "resend" and not (RESEND_API_KEY and len(RESEND_API_KEY) > 5):
+        hints.append("RESEND_API_KEY fehlt in .env. Resend-Dashboard: https://resend.com/api-keys")
+    if provider == "resend" and (RESEND_API_KEY and len(RESEND_API_KEY) > 5):
+        hints.append("Resend: Domain terminmarktplatz.de muss in https://resend.com/domains verifiziert sein.")
+    if provider == "postmark" and not (POSTMARK_API_TOKEN and len(POSTMARK_API_TOKEN) > 5):
+        hints.append("POSTMARK_API_TOKEN fehlt in .env.")
+    return jsonify({"mail_config": checks, "hints": hints})
+
+
 @app.get("/_debug_html")
 def debug_html():
     """Diagnose: Zeigt direkt erzeugtes HTML (ohne Datei). Falls das sichtbar ist, liegt das Problem bei send_from_directory."""
@@ -3157,7 +3181,7 @@ def maybe_api_only():
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
         or request.path.startswith("/alerts/")
-        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html", "/_debug_slots")
+        or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html", "/_debug_slots", "/_debug_mail")
         or request.path.startswith("/static/")
         or request.path.endswith(".html")  # HTML-Seiten erlauben
         or request.path.strip("/") in ("", "index", "suche", "preise", "anbieter", "suchende", "kontakt", "hilfe", "agb", "impressum", "datenschutz", "widerruf")
