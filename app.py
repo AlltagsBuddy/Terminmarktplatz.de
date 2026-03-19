@@ -2645,18 +2645,27 @@ def _send_warevision_webhook(
     slot_title: str | None = None,
     description: str | None = None,
     vehicle_license_plate: str | None = None,
+    *,
+    webhook_url_override: str | None = None,
+    webhook_api_key_override: str | None = None,
 ) -> None:
     """
     Sendet Buchungs-Events an WareVision/Warenwirtschaft (Webhook).
     action: 'booking' | 'cancel' | 'update'
     Spec: B2 (Buchung), B3 (Stornierung)
+    webhook_url_override/webhook_api_key_override: wenn gesetzt, werden diese statt provider-Attribute verwendet.
     """
     if not provider:
         return
-    url = (getattr(provider, "webhook_url", None) or "").strip()
-    api_key = (getattr(provider, "webhook_api_key", None) or "").strip()
+    url = (webhook_url_override or (getattr(provider, "webhook_url", None) or "")).strip()
+    api_key = (webhook_api_key_override or (getattr(provider, "webhook_api_key", None) or "")).strip()
     if not url or not api_key:
-        app.logger.debug("WareVision webhook skipped: provider %s has no webhook_url or webhook_api_key", provider.id)
+        app.logger.info(
+            "WareVision webhook skipped: provider %s has no webhook_url or webhook_api_key (url=%r, key_set=%s)",
+            provider.id,
+            url or "(leer)",
+            "ja" if api_key else "nein",
+        )
         return
 
     # ISO 8601 mit Zeitzone (Berlin)
@@ -7886,27 +7895,35 @@ def stripe_webhook():
                 b.stripe_session_id = session_obj.get("id")
                 slot = s.get(Slot, b.slot_id)
                 provider = s.get(Provider, b.provider_id)
+                # Webhook-URL/Key in Session lesen (Provider kann nach commit detached sein)
+                webhook_url = (getattr(provider, "webhook_url", None) or "").strip()
+                webhook_api_key = (getattr(provider, "webhook_api_key", None) or "").strip()
                 s.commit()
             try:
                 _send_booking_deposit_confirmation_emails(b, slot, provider)
             except Exception as e:
                 app.logger.exception("send_booking_deposit_confirmation_emails failed: %r", e)
-            try:
-                _send_warevision_webhook(
-                    provider,
-                    "booking",
-                    str(b.id),
-                    _as_utc_aware(slot.start_at),
-                    _as_utc_aware(slot.end_at),
-                    customer_name=b.customer_name,
-                    customer_email=b.customer_email,
-                    customer_phone=getattr(b, "customer_phone", None),
-                    slot_title=slot.title,
-                    description=getattr(b, "customer_message", None),
-                    vehicle_license_plate=getattr(b, "vehicle_license_plate", None),
-                )
-            except Exception as e:
-                app.logger.warning("Stripe webhook: WareVision webhook failed: %r", e)
+            if webhook_url and webhook_api_key:
+                try:
+                    _send_warevision_webhook(
+                        provider,
+                        "booking",
+                        str(b.id),
+                        _as_utc_aware(slot.start_at),
+                        _as_utc_aware(slot.end_at),
+                        customer_name=b.customer_name,
+                        customer_email=b.customer_email,
+                        customer_phone=getattr(b, "customer_phone", None),
+                        slot_title=slot.title,
+                        description=getattr(b, "customer_message", None),
+                        vehicle_license_plate=getattr(b, "vehicle_license_plate", None),
+                        webhook_url_override=webhook_url,
+                        webhook_api_key_override=webhook_api_key,
+                    )
+                except Exception as e:
+                    app.logger.warning("Stripe webhook: WareVision webhook failed: %r", e)
+            else:
+                app.logger.info("Stripe webhook: WareVision skipped (no webhook_url or webhook_api_key for provider %s)", b.provider_id)
             return jsonify({"ok": True})
 
         provider_id = metadata.get("provider_id")
@@ -8962,23 +8979,30 @@ def public_confirm():
                     except Exception as e:
                         app.logger.warning("public_confirm: send_mail to provider failed: %r", e)
 
-                # WareVision-Webhook: Buchung an Warenwirtschaft senden
-                try:
-                    _send_warevision_webhook(
-                        provider_obj,
-                        "booking",
-                        str(b.id),
-                        _as_utc_aware(slot_obj.start_at),
-                        _as_utc_aware(slot_obj.end_at),
-                        customer_name=b.customer_name,
-                        customer_email=b.customer_email,
-                        customer_phone=getattr(b, "customer_phone", None),
-                        slot_title=slot_obj.title,
-                        description=getattr(b, "customer_message", None),
-                        vehicle_license_plate=getattr(b, "vehicle_license_plate", None),
-                    )
-                except Exception as e:
-                    app.logger.warning("public_confirm: WareVision webhook failed: %r", e)
+                # WareVision-Webhook: Buchung an Warenwirtschaft senden (URL/Key in Session lesen)
+                wv_url = (getattr(provider_obj, "webhook_url", None) or "").strip()
+                wv_key = (getattr(provider_obj, "webhook_api_key", None) or "").strip()
+                if wv_url and wv_key:
+                    try:
+                        _send_warevision_webhook(
+                            provider_obj,
+                            "booking",
+                            str(b.id),
+                            _as_utc_aware(slot_obj.start_at),
+                            _as_utc_aware(slot_obj.end_at),
+                            customer_name=b.customer_name,
+                            customer_email=b.customer_email,
+                            customer_phone=getattr(b, "customer_phone", None),
+                            slot_title=slot_obj.title,
+                            description=getattr(b, "customer_message", None),
+                            vehicle_license_plate=getattr(b, "vehicle_license_plate", None),
+                            webhook_url_override=wv_url,
+                            webhook_api_key_override=wv_key,
+                        )
+                    except Exception as e:
+                        app.logger.warning("public_confirm: WareVision webhook failed: %r", e)
+                else:
+                    app.logger.info("public_confirm: WareVision skipped (provider %s has no webhook config)", provider_obj.id if provider_obj else "?")
 
             elif b.status == "canceled":
                 return _json_error("booking_canceled", 409)
