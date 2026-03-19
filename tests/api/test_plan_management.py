@@ -82,25 +82,34 @@ def test_paket_buchen_unknown_plan(test_client):
 
 
 def test_paket_buchen_manual_updates_provider_and_purchase(test_client):
-    provider_id = _create_provider(None)
-    res = test_client.post(
-        "/paket-buchen",
-        json={"plan": "starter"},
-        headers=_auth_headers(provider_id),
-    )
-    assert res.status_code == 200
-    data = res.get_json()
-    assert data["ok"] is True
-    assert data["plan"] == "starter"
-    assert data["mode"] == "manual_no_stripe"
-
-    with Session(app_module.engine) as s:
-        p = s.get(Provider, provider_id)
-        assert p.plan == "starter"
-        assert p.free_slots_per_month == app_module.PLANS["starter"]["free_slots"]
-        purchase = (
-            s.query(PlanPurchase)
-            .filter(PlanPurchase.provider_id == provider_id, PlanPurchase.plan == "starter")
-            .first()
+    # Manueller Pfad erzwingen (App kann mit CopeCart/Stripe-Env vorimportiert sein)
+    orig_copecart = app_module.COPECART_PLAN_URLS.copy()
+    orig_stripe_key = getattr(app_module, "STRIPE_SECRET_KEY", None)
+    try:
+        app_module.COPECART_PLAN_URLS = {"starter": None, "profi": None, "business": None}
+        app_module.STRIPE_SECRET_KEY = ""
+        provider_id = _create_provider(None)
+        res = test_client.post(
+            "/paket-buchen",
+            json={"plan": "starter"},
+            headers=_auth_headers(provider_id),
         )
-        assert purchase is not None
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["ok"] is True
+        assert data["plan"] == "starter"
+        assert data["mode"] == "manual_no_stripe"
+
+        with Session(app_module.engine) as s:
+            p = s.get(Provider, provider_id)
+            assert p.plan == "starter"
+            assert p.free_slots_per_month == app_module.PLANS["starter"]["free_slots"]
+            purchase = (
+                s.query(PlanPurchase)
+                .filter(PlanPurchase.provider_id == provider_id, PlanPurchase.plan == "starter")
+                .first()
+            )
+            assert purchase is not None
+    finally:
+        app_module.COPECART_PLAN_URLS = orig_copecart
+        app_module.STRIPE_SECRET_KEY = orig_stripe_key
