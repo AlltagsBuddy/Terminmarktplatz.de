@@ -3149,6 +3149,8 @@ def debug_mail():
         "smtp_configured": bool(SMTP_HOST and SMTP_USER and SMTP_PASS),
     }
     hints = []
+    if provider == "console":
+        hints.append("MAIL_PROVIDER=console – E-Mails werden nur ins Log geschrieben, nicht versendet! In .env setzen: MAIL_PROVIDER=resend und RESEND_API_KEY=re_xxx")
     if not EMAILS_ENABLED:
         hints.append("EMAILS_ENABLED=false in .env – E-Mails sind deaktiviert.")
     if provider == "resend" and not (RESEND_API_KEY and len(RESEND_API_KEY) > 5):
