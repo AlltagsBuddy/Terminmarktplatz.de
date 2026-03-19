@@ -2701,6 +2701,7 @@ def _send_warevision_webhook(
             headers={
                 "Content-Type": "application/json",
                 "X-API-Key": api_key,
+                "ngrok-skip-browser-warning": "1",
             },
             json=payload,
             timeout=10,
