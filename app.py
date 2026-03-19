@@ -2656,6 +2656,7 @@ def _send_warevision_webhook(
     url = (getattr(provider, "webhook_url", None) or "").strip()
     api_key = (getattr(provider, "webhook_api_key", None) or "").strip()
     if not url or not api_key:
+        app.logger.debug("WareVision webhook skipped: provider %s has no webhook_url or webhook_api_key", provider.id)
         return
 
     # ISO 8601 mit Zeitzone (Berlin)
@@ -2696,6 +2697,12 @@ def _send_warevision_webhook(
                 payload["vehicle_license_plate"] = (vehicle_license_plate or "").strip()
 
     try:
+        app.logger.info(
+            "WareVision webhook %s → %s (booking %s)",
+            action,
+            url[:60] + "..." if len(url) > 60 else url,
+            booking_id,
+        )
         r = requests.post(
             url,
             headers={
@@ -2706,7 +2713,9 @@ def _send_warevision_webhook(
             json=payload,
             timeout=10,
         )
-        if r.status_code != 200:
+        if r.status_code == 200:
+            app.logger.info("WareVision webhook %s OK (booking %s)", action, booking_id)
+        else:
             app.logger.warning(
                 "WareVision webhook %s failed: %r %r",
                 action,
