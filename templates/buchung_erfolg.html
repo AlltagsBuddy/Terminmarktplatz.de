@@ -219,11 +219,11 @@
             </div>
             {% endif %}
 
-            {% if slot and slot.start_at %}
+            {% if slot and (slot.start_at_local or slot.start_at) %}
             <div class="booking-success-row">
                 <div class="booking-success-label">Datum & Zeit</div>
                 <div class="booking-success-value">
-                {{ slot.start_at.strftime('%d.%m.%Y %H:%M') }} - {{ slot.end_at.strftime('%H:%M') }} Uhr
+                {% if slot.start_at_local %}{{ slot.start_at_local.strftime('%d.%m.%Y %H:%M') }} - {{ slot.end_at_local.strftime('%H:%M') }}{% else %}{{ slot.start_at.strftime('%d.%m.%Y %H:%M') }} - {{ slot.end_at.strftime('%H:%M') }}{% endif %} Uhr
                 </div>
             </div>
             {% endif %}

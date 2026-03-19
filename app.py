@@ -9037,12 +9037,17 @@ def public_confirm():
                 if slot_obj.price_cents:
                     price_euro = float(slot_obj.price_cents) / 100
                     price_euro_str = f"{price_euro:.2f}"
+                # Berlin-Zeit für Anzeige (Terminmarktplatz/WWS zeigen lokale Zeit)
+                start_local = _as_utc_aware(slot_obj.start_at).astimezone(BERLIN)
+                end_local = _as_utc_aware(slot_obj.end_at).astimezone(BERLIN)
                 slot = {
                     "id": slot_obj.id,
                     "title": slot_obj.title,
                     "category": slot_obj.category,
                     "start_at": slot_obj.start_at,
                     "end_at": slot_obj.end_at,
+                    "start_at_local": start_local,
+                    "end_at_local": end_local,
                     "location": slot_obj.location,
                     "street": slot_obj.street,
                     "house_number": slot_obj.house_number,
