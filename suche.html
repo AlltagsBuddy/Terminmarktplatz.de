@@ -1077,7 +1077,8 @@
       if (e === 'description_read_required') return 'Bitte bestätige, dass du die Beschreibung gelesen hast.';
       if (e === 'not_found') return 'Der Termin wurde nicht gefunden.';
       if (e === 'stripe_error' || e.startsWith('stripe_')) return 'Zahlung konnte nicht gestartet werden. Bitte später erneut versuchen.';
-      return 'Buchung leider nicht möglich: ' + (e || 'Fehler');
+      if (e === 'server_error' || !e) return 'Ein Serverfehler ist aufgetreten. Bitte später erneut versuchen oder Kontakt aufnehmen.';
+      return 'Buchung leider nicht möglich: ' + e;
     };
 
     function clearMarkers(){

@@ -8571,6 +8571,14 @@ def public_slots():
 
 @app.post("/public/book")
 def public_book():
+    try:
+        return _public_book_impl()
+    except Exception as e:
+        app.logger.exception("public_book failed: %r", e)
+        return _json_error("server_error", 500)
+
+
+def _public_book_impl():
     data = request.get_json(force=True)
     slot_id = (data.get("slot_id") or "").strip()
     name = (data.get("name") or "").strip()
