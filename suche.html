@@ -882,6 +882,9 @@
         <label>Notiz an den Anbieter (optional)
           <textarea id="book-message" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px; resize:vertical"></textarea>
         </label>
+        <label>Kfz-Kennzeichen (optional, für Werkstatt-Termine)
+          <input id="book-vehicle" type="text" placeholder="z. B. B-XX 1234" autocomplete="off" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
         <div id="book-description-check-wrap" style="display:none;">
           <label style="display:flex; gap:8px; align-items:flex-start;">
             <input id="book-description-read" type="checkbox" required>
@@ -930,6 +933,10 @@
           <div style="margin-bottom:16px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Notiz an den Anbieter (optional)</label>
             <textarea id="book-message-mobile" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; resize:vertical;"></textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Kfz-Kennzeichen (optional)</label>
+            <input id="book-vehicle-mobile" type="text" placeholder="z. B. B-XX 1234" autocomplete="off" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box;" />
           </div>
           <div id="book-description-check-wrap-mobile" style="display:none; margin-bottom:12px;">
             <label style="display:flex; gap:8px; align-items:flex-start;">
@@ -1642,6 +1649,7 @@
           const email = document.getElementById('book-email-mobile').value.trim();
           const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
           const message = document.getElementById('book-message-mobile')?.value.trim() || '';
+          const vehicle = document.getElementById('book-vehicle-mobile')?.value.trim() || '';
           const descCheck = document.getElementById('book-description-read-mobile');
           const descriptionRead = descCheck ? descCheck.checked : true;
           const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
@@ -1664,6 +1672,7 @@
                 email,
                 phone,
                 message: message || undefined,
+                vehicle_license_plate: vehicle || undefined,
                 description_read: descriptionRead,
                 reminder_opt_in: reminderOptIn,
                 reminder_channel: reminderChannel
@@ -1723,6 +1732,7 @@
           const email = document.getElementById('book-email').value.trim();
           const phone = document.getElementById('book-phone')?.value.trim() || '';
           const message = document.getElementById('book-message')?.value.trim() || '';
+          const vehicle = document.getElementById('book-vehicle')?.value.trim() || '';
           const descCheck = document.getElementById('book-description-read');
           const descriptionRead = descCheck ? descCheck.checked : true;
           const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
@@ -1745,6 +1755,7 @@
                 email,
                 phone,
                 message: message || undefined,
+                vehicle_license_plate: vehicle || undefined,
                 description_read: descriptionRead,
                 reminder_opt_in: reminderOptIn,
                 reminder_channel: reminderChannel
