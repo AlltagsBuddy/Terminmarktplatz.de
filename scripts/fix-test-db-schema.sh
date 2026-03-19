@@ -56,6 +56,7 @@ ALTER TABLE booking ADD COLUMN IF NOT EXISTS deposit_paid_at TIMESTAMP;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS stripe_session_id TEXT;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS customer_message TEXT;
 ALTER TABLE booking ADD COLUMN IF NOT EXISTS customer_phone TEXT;
+ALTER TABLE booking ADD COLUMN IF NOT EXISTS vehicle_license_plate TEXT;
 " 2>/dev/null || true
 
 # Rechte

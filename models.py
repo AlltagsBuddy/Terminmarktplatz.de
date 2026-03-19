@@ -321,6 +321,7 @@ class Booking(Base):
     customer_email: Mapped[str | None] = mapped_column(Text)
     customer_phone: Mapped[str | None] = mapped_column(Text)
     customer_message: Mapped[str | None] = mapped_column(Text)  # Notiz des Suchenden an den Anbieter
+    vehicle_license_plate: Mapped[str | None] = mapped_column(Text)  # Kfz-Kennzeichen (für WWS/WareVision)
 
     status: Mapped[str] = mapped_column(Text, default="hold")
     reminder_opt_in: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -802,6 +802,7 @@ def _ensure_booking_reminder_fields():
         ("reminder_channel", "text"),
         ("reminder_sent_at", "timestamp without time zone"),
         ("customer_message", "text"),
+        ("vehicle_license_plate", "text"),
     ]
     try:
         with engine.begin() as conn:
@@ -2643,10 +2644,12 @@ def _send_warevision_webhook(
     customer_phone: str | None = None,
     slot_title: str | None = None,
     description: str | None = None,
+    vehicle_license_plate: str | None = None,
 ) -> None:
     """
     Sendet Buchungs-Events an WareVision/Warenwirtschaft (Webhook).
     action: 'booking' | 'cancel' | 'update'
+    Spec: B2 (Buchung), B3 (Stornierung)
     """
     if not provider:
         return
@@ -2666,12 +2669,11 @@ def _send_warevision_webhook(
             return s[:-2] + ":" + s[-2:]
         return s
 
-    payload = {
+    payload: dict[str, object] = {
         "external_booking_id": f"tm-{booking_id}",
-        "action": action,
     }
     if action == "cancel":
-        pass  # payload hat nur external_booking_id + action
+        payload["action"] = "cancel"
     elif action in ("booking", "update"):
         payload["starts_at"] = _fmt_tz(_iso_berlin(starts_at))
         payload["ends_at"] = _fmt_tz(_iso_berlin(ends_at))
@@ -2689,7 +2691,9 @@ def _send_warevision_webhook(
             if customer_email:
                 payload["customer_email"] = customer_email.strip()
             if customer_phone:
-                payload["customer_phone"] = customer_phone.strip()
+                payload["customer_phone"] = (customer_phone or "").strip()
+            if vehicle_license_plate:
+                payload["vehicle_license_plate"] = (vehicle_license_plate or "").strip()
 
     try:
         r = requests.post(
@@ -7889,6 +7893,7 @@ def stripe_webhook():
                     customer_phone=getattr(b, "customer_phone", None),
                     slot_title=slot.title,
                     description=getattr(b, "customer_message", None),
+                    vehicle_license_plate=getattr(b, "vehicle_license_plate", None),
                 )
             except Exception as e:
                 app.logger.warning("Stripe webhook: WareVision webhook failed: %r", e)
@@ -8545,6 +8550,7 @@ def public_book():
     email = (data.get("email") or "").strip().lower()
     phone = (data.get("phone") or "").strip()
     message = (data.get("message") or "").strip() or None
+    vehicle_license_plate = (data.get("vehicle_license_plate") or "").strip() or None
     reminder_opt_in = data.get("reminder_opt_in", True)
     reminder_channel = (data.get("reminder_channel") or "email").strip().lower()
     description_read = data.get("description_read", False)
@@ -8631,6 +8637,7 @@ def public_book():
             customer_email=email,
             customer_phone=phone or None,
             customer_message=message,
+            vehicle_license_plate=vehicle_license_plate,
             status="hold",
             provider_fee_eur=fee,
             reminder_opt_in=bool(reminder_opt_in),
@@ -8958,6 +8965,7 @@ def public_confirm():
                         customer_phone=getattr(b, "customer_phone", None),
                         slot_title=slot_obj.title,
                         description=getattr(b, "customer_message", None),
+                        vehicle_license_plate=getattr(b, "vehicle_license_plate", None),
                     )
                 except Exception as e:
                     app.logger.warning("public_confirm: WareVision webhook failed: %r", e)
