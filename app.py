@@ -2721,8 +2721,8 @@ def _send_warevision_webhook(
                 parts = name.split(None, 1)
                 payload["customer_first_name"] = parts[0]
                 payload["customer_last_name"] = parts[1] if len(parts) > 1 else ""
-            if customer_email:
-                payload["customer_email"] = customer_email.strip()
+            # E-Mail und Telefon immer an WWS mitsenden (für Kontakt)
+            payload["customer_email"] = (customer_email or "").strip()
             if customer_phone:
                 payload["customer_phone"] = (customer_phone or "").strip()
             if vehicle_license_plate:
