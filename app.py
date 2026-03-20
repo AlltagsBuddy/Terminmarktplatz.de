@@ -426,6 +426,7 @@ CORS(
         # Webhooks / health / assets
         r"/webhook/stripe": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
         r"/webhook/copecart": {"origins": ALLOWED_ORIGINS, "supports_credentials": False},
+        r"/webhook/warevision": {"origins": "*", "supports_credentials": False},
         r"/api/health": {"origins": "*", "supports_credentials": False},
         r"/healthz": {"origins": "*", "supports_credentials": False},
         r"/static/*": {"origins": "*", "supports_credentials": False},
@@ -3212,6 +3213,7 @@ def maybe_api_only():
         or request.path.startswith("/copecart/")
         or request.path.startswith("/webhook/stripe")
         or request.path.startswith("/webhook/copecart")
+        or request.path.startswith("/webhook/warevision")
         or request.path.startswith("/me")
         or request.path.startswith("/api/")
         or request.path.startswith("/alerts/")
@@ -8246,6 +8248,96 @@ def copecart_webhook():
     except Exception:
         app.logger.exception("CopeCart webhook failed")
         return "server error", 500
+
+
+# --------------------------------------------------------
+# WareVision: Storno-Benachrichtigung von WWS → Terminmarktplatz
+# --------------------------------------------------------
+@app.post("/webhook/warevision")
+def webhook_warevision():
+    """
+    Empfängt Storno-Benachrichtigungen von WareVision (WWS).
+    POST-Body (JSON): external_booking_id, action, cancel_reason (optional)
+    Header: X-API-Key (Provider webhook_api_key)
+    """
+    data = request.get_json(silent=True, force=True) or {}
+    external_id = (data.get("external_booking_id") or "").strip()
+    action = (data.get("action") or "").strip().lower()
+    cancel_reason = (data.get("cancel_reason") or "").strip()
+
+    if not external_id:
+        return jsonify({"error": "missing external_booking_id"}), 400
+    if action != "cancel":
+        return jsonify({"error": "unsupported action", "action": action}), 400
+
+    # external_booking_id: "tm-{uuid}" oder "{uuid}"
+    booking_id = external_id.removeprefix("tm-").strip()
+    if not booking_id:
+        return jsonify({"error": "invalid external_booking_id"}), 400
+
+    api_key = (request.headers.get("X-API-Key") or "").strip()
+    if not api_key:
+        return jsonify({"error": "missing X-API-Key"}), 401
+
+    try:
+        with Session(engine) as s:
+            b = s.get(Booking, booking_id, with_for_update=True)
+            if not b:
+                return jsonify({"error": "booking_not_found", "external_booking_id": external_id}), 404
+
+            provider = s.get(Provider, b.provider_id) if b.provider_id else None
+            provider_key = (getattr(provider, "webhook_api_key", None) or "").strip()
+            if not provider_key or not hmac.compare_digest(provider_key, api_key):
+                return jsonify({"error": "invalid_api_key"}), 401
+
+            slot = s.get(Slot, b.slot_id) if b.slot_id else None
+            already_canceled = b.status == "canceled"
+
+            if not already_canceled and b.status in ("hold", "confirmed"):
+                b.status = "canceled"
+                s.commit()
+
+            customer_email = (b.customer_email or "").strip()
+            customer_name = (b.customer_name or "").strip() or "Kunde"
+            slot_title = slot.title if slot else "dein Termin"
+            provider_name = (
+                (provider.company_name or provider.email) if provider else "der Anbieter"
+            )
+            slot_time_str = ""
+            if slot and slot.start_at:
+                slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
+                slot_time_str = slot_start_local.strftime("%d.%m.%Y %H:%M") + " Uhr"
+            if not slot_time_str:
+                slot_time_str = "(unbekannt)"
+
+            if customer_email:
+                reason_txt = f"\n\nBegründung:\n{cancel_reason}" if cancel_reason else ""
+                body = (
+                    f"Hallo {customer_name},\n\n"
+                    f"dein Termin '{slot_title}' am {slot_time_str} wurde von {provider_name} abgesagt."
+                    f"{reason_txt}\n\n"
+                    "Bitte buche bei Bedarf einen neuen Termin.\n\n"
+                    "Viele Grüße\n"
+                    "Terminmarktplatz"
+                )
+                ok, info = send_mail(
+                    customer_email,
+                    "Termin abgesagt",
+                    text=body,
+                    tag="booking_canceled_by_warevision",
+                    metadata={"booking_id": str(b.id), "slot_id": str(b.slot_id) if b.slot_id else None},
+                )
+                app.logger.info(
+                    "webhook_warevision: cancel mail to %s ok=%s info=%s",
+                    customer_email,
+                    ok,
+                    info,
+                )
+
+        return jsonify({"ok": True, "canceled": not already_canceled})
+    except Exception as e:
+        app.logger.exception("webhook_warevision failed: %r", e)
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
 
 
 # --------------------------------------------------------
