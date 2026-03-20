@@ -8257,17 +8257,25 @@ def copecart_webhook():
 def webhook_warevision():
     """
     Empfängt Storno-Benachrichtigungen von WareVision (WWS).
-    POST-Body (JSON): external_booking_id, action, cancel_reason (optional)
+    POST-Body (JSON): external_booking_id (oder booking_id), action, cancel_reason (optional)
     Header: X-API-Key (Provider webhook_api_key)
     """
     data = request.get_json(silent=True, force=True) or {}
-    external_id = (data.get("external_booking_id") or "").strip()
+    external_id = (
+        (data.get("external_booking_id") or data.get("booking_id") or data.get("id") or "")
+    ).strip()
     action = (data.get("action") or "").strip().lower()
-    cancel_reason = (data.get("cancel_reason") or "").strip()
+    cancel_reason = (data.get("cancel_reason") or data.get("reason") or "").strip()
+
+    app.logger.info(
+        "webhook_warevision: received action=%r external_id=%r",
+        action,
+        external_id[:20] + "..." if len(external_id) > 20 else external_id,
+    )
 
     if not external_id:
         return jsonify({"error": "missing external_booking_id"}), 400
-    if action != "cancel":
+    if action not in ("cancel", "cancelled", "storno"):
         return jsonify({"error": "unsupported action", "action": action}), 400
 
     # external_booking_id: "tm-{uuid}" oder "{uuid}"
@@ -8310,6 +8318,7 @@ def webhook_warevision():
             if not slot_time_str:
                 slot_time_str = "(unbekannt)"
 
+            mail_ok = None
             if customer_email:
                 reason_txt = f"\n\nBegründung:\n{cancel_reason}" if cancel_reason else ""
                 body = (
@@ -8327,14 +8336,24 @@ def webhook_warevision():
                     tag="booking_canceled_by_warevision",
                     metadata={"booking_id": str(b.id), "slot_id": str(b.slot_id) if b.slot_id else None},
                 )
+                mail_ok = ok
                 app.logger.info(
                     "webhook_warevision: cancel mail to %s ok=%s info=%s",
                     customer_email,
                     ok,
                     info,
                 )
+                if not ok:
+                    app.logger.warning(
+                        "webhook_warevision: Storno-Mail fehlgeschlagen to=%s reason=%s",
+                        customer_email,
+                        info,
+                    )
 
-        return jsonify({"ok": True, "canceled": not already_canceled})
+        resp = {"ok": True, "canceled": not already_canceled}
+        if mail_ok is not None:
+            resp["mail_sent"] = mail_ok
+        return jsonify(resp)
     except Exception as e:
         app.logger.exception("webhook_warevision failed: %r", e)
         return jsonify({"error": "server_error", "detail": str(e)}), 500
