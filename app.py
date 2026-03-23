@@ -2704,9 +2704,10 @@ def _send_warevision_webhook(
 
     payload: dict[str, object] = {
         "external_booking_id": f"tm-{booking_id}",
+        "action": action,
     }
     if action == "cancel":
-        payload["action"] = "cancel"
+        pass  # action already set
     elif action in ("booking", "update"):
         payload["starts_at"] = _fmt_tz(_iso_berlin(starts_at))
         payload["ends_at"] = _fmt_tz(_iso_berlin(ends_at))
@@ -2749,10 +2750,11 @@ def _send_warevision_webhook(
             app.logger.info("WareVision webhook %s OK (booking %s)", action, booking_id)
         else:
             app.logger.warning(
-                "WareVision webhook %s failed: %r %r",
+                "WareVision webhook %s failed: status=%s body=%s payload_keys=%s",
                 action,
                 r.status_code,
-                r.text[:200],
+                (r.text or "")[:300],
+                list(payload.keys()),
             )
     except Exception as e:
         app.logger.warning("WareVision webhook %s error: %r", action, e)
