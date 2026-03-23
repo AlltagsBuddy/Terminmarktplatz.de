@@ -1196,21 +1196,22 @@ def _ensure_last_login_field():
 def _ensure_provider_warevision_webhook():
     """Provider: webhook_url, webhook_api_key für WareVision/Warenwirtschaft."""
     try:
-        with engine.begin() as conn:
+        # Eigener Connection mit AUTOCOMMIT, um "transaction is aborted" zu vermeiden
+        raw = engine.raw_connection()
+        try:
+            raw.autocommit = True
+            cur = raw.cursor()
             for col, typ in [("webhook_url", "TEXT"), ("webhook_api_key", "TEXT")]:
                 if IS_POSTGRESQL:
-                    try:
-                        conn.execute(text(f"ALTER TABLE provider ADD COLUMN IF NOT EXISTS {col} {typ}"))
-                    except Exception:
-                        try:
-                            conn.execute(text(f"SELECT {col} FROM provider LIMIT 1"))
-                        except Exception:
-                            conn.execute(text(f"ALTER TABLE provider ADD COLUMN {col} {typ}"))
+                    cur.execute(f"ALTER TABLE provider ADD COLUMN IF NOT EXISTS {col} {typ}")
                 else:
                     try:
-                        conn.execute(text(f"SELECT {col} FROM provider LIMIT 1"))
+                        cur.execute(f"SELECT {col} FROM provider LIMIT 1")
                     except Exception:
-                        conn.execute(text(f"ALTER TABLE provider ADD COLUMN {col} {typ}"))
+                        cur.execute(f"ALTER TABLE provider ADD COLUMN {col} {typ}")
+            cur.close()
+        finally:
+            raw.close()
     except (OperationalError, SQLAlchemyError) as e:
         print(f"⚠️  Warnung: ensure_provider_warevision_webhook fehlgeschlagen: {e}", flush=True)
 
