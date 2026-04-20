@@ -30,6 +30,25 @@
 
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Schema.org WebSite + SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Terminmarktplatz",
+    "url": "https://terminmarktplatz.de/",
+    "description": "Terminmarktplatz – Freie Termine bei Dienstleistern in deiner Nähe finden und direkt online buchen.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://terminmarktplatz.de/suche?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
   <!-- Wichtig: relative Pfade von Domainwurzel auflösen -->
   <base href="/" />
 
