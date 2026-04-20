@@ -3058,8 +3058,34 @@ def robots():
 
 @app.get("/sitemap.xml")
 def sitemap():
-    """Sitemap für Suchmaschinen"""
-    return send_from_directory(app.root_path, "sitemap.xml", mimetype="application/xml")
+    """Dynamische Sitemap mit allen öffentlichen Anbieter-Profilseiten."""
+    static_urls = [
+        "/", "/suche", "/preise", "/anbieter", "/suchende", "/kontakt",
+    ]
+    url_entries = [
+        f"  <url><loc>{BASE_URL}{path}</loc></url>" for path in static_urls
+    ]
+    try:
+        with Session(engine) as s:
+            providers = s.execute(
+                select(Provider).where(
+                    Provider.provider_number.isnot(None),
+                    Provider.published_at.isnot(None),
+                )
+            ).scalars().all()
+        for p in providers:
+            url_entries.append(
+                f"  <url><loc>{BASE_URL}/provider/{p.provider_number}</loc></url>"
+            )
+    except Exception:
+        app.logger.exception("sitemap: DB-Fehler beim Laden der Anbieter")
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(url_entries)
+        + "\n</urlset>"
+    )
+    return Response(xml, mimetype="application/xml")
 
 
 def _deploy_info():
@@ -3383,6 +3409,7 @@ if _html_enabled():
 
             provider = {
                 "name": p.public_name,
+                "number": p.provider_number,
                 "branch": p.branch,
                 "address": p.public_address,
                 "street": p.street,
@@ -9664,6 +9691,7 @@ def public_cancel():
     just_canceled = False
     customer_email = None
     customer_name = None
+    customer_phone = None
     slot_title = "dein Termin"
     slot_time_iso = ""
     provider_email = None
@@ -9682,6 +9710,7 @@ def public_cancel():
 
             customer_email = b.customer_email
             customer_name = b.customer_name
+            customer_phone = (getattr(b, "customer_phone", None) or "").strip() or None
             if slot_obj is not None:
                 slot_title = slot_obj.title or "dein Termin"
                 slot_time_iso = _from_db_as_iso_utc(slot_obj.start_at)
@@ -9827,6 +9856,11 @@ def public_cancel():
                     
                     body_prov = f"Hallo {provider_name},\n\n"
                     body_prov += f"die Buchung von {customer_name} wurde storniert:\n\n"
+                    body_prov += "Kontakt des Suchenden:\n"
+                    body_prov += f"E-Mail: {customer_email or '—'}\n"
+                    if customer_phone:
+                        body_prov += f"Telefon: {customer_phone}\n"
+                    body_prov += "\n"
                     if slot_detail_lines:
                         body_prov += "\n".join(slot_detail_lines)
                         body_prov += "\n\n"
