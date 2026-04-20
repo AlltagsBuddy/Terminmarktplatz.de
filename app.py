@@ -3061,6 +3061,7 @@ def sitemap():
     """Dynamische Sitemap mit allen öffentlichen Anbieter-Profilseiten."""
     static_urls = [
         "/", "/suche", "/preise", "/anbieter", "/suchende", "/kontakt",
+        "/blog", "/blog/leere-termine-fuellen",
     ]
     url_entries = [
         f"  <url><loc>{BASE_URL}{path}</loc></url>" for path in static_urls
@@ -3619,6 +3620,18 @@ if _html_enabled():
         except Exception:
             app.logger.exception("review_submit failed")
             return render_template("bewertung.html", error="Serverfehler.")
+
+    @app.get("/blog")
+    def blog_index():
+        return send_from_directory(APP_ROOT, "blog.html")
+
+    @app.get("/blog/<slug>")
+    def blog_article(slug):
+        safe_slug = re.sub(r"[^a-z0-9-]", "", slug.lower())
+        filepath = os.path.join(APP_ROOT, "blog", f"{safe_slug}.html")
+        if not os.path.isfile(filepath):
+            abort(404)
+        return send_from_directory(os.path.join(APP_ROOT, "blog"), f"{safe_slug}.html")
 
     @app.get("/impressum")
     def impressum():
