@@ -80,11 +80,11 @@
     }
     .blog-article .breadcrumb {
       font-size: 13px;
-      color: #64748b;
+      color: var(--ink-dim);
       margin-bottom: 24px;
     }
     .blog-article .breadcrumb a {
-      color: #6f53ff;
+      color: #a78bfa;
       text-decoration: none;
     }
     .blog-article .breadcrumb a:hover { text-decoration: underline; }
@@ -93,33 +93,35 @@
       font-weight: 800;
       line-height: 1.2;
       margin-bottom: 16px;
-      color: #0f172a;
+      color: var(--ink);
     }
     .blog-article .meta {
       font-size: 13px;
-      color: #94a3b8;
+      color: var(--ink-dim);
       margin-bottom: 32px;
       padding-bottom: 24px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--border);
     }
     .blog-article h2 {
       font-size: 1.35rem;
       font-weight: 700;
       margin: 40px 0 12px;
-      color: #0f172a;
+      color: var(--ink);
     }
     .blog-article h3 {
       font-size: 1.1rem;
       font-weight: 600;
       margin: 24px 0 8px;
-      color: #1e293b;
+      color: var(--ink);
     }
     .blog-article p {
       font-size: 1rem;
       line-height: 1.75;
-      color: #334155;
+      color: var(--ink-dim);
       margin-bottom: 16px;
     }
+    .blog-article a { color: #a78bfa; }
+    .blog-article a:hover { text-decoration: underline; }
     .blog-article ul, .blog-article ol {
       padding-left: 24px;
       margin-bottom: 16px;
@@ -127,19 +129,19 @@
     .blog-article li {
       font-size: 1rem;
       line-height: 1.75;
-      color: #334155;
+      color: var(--ink-dim);
       margin-bottom: 6px;
     }
     .blog-article .highlight-box {
-      background: #f0eeff;
-      border-left: 4px solid #6f53ff;
+      background: rgba(124, 58, 237, 0.15);
+      border-left: 4px solid #a78bfa;
       border-radius: 0 12px 12px 0;
       padding: 20px 24px;
       margin: 32px 0;
     }
     .blog-article .highlight-box p {
       margin: 0;
-      color: #1e1347;
+      color: var(--ink);
       font-weight: 500;
     }
     .blog-article .cta-box {
@@ -171,7 +173,7 @@
       text-decoration: none;
       display: inline-block;
     }
-    .blog-article .cta-box .btn-white:hover { background: #f0eeff; }
+    .blog-article .cta-box .btn-white:hover { background: #ede9fe; }
 
     .tip-number {
       display: inline-flex;
@@ -179,7 +181,7 @@
       justify-content: center;
       width: 32px;
       height: 32px;
-      background: #6f53ff;
+      background: #7c3aed;
       color: #fff;
       border-radius: 50%;
       font-weight: 700;
