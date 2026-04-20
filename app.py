@@ -3061,7 +3061,7 @@ def sitemap():
     """Dynamische Sitemap mit allen öffentlichen Anbieter-Profilseiten."""
     static_urls = [
         "/", "/suche", "/preise", "/anbieter", "/suchende", "/kontakt",
-        "/blog", "/blog/leere-termine-fuellen",
+        "/blog", "/blog/leere-termine-fuellen", "/blog/no-show-vermeiden",
     ]
     url_entries = [
         f"  <url><loc>{BASE_URL}{path}</loc></url>" for path in static_urls
