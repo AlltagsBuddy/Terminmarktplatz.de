@@ -1,55 +1,55 @@
 <svg viewBox="0 0 460 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Terminmarktplatz Dashboard-Vorschau: Slot-Verwaltung mit Statusübersicht">
   <title>Terminmarktplatz — Dashboard Vorschau</title>
   <defs>
-    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="hm-bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0f172a"/>
       <stop offset="100%" stop-color="#0b0f1a"/>
     </linearGradient>
-    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="hm-brand-grad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6bcb"/>
       <stop offset="50%" stop-color="#7c3aed"/>
       <stop offset="100%" stop-color="#06b6d4"/>
     </linearGradient>
-    <linearGradient id="btn-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="hm-btn-grad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#7c3aed"/>
       <stop offset="100%" stop-color="#06b6d4"/>
     </linearGradient>
-    <linearGradient id="card-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="hm-card-grad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
       <stop offset="100%" stop-color="rgba(255,255,255,0.03)"/>
     </linearGradient>
-    <linearGradient id="stat1" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="hm-stat1" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ff6bcb"/>
       <stop offset="100%" stop-color="#7c3aed"/>
     </linearGradient>
-    <linearGradient id="stat2" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="hm-stat2" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#7c3aed"/>
       <stop offset="100%" stop-color="#06b6d4"/>
     </linearGradient>
-    <linearGradient id="stat3" x1="0%" y1="0%" x2="100%" y2="0%">
+    <linearGradient id="hm-stat3" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#06b6d4"/>
       <stop offset="100%" stop-color="#10b981"/>
     </linearGradient>
-    <filter id="glow-pink">
+    <filter id="hm-glow-pink">
       <feGaussianBlur stdDeviation="8" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="glow-cyan">
+    <filter id="hm-glow-cyan">
       <feGaussianBlur stdDeviation="6" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <clipPath id="round-clip">
+    <clipPath id="hm-round-clip">
       <rect width="460" height="340" rx="18"/>
     </clipPath>
   </defs>
 
   <!-- Outer frame -->
-  <rect width="460" height="340" rx="18" fill="url(#bg-grad)"/>
+  <rect width="460" height="340" rx="18" fill="url(#hm-bg-grad)"/>
   <rect width="460" height="340" rx="18" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
 
   <!-- Ambient glow blobs -->
-  <ellipse cx="60" cy="40" rx="120" ry="80" fill="rgba(255,107,203,0.12)" filter="url(#glow-pink)"/>
-  <ellipse cx="400" cy="300" rx="100" ry="70" fill="rgba(6,182,212,0.10)" filter="url(#glow-cyan)"/>
+  <ellipse cx="60" cy="40" rx="120" ry="80" fill="rgba(255,107,203,0.12)" filter="url(#hm-glow-pink)"/>
+  <ellipse cx="400" cy="300" rx="100" ry="70" fill="rgba(6,182,212,0.10)" filter="url(#hm-glow-cyan)"/>
 
   <!-- Top bar -->
   <rect x="0" y="0" width="460" height="44" rx="18" fill="rgba(255,255,255,0.04)"/>
@@ -57,7 +57,7 @@
   <rect x="0" y="43" width="460" height="1" fill="rgba(255,255,255,0.10)"/>
 
   <!-- Brand dot -->
-  <rect x="16" y="13" width="18" height="18" rx="6" fill="url(#brand-grad)"/>
+  <rect x="16" y="13" width="18" height="18" rx="6" fill="url(#hm-brand-grad)"/>
   <!-- Brand text -->
   <text x="40" y="26" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">Terminmarktplatz</text>
   <!-- Nav items -->
@@ -65,33 +65,33 @@
   <text x="262" y="26" font-family="Inter, Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.5)">Profil</text>
   <text x="296" y="26" font-family="Inter, Arial, sans-serif" font-size="10" fill="rgba(255,255,255,0.5)">Bewertungen</text>
   <!-- Avatar circle -->
-  <circle cx="440" cy="22" r="10" fill="url(#btn-grad)"/>
+  <circle cx="440" cy="22" r="10" fill="url(#hm-btn-grad)"/>
   <text x="440" y="26" font-family="Inter, Arial, sans-serif" font-size="9" font-weight="700" fill="#0b0f1a" text-anchor="middle">AB</text>
 
   <!-- Page title -->
   <text x="20" y="68" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800" fill="#f8fafc">Meine Slots</text>
   <!-- Gradient underline after h2 (mimics CSS h2::after) -->
-  <rect x="100" y="62" width="44" height="5" rx="3" fill="url(#brand-grad)"/>
+  <rect x="100" y="62" width="44" height="5" rx="3" fill="url(#hm-brand-grad)"/>
 
   <!-- + Slot button -->
-  <rect x="360" y="54" width="82" height="26" rx="12" fill="url(#btn-grad)"/>
+  <rect x="360" y="54" width="82" height="26" rx="12" fill="url(#hm-btn-grad)"/>
   <text x="401" y="72" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="800" fill="#0b0f1a" text-anchor="middle">+ Neuer Slot</text>
 
   <!-- Stat cards row -->
   <!-- Card 1 -->
   <rect x="20" y="84" width="126" height="52" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)" stroke-width="0.5"/>
   <text x="30" y="102" font-family="Inter, Arial, sans-serif" font-size="9" fill="rgba(255,255,255,0.5)">Aktive Slots</text>
-  <text x="30" y="122" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#stat1)">7</text>
+  <text x="30" y="122" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#hm-stat1)">7</text>
 
   <!-- Card 2 -->
   <rect x="158" y="84" width="126" height="52" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)" stroke-width="0.5"/>
   <text x="168" y="102" font-family="Inter, Arial, sans-serif" font-size="9" fill="rgba(255,255,255,0.5)">Buchungen heute</text>
-  <text x="168" y="122" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#stat2)">3</text>
+  <text x="168" y="122" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#hm-stat2)">3</text>
 
   <!-- Card 3 -->
   <rect x="296" y="84" width="146" height="52" rx="12" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.10)" stroke-width="0.5"/>
   <text x="306" y="102" font-family="Inter, Arial, sans-serif" font-size="9" fill="rgba(255,255,255,0.5)">Umsatz gerettet</text>
-  <text x="306" y="122" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#stat3)">420 €</text>
+  <text x="306" y="122" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="900" fill="url(#hm-stat3)">420 €</text>
 
   <!-- Table header -->
   <rect x="20" y="148" width="422" height="24" rx="6" fill="rgba(255,255,255,0.05)"/>
