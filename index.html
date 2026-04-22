@@ -352,17 +352,20 @@
     }
   </style>
   <style>
-    :root {
-      --tm-green-dark: #0a5c3e;
-      --tm-green-mid: #1a8a5e;
-      --tm-green-light: #d6f5e8;
-    }
-
+    /* Kundenstimmen – an Portal-Palette (static/style.css: --c-purple, --bg, --ink) */
     .tm-testimonial-section {
-      --green-dark: #0a5c3e;
-      --green-mid: #1a8a5e;
-      --green-light: #d6f5e8;
-      background: #f7f7f5;
+      --tm-border: rgba(255, 255, 255, 0.12);
+      --tm-ink: #f8fafc;
+      --tm-ink-dim: #cbd5e1;
+      --tm-violet: #8b5cf6;
+      --tm-purple: #7c3aed;
+      --tm-cyan: #22d3ee;
+      background: linear-gradient(
+        180deg,
+        rgba(11, 15, 26, 0.2) 0%,
+        rgba(15, 23, 42, 0.55) 50%,
+        rgba(10, 14, 24, 0.92) 100%
+      );
       padding: 56px 0 0;
     }
 
@@ -379,12 +382,16 @@
       font-weight: 500;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: var(--tm-green-mid, #1a8a5e);
-      background: var(--tm-green-light, #d6f5e8);
-      border: 1px solid rgba(26, 138, 94, 0.28);
+      color: #c4b5fd;
+      background: rgba(124, 58, 237, 0.18);
+      border: 1px solid rgba(139, 92, 246, 0.35);
       border-radius: 999px;
       padding: 0.4rem 0.9rem;
       margin: 0 0 1rem;
+    }
+
+    .tm-testimonial-section h2.tm-testimonial-title::after {
+      display: none;
     }
 
     .tm-testimonial-title {
@@ -392,9 +399,20 @@
       font-size: clamp(1.75rem, 3.2vw, 2.25rem);
       font-weight: 400;
       font-style: italic;
-      color: var(--tm-green-mid, #1a8a5e);
       line-height: 1.2;
       margin: 0 0 0.75rem;
+      color: #e9d5ff;
+      background: linear-gradient(135deg, #e9d5ff 0%, #a5f3fc 50%, #f0abfc 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    @supports not (background-clip: text) {
+      .tm-testimonial-title {
+        color: #e9d5ff;
+        background: none;
+      }
     }
 
     .tm-testimonial-sub {
@@ -402,7 +420,7 @@
       font-size: 1.05rem;
       font-weight: 400;
       line-height: 1.6;
-      color: #3a3a3a;
+      color: var(--tm-ink-dim);
       max-width: 42em;
       margin: 0 0 1.75rem;
     }
@@ -411,11 +429,12 @@
       display: flex;
       flex-wrap: wrap;
       align-items: stretch;
-      background: #fff;
-      border: 1px solid #e2e2e2;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+      border: 1px solid var(--tm-border);
       border-radius: 14px;
       margin-bottom: 2rem;
       overflow: hidden;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.25);
     }
 
     .tm-stat {
@@ -424,7 +443,7 @@
       min-width: 120px;
       padding: 1.1rem 1rem;
       text-align: center;
-      border-left: 1px solid #e2e2e2;
+      border-left: 1px solid var(--tm-border);
     }
 
     .tm-stat:first-child {
@@ -436,8 +455,8 @@
         border-left: 0;
         flex: 1 1 50%;
         box-sizing: border-box;
-        border-top: 1px solid #e2e2e2;
-        border-right: 1px solid #e2e2e2;
+        border-top: 1px solid var(--tm-border);
+        border-right: 1px solid var(--tm-border);
       }
       .tm-stat:nth-child(-n + 2) {
         border-top: 0;
@@ -450,15 +469,25 @@
     .tm-stat__value {
       display: block;
       font-size: 1.5rem;
-      font-weight: 500;
-      color: var(--tm-green-dark, #0a5c3e);
+      font-weight: 600;
       line-height: 1.2;
+      background: linear-gradient(90deg, #c4b5fd, #7dd3fc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    @supports not (background-clip: text) {
+      .tm-stat__value {
+        color: #a78bfa;
+        background: none;
+      }
     }
 
     .tm-stat__label {
       display: block;
       font-size: 0.85rem;
-      color: #5c5c5c;
+      color: #94a3b8;
       margin-top: 0.25rem;
     }
 
@@ -482,8 +511,8 @@
 
     .tm-testimonial-card {
       font-family: "DM Sans", system-ui, sans-serif;
-      background: #fff;
-      border: 1px solid #e2e2e2;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+      border: 1px solid var(--tm-border);
       border-radius: 14px;
       padding: 1.35rem 1.25rem 1.25rem;
       display: flex;
@@ -491,12 +520,13 @@
       transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
       animation: tm-fadeUp 0.55s ease forwards;
       opacity: 0;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.25);
     }
 
     .tm-testimonial-card:hover {
-      border-color: var(--tm-green-mid, #1a8a5e);
+      border-color: rgba(139, 92, 246, 0.45);
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(10, 92, 62, 0.08);
+      box-shadow: 0 12px 32px rgba(124, 58, 237, 0.18);
     }
 
     .tm-testimonial-card--d1 { animation-delay: 0.05s; }
@@ -515,11 +545,15 @@
       height: 18px;
     }
 
+    .tm-stars .tm-star {
+      fill: #facc15;
+    }
+
     .tm-quote-deco {
       font-family: "DM Serif Display", Georgia, serif;
       font-size: 3rem;
       line-height: 0.85;
-      color: var(--tm-green-light, #d6f5e8);
+      color: rgba(124, 58, 237, 0.35);
       margin: 0 0 0.15rem;
       user-select: none;
     }
@@ -533,13 +567,13 @@
       margin: 0;
       font-size: 0.95rem;
       line-height: 1.55;
-      color: #2a2a2a;
+      color: #e2e8f0;
     }
 
     .tm-highlight {
-      color: var(--tm-green-dark, #0a5c3e);
+      color: #f5f3ff;
       font-weight: 500;
-      background: var(--tm-green-light, #d6f5e8);
+      background: rgba(124, 58, 237, 0.35);
       border-radius: 4px;
       padding: 0.08em 0.18em;
       box-decoration-break: clone;
@@ -567,16 +601,19 @@
     }
 
     .tm-avatar--g {
-      background: #d6f5e8;
-      color: #0a5c3e;
+      background: rgba(196, 181, 253, 0.28);
+      color: #ede9fe;
+      border: 1px solid rgba(139, 92, 246, 0.35);
     }
     .tm-avatar--b {
-      background: #deeeff;
-      color: #1a4f8a;
+      background: rgba(191, 219, 254, 0.22);
+      color: #dbeafe;
+      border: 1px solid rgba(59, 130, 246, 0.35);
     }
     .tm-avatar--o {
-      background: #fde8d6;
-      color: #8a3d1a;
+      background: rgba(254, 215, 170, 0.2);
+      color: #ffedd5;
+      border: 1px solid rgba(251, 146, 60, 0.35);
     }
 
     .tm-card-meta {
@@ -586,31 +623,32 @@
 
     .tm-card-name {
       font-size: 0.95rem;
-      font-weight: 500;
-      color: #1a1a1a;
+      font-weight: 600;
+      color: var(--tm-ink);
     }
 
     .tm-card-role {
       font-size: 0.8rem;
-      color: #666;
+      color: #94a3b8;
       margin-top: 0.1rem;
     }
 
     .tm-cat {
       font-size: 0.7rem;
-      font-weight: 500;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: var(--tm-green-mid, #1a8a5e);
-      background: #f0faf5;
-      border: 1px solid rgba(26, 138, 94, 0.25);
+      color: #c4b5fd;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
       border-radius: 6px;
       padding: 0.25rem 0.5rem;
       white-space: nowrap;
     }
 
     .tm-cta-banner {
-      background: #0a5c3e;
+      background: linear-gradient(135deg, #312e81 0%, #0f172a 55%, #0b0f1a 100%);
+      border: 1px solid var(--tm-border);
       border-radius: 14px;
       padding: 1.5rem 1.25rem;
       display: flex;
@@ -618,12 +656,13 @@
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
     }
 
     .tm-cta-banner p {
       font-family: "DM Sans", system-ui, sans-serif;
       margin: 0;
-      color: #fff;
+      color: #f8fafc;
       font-size: 1.05rem;
       line-height: 1.4;
       max-width: 32rem;
@@ -632,20 +671,21 @@
     .tm-cta-btn {
       font-family: "DM Sans", system-ui, sans-serif;
       display: inline-block;
-      background: #fff;
-      color: #0a5c3e;
-      font-weight: 500;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
       text-decoration: none;
       padding: 0.65rem 1.25rem;
       border-radius: 10px;
       border: 0;
-      transition: background 0.2s ease, color 0.2s ease;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
       white-space: nowrap;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
     }
 
     .tm-cta-btn:hover {
-      background: #d6f5e8;
-      color: #0a5c3e;
+      background: #e0e7ff;
+      color: #312e81;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -849,11 +889,11 @@
       <div class="tm-testimonial-grid">
         <article class="tm-testimonial-card tm-testimonial-card--d1">
           <div class="tm-stars" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
           </div>
           <p class="tm-quote-deco" aria-hidden="true">“</p>
           <blockquote>
@@ -871,11 +911,11 @@
 
         <article class="tm-testimonial-card tm-testimonial-card--d2">
           <div class="tm-stars" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
           </div>
           <p class="tm-quote-deco" aria-hidden="true">“</p>
           <blockquote>
@@ -893,11 +933,11 @@
 
         <article class="tm-testimonial-card tm-testimonial-card--d3">
           <div class="tm-stars" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
           </div>
           <p class="tm-quote-deco" aria-hidden="true">“</p>
           <blockquote>
