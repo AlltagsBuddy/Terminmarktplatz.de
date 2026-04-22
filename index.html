@@ -352,6 +352,238 @@
     }
   </style>
   <style>
+    /* Opt-in Checkliste (Neon Candy) – transparent; nur tm-optin- Klassen */
+    .tm-optin-hero {
+      --tm-optin-ink: #f8fafc;
+      --tm-optin-ink-dim: #cbd5e1;
+      background: transparent;
+      padding: 48px 0 8px;
+    }
+
+    .tm-optin-hero__inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .tm-optin-hero__card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 28px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      padding: 1.75rem 1.5rem 2rem;
+    }
+
+    @media (min-width: 641px) {
+      .tm-optin-hero__card {
+        padding: 2rem 2.25rem 2.25rem;
+      }
+    }
+
+    .tm-optin-hero__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+    }
+
+    @media (min-width: 641px) {
+      .tm-optin-hero__grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+      }
+    }
+
+    .tm-optin-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #c4b5fd;
+      background: rgba(124, 58, 237, 0.18);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem 0.4rem 0.75rem;
+      margin: 0 0 0.9rem;
+    }
+
+    .tm-optin-eyebrow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #ff6bcb, #06b6d4);
+      box-shadow: 0 0 10px rgba(255, 107, 203, 0.55);
+    }
+
+    .tm-optin-hero__title {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      font-size: clamp(1.4rem, 3.1vw, 1.9rem);
+      line-height: 1.2;
+      font-weight: 800;
+      margin: 0 0 0.75rem;
+      background: linear-gradient(90deg, #fff, #dbeafe, #fff);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    @supports not (background-clip: text) {
+      .tm-optin-hero__title {
+        color: #f8fafc;
+        background: none;
+      }
+    }
+
+    .tm-optin-hero__sub {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      margin: 0 0 1.15rem;
+      font-size: 1rem;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+
+    .tm-optin-hero__row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 0.65rem;
+    }
+
+    .tm-optin-hero__input {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      flex: 1 1 200px;
+      min-width: 0;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+    }
+
+    .tm-optin-hero__input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .tm-optin-hero__input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.45);
+    }
+
+    .tm-optin-hero__submit {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      flex-shrink: 0;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0b0f1a;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+    }
+
+    .tm-optin-hero__submit:hover {
+      filter: brightness(1.1);
+    }
+
+    .tm-optin-hero__legal {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .tm-optin-preview {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 1.5rem;
+    }
+
+    .tm-optin-preview__icon {
+      display: block;
+      width: 40px;
+      height: 40px;
+      margin-bottom: 0.9rem;
+      color: #7c3aed;
+    }
+
+    .tm-optin-preview__title {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #f8fafc;
+      margin: 0 0 0.4rem;
+    }
+
+    .tm-optin-preview__sub {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      margin: 0 0 1rem;
+    }
+
+    .tm-optin-preview__list {
+      list-style: none;
+      margin: 0 0 1rem;
+      padding: 0;
+    }
+
+    .tm-optin-preview__item {
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: #f8fafc;
+      margin-bottom: 0.5rem;
+    }
+
+    .tm-optin-preview__item:last-child {
+      margin-bottom: 0;
+    }
+
+    .tm-optin-check {
+      display: inline-block;
+      font-weight: 800;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #ff6bcb, #06b6d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    @supports not (background-clip: text) {
+      .tm-optin-check {
+        color: #7dd3fc;
+        background: none;
+      }
+    }
+
+    .tm-optin-badg {
+      display: inline-block;
+      font-family: Inter, "DM Sans", system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+      padding: 0.35rem 0.7rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+    }
+  </style>
+  <style>
     /* Kundenstimmen – an Portal-Palette (static/style.css: --c-purple, --bg, --ink) */
     .tm-testimonial-section {
       --tm-border: rgba(255, 255, 255, 0.12);
@@ -688,6 +920,42 @@
       color: #312e81;
     }
 
+    .tm-cta-banner .tm-optin-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.65rem;
+      flex: 1 1 280px;
+      max-width: 100%;
+    }
+
+    .tm-optin-form .tm-optin-email {
+      font-family: "DM Sans", system-ui, sans-serif;
+      flex: 1 1 200px;
+      min-width: 0;
+      max-width: 320px;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.95rem;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 10px;
+    }
+
+    .tm-optin-form .tm-optin-email::placeholder {
+      color: #64748b;
+    }
+
+    .tm-optin-form .tm-optin-email:focus {
+      outline: 2px solid #a5b4fc;
+      outline-offset: 2px;
+    }
+
+    .tm-optin-form .tm-cta-btn {
+      flex-shrink: 0;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .tm-testimonial-card {
         animation: none;
@@ -861,7 +1129,92 @@
     </section>
   </main>
 
-  <section class="tm-testimonial-section" aria-labelledby="tm-testimonial-heading">
+  <section class="tm-optin-hero" id="gratis-checkliste" aria-labelledby="tm-optin-hero-h">
+    <div class="tm-optin-hero__inner">
+      <div class="tm-optin-hero__card">
+        <div class="tm-optin-hero__grid">
+          <div>
+            <span class="tm-optin-eyebrow"
+              ><span class="tm-optin-eyebrow-dot" aria-hidden="true"></span> Gratis-Checkliste</span>
+            <h2 id="tm-optin-hero-h" class="tm-optin-hero__title">5 Wege, No-Shows zu eliminieren</h2>
+            <p class="tm-optin-hero__sub">
+              Hol dir die kostenlose Checkliste — sofort umsetzbar, für jeden Dienstleister.
+            </p>
+            <form
+              class="tm-optin-hero-form"
+              action=""
+              onsubmit="document.getElementById('tm-optin-dl').click(); return false;"
+            >
+              <a
+                id="tm-optin-dl"
+                href="static/checkliste-no-shows-terminmarktplatz.pdf"
+                download
+                style="display:none"
+                aria-hidden="true"
+                tabindex="-1"
+              ></a>
+              <div class="tm-optin-hero__row">
+                <label for="tm-optin-hero-mail" class="sr-only">E-Mail für die Checkliste</label>
+                <input
+                  id="tm-optin-hero-mail"
+                  class="tm-optin-hero__input"
+                  type="email"
+                  name="email"
+                  required
+                  autocomplete="email"
+                  inputmode="email"
+                  placeholder="deine@email.de"
+                />
+                <button class="tm-optin-hero__submit" type="submit">Checkliste herunterladen →</button>
+              </div>
+            </form>
+            <p class="tm-optin-hero__legal">Kein Spam. Nur die Checkliste. Abmelden jederzeit möglich.</p>
+          </div>
+          <div>
+            <div class="tm-optin-preview">
+              <svg
+                class="tm-optin-preview__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14 2v4h4"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path d="M8 13h8M8 17h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
+              <h3 class="tm-optin-preview__title">Gratis-Checkliste</h3>
+              <p class="tm-optin-preview__sub">5 Wege, No-Shows &amp; Terminlücken zu eliminieren</p>
+              <ul class="tm-optin-preview__list">
+                <li class="tm-optin-preview__item">
+                  <span class="tm-optin-check" aria-hidden="true">✓</span> Sofort umsetzbar
+                </li>
+                <li class="tm-optin-preview__item">
+                  <span class="tm-optin-check" aria-hidden="true">✓</span> Kein neues System nötig
+                </li>
+                <li class="tm-optin-preview__item">
+                  <span class="tm-optin-check" aria-hidden="true">✓</span> 1 Seite, direkt druckbar
+                </li>
+              </ul>
+              <div class="tm-optin-badg">PDF · Kostenlos · 1 Seite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tm-testimonial-section tm-testi" aria-labelledby="tm-testimonial-heading">
     <div class="tm-container">
       <span class="tm-eyebrow">Kundenstimmen</span>
       <h2 id="tm-testimonial-heading" class="tm-testimonial-title">Was Anbieter wirklich sagen</h2>
@@ -956,7 +1309,28 @@
 
       <div class="tm-cta-banner">
         <p>Bereit, deine Stornolücken sichtbar zu machen? In wenigen Klicks bist du startklar – ohne Vertragsfalle.</p>
-        <a class="tm-cta-btn" href="/login.html">Als Anbieter starten</a>
+        <!-- Brevo: Liste → Einbetten → HTML-Formular: hier die vollständige form-action-URL (z. B. sibforms.com) eintragen. -->
+        <form
+          class="tm-optin-form"
+          method="post"
+          action="https://sibforms.com/serve/DEINE_BREVO_FORM_ID"
+          accept-charset="UTF-8"
+        >
+          <!-- Zusatz für Danke-Seite / Download: URL anpassen; in Brevo ggf. passendes Kontakt-Attribut anlegen. -->
+          <input type="hidden" name="DOWNLOAD_DANKE" value="https://terminmarktplatz.de/static/lead-magnet.pdf" />
+          <label for="tm-optin-email" class="sr-only">E-Mail</label>
+          <input
+            id="tm-optin-email"
+            class="tm-optin-email"
+            type="email"
+            name="EMAIL"
+            required
+            autocomplete="email"
+            placeholder="deine@email.de"
+            inputmode="email"
+          />
+          <button class="tm-cta-btn" type="submit">Als Anbieter starten</button>
+        </form>
       </div>
     </div>
   </section>
