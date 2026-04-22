@@ -30,6 +30,25 @@
 
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Schema.org WebSite + SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Terminmarktplatz",
+    "url": "https://terminmarktplatz.de/",
+    "description": "Terminmarktplatz – Freie Termine bei Dienstleistern in deiner Nähe finden und direkt online buchen.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://terminmarktplatz.de/suche?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
   <!-- Wichtig: relative Pfade von Domainwurzel auflösen -->
   <base href="/" />
 
@@ -963,6 +982,14 @@
       }
     }
   </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-508763756');
+  </script>
 </head>
 
 <body>
@@ -1009,6 +1036,7 @@
         <a href="anbieter.html">Für Anbieter</a>
         <a href="suchende.html">Für Suchende</a>
         <a href="preise.html">Preise</a>
+        <a href="/blog">Blog</a>
       </nav>
     </div>
   </header>
@@ -1352,6 +1380,7 @@
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
         <a class="foot-link" href="hilfe.html">Hilfe & FAQ</a>
+        <a class="foot-link" href="/blog">Blog</a>
       </div>
       <div class="foot-col">
         <h4>Rechtliches</h4>

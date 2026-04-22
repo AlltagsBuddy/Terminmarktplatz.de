@@ -3061,6 +3061,8 @@ def sitemap():
     """Dynamische Sitemap mit allen öffentlichen Anbieter-Profilseiten."""
     static_urls = [
         "/", "/suche", "/preise", "/anbieter", "/suchende", "/kontakt",
+        "/blog", "/blog/leere-termine-fuellen", "/blog/no-show-vermeiden",
+        "/blog/kurzfristig-termin-finden", "/blog/online-buchbar-werden",
     ]
     url_entries = [
         f"  <url><loc>{BASE_URL}{path}</loc></url>" for path in static_urls
@@ -3619,6 +3621,60 @@ if _html_enabled():
         except Exception:
             app.logger.exception("review_submit failed")
             return render_template("bewertung.html", error="Serverfehler.")
+
+    # Blog-Artikel mit automatischer Veröffentlichung per Datum
+    BLOG_ARTICLES = [
+        {
+            "slug": "no-show-vermeiden",
+            "title": "No-Show vermeiden: Was Dienstleister wirklich tun können",
+            "description": "No-Shows kosten Zeit und Geld. Mit diesen 4 Maßnahmen reduzierst du Terminausfälle spürbar — ohne Konflikte.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 5, 1),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "leere-termine-fuellen",
+            "title": "Leere Termine füllen: 5 Wege die wirklich funktionieren",
+            "description": "No-Shows, Absagen, ruhige Tage: So füllen Dienstleister freie Slots zuverlässig — ohne Rabattschlachten.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 4, 20),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "kurzfristig-termin-finden",
+            "title": "Kurzfristig Termin finden: So klappt es wirklich",
+            "description": "Kurzfristig einen Termin beim Friseur, Arzt oder Coach finden ist oft schwer. Diese 5 Wege helfen dir.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 6, 1),
+            "reading_time": "4 Min",
+        },
+        {
+            "slug": "online-buchbar-werden",
+            "title": "Online buchbar werden als Dienstleister: Schritt für Schritt",
+            "description": "Online buchbar werden ist einfacher als gedacht. Dieser Guide zeigt wie — in unter 15 Minuten.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 7, 1),
+            "reading_time": "5 Min",
+        },
+    ]
+
+    @app.get("/blog")
+    def blog_index():
+        today = _now().astimezone(BERLIN).date()
+        visible = [a for a in BLOG_ARTICLES if a["publish_date"] <= today]
+        return render_template("blog_index.html", articles=visible)
+
+    @app.get("/blog/<slug>")
+    def blog_article(slug):
+        safe_slug = re.sub(r"[^a-z0-9-]", "", slug.lower())
+        today = _now().astimezone(BERLIN).date()
+        article = next((a for a in BLOG_ARTICLES if a["slug"] == safe_slug and a["publish_date"] <= today), None)
+        if not article:
+            abort(404)
+        filepath = os.path.join(APP_ROOT, "blog", f"{safe_slug}.html")
+        if not os.path.isfile(filepath):
+            abort(404)
+        return send_from_directory(os.path.join(APP_ROOT, "blog"), f"{safe_slug}.html")
 
     @app.get("/impressum")
     def impressum():
