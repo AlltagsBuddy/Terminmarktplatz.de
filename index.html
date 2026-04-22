@@ -41,6 +41,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css?v=8">
@@ -350,6 +351,310 @@
       }
     }
   </style>
+  <style>
+    :root {
+      --tm-green-dark: #0a5c3e;
+      --tm-green-mid: #1a8a5e;
+      --tm-green-light: #d6f5e8;
+    }
+
+    .tm-testimonial-section {
+      --green-dark: #0a5c3e;
+      --green-mid: #1a8a5e;
+      --green-light: #d6f5e8;
+      background: #f7f7f5;
+      padding: 56px 0 0;
+    }
+
+    .tm-testimonial-section .tm-container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 20px 48px;
+    }
+
+    .tm-eyebrow {
+      display: inline-block;
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--tm-green-mid, #1a8a5e);
+      background: var(--tm-green-light, #d6f5e8);
+      border: 1px solid rgba(26, 138, 94, 0.28);
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      margin: 0 0 1rem;
+    }
+
+    .tm-testimonial-title {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(1.75rem, 3.2vw, 2.25rem);
+      font-weight: 400;
+      font-style: italic;
+      color: var(--tm-green-mid, #1a8a5e);
+      line-height: 1.2;
+      margin: 0 0 0.75rem;
+    }
+
+    .tm-testimonial-sub {
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 400;
+      line-height: 1.6;
+      color: #3a3a3a;
+      max-width: 42em;
+      margin: 0 0 1.75rem;
+    }
+
+    .tm-stats {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      background: #fff;
+      border: 1px solid #e2e2e2;
+      border-radius: 14px;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+
+    .tm-stat {
+      font-family: "DM Sans", system-ui, sans-serif;
+      flex: 1 1 140px;
+      min-width: 120px;
+      padding: 1.1rem 1rem;
+      text-align: center;
+      border-left: 1px solid #e2e2e2;
+    }
+
+    .tm-stat:first-child {
+      border-left: 0;
+    }
+
+    @media (max-width: 600px) {
+      .tm-stat {
+        border-left: 0;
+        flex: 1 1 50%;
+        box-sizing: border-box;
+        border-top: 1px solid #e2e2e2;
+        border-right: 1px solid #e2e2e2;
+      }
+      .tm-stat:nth-child(-n + 2) {
+        border-top: 0;
+      }
+      .tm-stat:nth-child(2n) {
+        border-right: 0;
+      }
+    }
+
+    .tm-stat__value {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--tm-green-dark, #0a5c3e);
+      line-height: 1.2;
+    }
+
+    .tm-stat__label {
+      display: block;
+      font-size: 0.85rem;
+      color: #5c5c5c;
+      margin-top: 0.25rem;
+    }
+
+    .tm-testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    @keyframes tm-fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tm-testimonial-card {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: #fff;
+      border: 1px solid #e2e2e2;
+      border-radius: 14px;
+      padding: 1.35rem 1.25rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      animation: tm-fadeUp 0.55s ease forwards;
+      opacity: 0;
+    }
+
+    .tm-testimonial-card:hover {
+      border-color: var(--tm-green-mid, #1a8a5e);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(10, 92, 62, 0.08);
+    }
+
+    .tm-testimonial-card--d1 { animation-delay: 0.05s; }
+    .tm-testimonial-card--d2 { animation-delay: 0.15s; }
+    .tm-testimonial-card--d3 { animation-delay: 0.25s; }
+
+    .tm-stars {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 0.5rem;
+    }
+
+    .tm-stars svg {
+      display: block;
+      width: 18px;
+      height: 18px;
+    }
+
+    .tm-quote-deco {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: 3rem;
+      line-height: 0.85;
+      color: var(--tm-green-light, #d6f5e8);
+      margin: 0 0 0.15rem;
+      user-select: none;
+    }
+
+    .tm-testimonial-card blockquote {
+      margin: 0 0 1.15rem;
+      padding: 0;
+    }
+
+    .tm-testimonial-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #2a2a2a;
+    }
+
+    .tm-highlight {
+      color: var(--tm-green-dark, #0a5c3e);
+      font-weight: 500;
+      background: var(--tm-green-light, #d6f5e8);
+      border-radius: 4px;
+      padding: 0.08em 0.18em;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .tm-card-footer {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: auto;
+      padding-top: 0.25rem;
+    }
+
+    .tm-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .tm-avatar--g {
+      background: #d6f5e8;
+      color: #0a5c3e;
+    }
+    .tm-avatar--b {
+      background: #deeeff;
+      color: #1a4f8a;
+    }
+    .tm-avatar--o {
+      background: #fde8d6;
+      color: #8a3d1a;
+    }
+
+    .tm-card-meta {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .tm-card-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+
+    .tm-card-role {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.1rem;
+    }
+
+    .tm-cat {
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--tm-green-mid, #1a8a5e);
+      background: #f0faf5;
+      border: 1px solid rgba(26, 138, 94, 0.25);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      white-space: nowrap;
+    }
+
+    .tm-cta-banner {
+      background: #0a5c3e;
+      border-radius: 14px;
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .tm-cta-banner p {
+      font-family: "DM Sans", system-ui, sans-serif;
+      margin: 0;
+      color: #fff;
+      font-size: 1.05rem;
+      line-height: 1.4;
+      max-width: 32rem;
+    }
+
+    .tm-cta-btn {
+      font-family: "DM Sans", system-ui, sans-serif;
+      display: inline-block;
+      background: #fff;
+      color: #0a5c3e;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 0.65rem 1.25rem;
+      border-radius: 10px;
+      border: 0;
+      transition: background 0.2s ease, color 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tm-cta-btn:hover {
+      background: #d6f5e8;
+      color: #0a5c3e;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .tm-testimonial-card {
+        animation: none;
+        opacity: 1;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -515,6 +820,106 @@
       </div>
     </section>
   </main>
+
+  <section class="tm-testimonial-section" aria-labelledby="tm-testimonial-heading">
+    <div class="tm-container">
+      <span class="tm-eyebrow">Kundenstimmen</span>
+      <h2 id="tm-testimonial-heading" class="tm-testimonial-title">Was Anbieter wirklich sagen</h2>
+      <p class="tm-testimonial-sub">Echte Rückmeldungen von Dienstleistern, die Stornolücken füllen, ohne ihr Alltagssystem umzubauen – schnell eingerichtet, spürbar im Kalender.</p>
+
+      <div class="tm-stats" role="list">
+        <div class="tm-stat" role="listitem">
+          <span class="tm-stat__value">500+</span>
+          <span class="tm-stat__label">Anbieter:innen</span>
+        </div>
+        <div class="tm-stat" role="listitem">
+          <span class="tm-stat__value">12</span>
+          <span class="tm-stat__label">Kategorien</span>
+        </div>
+        <div class="tm-stat" role="listitem">
+          <span class="tm-stat__value">0 €</span>
+          <span class="tm-stat__label">Einstiegspreis</span>
+        </div>
+        <div class="tm-stat" role="listitem">
+          <span class="tm-stat__value" aria-label="4,8 von 5 Sternen">4,8 ★</span>
+          <span class="tm-stat__label">Bewertung</span>
+        </div>
+      </div>
+
+      <div class="tm-testimonial-grid">
+        <article class="tm-testimonial-card tm-testimonial-card--d1">
+          <div class="tm-stars" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+          </div>
+          <p class="tm-quote-deco" aria-hidden="true">“</p>
+          <blockquote>
+            <p>Früher war ein Storno einfach Umsatzverlust. Jetzt stelle ich den Slot sofort ein und <span class="tm-highlight">der nächste Kunde bucht meist innerhalb einer Stunde</span>. Einrichtung hat keine fünf Minuten gedauert.</p>
+          </blockquote>
+          <div class="tm-card-footer">
+            <div class="tm-avatar tm-avatar--g" aria-hidden="true">MF</div>
+            <div class="tm-card-meta">
+              <div class="tm-card-name">Maria Fischer</div>
+              <div class="tm-card-role">Friseurmeisterin · München</div>
+            </div>
+            <span class="tm-cat">Friseur</span>
+          </div>
+        </article>
+
+        <article class="tm-testimonial-card tm-testimonial-card--d2">
+          <div class="tm-stars" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+          </div>
+          <p class="tm-quote-deco" aria-hidden="true">“</p>
+          <blockquote>
+            <p>Als Physiotherapeut bin ich auf volle Auslastung angewiesen. Terminmarktplatz füllt kurzfristige Lücken, <span class="tm-highlight">ohne dass ich mein bestehendes System anfassen muss</span>. Genau das brauchte ich.</p>
+          </blockquote>
+          <div class="tm-card-footer">
+            <div class="tm-avatar tm-avatar--b" aria-hidden="true">TK</div>
+            <div class="tm-card-meta">
+              <div class="tm-card-name">Thomas Krause</div>
+              <div class="tm-card-role">Physiotherapeut · Hamburg</div>
+            </div>
+            <span class="tm-cat">Therapie</span>
+          </div>
+        </article>
+
+        <article class="tm-testimonial-card tm-testimonial-card--d3">
+          <div class="tm-stars" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#c9a227"/></svg>
+          </div>
+          <p class="tm-quote-deco" aria-hidden="true">“</p>
+          <blockquote>
+            <p>Im Handwerk haben Absagen oft kurzfristig Löcher gerissen. Jetzt stelle ich freie Slots rein und <span class="tm-highlight">Neukunden aus der Region finden mich direkt</span>. Kostenlos starten war der Grund, es überhaupt auszuprobieren.</p>
+          </blockquote>
+          <div class="tm-card-footer">
+            <div class="tm-avatar tm-avatar--o" aria-hidden="true">SR</div>
+            <div class="tm-card-meta">
+              <div class="tm-card-name">Sandra Richter</div>
+              <div class="tm-card-role">Malerin &amp; Lackiererin · Köln</div>
+            </div>
+            <span class="tm-cat">Handwerk</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="tm-cta-banner">
+        <p>Bereit, deine Stornolücken sichtbar zu machen? In wenigen Klicks bist du startklar – ohne Vertragsfalle.</p>
+        <a class="tm-cta-btn" href="/login.html">Als Anbieter starten</a>
+      </div>
+    </div>
+  </section>
 
   <!-- Footer -->
   <footer>
