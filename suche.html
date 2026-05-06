@@ -817,6 +817,13 @@
         </p>
       </div>
       <div class="container">
+        <div id="map-consent-placeholder" style="display:none; width:100%; height:420px; border-radius:18px; border:1px solid #e5e7eb; background:#f8fafc; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:24px; box-sizing:border-box;">
+          <p style="color:#475569; font-size:0.95rem; margin:0; max-width:420px;">
+            Diese Karte wird von <strong>Google Maps</strong> bereitgestellt. Beim Laden werden Daten (u.&thinsp;a. deine IP-Adresse) an Google&nbsp;LLC (USA) übertragen.
+            <a href="/datenschutz.html" style="color:#6f53ff;">Datenschutzhinweise</a>
+          </p>
+          <button id="maps-consent-btn" class="btn primary" type="button">Karte aktivieren</button>
+        </div>
         <div id="map" style="width:100%; height:420px; border-radius:18px; overflow:hidden; border:1px solid #e5e7eb;"></div>
         <p id="map-hint" class="muted" style="font-size:0.9rem; margin-top:8px;">
           Hinweis: Für die Routenplanung wird ein neuer Tab mit Google&nbsp;Maps geöffnet.
@@ -1105,6 +1112,19 @@
       if (!mapItems || !mapItems.length){
         if (section) section.style.display = 'none';
         clearMarkers();
+        return;
+      }
+
+      // Einwilligungs-Check: Maps erst laden, wenn Cookie-Consent oder Maps-Consent erteilt
+      const mapsConsented = localStorage.getItem('tm_cookie_consent_v8') === 'accepted' ||
+                            localStorage.getItem('tm_maps_consent_v1') === 'accepted';
+      if (!mapsConsented) {
+        pendingMapItems = mapItems.slice();
+        if (section) section.style.display = 'block';
+        const mapEl = document.getElementById('map');
+        const placeholder = document.getElementById('map-consent-placeholder');
+        if (mapEl) mapEl.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'flex';
         return;
       }
 
@@ -1920,23 +1940,40 @@
     })();
 
   
-      // Google Maps Script dynamisch laden – Key direkt eingetragen
+      // Google Maps Script – nur nach Einwilligung laden (Art. 6 Abs. 1 lit. a DSGVO)
       (function () {
         const gmKey = "AIzaSyAYaQ0WOx05nwuCF5-JTc8CK0mc_XUjBvs";
 
-        if (!gmKey) {
-          console.warn('Kein GOOGLE_MAPS_API_KEY gesetzt – Google Maps wird nicht geladen.');
-          return;
+        function hasConsent() {
+          return localStorage.getItem('tm_cookie_consent_v8') === 'accepted' ||
+                 localStorage.getItem('tm_maps_consent_v1') === 'accepted';
         }
 
-        const s = document.createElement('script');
-        s.src =
-          'https://maps.googleapis.com/maps/api/js?key=' +
-          encodeURIComponent(gmKey) +
-          '&callback=initMap&libraries=places';
-        s.async = true;
-        s.defer = true;
-        document.body.appendChild(s);
+        function loadScript() {
+          if (typeof window.google !== 'undefined') return;
+          const s = document.createElement('script');
+          s.src = 'https://maps.googleapis.com/maps/api/js?key=' +
+            encodeURIComponent(gmKey) + '&callback=initMap&libraries=places';
+          s.async = true;
+          s.defer = true;
+          document.body.appendChild(s);
+        }
+
+        if (hasConsent()) {
+          loadScript();
+        }
+
+        const consentBtn = document.getElementById('maps-consent-btn');
+        if (consentBtn) {
+          consentBtn.addEventListener('click', function () {
+            localStorage.setItem('tm_maps_consent_v1', 'accepted');
+            const placeholder = document.getElementById('map-consent-placeholder');
+            const mapEl = document.getElementById('map');
+            if (placeholder) placeholder.style.display = 'none';
+            if (mapEl) mapEl.style.display = '';
+            loadScript();
+          });
+        }
       })();
     </script>
 
