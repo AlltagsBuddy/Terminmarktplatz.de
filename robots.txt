@@ -1,11 +1,58 @@
-# robots.txt für terminmarktplatz.de
-# Öffentliche Seiten crawlen lassen, interne/technische Bereiche sperren
+# robots.txt für Terminmarktplatz.de
 
-User-agent: * 
-Disallow: /api/
-Disallow: /auth/
-Disallow: /me 
-Disallow: /alerts/ 
-Disallow: /admin/
+# -----------------------------------------------------------------------------
+# Crawler für Link-Vorschauen (Meta, LinkedIn, X, Slack …)
+# Hinweis: HTTP 403 im Facebook Debugger kommt oft von Firewall/Fail2ban,
+# nicht von robots.txt. Trotzdem explizite Allow-Einträge (Meta-Empfehlung).
+# -----------------------------------------------------------------------------
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: BingPreview
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: Slackbot-LinkExpanding
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+# -----------------------------------------------------------------------------
+# Öffentliche Website durchsuchbar
+# -----------------------------------------------------------------------------
+User-agent: *
+Allow: /
 
 Sitemap: https://terminmarktplatz.de/sitemap.xml
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Geschützte/technische Pfade nicht crawlen
+Disallow: /api/
+Disallow: /auth/
+Disallow: /me
+Disallow: /slots
+Disallow: /alerts/
+Disallow: /admin/
+
+# Freundlicheres Crawling (nicht überall wirksam)
+Crawl-delay: 1
