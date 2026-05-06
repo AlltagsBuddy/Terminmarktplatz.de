@@ -11,17 +11,21 @@
   <meta property="og:title" content="Kategorien" />
   <meta property="og:description" content="Direkt zu freien Terminen in deiner Kategorie: heute, morgen, diese Woche." />
   <meta property="og:site_name" content="Terminmarktplatz" />
-  <meta property="og:image" content="{{ url_for('static', filename='og-cover.png') }}" />
+  <meta property="og:url" content="https://terminmarktplatz.de/kategorien" />
+  <meta property="og:image" content="https://terminmarktplatz.de/static/og-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="de_DE" />
   <meta name="twitter:card" content="summary_large_image" />
 
   <!-- Basis-URL für alle relativen Links -->
   <base href="/" />
 
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" />
+  <link rel="icon" href="/static/favicon.png" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="/static/style.css">
 
   <style>
     .cat-hero{padding:40px 0 10px}
