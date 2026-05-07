@@ -1,4 +1,4 @@
-# robots.txt für Terminmarktplatz.de
+# robots.txt für Terminmarktplatz.de (Produktivumgebung)
 
 # -----------------------------------------------------------------------------
 # Crawler für Link-Vorschauen (Meta, LinkedIn, X, Slack …)
@@ -33,20 +33,10 @@ User-agent: Discordbot
 Allow: /
 
 # -----------------------------------------------------------------------------
-# Öffentliche Website durchsuchbar
+# Produktivumgebung
 # -----------------------------------------------------------------------------
 User-agent: *
 Allow: /
-
-Sitemap: https://terminmarktplatz.de/sitemap.xml
-
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-# Geschützte/technische Pfade nicht crawlen
 Disallow: /api/
 Disallow: /auth/
 Disallow: /me
@@ -56,3 +46,5 @@ Disallow: /admin/
 
 # Freundlicheres Crawling (nicht überall wirksam)
 Crawl-delay: 1
+
+Sitemap: https://terminmarktplatz.de/sitemap.xml

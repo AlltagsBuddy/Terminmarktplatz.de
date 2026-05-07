@@ -3054,7 +3054,9 @@ def favicon():
 @app.get("/robots.txt")
 def robots():
     # Direkt 200 ausliefern (kein Redirect) – einige Link-Preview-Crawler erwarten robots.txt ohne Umweg
-    return send_from_directory(STATIC_DIR, "robots.txt", mimetype="text/plain; charset=utf-8")
+    # Testsystem: static/robots-test.txt (Disallow: /), Produktion: static/robots.txt
+    fname = "robots-test.txt" if IS_TESTSYSTEM else "robots.txt"
+    return send_from_directory(STATIC_DIR, fname, mimetype="text/plain; charset=utf-8")
 
 
 @app.get("/sitemap.xml")

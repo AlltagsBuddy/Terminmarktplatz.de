@@ -1,0 +1,3 @@
+# robots.txt — Test-/Staging-Umgebung (keine Indexierung)
+User-agent: *
+Disallow: /
