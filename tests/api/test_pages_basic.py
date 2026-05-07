@@ -38,3 +38,10 @@ def test_pages_are_reachable(test_client, path: str, expected_title: str) -> Non
     html = response.get_data(as_text=True).lower()
     assert "<html" in html
     assert expected_title.lower() in html
+
+
+def test_impressum_contains_phone_number(test_client) -> None:
+    for path in ("/impressum", "/impressum.html"):
+        r = test_client.get(path)
+        assert r.status_code == 200
+        assert "8917378" in r.get_data(as_text=True)

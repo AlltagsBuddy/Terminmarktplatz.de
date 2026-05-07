@@ -3260,6 +3260,31 @@ def maybe_api_only():
     return _json_error("api_only", 404)
 
 
+def _serve_impressum_html():
+    """Liefert impressum.html aus APP_ROOT.
+
+    Falls auf dem Server noch eine ältere Datei ohne Telefonnummer liegt (Deploy nicht aktualisiert),
+    wird die Zeile nach der E-Mail-Adresse ergänzt — nur wenn sie noch fehlt.
+    """
+    path = os.path.join(APP_ROOT, "impressum.html")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            html = f.read()
+    except OSError:
+        abort(404)
+    if "tel:+491758917378" not in html:
+        needle = '<a href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a><br>'
+        if needle in html:
+            html = html.replace(
+                needle,
+                needle + '\n            Tel.: <a href="tel:+491758917378">+49 175 8917378</a><br>',
+                1,
+            )
+    resp = Response(html, mimetype="text/html; charset=utf-8")
+    resp.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+    return resp
+
+
 # --------------------------------------------------------
 # HTML ROUTES (Full mode)
 # --------------------------------------------------------
@@ -3681,7 +3706,11 @@ if _html_enabled():
 
     @app.get("/impressum")
     def impressum():
-        return send_from_directory(APP_ROOT, "impressum.html")
+        return _serve_impressum_html()
+
+    @app.get("/impressum.html")
+    def impressum_html_ext():
+        return _serve_impressum_html()
 
     @app.get("/datenschutz")
     def datenschutz():
@@ -3728,6 +3757,8 @@ if _html_enabled():
            slug.startswith(("auth/", "api/", "slots", "public/", "alerts/", "provider/", "webhook/", "admin/")):
             abort(404)  # Diese Routen werden separat definiert
         filename = slug if slug.endswith(".html") else f"{slug}.html"
+        if filename == "impressum.html":
+            return _serve_impressum_html()
         # Versuche zuerst Root-Verzeichnis (die meisten HTML-Dateien liegen dort)
         file_path = os.path.join(APP_ROOT, filename)
         if os.path.exists(file_path) and os.path.isfile(file_path):
@@ -3787,6 +3818,8 @@ if not _html_enabled():
            slug.startswith(("auth/", "api/", "slots", "public/", "alerts/", "provider/", "webhook/", "admin/")):
             abort(404)
         filename = slug if slug.endswith(".html") else f"{slug}.html"
+        if filename == "impressum.html":
+            return _serve_impressum_html()
         file_path = os.path.join(APP_ROOT, filename)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return send_from_directory(APP_ROOT, filename)
