@@ -12,8 +12,8 @@ from sqlalchemy import (
     ForeignKey,
     Numeric,
     Date as SADate,
+    Uuid,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -30,7 +30,7 @@ class Provider(Base):
     __tablename__ = "provider"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
@@ -181,13 +181,13 @@ class Slot(Base):
     __tablename__ = "slot"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
 
     provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -299,19 +299,19 @@ class Booking(Base):
     __tablename__ = "booking"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
 
     slot_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("slot.id", ondelete="CASCADE"),
         nullable=False,
     )
 
     provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -349,7 +349,7 @@ class Booking(Base):
     is_billed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     invoice_id: Mapped[str | None] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("invoice.id", ondelete="SET NULL"),
         nullable=True,
     )
@@ -405,13 +405,13 @@ class PlanPurchase(Base):
     __tablename__ = "plan_purchase"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
 
     provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -443,13 +443,13 @@ class Invoice(Base):
     __tablename__ = "invoice"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
-       default=lambda: str(uuid4()),
+        default=lambda: str(uuid4()),
     )
 
     provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -481,7 +481,7 @@ class AlertSubscription(Base):
     __tablename__ = "alert_subscription"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
@@ -558,13 +558,13 @@ class PasswordReset(Base):
     __tablename__ = "password_reset"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
 
     provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -590,20 +590,20 @@ class Review(Base):
     __tablename__ = "review"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid4()),
     )
 
     provider_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
     booking_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False),
+        Uuid(as_uuid=False),
         ForeignKey("booking.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
