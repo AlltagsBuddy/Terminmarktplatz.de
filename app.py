@@ -22,14 +22,6 @@ import smtplib
 import requests
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-# ZoneInfo robust (Backport bei < 3.9)
-try:
-    from zoneinfo import ZoneInfo
-except Exception:
-    from backports.zoneinfo import ZoneInfo
-
-BERLIN = ZoneInfo("Europe/Berlin")
-
 import time
 from sqlalchemy import create_engine, select, and_, or_, func, text, cast, String
 from sqlalchemy.orm import Session
@@ -61,6 +53,17 @@ except ImportError:
 
 # Deine ORM-Modelle
 from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset, Review
+
+from utils.errors import json_error as _json_error
+from utils.time_geo import (
+    BERLIN,
+    _now,
+    _as_utc_aware,
+    _to_db_utc_naive,
+    _from_db_as_iso_utc,
+    parse_iso_utc,
+    _haversine_km,
+)
 
 # --------------------------------------------------------
 # .env laden + Google Maps API Key
@@ -155,6 +158,29 @@ JWT_AUD = os.environ.get("JWT_AUD", "terminmarktplatz_client")
 JWT_EXP_MIN = int(os.environ.get("JWT_EXP_MINUTES", "60"))
 REFRESH_EXP_DAYS = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
 
+from utils.jwt_tokens import (
+    JWTSettings,
+    booking_token as _booking_token,
+    configure_jwt,
+    decode_access_token_subject,
+    issue_tokens,
+    provider_calendar_token as _provider_calendar_token,
+    review_token as _review_token,
+    verify_booking_token as _verify_booking_token,
+    verify_provider_calendar_token as _verify_provider_calendar_token,
+    verify_review_token as _verify_review_token,
+)
+
+configure_jwt(
+    JWTSettings(
+        secret=SECRET,
+        issuer=JWT_ISS,
+        audience=JWT_AUD,
+        access_exp_minutes=JWT_EXP_MIN,
+        refresh_exp_days=REFRESH_EXP_DAYS,
+    )
+)
+
 # --- MAIL Konfiguration (Resend standard; Postmark/SMTP optional) ---
 MAIL_PROVIDER = os.getenv("MAIL_PROVIDER", "resend")  # resend | postmark | smtp | console
 MAIL_FROM = os.getenv("MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>")
@@ -196,6 +222,25 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+from services.mail import MailConfig, configure_mail, send_mail, send_sms
+
+configure_mail(
+    MailConfig(
+        emails_enabled=EMAILS_ENABLED,
+        provider=MAIL_PROVIDER,
+        mail_from=MAIL_FROM,
+        mail_reply_to=MAIL_REPLY_TO,
+        resend_api_key=RESEND_API_KEY,
+        postmark_api_token=POSTMARK_API_TOKEN,
+        postmark_message_stream=POSTMARK_MESSAGE_STREAM,
+        smtp_host=SMTP_HOST,
+        smtp_port=SMTP_PORT,
+        smtp_user=SMTP_USER,
+        smtp_pass=SMTP_PASS,
+        smtp_use_tls=SMTP_USE_TLS,
+    )
+)
 
 
 def _cfg(name: str, default: str | None = None) -> str:
@@ -1631,48 +1676,8 @@ def geocode_cached(
 
 
 # --------------------------------------------------------
-# Zeit / Kategorien / Utilities
+# Zeit / Kategorien / Utilities (Zeitfunktionen: utils.time_geo)
 # --------------------------------------------------------
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _as_utc_aware(dt: datetime) -> datetime:
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
-
-
-def parse_iso_utc(s: str) -> datetime:
-    if not isinstance(s, str):
-        raise ValueError("not a string")
-    s = s.strip()
-    if s.endswith("Z"):
-        s = s[:-1] + "+00:00"
-    dt = datetime.fromisoformat(s)
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    return dt
-
-
-def _to_db_utc_naive(dt: datetime) -> datetime:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    return dt.replace(tzinfo=None)
-
-
-def _from_db_as_iso_utc(dt: datetime) -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    return dt.isoformat().replace("+00:00", "Z")
-
-
 # Kategorien mit Unterkategorien für Ärzte und Ämter
 BRANCHES = {
     # Bestehende Kategorien
@@ -1903,10 +1908,6 @@ def normalize_category(raw: str | None) -> str:
     if not val:
         return "Sonstiges"
     return val if val in BRANCHES else "Sonstiges"
-
-
-def _json_error(msg, code=400):
-    return jsonify({"error": msg}), code
 
 
 def _cookie_flags():
@@ -2383,205 +2384,8 @@ def create_invoices_for_period(session: Session, year: int, month: int) -> dict:
 
 
 # --------------------------------------------------------
-# Mail
+# Mail: Implementierung in services.mail (send_mail / send_sms)
 # --------------------------------------------------------
-def send_mail(
-    to: str,
-    subject: str,
-    text: str | None = None,
-    html: str | None = None,
-    tag: str | None = None,
-    metadata: dict | None = None,
-):
-    """
-    Vereinheitlichte Mail-Funktion.
-    """
-    try:
-        if not EMAILS_ENABLED:
-            print(
-                f"[mail] disabled: EMAILS_ENABLED=false subject={subject!r} to={to}",
-                flush=True,
-            )
-            return True, "disabled"
-
-        provider = (MAIL_PROVIDER or "resend").strip().lower()
-        print(
-            f"[mail] provider={provider} from={MAIL_FROM} to={to} subject={subject!r}",
-            flush=True,
-        )
-
-        # Console
-        if provider == "console":
-            print(
-                "\n--- MAIL (console) ---\n"
-                f"From: {MAIL_FROM}\n"
-                f"To: {to}\n"
-                f"Subject: {subject}\n"
-                f"Reply-To: {MAIL_REPLY_TO}\n\n"
-                f"{text or ''}\n{html or ''}\n"
-                "--- END ---\n",
-                flush=True,
-            )
-            return True, "console"
-
-        # RESEND
-        if provider == "resend":
-            if not RESEND_API_KEY:
-                return False, "missing RESEND_API_KEY"
-
-            payload: dict[str, object] = {
-                "from": MAIL_FROM,
-                "to": to,
-                "subject": subject,
-            }
-            if text:
-                payload["text"] = text
-            if html:
-                payload["html"] = html
-            if MAIL_REPLY_TO:
-                payload["reply_to"] = MAIL_REPLY_TO
-            
-            # Resend benötigt mindestens text ODER html
-            if not text and not html:
-                print("[resend][ERROR] Kein Text- oder HTML-Inhalt vorhanden!", flush=True)
-                return False, "missing_text_or_html"
-
-            r = requests.post(
-                "https://api.resend.com/emails",
-                headers={
-                    "Authorization": f"Bearer {RESEND_API_KEY}",
-                    "Content-Type": "application/json",
-                    "User-Agent": "Terminmarktplatz/1.0 (Flask)",
-                },
-                json=payload,
-                timeout=15,
-            )
-            ok = 200 <= r.status_code < 300
-            print("[resend]", r.status_code, r.text[:500] if r.text else "", flush=True)
-            if ok and text:
-                print(f"[resend][debug] text length={len(text)}, preview={text[:100]}...", flush=True)
-            if not ok:
-                try:
-                    print("[resend][ERROR] payload=", payload, flush=True)
-                except Exception:
-                    pass
-                # Resend-Fehlertext für bessere Diagnose
-                reason = r.text[:200] if r.text else str(r.status_code)
-                try:
-                    j = r.json()
-                    if isinstance(j, dict) and "message" in j:
-                        reason = j.get("message", reason)
-                except Exception:
-                    pass
-                return False, reason
-            return True, str(r.status_code)
-
-        # POSTMARK
-        if provider == "postmark":
-            if not POSTMARK_API_TOKEN:
-                return False, "missing POSTMARK_API_TOKEN"
-
-            payload: dict[str, object] = {
-                "From": MAIL_FROM,
-                "To": to,
-                "Subject": subject,
-                "MessageStream": POSTMARK_MESSAGE_STREAM,
-            }
-            if MAIL_REPLY_TO:
-                payload["ReplyTo"] = MAIL_REPLY_TO
-            if text:
-                payload["TextBody"] = text
-            if html:
-                payload["HtmlBody"] = html
-            if tag:
-                payload["Tag"] = tag
-            if metadata:
-                payload["Metadata"] = {
-                    str(k): ("" if v is None else str(v)) for k, v in metadata.items()
-                }
-
-            r = requests.post(
-                "https://api.postmarkapp.com/email",
-                headers={
-                    "X-Postmark-Server-Token": POSTMARK_API_TOKEN,
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=15,
-            )
-            ok = 200 <= r.status_code < 300
-            print("[postmark]", r.status_code, r.text, flush=True)
-            if not ok:
-                try:
-                    print("[postmark][payload]", payload, flush=True)
-                except Exception:
-                    pass
-            return ok, str(r.status_code)
-
-        # SMTP
-        if provider == "smtp":
-            missing = [
-                k
-                for k, v in {
-                    "SMTP_HOST": SMTP_HOST,
-                    "SMTP_PORT": SMTP_PORT,
-                    "SMTP_USER": SMTP_USER,
-                    "SMTP_PASS": SMTP_PASS,
-                }.items()
-                if not v
-            ]
-            if missing:
-                return False, f"missing smtp config: {', '.join(missing)}"
-
-            disp_name, _ = parseaddr(MAIL_FROM or "")
-            from_hdr = formataddr((disp_name or "Terminmarktplatz", SMTP_USER))
-            msg = EmailMessage()
-            msg["From"] = from_hdr
-            msg["To"] = to
-            msg["Subject"] = subject
-            if MAIL_REPLY_TO:
-                msg["Reply-To"] = MAIL_REPLY_TO
-
-            if html:
-                msg.set_content(text or "")
-                msg.add_alternative(html, subtype="html")
-            else:
-                msg.set_content(text or "")
-
-            try:
-                if SMTP_USE_TLS:
-                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-                        s.starttls()
-                        s.login(SMTP_USER, SMTP_PASS)
-                        s.send_message(msg, from_addr=SMTP_USER)
-                else:
-                    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-                        s.login(SMTP_USER, SMTP_PASS)
-                        s.send_message(msg, from_addr=SMTP_USER)
-                return True, "smtp"
-            except Exception as e:
-                print("[smtp][ERROR]", repr(e), flush=True)
-                return False, repr(e)
-
-        # Fallback
-        return False, f"unknown provider '{provider}'"
-
-    except Exception as e:
-        print("send_mail exception:", repr(e), flush=True)
-        return False, repr(e)
-
-
-# --------------------------------------------------------
-# SMS-Stub (für Termin-Alarm; später echten Provider einbauen)
-# --------------------------------------------------------
-def send_sms(to: str, text: str) -> None:
-    to = (to or "").strip()
-    text = (text or "").strip()
-    if not to or not text:
-        return
-    print(f"[sms][stub] to={to} text={text}", flush=True)
-
 
 
 def _send_booking_deposit_confirmation_emails(
@@ -2868,37 +2672,8 @@ Terminmarktplatz
 
 
 # --------------------------------------------------------
-# Auth / Tokens
+# Auth / Tokens (issue_tokens: utils.jwt_tokens)
 # --------------------------------------------------------
-def issue_tokens(provider_id: str, is_admin: bool):
-    now = _now()
-    access = jwt.encode(
-        {
-            "sub": provider_id,
-            "adm": is_admin,
-            "iss": JWT_ISS,
-            "aud": JWT_AUD,
-            "iat": int(now.timestamp()),
-            "exp": int((now + timedelta(minutes=JWT_EXP_MIN)).timestamp()),
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-    refresh = jwt.encode(
-        {
-            "sub": provider_id,
-            "iss": JWT_ISS,
-            "aud": JWT_AUD,
-            "typ": "refresh",
-            "iat": int(now.timestamp()),
-            "exp": int((now + timedelta(days=REFRESH_EXP_DAYS)).timestamp()),
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-    return access, refresh
-
-
 def auth_required(admin: bool = False):
     def wrapper(fn):
         def inner(*args, **kwargs):
@@ -3026,21 +2801,7 @@ def _current_provider_id_or_none() -> str | None:
         auth = request.headers.get("Authorization", "")
         if auth.lower().startswith("bearer "):
             token = auth.split(" ", 1)[1].strip()
-    if not token:
-        return None
-
-    try:
-        data = jwt.decode(
-            token,
-            SECRET,
-            algorithms=["HS256"],
-            audience=JWT_AUD,
-            issuer=JWT_ISS,
-        )
-    except Exception:
-        return None
-
-    return data.get("sub")
+    return decode_access_token_subject(token)
 
 
 # --------------------------------------------------------
@@ -8487,75 +8248,6 @@ def webhook_warevision():
 BOOKING_HOLD_MIN = 15  # Minuten
 
 
-def _booking_token(booking_id: str) -> str:
-    return jwt.encode(
-        {
-            "sub": booking_id,
-            "typ": "booking",
-            "iss": JWT_ISS,
-            "exp": int((_now() + timedelta(hours=6)).timestamp()),
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-
-
-def _verify_booking_token(token: str) -> str | None:
-    try:
-        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
-        return data.get("sub") if data.get("typ") == "booking" else None
-    except Exception:
-        return None
-
-
-REVIEW_TOKEN_TTL_DAYS = 120
-
-
-def _review_token(booking_id: str) -> str:
-    return jwt.encode(
-        {
-            "sub": booking_id,
-            "typ": "review",
-            "iss": JWT_ISS,
-            "exp": int((_now() + timedelta(days=REVIEW_TOKEN_TTL_DAYS)).timestamp()),
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-
-
-def _verify_review_token(token: str) -> str | None:
-    try:
-        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
-        return data.get("sub") if data.get("typ") == "review" else None
-    except Exception:
-        return None
-
-
-PROVIDER_CALENDAR_TOKEN_TTL_DAYS = 365
-
-
-def _provider_calendar_token(provider_id: str) -> str:
-    return jwt.encode(
-        {
-            "sub": provider_id,
-            "typ": "provider_calendar",
-            "iss": JWT_ISS,
-            "exp": int((_now() + timedelta(days=PROVIDER_CALENDAR_TOKEN_TTL_DAYS)).timestamp()),
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-
-
-def _verify_provider_calendar_token(token: str) -> str | None:
-    try:
-        data = jwt.decode(token, SECRET, algorithms=["HS256"], issuer=JWT_ISS)
-        return data.get("sub") if data.get("typ") == "provider_calendar" else None
-    except Exception:
-        return None
-
-
 def _escape_ical_text(text: str | None) -> str:
     if not text:
         return ""
@@ -8564,22 +8256,6 @@ def _escape_ical_text(text: str | None) -> str:
     text = text.replace(";", "\\;")
     text = text.replace("\n", "\\n")
     return text
-
-
-def _haversine_km(lat1, lon1, lat2, lon2):
-    from math import radians, sin, cos, atan2, sqrt
-
-    R = 6371.0
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = (
-        sin(dlat / 2) ** 2
-        + cos(radians(lat1))
-        * cos(radians(lat2))
-        * sin(dlon / 2) ** 2
-    )
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return R * c
 
 
 @app.get("/public/slots")
