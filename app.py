@@ -2398,7 +2398,7 @@ def _send_booking_deposit_confirmation_emails(
         return
     base = _external_base()
     cancel_token = _booking_token(b.id)
-    cancel_link = f"{base}{url_for('public_cancel')}?token={cancel_token}"
+    cancel_link = f"{base}{url_for('public_booking.public_cancel')}?token={cancel_token}"
     slot_start = _as_utc_aware(slot.start_at).astimezone(BERLIN) if slot.start_at else None
     start_str = slot_start.strftime("%d.%m.%Y %H:%M") if slot_start else "-"
     deposit_eur = (getattr(slot, "deposit_cents", None) or 0) / 100
@@ -4984,7 +4984,10 @@ def _send_notifications_for_alert_and_slot(
     address = slot_address or slot_location or provider_address or ""
 
 
-    if hasattr(app, "view_functions") and "public_slots" in app.view_functions:
+    if hasattr(app, "view_functions") and (
+        "public_booking.public_slots" in app.view_functions
+        or "public_slots" in app.view_functions
+    ):
         base = _external_base()
         slot_url = f"{FRONTEND_URL}/suche.html"
 
@@ -7829,8 +7832,7 @@ def paket_buchen_start():
     return jsonify({"ok": True, "provider_id": request.provider_id, "plan": plan_key, "mode": "manual_no_stripe"})
 
 
-@app.route("/webhook/stripe", methods=["GET", "POST"])
-def stripe_webhook():
+def stripe_webhook_view():
     if request.method == "GET":
         return jsonify({"ok": True, "message": "Stripe webhook endpoint - Stripe sends POST"}), 200
     if not (stripe and STRIPE_WEBHOOK_SECRET):
@@ -7957,8 +7959,7 @@ def stripe_webhook():
     return jsonify({"ok": True})
 
 
-@app.post("/webhook/copecart")
-def copecart_webhook():
+def copecart_webhook_view():
     if not COPECART_WEBHOOK_SECRET:
         app.logger.warning("CopeCart webhook hit, but COPECART_WEBHOOK_SECRET not set")
         return "OK", 200
@@ -8136,8 +8137,7 @@ def copecart_webhook():
 # --------------------------------------------------------
 # WareVision: Storno-Benachrichtigung von WWS → Terminmarktplatz
 # --------------------------------------------------------
-@app.post("/webhook/warevision")
-def webhook_warevision():
+def webhook_warevision_view():
     """
     Empfängt Storno-Benachrichtigungen von WareVision (WWS).
     POST-Body (JSON): external_booking_id (oder booking_id), action, cancel_reason (optional)
@@ -8258,8 +8258,7 @@ def _escape_ical_text(text: str | None) -> str:
     return text
 
 
-@app.get("/public/slots")
-def public_slots():
+def public_slots_view():
     _maybe_send_due_booking_reminders()
     debug_mode = request.args.get("debug") == "1"
     q_text = (request.args.get("q") or "").strip()
@@ -8591,8 +8590,7 @@ def public_slots():
             return jsonify(out), 500
 
 
-@app.post("/public/book")
-def public_book():
+def public_book_view():
     try:
         return _public_book_impl()
     except Exception as e:
@@ -8709,7 +8707,7 @@ def _public_book_impl():
                 base = _external_base()
                 token = _booking_token(b.id)
                 success_url = f"{frontend}/suche.html?booking_deposit_success=1&booking_id={b.id}"
-                cancel_url = f"{base}{url_for('public_cancel')}?token={token}"
+                cancel_url = f"{base}{url_for('public_booking.public_cancel')}?token={token}"
                 session_expires = int((_now() + timedelta(minutes=30)).timestamp())
                 create_params = {
                     "mode": "payment",
@@ -8767,7 +8765,7 @@ def _public_book_impl():
                 email_body += f"Bitte zahle die Anzahlung innerhalb von 30 Minuten, um den Termin zu bestätigen:\n\n"
                 email_body += f"{checkout_url}\n\n"
                 email_body += f"Wenn du nicht zahlst, wird der Termin nach 30 Minuten wieder freigegeben.\n\n"
-                email_body += f"Stornieren (ohne Zahlung):\n{base}{url_for('public_cancel')}?token={token}\n"
+                email_body += f"Stornieren (ohne Zahlung):\n{base}{url_for('public_booking.public_cancel')}?token={token}\n"
 
                 ok, reason = send_mail(
                     email,
@@ -8820,8 +8818,8 @@ def _public_book_impl():
 
         token = _booking_token(b.id)
         base = _external_base()
-        confirm_link = f"{base}{url_for('public_confirm')}?token={token}"
-        cancel_link = f"{base}{url_for('public_cancel')}?token={token}"
+        confirm_link = f"{base}{url_for('public_booking.public_confirm')}?token={token}"
+        cancel_link = f"{base}{url_for('public_booking.public_cancel')}?token={token}"
         
         # Slot-Details für E-Mail formatieren
         slot_start_local = _as_utc_aware(slot.start_at).astimezone(BERLIN)
@@ -8869,8 +8867,7 @@ def _public_book_impl():
         return jsonify({"ok": True})
 
 
-@app.get("/public/confirm")
-def public_confirm():
+def public_confirm_view():
     _maybe_send_due_booking_reminders()
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
@@ -9219,8 +9216,7 @@ def public_confirm():
         return jsonify({"error": "server_error"}), 500
 
 
-@app.get("/public/booking/<booking_id>/calendar.ics")
-def public_booking_calendar(booking_id):
+def public_booking_calendar_view(booking_id):
     """Generiert eine .ics Datei für den gebuchten Termin."""
     token = request.args.get("token")
     verified_booking_id = _verify_booking_token(token) if token else None
@@ -9333,8 +9329,7 @@ def public_booking_calendar(booking_id):
         return _json_error("server_error", 500)
 
 
-@app.get("/public/provider/<provider_id>/calendar.ics")
-def public_provider_calendar(provider_id):
+def public_provider_calendar_view(provider_id):
     """Generiert eine .ics Datei für veröffentlichte Provider-Slots."""
     token = request.args.get("token")
     verified_provider_id = _verify_provider_calendar_token(token) if token else None
@@ -9449,8 +9444,7 @@ def public_provider_calendar(provider_id):
         return _json_error("server_error", 500)
 
 
-@app.get("/public/cancel")
-def public_cancel():
+def public_cancel_view():
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
@@ -9659,6 +9653,14 @@ def public_cancel():
     except Exception:
         app.logger.exception("public_cancel failed")
         return jsonify({"error": "server_error"}), 500
+
+
+# Blueprints (öffentliche Buchung, Webhooks)
+from routes.public_booking import bp as public_booking_bp
+from routes.webhooks import bp as webhooks_bp
+
+app.register_blueprint(webhooks_bp)
+app.register_blueprint(public_booking_bp)
 
 
 # --------------------------------------------------------
