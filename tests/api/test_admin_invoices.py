@@ -15,6 +15,7 @@ os.environ.setdefault("FRONTEND_URL", "http://testserver")
 os.environ.setdefault("EMAILS_ENABLED", "false")
 
 import app as app_module
+import services.billing_invoices as billing_invoices_module
 from models import Base, Provider, Slot, Booking, Invoice
 
 
@@ -134,12 +135,12 @@ def test_admin_invoice_detail_with_bookings(test_client):
 def test_admin_invoice_pdf_reportlab_missing(test_client):
     provider_id = _create_provider()
     inv_id = _create_invoice(provider_id)
-    original = app_module.REPORTLAB_AVAILABLE
-    app_module.REPORTLAB_AVAILABLE = False
+    original = billing_invoices_module.REPORTLAB_AVAILABLE
+    billing_invoices_module.REPORTLAB_AVAILABLE = False
     try:
         res = test_client.get(f"/admin/invoices/{inv_id}/pdf", headers=_admin_headers(provider_id))
         assert res.status_code == 503
         data = res.get_json()
         assert data["error"] == "pdf_generation_not_available"
     finally:
-        app_module.REPORTLAB_AVAILABLE = original
+        billing_invoices_module.REPORTLAB_AVAILABLE = original

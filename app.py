@@ -2311,76 +2311,11 @@ def _unpublish_slot_quota_tx(session: Session, provider_id: str, slot_id: str) -
     return {"month": str(month_key), "used": 0, "limit": None}
 
 
-# Monatsabrechnung: Sammelrechnungen erzeugen
-def create_invoices_for_period(session: Session, year: int, month: int) -> dict:
-    """
-    Erzeugt Sammelrechnungen für alle bestätigten Buchungen (status='confirmed')
-    eines Monats, deren fee_status='open' ist.
-    """
-    period_start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
-    if month == 12:
-        next_month_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
-    else:
-        next_month_dt = datetime(year, month + 1, 1, 1, 0, 0, tzinfo=timezone.utc)
+import services.billing_invoices as billing_svc
 
-    start_db = _to_db_utc_naive(period_start_dt)
-    end_db = _to_db_utc_naive(next_month_dt)
-
-    bookings = (
-        session.execute(
-            select(Booking).where(
-                Booking.status == "confirmed",
-                Booking.fee_status == "open",
-                Booking.created_at >= start_db,
-                Booking.created_at < end_db,
-            )
-        )
-        .scalars()
-        .all()
-    )
-
-    by_provider: dict[str, list[Booking]] = {}
-    for b in bookings:
-        by_provider.setdefault(b.provider_id, []).append(b)
-
-    invoices_summary = []
-
-    for provider_id, blist in by_provider.items():
-        total = sum((b.provider_fee_eur or Decimal("0.00")) for b in blist)
-        if total <= 0:
-            continue
-
-        inv = Invoice(
-            provider_id=provider_id,
-            period_start=period_start_dt.date(),
-            period_end=(next_month_dt - timedelta(days=1)).date(),
-            total_eur=total,
-            status="open",
-        )
-        session.add(inv)
-        session.flush()
-
-        now = _now()
-        for b in blist:
-            b.invoice_id = inv.id
-            b.fee_status = "invoiced"
-            b.is_billed = True
-            b.billed_at = now
-
-        invoices_summary.append(
-            {
-                "provider_id": provider_id,
-                "invoice_id": inv.id,
-                "booking_count": len(blist),
-                "total_eur": float(total),
-            }
-        )
-
-    return {
-        "period": {"year": year, "month": month},
-        "invoices_created": len(invoices_summary),
-        "items": invoices_summary,
-    }
+create_invoices_for_period = billing_svc.create_invoices_for_period
+generate_invoice_pdf = billing_svc.generate_invoice_pdf
+send_invoice_email = billing_svc.send_invoice_email
 
 
 # --------------------------------------------------------
@@ -6627,9 +6562,7 @@ def provider_cancel_booking(booking_id):
 # --------------------------------------------------------
 # Admin
 # --------------------------------------------------------
-@app.get("/admin/providers")
-@auth_required(admin=True)
-def admin_providers():
+def admin_providers_view():
     status = request.args.get("status", "pending")
     with Session(engine) as s:
         items = (
@@ -6648,9 +6581,7 @@ def admin_providers():
         )
 
 
-@app.post("/admin/providers/<pid>/approve")
-@auth_required(admin=True)
-def admin_provider_approve(pid):
+def admin_provider_approve_view(pid):
     with Session(engine) as s:
         p = s.get(Provider, pid)
         if not p:
@@ -6660,9 +6591,7 @@ def admin_provider_approve(pid):
         return jsonify({"ok": True})
 
 
-@app.post("/admin/providers/<pid>/reject")
-@auth_required(admin=True)
-def admin_provider_reject(pid):
+def admin_provider_reject_view(pid):
     with Session(engine) as s:
         p = s.get(Provider, pid)
         if not p:
@@ -6672,9 +6601,7 @@ def admin_provider_reject(pid):
         return jsonify({"ok": True})
 
 
-@app.get("/admin/slots")
-@auth_required(admin=True)
-def admin_slots():
+def admin_slots_view():
     status = (request.args.get("status") or SLOT_STATUS_DRAFT).strip().upper()
     with Session(engine) as s:
         items = (
@@ -6688,9 +6615,7 @@ def admin_slots():
         return jsonify([slot_to_json(x) for x in items])
 
 
-@app.post("/admin/slots/<sid>/publish")
-@auth_required(admin=True)
-def admin_slot_publish(sid):
+def admin_slot_publish_view(sid):
     try:
         with Session(engine) as s:
             slot = s.get(Slot, sid)
@@ -6720,9 +6645,7 @@ def admin_slot_publish(sid):
         return jsonify({"error": "server_error"}), 500
 
 
-@app.post("/admin/slots/<sid>/reject")
-@auth_required(admin=True)
-def admin_slot_reject(sid):
+def admin_slot_reject_view(sid):
     """
     "reject" == unpublish (PUBLISHED -> DRAFT).
     """
@@ -6746,9 +6669,7 @@ def admin_slot_reject(sid):
         return jsonify({"error": "server_error"}), 500
 
 
-@app.get("/admin/billing_overview")
-@auth_required(admin=True)
-def admin_billing_overview():
+def admin_billing_overview_view():
     with Session(engine) as s:
         rows = s.execute(
             select(
@@ -6778,9 +6699,7 @@ def admin_billing_overview():
     return jsonify(out)
 
 
-@app.post("/admin/run_billing")
-@auth_required(admin=True)
-def admin_run_billing():
+def admin_run_billing_view():
     data = request.get_json(silent=True) or {}
     now = _now()
     year = int(data.get("year") or now.year)
@@ -6804,9 +6723,7 @@ def admin_run_billing():
 # --------------------------------------------------------
 # Admin: Rechnungen (Invoices)
 # --------------------------------------------------------
-@app.get("/admin/invoices/all")
-@auth_required(admin=True)
-def admin_invoices_all():
+def admin_invoices_all_view():
     """Gibt alle Rechnungen aller Provider zurück (nur für Super-Admin)."""
     with Session(engine) as s:
         # Prüfe ob provider_number Spalte existiert
@@ -6905,9 +6822,7 @@ def me_debug():
             return jsonify({"error": str(e)}), 500
 
 
-@app.get("/admin/debug/provider-numbers")
-@auth_required(admin=True)
-def debug_provider_numbers():
+def debug_provider_numbers_view():
     """Debug-Endpoint: Zeigt Status der provider_number Migration."""
     with Session(engine) as s:
         # Prüfe ob Spalte existiert
@@ -6946,9 +6861,7 @@ def debug_provider_numbers():
         })
 
 
-@app.post("/admin/debug/run-provider-number-migration")
-@auth_required(admin=True)
-def run_provider_number_migration():
+def run_provider_number_migration_view():
     """Führt die provider_number Migration manuell aus."""
     try:
         with Session(engine) as s:
@@ -6988,9 +6901,7 @@ def run_provider_number_migration():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.get("/admin/debug/invoices")
-@auth_required(admin=True)
-def debug_invoices():
+def debug_invoices_view():
     """Debug-Endpoint: Zeigt alle Rechnungen mit Details."""
     with Session(engine) as s:
         # Prüfe ob provider_number Spalte existiert
@@ -7052,9 +6963,7 @@ def debug_invoices():
             return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.get("/admin/invoices/<invoice_id>")
-@auth_required(admin=True)
-def admin_invoice_detail(invoice_id):
+def admin_invoice_detail_view(invoice_id):
     """Gibt Details einer Rechnung inkl. Buchungen zurück."""
     with Session(engine) as s:
         inv = s.get(Invoice, invoice_id)
@@ -7107,186 +7016,7 @@ def admin_invoice_detail(invoice_id):
         )
 
 
-# PDF-Generierung für Rechnungen (reportlab)
-try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import cm
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-    from io import BytesIO
-
-    REPORTLAB_AVAILABLE = True
-except ImportError:
-    REPORTLAB_AVAILABLE = False
-
-
-def generate_invoice_pdf(invoice: Invoice, provider: Provider, bookings: list[Booking], session: Session | None = None) -> bytes:
-    """Generiert ein PDF für eine Rechnung."""
-    if not REPORTLAB_AVAILABLE:
-        raise Exception("reportlab nicht installiert")
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
-    story = []
-    styles = getSampleStyleSheet()
-
-    # Custom Styles
-    title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=styles["Heading1"],
-        fontSize=18,
-        textColor=colors.HexColor("#1e293b"),
-        spaceAfter=30,
-        alignment=TA_LEFT,
-    )
-
-    heading_style = ParagraphStyle(
-        "CustomHeading",
-        parent=styles["Heading2"],
-        fontSize=12,
-        textColor=colors.HexColor("#334155"),
-        spaceAfter=12,
-        alignment=TA_LEFT,
-    )
-
-    normal_style = styles["Normal"]
-    normal_style.fontSize = 10
-    normal_style.textColor = colors.HexColor("#475569")
-
-    # Header
-    story.append(Paragraph("Terminmarktplatz", title_style))
-    story.append(Paragraph("Rechnung", heading_style))
-    story.append(Spacer(1, 0.5*cm))
-
-    # Rechnungsinformationen
-    invoice_data = [
-        ["Rechnungsnummer:", invoice.id[:8].upper()],
-        ["Rechnungsdatum:", invoice.created_at.strftime("%d.%m.%Y") if invoice.created_at else "-"],
-        ["Zeitraum:", f"{invoice.period_start.strftime('%d.%m.%Y')} - {invoice.period_end.strftime('%d.%m.%Y')}"],
-        ["Status:", invoice.status],
-    ]
-
-    invoice_table = Table(invoice_data, colWidths=[5*cm, 10*cm])
-    invoice_table.setStyle(
-        TableStyle(
-            [
-                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 0), (-1, -1), 10),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
-                ("ALIGN", (0, 0), (0, -1), "LEFT"),
-                ("ALIGN", (1, 0), (1, -1), "LEFT"),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ]
-        )
-    )
-    story.append(invoice_table)
-    story.append(Spacer(1, 0.8*cm))
-
-    # Anbieter-Informationen
-    story.append(Paragraph("Anbieter", heading_style))
-    provider_info = []
-    if provider.provider_number:
-        provider_info.append(["Anbieter-Nr.:", str(provider.provider_number)])
-    if provider.company_name:
-        provider_info.append(["Firma:", provider.company_name])
-    provider_info.append(["E-Mail:", provider.email])
-    if provider.street:
-        provider_info.append(["Straße:", provider.street])
-    if provider.zip and provider.city:
-        provider_info.append(["PLZ/Ort:", f"{provider.zip} {provider.city}"])
-
-    provider_table = Table(provider_info, colWidths=[5*cm, 10*cm])
-    provider_table.setStyle(
-        TableStyle(
-            [
-                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
-                ("FONTSIZE", (0, 0), (-1, -1), 10),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
-                ("ALIGN", (0, 0), (0, -1), "LEFT"),
-                ("ALIGN", (1, 0), (1, -1), "LEFT"),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ]
-        )
-    )
-    story.append(provider_table)
-    story.append(Spacer(1, 0.8*cm))
-
-    # Buchungsdetails
-    story.append(Paragraph("Buchungsdetails", heading_style))
-    booking_data = [["Datum", "Termin", "Kunde", "Betrag"]]
-
-    for b in bookings:
-        # Slot-Informationen laden falls Session verfügbar
-        slot_title = "Termin"
-        if session and hasattr(b, "slot_id") and b.slot_id:
-            slot = session.get(Slot, b.slot_id)
-            if slot:
-                slot_title = slot.title or "Termin"
-
-        booking_date = b.created_at.strftime("%d.%m.%Y") if b.created_at else "-"
-        customer = b.customer_name or (b.customer_email[:30] + "..." if b.customer_email and len(b.customer_email) > 30 else b.customer_email) or "N/A"
-        amount = f"{float(b.provider_fee_eur):.2f} €"
-        booking_data.append([booking_date, slot_title[:40], customer[:40], amount])
-
-    # Gesamtbetrag
-    booking_data.append(["", "", "Gesamtbetrag:", f"{float(invoice.total_eur):.2f} €"])
-
-    booking_table = Table(booking_data, colWidths=[3.5*cm, 5*cm, 4*cm, 2.5*cm])
-    booking_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, 0), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                ("TOPPADDING", (0, 0), (-1, 0), 12),
-                ("BACKGROUND", (0, 1), (-1, -2), colors.white),
-                ("TEXTCOLOR", (0, 1), (-1, -2), colors.HexColor("#475569")),
-                ("FONTNAME", (0, 1), (-1, -2), "Helvetica"),
-                ("FONTSIZE", (0, 1), (-1, -2), 9),
-                ("GRID", (0, 0), (-1, -2), 1, colors.HexColor("#e2e8f0")),
-                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                # Gesamtbetrag-Zeile
-                ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#f8fafc")),
-                ("FONTNAME", (0, -1), (-2, -1), "Helvetica"),
-                ("FONTNAME", (-1, -1), (-1, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, -1), (-1, -1), 10),
-                ("TEXTCOLOR", (0, -1), (-1, -1), colors.HexColor("#1e293b")),
-                ("TOPPADDING", (0, -1), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, -1), (-1, -1), 10),
-            ]
-        )
-    )
-    story.append(booking_table)
-
-    # Build PDF
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.getvalue()
-
-
-@app.get("/admin/invoices/<invoice_id>/pdf")
-@auth_required(admin=True)
-def admin_invoice_pdf(invoice_id):
+def admin_invoice_pdf_view(invoice_id):
     """Lädt eine Rechnung als PDF herunter."""
     try:
         with Session(engine) as s:
@@ -7306,7 +7036,7 @@ def admin_invoice_pdf(invoice_id):
                 .all()
             )
 
-            if not REPORTLAB_AVAILABLE:
+            if not billing_svc.REPORTLAB_AVAILABLE:
                 return jsonify({"error": "pdf_generation_not_available", "detail": "reportlab nicht installiert"}), 503
 
             pdf_bytes = generate_invoice_pdf(inv, provider, bookings, s)
@@ -7322,93 +7052,7 @@ def admin_invoice_pdf(invoice_id):
         return jsonify({"error": "server_error", "detail": str(e)}), 500
 
 
-def send_invoice_email(invoice: Invoice, provider: Provider, bookings: list[Booking], session: Session | None = None) -> tuple[bool, str]:
-    """Sendet eine Rechnung per E-Mail mit PDF-Anhang."""
-    try:
-        if not REPORTLAB_AVAILABLE:
-            return False, "reportlab nicht installiert"
-
-        pdf_bytes = generate_invoice_pdf(invoice, provider, bookings, session)
-        filename = f"Rechnung_{invoice.id[:8].upper()}_{invoice.period_start.strftime('%Y%m')}.pdf"
-
-        # E-Mail-Text
-        subject = f"Rechnung {invoice.id[:8].upper()} - {invoice.period_start.strftime('%B %Y')}"
-        text_body = f"""Hallo {provider.company_name or 'Anbieter/in'},
-
-anbei erhalten Sie Ihre Rechnung für den Zeitraum {invoice.period_start.strftime('%d.%m.%Y')} bis {invoice.period_end.strftime('%d.%m.%Y')}.
-
-Rechnungsnummer: {invoice.id[:8].upper()}
-Rechnungsdatum: {invoice.created_at.strftime('%d.%m.%Y') if invoice.created_at else '-'}
-Betrag: {float(invoice.total_eur):.2f} €
-
-Das PDF finden Sie im Anhang dieser E-Mail.
-
-Bei Fragen stehen wir Ihnen gerne zur Verfügung.
-
-Viele Grüße
-Terminmarktplatz
-"""
-
-        # Für E-Mail-Versand mit Attachment müssen wir send_mail erweitern oder eine spezielle Funktion verwenden
-        # Da send_mail aktuell keine Attachments unterstützt, verwenden wir SMTP direkt für Attachments
-        if MAIL_PROVIDER == "smtp":
-            from email.mime.multipart import MIMEMultipart
-            from email.mime.text import MIMEText
-            from email.mime.base import MIMEBase
-            from email import encoders
-
-            if not SMTP_USER or not SMTP_PASS or not SMTP_HOST:
-                return False, "SMTP nicht konfiguriert"
-
-            msg = MIMEMultipart()
-            msg["From"] = MAIL_FROM or SMTP_USER
-            msg["To"] = provider.email
-            msg["Subject"] = subject
-            if MAIL_REPLY_TO:
-                msg["Reply-To"] = MAIL_REPLY_TO
-
-            msg.attach(MIMEText(text_body, "plain", "utf-8"))
-
-            attachment = MIMEBase("application", "pdf")
-            attachment.set_payload(pdf_bytes)
-            encoders.encode_base64(attachment)
-            attachment.add_header("Content-Disposition", f'attachment; filename="{filename}"')
-            msg.attach(attachment)
-
-            try:
-                if SMTP_USE_TLS:
-                    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-                        s.starttls()
-                        s.login(SMTP_USER, SMTP_PASS)
-                        s.send_message(msg, from_addr=SMTP_USER)
-                else:
-                    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
-                        s.login(SMTP_USER, SMTP_PASS)
-                        s.send_message(msg, from_addr=SMTP_USER)
-                return True, "smtp"
-            except Exception as e:
-                app.logger.exception("SMTP send_invoice_email failed")
-                return False, str(e)
-        else:
-            # Für Resend/Postmark: PDF als base64 anhängen (falls API es unterstützt)
-            # Oder einfach Text-Mail ohne Attachment senden mit Download-Link
-            send_mail(
-                provider.email,
-                subject,
-                text=text_body + f"\n\nPDF-Download: {BASE_URL}/admin/invoices/{invoice.id}/pdf",
-                tag="invoice",
-                metadata={"invoice_id": invoice.id},
-            )
-            return True, "sent_without_attachment"
-
-    except Exception as e:
-        app.logger.exception("send_invoice_email failed")
-        return False, str(e)
-
-
-@app.post("/admin/invoices/<invoice_id>/send-email")
-@auth_required(admin=True)
-def admin_invoice_send_email(invoice_id):
+def admin_invoice_send_email_view(invoice_id):
     """Sendet eine Rechnung per E-Mail."""
     try:
         with Session(engine) as s:
@@ -9357,10 +9001,12 @@ def public_cancel_view():
 
 
 # Blueprints (öffentliche Buchung, Webhooks)
+from routes.admin import admin_bp
 from routes.alerts import alerts_api_bp, alerts_public_bp
 from routes.public_booking import bp as public_booking_bp
 from routes.webhooks import bp as webhooks_bp
 
+app.register_blueprint(admin_bp)
 app.register_blueprint(webhooks_bp)
 app.register_blueprint(public_booking_bp)
 app.register_blueprint(alerts_api_bp)

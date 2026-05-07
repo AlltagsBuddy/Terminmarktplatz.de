@@ -15,6 +15,7 @@ os.environ.setdefault("FRONTEND_URL", "http://testserver")
 os.environ.setdefault("EMAILS_ENABLED", "false")
 
 import app as app_module
+import services.billing_invoices as billing_invoices_module
 from models import Base, Provider, Slot, Booking, Invoice
 
 
@@ -124,8 +125,8 @@ def test_admin_invoice_send_email_reportlab_missing(test_client):
         s.commit()
         invoice_id = inv.id
 
-    original = app_module.REPORTLAB_AVAILABLE
-    app_module.REPORTLAB_AVAILABLE = False
+    original = billing_invoices_module.REPORTLAB_AVAILABLE
+    billing_invoices_module.REPORTLAB_AVAILABLE = False
     try:
         res = test_client.post(
             f"/admin/invoices/{invoice_id}/send-email",
@@ -135,4 +136,4 @@ def test_admin_invoice_send_email_reportlab_missing(test_client):
         data = res.get_json()
         assert data["error"] == "email_send_failed"
     finally:
-        app_module.REPORTLAB_AVAILABLE = original
+        billing_invoices_module.REPORTLAB_AVAILABLE = original
