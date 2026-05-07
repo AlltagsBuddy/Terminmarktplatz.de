@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example         # Nur eine leere Vorlage committen
+!.env.test            # Vorlage ohne echte Secrets (Platzhalter-Werte)
 
 # Python-Standardzeug
 __pycache__/
