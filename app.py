@@ -4885,315 +4885,26 @@ def provider_reviews_reply(review_id):
 # --------------------------------------------------------
 # Termin-Alarm / Benachrichtigungen (Suchende)
 # --------------------------------------------------------
-from urllib.parse import unquote
-import re
-
-ALERT_MAX_PER_EMAIL = 10          # max. Alerts (Subscriptions) pro E-Mail (Fallback, wenn kein Paket gekauft)
-ALERT_MAX_EMAILS_PER_ALERT = 10   # max. E-Mail-Benachrichtigungen pro Alert (email_sent_total)
-ALERT_LIMIT_PER_PACKAGE = 10      # Anzahl Benachrichtigungen pro gekauftem Paket
- 
-def _norm_token(t: str | None) -> str:
-    t = unquote((t or "")).strip()
-    # echte Whitespaces killen (Space, Tabs, Newlines etc.)
-    t = re.sub(r"\s+", "", t)
-    return t
-
-
-
-def _reset_alert_quota_if_needed(alert: AlertSubscription) -> None:
-    now = _now()
-    if not alert.last_reset_quota:
-        alert.last_reset_quota = now
-        alert.sms_sent_this_month = 0
-        return
-
-    lr = _as_utc_aware(alert.last_reset_quota)
-    nr = _as_utc_aware(now)
-    if lr.year != nr.year or lr.month != nr.month:
-        alert.sms_sent_this_month = 0
-        alert.last_reset_quota = now
-
-
-def _send_notifications_for_alert_and_slot(
-    session: Session,
-    alert: AlertSubscription,
-    slot: Slot,
-    provider: Provider,
-) -> None:
-    _reset_alert_quota_if_needed(alert)
-
-    # LIMIT: max 10 E-Mail-Benachrichtigungen pro Alert
-    sent_total = int(getattr(alert, "email_sent_total", 0) or 0)
-    if sent_total >= ALERT_MAX_EMAILS_PER_ALERT:
-        return
-
-    slot_title = slot.title
-    starts_at = _from_db_as_iso_utc(slot.start_at)
-
-            # Adresse: Slot hat Priorität (weil Slot-Adresse vom Profil abweichen kann)
-    slot_address = ""
-    try:
-        s_street = (getattr(slot, "street", None) or "").strip()
-        s_house  = (getattr(slot, "house_number", None) or "").strip()
-        s_zip    = (getattr(slot, "zip", None) or "").strip()
-        s_city   = (getattr(slot, "city", None) or "").strip()
-
-        line1 = " ".join(p for p in [s_street, s_house] if p).strip()
-        line2 = " ".join(p for p in [s_zip, s_city] if p).strip()
-        slot_address = ", ".join(p for p in [line1, line2] if p).strip()
-    except Exception:
-        slot_address = ""
-
-    # Fallback: slot.location
-    slot_location = (getattr(slot, "location", None) or "").strip()
-
-    # Letzter Fallback: Provider Profil-Adresse
-    provider_address = ""
-    try:
-        provider_address = (provider.to_public_dict().get("address") or "").strip()
-    except Exception:
-        provider_address = ""
-
-    address = slot_address or slot_location or provider_address or ""
-
-
-    # 1) Wenn Slot strukturierte Felder hat -> daraus bauen (beste Qualität)
-    try:
-        s_street = (getattr(slot, "street", None) or "").strip()
-        s_house  = (getattr(slot, "house_number", None) or "").strip()
-        s_zip    = (getattr(slot, "zip", None) or "").strip()
-        s_city   = (getattr(slot, "city", None) or "").strip()
-
-        line1 = " ".join(p for p in [s_street, s_house] if p)
-        line2 = " ".join(p for p in [s_zip, s_city] if p)
-
-        slot_address = ", ".join(p for p in [line1, line2] if p)
-    except Exception:
-        slot_address = ""
-
-    # 2) Fallback: slot.location (wenn du dort die Slot-Adresse pflegst)
-    slot_location = (slot.location or "").strip()
-
-    # 3) Letzter Fallback: Provider Profil-Adresse
-    provider_address = ""
-    try:
-        provider_address = (provider.to_public_dict().get("address") or "").strip()
-    except Exception:
-        provider_address = ""
-
-    address = slot_address or slot_location or provider_address or ""
-
-
-    if hasattr(app, "view_functions") and (
-        "public_booking.public_slots" in app.view_functions
-        or "public_slots" in app.view_functions
-    ):
-        base = _external_base()
-        slot_url = f"{FRONTEND_URL}/suche.html"
-
-
-    else:
-        slot_url = ""
-
-    # E-Mail-Benachrichtigung
-    if alert.via_email and alert.email_confirmed and alert.active:
-        cancel_url = url_for("alerts_cancel", token=alert.verify_token, _external=True)
-
-        body_lines = [
-            "Es gibt einen neuen Termin, der zu deinem Suchauftrag passt:",
-            "",
-            f"{slot_title}",
-            f"Zeit: {starts_at}",
-        ]
-        if address:
-            body_lines.append(f"Adresse: {address}")
-        if slot_url:
-            body_lines.append("")
-            body_lines.append(f"Details & Buchung: {slot_url}")
-        body_lines.append("")
-        body_lines.append("Wenn du diesen Alarm nicht mehr erhalten möchtest, kannst du ihn hier deaktivieren:")
-        body_lines.append(cancel_url)
-        
-        # Link zu "Meine Benachrichtigungen" hinzufügen
-        manage_key = getattr(alert, "manage_key", None)
-        if manage_key:
-            manage_url = f"{FRONTEND_URL}/meine-benachrichtigungen.html?k={manage_key}"
-            body_lines.append("")
-            body_lines.append("Alle deine Benachrichtigungen verwalten:")
-            body_lines.append(manage_url)
-
-        body = "\n".join(body_lines)
-
-        try:
-            ok, reason = send_mail(
-                alert.email,
-                "Neuer Termin passt zu deinem Suchauftrag",
-                text=body,
-                tag="alert_slot_match",
-                metadata={"zip": alert.zip, "package": alert.package_name or ""},
-            ) 
-            if ok:
-                alert.email_sent_total = int(getattr(alert, "email_sent_total", 0) or 0) + 1
-            else:
-                app.logger.warning("send_mail alert not delivered: %s", reason)
-        except Exception as e: 
-            app.logger.warning("send_mail alert failed: %r", e)
-
-    # SMS-Benachrichtigung (Stub)
-    if (
-        alert.via_sms
-        and alert.phone
-        and alert.active
-        and (alert.sms_quota_month or 0) > 0
-    ):
-        if alert.sms_sent_this_month < (alert.sms_quota_month or 0):
-            parts = [f"Neuer Termin: {slot_title}", starts_at]
-            if slot_url:
-                parts.append(f"Details: {slot_url}")
-            text_msg = " | ".join(str(p) for p in parts if p)
-
-            try:
-                send_sms(alert.phone, text_msg)
-                alert.sms_sent_this_month += 1
-            except Exception as e:
-                app.logger.warning("send_sms alert failed: %r", e)
-
-    alert.last_notified_at = _now()
-
-
-def _extract_zip_from_text(txt: str | None) -> str | None:
-    """
-    Fallback: versucht eine deutsche PLZ (5 Ziffern) aus Freitext zu ziehen.
-    """
-    import re
-    t = (txt or "").strip()
-    if not t:
-        return None
-    m = re.search(r"\b(\d{5})\b", t)
-    return m.group(1) if m else None
+from services.alerts_notifications import (
+    ALERT_LIMIT_PER_PACKAGE,
+    ALERT_MAX_PER_EMAIL,
+    extract_zip_from_text,
+    notify_alerts_for_slot as _notify_alerts_for_slot_service,
+)
 
 
 def notify_alerts_for_slot(slot_id: str) -> None:
-    """
-    Wird aufgerufen, wenn ein Slot veröffentlicht wurde (Status PUBLISHED).
-    """
-    for attempt in (1, 2):
-        try:
-            with Session(engine) as s: 
-                slot = s.get(Slot, slot_id)
-                if not slot:
-                    print(f"[alerts] slot_not_found id={slot_id}", flush=True)
-                    return
-                if slot.status != SLOT_STATUS_PUBLISHED:
-                    print(f"[alerts] slot_not_published id={slot_id} status={slot.status}", flush=True)
-                    return
+    pub = (
+        "public_booking.public_slots" in app.view_functions
+        or "public_slots" in app.view_functions
+    )
+    _notify_alerts_for_slot_service(
+        slot_id,
+        app_base_url=_external_base(),
+        frontend_url=FRONTEND_URL or "",
+        public_slots_registered=pub,
+    )
 
-                provider = s.get(Provider, slot.provider_id)
-                if not provider:
-                    print(f"[alerts] provider_not_found slot_id={slot_id} provider_id={slot.provider_id}", flush=True)
-                    return
-                
-                # NEU: Slot-Koordinaten bestimmen (wir nehmen Provider-Standort)
-                slot_lat, slot_lng = geocode_cached(
-                    s,
-                    normalize_zip(getattr(provider, "zip", None)),
-                    getattr(provider, "city", None),
-                )
-                if slot_lat is None or slot_lng is None:
-                    print(f"[alerts] slot_geo_missing slot_id={slot_id} provider_id={provider.id}", flush=True)
-                    return
-
-
-                slot_zip = normalize_zip(getattr(slot, "zip", None))
-                if len(slot_zip) != 5:
-                    slot_zip = normalize_zip(getattr(provider, "zip", None))
-                if len(slot_zip) != 5:
-                    slot_zip = normalize_zip(_extract_zip_from_text(getattr(slot, "location", None)))
-
-                slot_cat = (getattr(slot, "category", "") or "").lower().strip() 
-                print(f"[alerts] check slot_id={slot_id} zip={slot_zip!r} cat={slot_cat!r}", flush=True)
-
-                if len(slot_zip) != 5:
-                    print(f"[alerts] no_valid_zip_for_slot slot_id={slot_id} zip={slot_zip!r}", flush=True)
-                    return
- 
-                alerts = (
-                    s.execute(
-                        select(AlertSubscription).where(
-                            AlertSubscription.active.is_(True),
-                            AlertSubscription.email_confirmed.is_(True),
-                            AlertSubscription.deleted_at.is_(None),  # Nur nicht-gelöschte
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-                print(f"[alerts] candidates total={len(alerts)}", flush=True)
-
-
-                matched_alerts: list[AlertSubscription] = []
-
-                for alert in alerts:
-                    # NEU: Falls alte Alerts noch keine Koordinaten haben -> nachziehen
-                    if getattr(alert, "search_lat", None) is None or getattr(alert, "search_lng", None) is None:
-                        lat, lng = geocode_cached(
-                            s,
-                            normalize_zip(getattr(alert, "zip", None)),
-                            getattr(alert, "city", None),
-                        )
-                        alert.search_lat = lat
-                        alert.search_lng = lng
-
-                    # Ohne Koordinaten kann Umkreis nicht funktionieren
-                    if alert.search_lat is None or alert.search_lng is None:
-                        continue
-
-                    # Radius-Logik
-                    r = int(getattr(alert, "radius_km", 0) or 0)
-
-                    if r <= 0:
-                        # altes Verhalten: gleiche PLZ
-                        if normalize_zip(getattr(alert, "zip", None)) != slot_zip:
-                            continue
-                    else:
-                        # NEU: Umkreis prüfen
-                        dist = _haversine_km(
-                            float(slot_lat), float(slot_lng),
-                            float(alert.search_lat), float(alert.search_lng),
-                        )
-                        if dist > r:
-                            continue
-
-                    # Kategorien-Filter wie gehabt
-                    if not getattr(alert, "categories", None):
-                        matched_alerts.append(alert)
-                        continue
-
-                    alert_cats = [
-                        c.strip().lower()
-                        for c in (alert.categories or "").split(",")
-                        if c.strip()
-                    ]
-                    if any(c == slot_cat for c in alert_cats) or any(c in slot_cat for c in alert_cats):
-                        matched_alerts.append(alert)
-
-
-                print(f"[alerts] matched count={len(matched_alerts)}", flush=True) 
-                if not matched_alerts:
-                    return
-
-                for alert in matched_alerts:
-                    _send_notifications_for_alert_and_slot(s, alert, slot, provider)
-
-                s.commit()
-                print(f"[alerts] done slot_id={slot_id}", flush=True)
-                return
-
-        except Exception as e:
-            app.logger.warning("notify_alerts_for_slot failed attempt=%s slot_id=%s err=%r", attempt, slot_id, e)
-            if attempt == 2:
-                app.logger.exception("notify_alerts_for_slot final failure")
-                return
 
 
 def _maybe_send_due_booking_reminders() -> None:
@@ -5275,8 +4986,7 @@ def _maybe_send_due_booking_reminders() -> None:
         _REMINDER_LOCK.release()
 
 
-@app.get("/api/alerts/stats")
-def alert_stats():
+def alert_stats_view():
     email = (request.args.get("email") or "").strip().lower()
     if not email:
         return _json_error("email_required", 400)
@@ -5490,8 +5200,7 @@ def toggle_alert_subscription(alert_id: str):
     return jsonify({"ok": True, "active": bool(active), "id": str(alert_id)})
 
 
-@app.get("/api/alerts/debug/by_zip")
-def debug_alerts_by_zip():
+def debug_alerts_by_zip_view():
     zip_code = normalize_zip(request.args.get("zip"))
     if len(zip_code) != 5:
         return _json_error("invalid_zip", 400)
@@ -5526,8 +5235,7 @@ def debug_alerts_by_zip():
     )
 
 
-@app.get("/api/alerts/debug/raw_by_zip")
-def debug_raw_by_zip():
+def debug_raw_by_zip_view():
     zip_code = normalize_zip(request.args.get("zip"))
     if len(zip_code) != 5:
         return _json_error("invalid_zip", 400)
@@ -5561,8 +5269,7 @@ def debug_raw_by_zip():
     return jsonify({"zip": zip_code, "count": len(clean), "rows": clean})
 
 
-@app.get("/api/alerts/debug/active_confirmed_by_zip")
-def debug_active_confirmed_by_zip():
+def debug_active_confirmed_by_zip_view():
     zip_code = normalize_zip(request.args.get("zip"))
     if len(zip_code) != 5:
         return _json_error("invalid_zip", 400)
@@ -5601,8 +5308,7 @@ def debug_active_confirmed_by_zip():
 
 
 # ✅ EINMALIGER Create-Endpoint (nicht doppeln!)
-@app.post("/api/alerts")
-def create_alert():
+def create_alert_view():
     try:
         data = request.get_json(force=True) or {}
 
@@ -5872,7 +5578,7 @@ def create_alert():
         
         stats = {"used": used, "limit": limit_val, "left": left}
 
-        verify_url = url_for("alerts_verify", token=verify_token, _external=True)
+        verify_url = url_for("alerts_public.alerts_verify", token=verify_token, _external=True)
 
         body = (
             "Du hast auf Terminmarktplatz einen Termin-Alarm eingerichtet.\n\n"
@@ -5908,11 +5614,10 @@ def create_alert():
         return jsonify({"error": "server_error"}), 500
 
  
- 
-# ✅ EINZIGE Verify-Route (robust)
-@app.get("/alerts/verify/<path:token>", endpoint="alerts_verify")
-def alerts_verify(token: str):
-    token = _norm_token(token)
+# Verify-/Cancel-Routen: registriert über routes.alerts (alerts_public Blueprint)
+
+
+def alerts_verify_view(token: str):
     if not token:
         return "Dieser Bestätigungslink ist ungültig oder abgelaufen.", 400
 
@@ -5966,9 +5671,7 @@ def alerts_verify(token: str):
 
 
 
-@app.get("/alerts/cancel/<path:token>", endpoint="alerts_cancel")
-def alerts_cancel(token: str):
-    token = _norm_token(token)
+def alerts_cancel_view(token: str):
     if not token:
         return "Alarm nicht gefunden oder bereits deaktiviert.", 400
 
@@ -6002,9 +5705,7 @@ def alerts_cancel(token: str):
 
 
 
-@app.get("/api/alerts/debug/token")
-def debug_alert_by_token():
-    t = _norm_token(request.args.get("t"))
+def debug_alert_by_token_view(t: str):
     if not t:
         return _json_error("t_required", 400)
 
@@ -8492,7 +8193,7 @@ def public_slots_view():
                         slot_zip = normalize_zip(getattr(slot, "zip", None))
                         slot_location = (getattr(slot, "location", None) or "").strip()
                         if len(slot_zip) != 5:
-                            slot_zip = normalize_zip(_extract_zip_from_text(slot_location))
+                            slot_zip = normalize_zip(extract_zip_from_text(slot_location))
                         slot_city = (getattr(slot, "city", None) or "").strip()
                         if not slot_city and slot_location:
                             slot_city = slot_location
@@ -9656,11 +9357,14 @@ def public_cancel_view():
 
 
 # Blueprints (öffentliche Buchung, Webhooks)
+from routes.alerts import alerts_api_bp, alerts_public_bp
 from routes.public_booking import bp as public_booking_bp
 from routes.webhooks import bp as webhooks_bp
 
 app.register_blueprint(webhooks_bp)
 app.register_blueprint(public_booking_bp)
+app.register_blueprint(alerts_api_bp)
+app.register_blueprint(alerts_public_bp)
 
 
 # --------------------------------------------------------
