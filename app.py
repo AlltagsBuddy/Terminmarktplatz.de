@@ -203,9 +203,9 @@ if IS_TESTSYSTEM:
     GOOGLE_MAPS_API_KEY = None  # Deaktiviert Google Maps im Testsystem
     if os.environ.get("EMAILS_ENABLED", "").lower() != "true":
         EMAILS_ENABLED = False  # Standard: Mail aus, außer explizit aktiviert
-        app.logger.info("⚠️  Testsystem erkannt: E-Mails deaktiviert (EMAILS_ENABLED=true in .env zum Testen)")
+        app.logger.info("[WARN] Testsystem erkannt: E-Mails deaktiviert (EMAILS_ENABLED=true in .env zum Testen)")
     else:
-        app.logger.info("⚠️  Testsystem: E-Mails aktiviert für Tests")
+        app.logger.info("[WARN] Testsystem: E-Mails aktiviert für Tests")
 else:
     EMAILS_ENABLED = True  # Live: E-Mails immer aktiv
 
@@ -590,7 +590,7 @@ def _ensure_base_tables():
                     from models import Base
                     Base.metadata.create_all(engine, checkfirst=True)
                 except Exception as e:
-                    print(f"⚠️  Warnung: Basistabellen konnten nicht erstellt werden (PostgreSQL): {e}", flush=True)
+                    print(f"[WARN] Warnung: Basistabellen konnten nicht erstellt werden (PostgreSQL): {e}", flush=True)
             else:
                 # SQLite: Erstelle Tabellen manuell (SQLite-kompatibel)
                 try:
@@ -691,7 +691,7 @@ def _ensure_base_tables():
                 
                 print("✓ Basistabellen für SQLite erstellt", flush=True)
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: Basistabellen konnten nicht erstellt werden: {e}", flush=True)
+        print(f"[WARN] Warnung: Basistabellen konnten nicht erstellt werden: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -746,7 +746,7 @@ def _ensure_review_table():
                     "CREATE INDEX IF NOT EXISTS review_provider_id_idx ON review(provider_id)"
                 )
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_review_table fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_review_table fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -775,7 +775,7 @@ def _ensure_provider_logo_url():
                 except Exception:
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_provider_logo_url fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_provider_logo_url fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -804,7 +804,7 @@ def _ensure_provider_logo_consent():
                 except Exception:
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -839,7 +839,7 @@ def _ensure_provider_public_profile_fields():
                     if col not in cols:
                         conn.exec_driver_sql(f"ALTER TABLE provider ADD COLUMN {col} TEXT")
     except Exception as e:
-        print(f"⚠️  Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
 
 # Startup-Migrationen werden unten non-blocking gestartet
 
@@ -874,7 +874,7 @@ def _ensure_booking_reminder_fields():
                             f"ALTER TABLE booking ADD COLUMN {col} {type_map.get(typ, 'TEXT')}"
                         )
     except Exception as e:
-        print(f"⚠️  Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}", flush=True)
 
 # Startup-Migrationen werden unten non-blocking gestartet
 
@@ -932,7 +932,7 @@ def _ensure_geo_tables():
             conn.exec_driver_sql(ddl_cache)
     except (OperationalError, SQLAlchemyError) as e:
         # Logge den Fehler, aber verhindere nicht den App-Start
-        print(f"⚠️  Warnung: Geocode-Tabellen konnten nicht erstellt werden: {e}", flush=True)
+        print(f"[WARN] Warnung: Geocode-Tabellen konnten nicht erstellt werden: {e}", flush=True)
         print("   Die Tabellen werden beim ersten Request erstellt, wenn die DB verfügbar ist.", flush=True)
 
 
@@ -963,7 +963,7 @@ def _remove_provider_branch_constraint():
             else:
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: remove_provider_branch_constraint fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: remove_provider_branch_constraint fehlgeschlagen: {e}", flush=True)
 
 
 # --------------------------------------------------------
@@ -995,7 +995,7 @@ def _remove_category_constraint():
                 # Die Validierung erfolgt sowieso in der Anwendung
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: remove_category_constraint fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: remove_category_constraint fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1034,7 +1034,7 @@ def _ensure_alert_deleted_at():
                     # Tabelle existiert nicht - ignorieren (wird später erstellt)
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_alert_deleted_at fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_alert_deleted_at fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1100,7 +1100,7 @@ def _ensure_password_reset_table():
                     # Indizes existieren möglicherweise bereits
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_password_reset_table fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_password_reset_table fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1193,7 +1193,7 @@ def _ensure_provider_number_field():
             except Exception:
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_provider_number_field fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_provider_number_field fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1232,7 +1232,7 @@ def _ensure_last_login_field():
                 else:
                     conn.execute(text("ALTER TABLE provider ADD COLUMN last_login_at DATETIME"))
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_last_login_field fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_last_login_field fehlgeschlagen: {e}", flush=True)
 
 
 # --------------------------------------------------------
@@ -1258,7 +1258,7 @@ def _ensure_provider_warevision_webhook():
         finally:
             raw.close()
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_provider_warevision_webhook fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_provider_warevision_webhook fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1325,7 +1325,7 @@ def _ensure_archive_fields():
                 except Exception:
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_archive_fields fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_archive_fields fehlgeschlagen: {e}", flush=True)
 
 
 # --------------------------------------------------------
@@ -1354,7 +1354,7 @@ def _ensure_slot_archived_is_boolean():
             """)
             print("✓ slot.archived: INTEGER → BOOLEAN konvertiert", flush=True)
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_slot_archived_is_boolean fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_slot_archived_is_boolean fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1411,7 +1411,7 @@ def _ensure_slot_status_constraint():
                 # Die Validierung erfolgt in der Anwendung (normalize_category, etc.)
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_slot_status_constraint fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_slot_status_constraint fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1435,7 +1435,7 @@ def _ensure_slot_description_field():
                     # Spalte existiert nicht, hinzufügen
                     conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN description TEXT")
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_slot_description_field fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_slot_description_field fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1514,7 +1514,7 @@ def _ensure_publish_quota_tables():
                 # Tabelle existiert nicht - ignorieren
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}", flush=True)
 
 
 def _ensure_stripe_connect_fields() -> None:
@@ -1551,7 +1551,7 @@ def _ensure_stripe_connect_fields() -> None:
                     except Exception:
                         conn.exec_driver_sql(f"ALTER TABLE {tbl} ADD COLUMN {col} {typ}")
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"⚠️  Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}", flush=True)
+        print(f"[WARN] Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}", flush=True)
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1583,7 +1583,7 @@ def _run_startup_migrations() -> None:
         try:
             fn()
         except Exception as e:
-            print(f"⚠️  Warnung: Startup-Migration fehlgeschlagen ({fn.__name__}): {e}", flush=True)
+            print(f"[WARN] Warnung: Startup-Migration fehlgeschlagen ({fn.__name__}): {e}", flush=True)
 
 
 def _start_startup_migrations() -> None:
@@ -1597,7 +1597,7 @@ def _start_startup_migrations() -> None:
         try:
             fn()
         except Exception as e:
-            print(f"⚠️  Warnung: Kritische Migration {fn.__name__} fehlgeschlagen: {e}", flush=True)
+            print(f"[WARN] Warnung: Kritische Migration {fn.__name__} fehlgeschlagen: {e}", flush=True)
     threading.Thread(
         target=_run_startup_migrations,
         name="startup-migrations",
