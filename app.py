@@ -42,6 +42,7 @@ from flask import (
     Response,
 )
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from argon2 import PasswordHasher
 import jwt
 
@@ -119,15 +120,18 @@ app = Flask(
     template_folder=TEMPLATE_DIR,
 )
 
+# Korrektes Scheme/Host hinter TLS-Terminierung (nginx/caddy) für url_for / url_root
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+
 os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 
-# Render: Uploads unter /data → eigene Route, da außerhalb von static/
-if DATA_DIR:
-
-    @app.route("/static/uploads/<path:filename>")
-    def serve_uploads(filename: str):
-        return send_from_directory(UPLOAD_BASE, filename)
+# Uploads immer über UPLOAD_BASE ausliefern (mit oder ohne DATA_DIR).
+# So stimmen DB-Pfad (/static/uploads/...) und Dateisystem überein und es gibt keinen
+# stillen Fallback auf das leere static/uploads im Container-Image.
+@app.route("/static/uploads/<path:filename>")
+def serve_uploads(filename: str):
+    return send_from_directory(UPLOAD_BASE, filename)
 
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
@@ -882,7 +886,12 @@ def _ensure_booking_reminder_fields():
 # --------------------------------------------------------
 # Provider: Logo URL mit Cache-Buster (mtime)
 # --------------------------------------------------------
-def _logo_url_with_buster(logo_url: str | None, base_url: str | None = None) -> str | None:
+def _logo_url_with_buster(logo_url: str | None, _base_url: str | None = None) -> str | None:
+    """Cache-Buster für hochgeladene Logos. Immer relative URL (/static/...), damit der Browser
+    dieselbe Origin wie die Seite nutzt (test. vs prod, korrektes https hinter Proxy).
+
+    Zweites Argument ist ein Überbleibsel älterer Aufrufe und wird ignoriert.
+    """
     if not logo_url:
         return None
     if not logo_url.startswith("/static/uploads/provider-logos/"):
@@ -894,9 +903,6 @@ def _logo_url_with_buster(logo_url: str | None, base_url: str | None = None) -> 
         url = f"{logo_url}?v={mtime}"
     except Exception:
         url = logo_url
-
-    if base_url and url.startswith("/"):
-        return base_url.rstrip("/") + url
     return url
 
 
