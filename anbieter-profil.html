@@ -831,7 +831,7 @@
         galleryInput.value = next.join('\n');
         renderGalleryPreview(next);
 
-        if (url.startsWith('/static/uploads/provider-gallery/')) {
+        if (url.startsWith('/static/uploads/provider-gallery/') || url.startsWith('/media/provider-gallery/')) {
           try{
             const res = await fetch(`${API}/me/gallery`, {
               method:'DELETE',

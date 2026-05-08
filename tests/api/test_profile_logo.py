@@ -80,7 +80,7 @@ def test_logo_upload_and_delete_flow(test_client, provider_id):
     )
     assert res.status_code == 200
     body = res.get_json()
-    assert "logo_url" in body and "/static/uploads/provider-logos/" in body["logo_url"]
+    assert "logo_url" in body and "/media/provider-logos/" in body["logo_url"]
 
     logo_rel = body["logo_url"].split("?", 1)[0]
     res_file = test_client.get(logo_rel)

@@ -133,6 +133,16 @@ os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 def serve_uploads(filename: str):
     return send_from_directory(UPLOAD_BASE, filename)
 
+
+@app.route("/media/<path:filename>")
+def serve_media_uploads(filename: str):
+    """Gleiche Dateien wie unter /static/uploads/, aber ohne nginx-Kollision.
+
+    Viele Server liefern /static/ direkt aus dem Repo aus; Uploads liegen unter UPLOAD_BASE
+    (z. B. /data/uploads). /media/ wird i. d. R. an die App proxied und erreicht send_from_directory.
+    """
+    return send_from_directory(UPLOAD_BASE, filename)
+
 # Im Test/Dev Caching hart deaktivieren (hilft gegen „alte“ HTML/Assets)
 if not IS_RENDER:
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
@@ -884,25 +894,44 @@ def _ensure_booking_reminder_fields():
 
 
 # --------------------------------------------------------
+# Provider: öffentliche URLs für Uploads (/media/ statt /static/uploads/)
+# --------------------------------------------------------
+def _browser_upload_url(stored_url: str | None) -> str | None:
+    """Mappt in der DB gespeicherte /static/uploads/... URLs auf /media/... für den Browser.
+
+    Hinter nginx wird /static/ oft aus dem Deploy-Baum bedient; Dateien liegen aber unter UPLOAD_BASE.
+    """
+    if not stored_url:
+        return None
+    base, sep, q = stored_url.partition("?")
+    base = base.strip()
+    if base.startswith("/static/uploads/"):
+        out = "/media/" + base[len("/static/uploads/") :]
+        return out + (f"?{q}" if q else "")
+    return stored_url
+
+
+# --------------------------------------------------------
 # Provider: Logo URL mit Cache-Buster (mtime)
 # --------------------------------------------------------
 def _logo_url_with_buster(logo_url: str | None, _base_url: str | None = None) -> str | None:
-    """Cache-Buster für hochgeladene Logos. Immer relative URL (/static/...), damit der Browser
-    dieselbe Origin wie die Seite nutzt (test. vs prod, korrektes https hinter Proxy).
+    """Cache-Buster für hochgeladene Logos; Ausgabe unter /media/provider-logos/…
 
     Zweites Argument ist ein Überbleibsel älterer Aufrufe und wird ignoriert.
     """
     if not logo_url:
         return None
-    if not logo_url.startswith("/static/uploads/provider-logos/"):
+    path_only = logo_url.split("?", 1)[0]
+    browser_path = _browser_upload_url(path_only)
+    if not browser_path or not browser_path.startswith("/media/provider-logos/"):
         return logo_url
-    fname = logo_url.split("/")[-1]
+    fname = browser_path.split("/")[-1]
     fpath = os.path.join(LOGO_UPLOAD_DIR, fname)
     try:
         mtime = int(os.path.getmtime(fpath))
-        url = f"{logo_url}?v={mtime}"
+        url = f"{browser_path}?v={mtime}"
     except Exception:
-        url = logo_url
+        url = browser_path
     return url
 
 
@@ -2955,6 +2984,7 @@ def maybe_api_only():
         or request.path.startswith("/alerts/")
         or request.path in ("/api/health", "/healthz", "/favicon.ico", "/robots.txt", "/_debug_html", "/_debug_slots", "/_debug_mail", "/_debug_mail_test")
         or request.path.startswith("/static/")
+        or request.path.startswith("/media/")
         or request.path.endswith(".html")  # HTML-Seiten erlauben
         or request.path.strip("/") in ("", "index", "suche", "preise", "anbieter", "suchende", "kontakt", "hilfe", "agb", "impressum", "datenschutz", "widerruf")
     ):
@@ -3161,7 +3191,7 @@ if _html_enabled():
                 "payment_methods": getattr(p, "payment_methods", None),
                 "cancellation_policy": getattr(p, "cancellation_policy", None),
                 "directions": getattr(p, "directions", None),
-                "gallery_urls": getattr(p, "gallery_urls", None),
+                "gallery_urls": _gallery_urls_for_browser(getattr(p, "gallery_urls", None)),
             }
 
             slots = []
@@ -4231,7 +4261,7 @@ def me():
                 "payment_methods": getattr(p, "payment_methods", None),
                 "cancellation_policy": getattr(p, "cancellation_policy", None),
                 "directions": getattr(p, "directions", None),
-                "gallery_urls": getattr(p, "gallery_urls", None),
+                "gallery_urls": _gallery_urls_for_browser(getattr(p, "gallery_urls", None)),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -4401,7 +4431,7 @@ def me_update():
                     return _json_error("invalid_logo_url", 400)
                 if any(ch in url for ch in ['"', "'", "<", ">"]):
                     return _json_error("invalid_logo_url", 400)
-                if not (url.startswith("https://") or url.startswith("http://") or url.startswith("/static/")):
+                if not (url.startswith("https://") or url.startswith("http://") or url.startswith("/static/") or url.startswith("/media/")):
                     return _json_error("invalid_logo_url", 400)
                 upd["logo_url"] = url
 
@@ -4540,7 +4570,7 @@ def me_logo_upload():
         save_kw = {"format": "PNG"} if ext == "png" else {"format": "JPEG", "quality": 88, "optimize": True}
         img.save(target_path, **save_kw)
 
-        logo_path = f"/static/uploads/provider-logos/{filename}"
+        logo_path = f"/media/provider-logos/{filename}"
 
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
@@ -4600,6 +4630,29 @@ def _normalize_gallery_urls(urls: list[str]) -> list[str]:
         seen.add(url)
         out.append(url)
     return out
+
+
+def _gallery_filename_from_public_url(url: str) -> str | None:
+    clean = url.split("?", 1)[0].strip()
+    for prefix in ("/media/provider-gallery/", "/static/uploads/provider-gallery/"):
+        if clean.startswith(prefix):
+            fn = clean[len(prefix) :]
+            if fn and "/" not in fn and "\\" not in fn:
+                return fn
+    return None
+
+
+def _gallery_urls_for_browser(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    lines = _parse_gallery_urls(raw)
+    if not lines:
+        return None
+    return "\n".join((_browser_upload_url(ln.split("?", 1)[0]) or ln) for ln in lines)
+
+
+def _gallery_url_list_for_browser(lines: list[str]) -> list[str]:
+    return [_browser_upload_url(u.split("?", 1)[0]) or u for u in lines]
 
 
 def _compress_gallery_image(file_storage) -> tuple[bytes, str]:
@@ -4682,7 +4735,7 @@ def me_gallery_upload():
             with open(target_path, "wb") as out:
                 out.write(file.stream.read())
 
-            new_urls.append(f"/static/uploads/provider-gallery/{filename}")
+            new_urls.append(f"/media/provider-gallery/{filename}")
 
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
@@ -4695,7 +4748,7 @@ def me_gallery_upload():
             p.gallery_urls = "\n".join(merged) if merged else None
             s.commit()
 
-        return jsonify({"ok": True, "gallery_urls": merged})
+        return jsonify({"ok": True, "gallery_urls": _gallery_url_list_for_browser(merged)})
     except Exception:
         app.logger.exception("me_gallery_upload failed")
         return jsonify({"error": "server_error"}), 500
@@ -4709,11 +4762,8 @@ def me_gallery_delete():
         url = (data.get("url") or "").strip()
         if not url:
             return _json_error("missing_url", 400)
-        clean_url = url.split("?", 1)[0]
-        if not clean_url.startswith("/static/uploads/provider-gallery/"):
-            return _json_error("invalid_gallery_url", 400)
-        filename = os.path.basename(clean_url)
-        if not filename or "/" in filename or "\\" in filename:
+        filename = _gallery_filename_from_public_url(url)
+        if not filename:
             return _json_error("invalid_gallery_url", 400)
 
         removed = False
@@ -4730,11 +4780,13 @@ def me_gallery_delete():
             if not p:
                 return _json_error("not_found", 404)
             existing = _parse_gallery_urls(getattr(p, "gallery_urls", None))
-            filtered = [u for u in existing if u.split("?", 1)[0] != clean_url]
+            filtered = [u for u in existing if _gallery_filename_from_public_url(u) != filename]
             p.gallery_urls = "\n".join(filtered) if filtered else None
             s.commit()
 
-        return jsonify({"ok": True, "deleted": removed, "gallery_urls": filtered})
+        return jsonify(
+            {"ok": True, "deleted": removed, "gallery_urls": _gallery_url_list_for_browser(filtered)}
+        )
     except Exception:
         app.logger.exception("me_gallery_delete failed")
         return jsonify({"error": "server_error"}), 500
