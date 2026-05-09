@@ -532,6 +532,22 @@
       return 'https://terminmarktplatz.de';
     })();
 
+    /** Bilder unter /media/… oder /static/uploads/… immer gegen die API-Origin laden (Ports/Hosts wie Portal vs. Backend). */
+    function assetUrlFromApi(url){
+      if (!url || typeof url !== 'string') return url || '';
+      const u = url.trim();
+      if (/^https?:\/\//i.test(u)) return u;
+      if (!u.startsWith('/')) return u;
+      try {
+        const base = API.replace(/\/+$/, '');
+        return new URL(u, base + '/').href;
+      } catch (_) {
+        return u;
+      }
+    }
+
+    window.__TM_API_BASE = API;
+
     const $  = (q, root=document)=>root.querySelector(q);
 
     function showMsg(id, text, ok=false){
@@ -556,7 +572,7 @@
     function setLogoPreview(url){
       const img = document.getElementById('pf-logo-preview');
       if (!img) return;
-      if (url) { img.src = url; img.style.display = 'block'; }
+      if (url) { img.src = assetUrlFromApi(url); img.style.display = 'block'; }
       else { img.removeAttribute('src'); img.style.display = 'none'; }
     }
 
@@ -576,7 +592,7 @@
         item.className = 'gallery-item';
         const img = document.createElement('img');
         img.alt = 'Galerie Bild';
-        img.src = url;
+        img.src = assetUrlFromApi(url);
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = 'Entfernen';
@@ -935,19 +951,9 @@
     (function(){
       const API_LOCAL = (typeof window.API === 'string')
         ? window.API
-        : (() => {
-            const h = location.hostname;
-            const proto = location.protocol;
-            const isLocal =
-              h === 'localhost' ||
-              h === '127.0.0.1' ||
-              /^192\.168\./.test(h) ||
-              /^10\./.test(h) ||
-              h.endsWith('.local');
-            if (isLocal) return `${proto}//${h}:5000`;
-            if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) return `${proto}//${location.host}`;
-            return 'https://terminmarktplatz.de';
-          })();
+        : (typeof window.__TM_API_BASE === 'string'
+          ? window.__TM_API_BASE
+          : 'https://terminmarktplatz.de');
 
       const btn = document.getElementById('userMenuBtn');
       const menu = document.getElementById('userMenu');

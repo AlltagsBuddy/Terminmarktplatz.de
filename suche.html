@@ -1010,6 +1010,19 @@
       return 'https://terminmarktplatz.de';
     })();
 
+    function assetUrlFromApi(url){
+      if (!url || typeof url !== 'string') return '';
+      const u = url.trim();
+      if (/^https?:\/\//i.test(u)) return u;
+      if (!u.startsWith('/')) return u;
+      try {
+        const base = API.replace(/\/+$/, '');
+        return new URL(u, base + '/').href;
+      } catch (_) {
+        return u;
+      }
+    }
+
     // Rückkehr von Stripe Anzahlung
     (function(){
       const sp = new URLSearchParams(location.search);
@@ -1446,9 +1459,10 @@
         const p = x.provider || {};
         const providerName = p.name || p.company_name || p.email || 'Anbieter';
         const providerLogo = (p.logo_url || '').toString().trim();
+        const providerLogoSrc = providerLogo ? assetUrlFromApi(providerLogo) : '';
         const providerInitial = (providerName || 'A').toString().trim().charAt(0).toUpperCase() || 'A';
-        const providerBadge = providerLogo
-          ? `<img class="provider-logo" src="${providerLogo}" alt="${providerName}">`
+        const providerBadge = providerLogoSrc
+          ? `<img class="provider-logo" src="${providerLogoSrc}" alt="${providerName}">`
           : `<div class="provider-logo-fallback">${providerInitial}</div>`;
         const providerAddress =
           p.address
