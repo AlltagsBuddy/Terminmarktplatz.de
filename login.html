@@ -641,6 +641,11 @@
                 <button type="button" class="password-toggle" aria-label="Passwort anzeigen" data-target="login-password">👁️</button>
               </div>
             </div>
+            <div class="field col-2" style="flex-direction:row;align-items:center;gap:10px;flex-wrap:wrap;">
+              <input id="login-remember" name="remember_me" type="checkbox" value="1" />
+              <label for="login-remember" style="margin:0;font-weight:600;">Angemeldet bleiben</label>
+              <span class="hint" style="font-weight:400;">Ohne Haken: Sitzung ca. 8 Stunden. Mit Haken: bis zu 30 Tage auf diesem Gerät.</span>
+            </div>
             <div class="form-actions col-2">
               <button class="btn primary" type="submit">Anmelden</button>
               <span class="form-note">
@@ -897,6 +902,14 @@
       box.textContent = text;
     }
 
+    (function(){
+      const sp = new URLSearchParams(location.search);
+      if (sp.get('session_expired') === '1') {
+        switchTab('login');
+        showInfo('warn', 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+      }
+    })();
+
     // ---------- LOGIN ----------
     (function(){
       const form = document.getElementById('login-form');
@@ -906,6 +919,8 @@
         hideAlert('login-alert');
         const email = document.getElementById('login-email').value.trim();
         const password = document.getElementById('login-password').value;
+        const rememberEl = document.getElementById('login-remember');
+        const remember_me = !!(rememberEl && rememberEl.checked);
         if(!email || !password){ return showAlert('login-alert','Bitte E-Mail und Passwort eingeben.'); }
 
         showLoading('Anmeldung …'); lockForm(form, true);
@@ -914,7 +929,7 @@
             method:'POST',
             headers:{'Content-Type':'application/json'},
             credentials:'include',
-            body: JSON.stringify({email, password})
+            body: JSON.stringify({email, password, remember_me})
           });
           const data = await res.json().catch(()=>({}));
           if(!res.ok){

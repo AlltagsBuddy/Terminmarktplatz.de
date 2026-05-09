@@ -4099,6 +4099,38 @@ def auth_change_password():
         return _json_error("server_error", 500)
 
 
+@app.get("/auth/session")
+def auth_session():
+    """Session-Ende für Client-Warnung (Cookies HttpOnly → nur serverseitig lesbar)."""
+    access = request.cookies.get("access_token")
+    refresh = request.cookies.get("refresh_token")
+    tok = access or refresh
+    if not tok:
+        return jsonify({"authenticated": False})
+    try:
+        payload = jwt.decode(
+            tok,
+            SECRET,
+            algorithms=["HS256"],
+            audience=JWT_AUD,
+            issuer=JWT_ISS,
+            options={"verify_exp": False},
+        )
+        if refresh and not access and payload.get("typ") != "refresh":
+            return jsonify({"authenticated": False})
+        exp = int(payload.get("exp") or 0)
+        remember = bool(payload.get("rmb"))
+        return jsonify(
+            {
+                "authenticated": True,
+                "session_expires_at": exp,
+                "remember_me": remember,
+            }
+        )
+    except Exception:
+        return jsonify({"authenticated": False})
+
+
 @app.post("/auth/refresh")
 def auth_refresh():
     token = request.cookies.get("refresh_token")
@@ -4117,13 +4149,24 @@ def auth_refresh():
             issuer=JWT_ISS,
         )
         if data.get("typ") != "refresh":
-            raise Exception("wrong type")
+            raise ValueError("wrong type")
     except Exception:
         return _json_error("unauthorized", 401)
 
-    access, _ = issue_tokens(data["sub"], bool(data.get("adm")))
-    resp = make_response(jsonify({"ok": True, "access": access}))
-    return _set_auth_cookies(resp, access)
+    remember_me = bool(data.get("rmb"))
+    access, refresh_new = issue_tokens(data["sub"], bool(data.get("adm")), remember_me=remember_me)
+    dec = jwt.decode(
+        access,
+        SECRET,
+        algorithms=["HS256"],
+        audience=JWT_AUD,
+        issuer=JWT_ISS,
+        options={"verify_exp": False},
+    )
+    resp = make_response(
+        jsonify({"ok": True, "access": access, "session_expires_at": dec.get("exp"), "remember_me": remember_me})
+    )
+    return _set_auth_cookies(resp, access, refresh_new)
 
 
 @app.delete("/me")
