@@ -14,6 +14,7 @@ import base64
 import re
 import io
 import csv
+from urllib.parse import quote
 
 # E-Mail / HTTP-APIs / SMTP
 from email.message import EmailMessage
@@ -169,8 +170,8 @@ SECRET = os.environ.get("SECRET_KEY", "dev")
 DB_URL = os.environ.get("DATABASE_URL", "")
 JWT_ISS = os.environ.get("JWT_ISS", "terminmarktplatz")
 JWT_AUD = os.environ.get("JWT_AUD", "terminmarktplatz_client")
-JWT_EXP_MIN = int(os.environ.get("JWT_EXP_MINUTES", "60"))
-REFRESH_EXP_DAYS = int(os.environ.get("REFRESH_EXP_DAYS", "14"))
+SESSION_HOURS = int(os.environ.get("SESSION_HOURS", "8"))
+SESSION_REMEMBER_DAYS = int(os.environ.get("SESSION_REMEMBER_DAYS", "30"))
 
 from utils.jwt_tokens import (
     JWTSettings,
@@ -190,8 +191,8 @@ configure_jwt(
         secret=SECRET,
         issuer=JWT_ISS,
         audience=JWT_AUD,
-        access_exp_minutes=JWT_EXP_MIN,
-        refresh_exp_days=REFRESH_EXP_DAYS,
+        session_hours=SESSION_HOURS,
+        remember_days=SESSION_REMEMBER_DAYS,
     )
 )
 
@@ -2652,11 +2653,14 @@ def auth_required(admin: bool = False):
                 auth = request.headers.get("Authorization", "")
                 if auth.lower().startswith("bearer "):
                     token = auth.split(" ", 1)[1].strip()
-            
-            # Versuche Access-Token zu dekodieren
+
+            refresh_token = request.cookies.get("refresh_token")
             data = None
-            new_access_token = None  # Wird gesetzt, wenn wir einen neuen Token generieren müssen
-            
+            new_access_token = None
+            new_refresh_token = None
+            access_expired = False
+            refresh_expired = False
+
             if token:
                 try:
                     data = jwt.decode(
@@ -2667,47 +2671,41 @@ def auth_required(admin: bool = False):
                         issuer=JWT_ISS,
                     )
                 except jwt.ExpiredSignatureError:
-                    # Access-Token abgelaufen: Versuche Refresh-Token zu verwenden
-                    refresh_token = request.cookies.get("refresh_token")
-                    if refresh_token:
-                        try:
-                            refresh_data = jwt.decode(
-                                refresh_token,
-                                SECRET,
-                                algorithms=["HS256"],
-                                audience=JWT_AUD,
-                                issuer=JWT_ISS,
-                            )
-                            if refresh_data.get("typ") == "refresh":
-                                # Neuen Access-Token generieren
-                                new_access_token, _ = issue_tokens(refresh_data["sub"], bool(refresh_data.get("adm")))
-                                data = refresh_data  # Verwende Refresh-Daten für diese Request
-                        except Exception:
-                            pass  # Refresh-Token auch ungültig
+                    access_expired = True
                 except Exception:
-                    pass  # Andere Fehler beim Dekodieren
-            
-            # Wenn immer noch kein gültiger Token: Prüfe Refresh-Token direkt
-            if not data:
-                refresh_token = request.cookies.get("refresh_token")
-                if refresh_token:
-                    try:
-                        refresh_data = jwt.decode(
-                            refresh_token,
+                    pass
+
+            if data is None and refresh_token:
+                try:
+                    rd = jwt.decode(
+                        refresh_token,
+                        SECRET,
+                        algorithms=["HS256"],
+                        audience=JWT_AUD,
+                        issuer=JWT_ISS,
+                    )
+                    if rd.get("typ") == "refresh":
+                        rmb = bool(rd.get("rmb"))
+                        new_access_token, new_refresh_token = issue_tokens(
+                            rd["sub"],
+                            bool(rd.get("adm")),
+                            remember_me=rmb,
+                        )
+                        data = jwt.decode(
+                            new_access_token,
                             SECRET,
                             algorithms=["HS256"],
                             audience=JWT_AUD,
                             issuer=JWT_ISS,
                         )
-                        if refresh_data.get("typ") == "refresh":
-                            data = refresh_data
-                            # Generiere neuen Access-Token
-                            new_access_token, _ = issue_tokens(refresh_data["sub"], bool(refresh_data.get("adm")))
-                    except Exception:
-                        pass
-            
+                except jwt.ExpiredSignatureError:
+                    refresh_expired = True
+                except Exception:
+                    pass
+
+            session_expired_redirect = bool(data is None and (access_expired or refresh_expired))
+
             if not data:
-                # JSON/API-Endpunkte sollen 401 liefern (kein Redirect), sonst Login-Redirect
                 json_prefixes = (
                     "/api/",
                     "/auth/",
@@ -2720,12 +2718,14 @@ def auth_required(admin: bool = False):
                 )
                 json_paths = {"/me"}
                 is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
+                next_q = quote(request.full_path or request.path or "/", safe="/:?=&")
                 if request.path.endswith(".html") or not is_json_endpoint:
-                    return redirect(f"/login.html?next={request.path}")
+                    if session_expired_redirect:
+                        return redirect(f"/login.html?session_expired=1&next={next_q}")
+                    return redirect(f"/login.html?next={next_q}")
                 return _json_error("unauthorized", 401)
-            
+
             if admin and not data.get("adm"):
-                # Für HTML-Routen: Redirect zu Login mit Fehlermeldung
                 json_prefixes = (
                     "/api/",
                     "/auth/",
@@ -2738,25 +2738,27 @@ def auth_required(admin: bool = False):
                 )
                 json_paths = {"/me"}
                 is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
+                next_q = quote(request.full_path or request.path or "/", safe="/:?=&")
                 if request.path.endswith(".html") or not is_json_endpoint:
-                    return redirect(f"/login.html?error=admin_required&next={request.path}")
+                    return redirect(f"/login.html?error=admin_required&next={next_q}")
                 return _json_error("forbidden", 403)
-            
+
             request.provider_id = data["sub"]
             request.is_admin = bool(data.get("adm"))
-            
-            # Führe die ursprüngliche Funktion aus
+
             result = fn(*args, **kwargs)
-            
-            # Wenn wir einen neuen Access-Token generiert haben, setze ihn im Response
+
             if new_access_token:
-                # Konvertiere zu Response-Objekt falls nötig
                 if not isinstance(result, Response):
                     result = make_response(result)
-                # Setze neuen Access-Token Cookie
+                fb = max(3600, SESSION_HOURS * 3600)
                 flags = _cookie_flags()
-                result.set_cookie("access_token", new_access_token, max_age=JWT_EXP_MIN * 60, **flags)
-            
+                ma = _cookie_max_age_from_token(new_access_token, fb)
+                result.set_cookie("access_token", new_access_token, max_age=ma, **flags)
+                if new_refresh_token:
+                    mr = _cookie_max_age_from_token(new_refresh_token, fb)
+                    result.set_cookie("refresh_token", new_refresh_token, max_age=mr, **flags)
+
             return result
 
         inner.__name__ = fn.__name__
@@ -3662,16 +3664,35 @@ def _authenticate(email: str, password: str):
         return p, None
 
 
+def _cookie_max_age_from_token(token: str, fallback_seconds: int) -> int:
+    """max_age für Cookies aus JWT exp (Restlaufzeit in Sekunden)."""
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET,
+            algorithms=["HS256"],
+            audience=JWT_AUD,
+            issuer=JWT_ISS,
+            options={"verify_exp": False},
+        )
+        exp = int(payload.get("exp") or 0)
+        now_i = int(_now().timestamp())
+        return max(60, exp - now_i)
+    except Exception:
+        return fallback_seconds
+
+
 def _set_auth_cookies(resp, access: str, refresh: str | None = None):
     flags = _cookie_flags()
-    # Für Testsystem: Stelle sicher, dass Cookies korrekt gesetzt werden
-    # Domain wird nicht explizit gesetzt, damit Cookies für die aktuelle Domain gelten
-    resp.set_cookie("access_token", access, max_age=JWT_EXP_MIN * 60, **flags)
+    fb = max(3600, SESSION_HOURS * 3600)
+    max_age_a = _cookie_max_age_from_token(access, fb)
+    resp.set_cookie("access_token", access, max_age=max_age_a, **flags)
     if refresh:
+        max_age_r = _cookie_max_age_from_token(refresh, fb)
         resp.set_cookie(
             "refresh_token",
             refresh,
-            max_age=REFRESH_EXP_DAYS * 86400,
+            max_age=max_age_r,
             **flags,
         )
     # Debug: Log Cookie-Setting (nur im Testsystem)
@@ -3679,7 +3700,9 @@ def _set_auth_cookies(resp, access: str, refresh: str | None = None):
         RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
         IS_TESTSYSTEM = "testsystem" in RENDER_EXTERNAL_URL.lower() or "test" in RENDER_EXTERNAL_URL.lower()
         if IS_TESTSYSTEM:
-            app.logger.info(f"Cookies gesetzt: access_token (max_age={JWT_EXP_MIN * 60}s), refresh_token (max_age={REFRESH_EXP_DAYS * 86400}s), flags={flags}")
+            app.logger.info(
+                f"Cookies gesetzt: access_token (max_age={max_age_a}s), refresh_token, flags={flags}"
+            )
     return resp
 
 
@@ -3837,10 +3860,30 @@ def auth_login_json():
         status = 403 if err == "email_not_verified" else 401
         return _json_error(err, status)
 
-    access, refresh = issue_tokens(p.id, p.is_admin)
-    # Include profile completeness in JSON response so clients can decide redirect without extra /me call
+    raw_rm = data.get("remember_me")
+    remember_me = raw_rm is True or str(raw_rm).strip().lower() in ("1", "true", "yes", "on")
+
+    access, refresh = issue_tokens(p.id, p.is_admin, remember_me=remember_me)
     profile_complete = is_profile_complete(p)
-    resp = make_response(jsonify({"ok": True, "access": access, "profile_complete": profile_complete}))
+    decoded_access = jwt.decode(
+        access,
+        SECRET,
+        algorithms=["HS256"],
+        audience=JWT_AUD,
+        issuer=JWT_ISS,
+        options={"verify_exp": False},
+    )
+    resp = make_response(
+        jsonify(
+            {
+                "ok": True,
+                "access": access,
+                "profile_complete": profile_complete,
+                "session_expires_at": decoded_access.get("exp"),
+                "remember_me": remember_me,
+            }
+        )
+    )
     return _set_auth_cookies(resp, access, refresh)
 
 
@@ -3863,7 +3906,11 @@ def auth_login_form():
         )
 
 
-    access, refresh = issue_tokens(p.id, p.is_admin)
+    access, refresh = issue_tokens(
+        p.id,
+        p.is_admin,
+        remember_me=request.form.get("remember_me") in ("1", "on", "true", "yes"),
+    )
     # If the provider's profile is incomplete, force them to the profile page first
     next_param = request.args.get("next")
     if next_param:

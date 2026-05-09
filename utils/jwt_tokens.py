@@ -15,11 +15,13 @@ PROVIDER_CALENDAR_TOKEN_TTL_DAYS = 365
 
 @dataclass(frozen=True)
 class JWTSettings:
+    """Session-Längen für Login ohne/mit „Angemeldet bleiben“."""
+
     secret: str
     issuer: str
     audience: str
-    access_exp_minutes: int
-    refresh_exp_days: int
+    session_hours: int = 8
+    remember_days: int = 30
 
 
 _settings: JWTSettings | None = None
@@ -36,9 +38,15 @@ def _require_settings() -> JWTSettings:
     return _settings
 
 
-def issue_tokens(provider_id: str, is_admin: bool) -> tuple[str, str]:
+def issue_tokens(provider_id: str, is_admin: bool, *, remember_me: bool = False) -> tuple[str, str]:
+    """Ausstellung eines Paares Access + Refresh mit gemeinsamer Ablaufzeit."""
     cfg = _require_settings()
     now = _now()
+    ttl = timedelta(days=cfg.remember_days) if remember_me else timedelta(hours=cfg.session_hours)
+    exp_dt = now + ttl
+    exp_i = int(exp_dt.timestamp())
+    rmb = 1 if remember_me else 0
+
     access = jwt.encode(
         {
             "sub": provider_id,
@@ -46,7 +54,8 @@ def issue_tokens(provider_id: str, is_admin: bool) -> tuple[str, str]:
             "iss": cfg.issuer,
             "aud": cfg.audience,
             "iat": int(now.timestamp()),
-            "exp": int((now + timedelta(minutes=cfg.access_exp_minutes)).timestamp()),
+            "exp": exp_i,
+            "rmb": rmb,
         },
         cfg.secret,
         algorithm="HS256",
@@ -54,11 +63,13 @@ def issue_tokens(provider_id: str, is_admin: bool) -> tuple[str, str]:
     refresh = jwt.encode(
         {
             "sub": provider_id,
+            "adm": is_admin,
             "iss": cfg.issuer,
             "aud": cfg.audience,
             "typ": "refresh",
             "iat": int(now.timestamp()),
-            "exp": int((now + timedelta(days=cfg.refresh_exp_days)).timestamp()),
+            "exp": exp_i,
+            "rmb": rmb,
         },
         cfg.secret,
         algorithm="HS256",
