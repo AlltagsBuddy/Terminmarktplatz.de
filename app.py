@@ -8039,6 +8039,8 @@ def public_slots_view():
                             "whatsapp": provider.whatsapp,
                             "logo_url": getattr(provider, "logo_url", None),
                             "consent_logo_display": bool(getattr(provider, "consent_logo_display", False)),
+                            "review_avg": None,
+                            "review_count": 0,
                         }
 
                     if not bool(getattr(provider, "consent_logo_display", False)):
@@ -8054,6 +8056,32 @@ def public_slots_view():
                     item["provider_city"] = p_city
 
                     out.append(item)
+
+                if out:
+                    provider_ids = list({item["provider"]["id"] for item in out})
+                    if provider_ids:
+                        agg_stmt = (
+                            select(
+                                Review.provider_id,
+                                func.count().label("rcount"),
+                                func.avg(Review.rating).label("ravg"),
+                            )
+                            .where(Review.provider_id.in_(provider_ids))
+                            .group_by(Review.provider_id)
+                        )
+                        rev_stats: dict[str, tuple[float | None, int]] = {}
+                        for row in s.execute(agg_stmt):
+                            pid = str(row.provider_id)
+                            cnt = int(row.rcount or 0)
+                            avg_raw = row.ravg
+                            ra = round(float(avg_raw), 1) if avg_raw is not None else None
+                            rev_stats[pid] = (ra, cnt)
+
+                        for item in out:
+                            pid = str(item["provider"]["id"])
+                            ra, rc = rev_stats.get(pid, (None, 0))
+                            item["provider"]["review_avg"] = ra
+                            item["provider"]["review_count"] = rc
 
                 return jsonify(out)
         except OperationalError as e:

@@ -143,7 +143,12 @@ class Provider(Base):
             parts.append(plz_ort)
         return ", ".join(parts)
 
-    def to_public_dict(self) -> dict:
+    def to_public_dict(
+        self,
+        *,
+        review_avg: float | None = None,
+        review_count: int = 0,
+    ) -> dict:
         return {
             "id": self.id,
             "provider_number": self.provider_number,
@@ -170,6 +175,8 @@ class Provider(Base):
             "cancellation_policy": self.cancellation_policy,
             "directions": self.directions,
             "gallery_urls": self.gallery_urls,
+            "review_avg": review_avg,
+            "review_count": int(review_count or 0),
         }
 
 
