@@ -798,6 +798,45 @@
       margin-bottom: 2rem;
     }
 
+    .tm-testimonial-grid--honest {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .tm-honest-card {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      align-items: center;
+    }
+
+    .tm-honest-card blockquote {
+      margin-bottom: 1.25rem;
+    }
+
+    .tm-honest-lead {
+      font-size: clamp(1.08rem, 2.6vw, 1.28rem);
+      font-weight: 600;
+      color: var(--tm-ink);
+      line-height: 1.45;
+    }
+
+    .tm-honest-sub {
+      margin-top: 0.65rem !important;
+      font-size: 0.92rem !important;
+      color: #94a3b8 !important;
+      line-height: 1.55 !important;
+    }
+
+    .tm-stars--empty .tm-star {
+      fill: rgba(196, 181, 253, 0.28);
+    }
+
+    .tm-honest-card .tm-register-standalone {
+      margin-top: 0.15rem;
+    }
+
     @keyframes tm-fadeUp {
       from {
         opacity: 0;
@@ -1099,6 +1138,11 @@
       .tm-cta-banner .tm-cta-btn {
         width: 100%;
         text-align: center;
+      }
+      .tm-honest-card .tm-register-standalone {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
       }
     }
 
@@ -1535,9 +1579,9 @@
 
   <section class="tm-testimonial-section tm-testi" aria-labelledby="tm-testimonial-heading">
     <div class="tm-container">
-      <span class="tm-eyebrow">Kundenstimmen</span>
-      <h2 id="tm-testimonial-heading" class="tm-testimonial-title">Was Anbieter wirklich sagen</h2>
-      <p class="tm-testimonial-sub">Echte Rückmeldungen von Dienstleistern, die Stornolücken füllen, ohne ihr Alltagssystem umzubauen – schnell eingerichtet, spürbar im Kalender.</p>
+      <span class="tm-eyebrow">Bewertungen</span>
+      <h2 id="tm-testimonial-heading" class="tm-testimonial-title">Platz für echte Stimmen</h2>
+      <p class="tm-testimonial-sub">Hier gibt es keine erfundenen Zitate: Sterne und Texte entstehen erst durch echte Buchungen und faire Rückmeldungen von Kundinnen und Kunden.</p>
 
       <div class="tm-stats" role="list">
         <div class="tm-stat" role="listitem">
@@ -1552,15 +1596,11 @@
           <span class="tm-stat__value">0 €</span>
           <span class="tm-stat__label">Einstiegspreis</span>
         </div>
-        <div class="tm-stat" role="listitem">
-          <span class="tm-stat__value" aria-label="4,8 von 5 Sternen">4,8 ★</span>
-          <span class="tm-stat__label">Bewertung</span>
-        </div>
       </div>
 
-      <div class="tm-testimonial-grid">
-        <article class="tm-testimonial-card tm-testimonial-card--d1">
-          <div class="tm-stars" aria-hidden="true">
+      <div class="tm-testimonial-grid tm-testimonial-grid--honest">
+        <article class="tm-testimonial-card tm-honest-card tm-testimonial-card--d1">
+          <div class="tm-stars tm-stars--empty" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
@@ -1569,60 +1609,10 @@
           </div>
           <p class="tm-quote-deco" aria-hidden="true">“</p>
           <blockquote>
-            <p>Früher war ein Storno einfach Umsatzverlust. Jetzt stelle ich den Slot sofort ein und <span class="tm-highlight">der nächste Kunde bucht meist innerhalb einer Stunde</span>. Einrichtung hat keine fünf Minuten gedauert.</p>
+            <p class="tm-honest-lead">Noch keine Bewertungen – starte als Erster!</p>
+            <p class="tm-honest-sub">Leg los mit einer kostenlosen Registrierung und veröffentliche freie Termine – echte Bewertungen kommen automatisch nach erfolgreichen Buchungen.</p>
           </blockquote>
-          <div class="tm-card-footer">
-            <div class="tm-avatar tm-avatar--g" aria-hidden="true">MF</div>
-            <div class="tm-card-meta">
-              <div class="tm-card-name">Maria Fischer</div>
-              <div class="tm-card-role">Friseurmeisterin · München</div>
-            </div>
-            <span class="tm-cat">Friseur</span>
-          </div>
-        </article>
-
-        <article class="tm-testimonial-card tm-testimonial-card--d2">
-          <div class="tm-stars" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-          </div>
-          <p class="tm-quote-deco" aria-hidden="true">“</p>
-          <blockquote>
-            <p>Als Physiotherapeut bin ich auf volle Auslastung angewiesen. Terminmarktplatz füllt kurzfristige Lücken, <span class="tm-highlight">ohne dass ich mein bestehendes System anfassen muss</span>. Genau das brauchte ich.</p>
-          </blockquote>
-          <div class="tm-card-footer">
-            <div class="tm-avatar tm-avatar--b" aria-hidden="true">TK</div>
-            <div class="tm-card-meta">
-              <div class="tm-card-name">Thomas Krause</div>
-              <div class="tm-card-role">Physiotherapeut · Hamburg</div>
-            </div>
-            <span class="tm-cat">Therapie</span>
-          </div>
-        </article>
-
-        <article class="tm-testimonial-card tm-testimonial-card--d3">
-          <div class="tm-stars" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" class="tm-star"/></svg>
-          </div>
-          <p class="tm-quote-deco" aria-hidden="true">“</p>
-          <blockquote>
-            <p>Im Handwerk haben Absagen oft kurzfristig Löcher gerissen. Jetzt stelle ich freie Slots rein und <span class="tm-highlight">Neukunden aus der Region finden mich direkt</span>. Kostenlos starten war der Grund, es überhaupt auszuprobieren.</p>
-          </blockquote>
-          <div class="tm-card-footer">
-            <div class="tm-avatar tm-avatar--o" aria-hidden="true">SR</div>
-            <div class="tm-card-meta">
-              <div class="tm-card-name">Sandra Richter</div>
-              <div class="tm-card-role">Malerin &amp; Lackiererin · Köln</div>
-            </div>
-            <span class="tm-cat">Handwerk</span>
-          </div>
+          <a href="/login.html?tab=register" class="tm-cta-btn tm-register-standalone">Jetzt kostenlos registrieren</a>
         </article>
       </div>
 
