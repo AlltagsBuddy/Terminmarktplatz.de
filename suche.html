@@ -192,44 +192,39 @@
     }
     /* Bewertung unter dem Anbieter (öffentliche Suche) */
     .provider-review-summary{
-      margin-top:6px;
+      margin-top:8px;
+      font-size: clamp(0.85rem, 2.75vw, 0.95rem);
+      line-height:1.45;
+    }
+    .provider-review-summary .review-inline{
       display:flex;
       flex-wrap:wrap;
       align-items:center;
-      gap:10px 14px;
-      font-size:0.88rem;
-      line-height:1.35;
+      gap:6px 10px;
     }
     .provider-review-summary .review-star-row{
       display:inline-flex;
-      gap:2px;
+      gap:1px;
+      letter-spacing:0.02em;
     }
-    .provider-review-summary .star-lit{
-      color:#ca8a04;
-      text-shadow:0 0 8px rgba(234,179,8,.35);
+    .provider-review-summary .star-gold{
+      color:#FFD700;
+      text-shadow:0 0 10px rgba(255,215,0,.45);
     }
-    .provider-review-summary .star-dim{
-      color:#cbd5e1;
+    .provider-review-summary .star-empty{
+      color:rgba(148,163,184,.55);
     }
-    .provider-review-summary .review-score-line{
+    .provider-review-summary .review-meta{
       color:#334155;
       font-weight:600;
     }
-    .provider-review-summary .review-score-line strong{
+    .provider-review-summary .review-meta strong{
       color:#5b21b6;
       font-weight:800;
     }
-    .provider-review-summary .review-lead-star{
-      color:#ca8a04;
-      margin-right:2px;
-    }
-    .provider-review-summary .review-count-paren{
-      color:#64748b;
-      font-weight:600;
-    }
     .provider-review-summary .review-muted{
       color:#64748b;
-      font-size:0.86rem;
+      font-size:0.9em;
       font-style:italic;
     }
     .results-grid .card h3{
@@ -1368,7 +1363,7 @@
 
     document.getElementById('fav-only')?.addEventListener('change', () => load());
 
-    /** Bewertungszeile für Suchtreffer (API: provider.review_avg, provider.review_count) */
+    /** Bewertungszeile: API liefert review_avg / review_count (Aggregation aus review). */
     function providerReviewSummaryHtml(p) {
       const cnt = Number(p.review_count);
       const avgRaw = p.review_avg;
@@ -1386,15 +1381,21 @@
       const filled = Math.min(5, Math.round(avg));
       let stars = '';
       for (let i = 1; i <= 5; i++) {
-        const cls = i <= filled ? 'star-lit' : 'star-dim';
-        stars += `<span class="${cls}" aria-hidden="true">★</span>`;
+        stars += i <= filled
+          ? '<span class="star-gold" aria-hidden="true">★</span>'
+          : '<span class="star-empty" aria-hidden="true">☆</span>';
       }
       const avgTxt = avg.toFixed(1);
-      const cntDisp = String(Math.round(cnt));
-      const escTitle = avgTxt.replace(/"/g, '&quot;');
-      return `<div class="provider-review-summary" title="${escTitle} von 5 Sternen, ${cntDisp} Bewertungen">
-        <span class="review-star-row">${stars}</span>
-        <span class="review-score-line"><span class="review-lead-star">★</span> <strong>${avgTxt}</strong> <span class="review-count-paren">(${cntDisp})</span></span>
+      const cntInt = Math.round(cnt);
+      const cntDisp = String(cntInt);
+      const bw = cntInt === 1 ? 'Bewertung' : 'Bewertungen';
+      const aria = `${avgTxt} von 5 Sternen, ${cntDisp} ${bw}`;
+      const escAria = aria.replace(/"/g, '&quot;');
+      return `<div class="provider-review-summary" role="img" aria-label="${escAria}">
+        <span class="review-inline">
+          <span class="review-star-row">${stars}</span>
+          <span class="review-meta"><strong>${avgTxt}</strong> (${cntDisp} ${bw})</span>
+        </span>
       </div>`;
     }
 
