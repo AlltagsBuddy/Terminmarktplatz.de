@@ -13,6 +13,8 @@ from sqlalchemy import (
     Numeric,
     Date as SADate,
     Uuid,
+    func,
+    select,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -149,6 +151,12 @@ class Provider(Base):
         review_avg: float | None = None,
         review_count: int = 0,
     ) -> dict:
+        """Öffentliche Felder inkl. Bewertungs-Kennzahlen.
+
+        ``review_avg`` (auf 1 Dezimalstelle gerundet) und ``review_count`` werden
+        aus der Tabelle ``review`` ermittelt, typischerweise via
+        :func:`provider_review_aggregates`.
+        """
         return {
             "id": self.id,
             "provider_number": self.provider_number,
@@ -644,3 +652,28 @@ class Review(Base):
             "replied_at": self.replied_at,
             "created_at": self.created_at,
         }
+
+
+def provider_review_aggregates(session: object, provider_ids: list[str]) -> dict[str, tuple[float | None, int]]:
+    """Liefert pro Provider-ID ``(review_avg, review_count)`` aus der Tabelle ``review``.
+
+    ``review_avg`` ist auf eine Dezimalstelle gerundet oder ``None``, wenn keine Zeilen existieren.
+    """
+    if not provider_ids:
+        return {}
+    stmt = (
+        select(
+            Review.provider_id,
+            func.count().label("rcount"),
+            func.avg(Review.rating).label("ravg"),
+        )
+        .where(Review.provider_id.in_(provider_ids))
+        .group_by(Review.provider_id)
+    )
+    out: dict[str, tuple[float | None, int]] = {}
+    for row in session.execute(stmt):
+        pid = str(row.provider_id)
+        cnt = int(row.rcount or 0)
+        ra = round(float(row.ravg), 1) if row.ravg is not None else None
+        out[pid] = (ra, cnt)
+    return out
