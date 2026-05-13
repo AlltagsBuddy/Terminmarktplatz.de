@@ -1,5 +1,8 @@
 import os
 
+# Wirkt vor allen API-Tests, die ``app`` importieren: Mail-Stubs & konsistentes TESTING.
+os.environ.setdefault("TESTING", "1")
+
 import pytest
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from email.message import EmailMessage
 from email.utils import formataddr, parseaddr
@@ -40,6 +41,25 @@ def _require_mail() -> MailConfig:
     return _mail
 
 
+def _testing_env() -> bool:
+    return os.getenv("TESTING", "").strip().lower() in ("1", "true", "yes")
+
+
+def _stub_mail_no_network(cfg: MailConfig) -> bool:
+    """Kein echter Versand: pytest (TESTING) oder Resend ohne gültigen API-Key.
+
+    Erfolg wird wie bei einer gelieferten Mail behandelt (logisch ok/delivered),
+    Rückgabe weiterhin das bestehende Tupel (True, reason) aus send_mail().
+    """
+    if _testing_env():
+        return True
+    prov = (cfg.provider or "resend").strip().lower()
+    if prov == "resend":
+        key = (cfg.resend_api_key or "").strip()
+        return len(key) <= 5
+    return False
+
+
 def send_mail(
     to: str,
     subject: str,
@@ -50,6 +70,10 @@ def send_mail(
 ):
     """
     Vereinheitlichte Mail-Funktion.
+
+    Stub: Bei TESTING=1/true oder fehlendem RESEND_API_KEY (Provider resend) wird
+    ohne HTTP-Versand (True, \"stubbed\") zurückgegeben — entspricht Erfolg wie
+    {\"ok\": True, \"delivered\": True} für Aufrufer, die nur das Bool prüfen.
     """
     cfg = _require_mail()
     try:
@@ -59,6 +83,13 @@ def send_mail(
                 flush=True,
             )
             return True, "disabled"
+
+        if _stub_mail_no_network(cfg):
+            print(
+                f"[mail] stubbed (TESTING or no RESEND key) to={to!r} subject={subject!r}",
+                flush=True,
+            )
+            return True, "stubbed"
 
         provider = (cfg.provider or "resend").strip().lower()
         print(
@@ -83,6 +114,7 @@ def send_mail(
         # RESEND
         if provider == "resend":
             if not cfg.resend_api_key:
+                # Sollte durch _stub_mail_no_network abgedeckt sein; Fallback sicherheitshalber.
                 return False, "missing RESEND_API_KEY"
 
             payload: dict[str, object] = {

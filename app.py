@@ -824,6 +824,12 @@ def _ensure_provider_logo_consent():
 
 # Startup-Migrationen werden unten non-blocking gestartet
 
+# SQLite-Helfer für optionale Spalten (Migrationen)
+def _sqlite_columns(conn, table: str) -> set[str]:
+    rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+    return {row[1] for row in rows}
+
+
 # Provider: Öffentliches Profil – zusätzliche Felder
 def _ensure_provider_public_profile_fields():
     """

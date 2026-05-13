@@ -2,6 +2,7 @@ import os
 import tempfile
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.orm import Session
@@ -13,6 +14,12 @@ os.environ.setdefault("EMAILS_ENABLED", "false")
 
 import app as app_module
 from models import Base, Provider, Slot, Booking
+
+
+@pytest.fixture(autouse=True)
+def _mock_send_mail():
+    with patch.object(app_module, "send_mail", return_value=(True, "mocked")):
+        yield
 
 
 @pytest.fixture(scope="function")
