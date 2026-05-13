@@ -1,6 +1,7 @@
 import os
 import tempfile
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.orm import Session
@@ -11,6 +12,13 @@ os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
 
 import app as app_module
 from models import Base, Provider, Slot
+
+
+@pytest.fixture(autouse=True)
+def _mock_send_mail():
+    """Kein externer Versand (Resend etc.) — CI hat keine RESEND_API_KEY."""
+    with patch.object(app_module, "send_mail", return_value=(True, "mocked")):
+        yield
 
 
 @pytest.fixture(scope="function")

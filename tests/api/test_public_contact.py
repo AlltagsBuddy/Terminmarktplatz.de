@@ -1,5 +1,6 @@
 import os
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
@@ -9,6 +10,12 @@ os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
 os.environ.setdefault("EMAILS_ENABLED", "false")
 
 import app as app_module
+
+
+@pytest.fixture(autouse=True)
+def _mock_send_mail():
+    with patch.object(app_module, "send_mail", return_value=(True, "mocked")):
+        yield
 
 
 @pytest.fixture(scope="function")
