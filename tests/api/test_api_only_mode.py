@@ -37,6 +37,8 @@ os.environ.clear()
 os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH}"
 os.environ["API_ONLY"] = "1"
 import app as app_module
+from models import Base
+Base.metadata.create_all(app_module.engine, checkfirst=True)
 client = app_module.app.test_client()
 r = client.get("/")
 assert r.status_code == 200
@@ -61,6 +63,8 @@ os.environ.clear()
 os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH}"
 os.environ["API_ONLY"] = "1"
 import app as app_module
+from models import Base
+Base.metadata.create_all(app_module.engine, checkfirst=True)
 client = app_module.app.test_client()
 r = client.get("/kategorien")
 assert r.status_code == 404
@@ -84,7 +88,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_DB_PATH}"
 os.environ["API_ONLY"] = "1"
 import app as app_module
 from models import Base
-Base.metadata.create_all(app_module.engine)
+Base.metadata.create_all(app_module.engine, checkfirst=True)
 client = app_module.app.test_client()
 r = client.get("/api/health")
 assert r.status_code == 200

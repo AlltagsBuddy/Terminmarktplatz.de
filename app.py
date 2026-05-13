@@ -1634,8 +1634,8 @@ def _start_startup_migrations() -> None:
         if _STARTUP_MIGRATIONS_STARTED:
             return
         _STARTUP_MIGRATIONS_STARTED = True
-    # Kritische Migrationen (booking-Spalten) blockierend, damit Buchungen sofort funktionieren
-    for fn in (_ensure_booking_reminder_fields, _ensure_provider_warevision_webhook):
+    # Basistabellen zuerst synchron — kritische Migrationen erwarten provider/booking.
+    for fn in (_ensure_base_tables, _ensure_booking_reminder_fields, _ensure_provider_warevision_webhook):
         try:
             fn()
         except Exception as e:
