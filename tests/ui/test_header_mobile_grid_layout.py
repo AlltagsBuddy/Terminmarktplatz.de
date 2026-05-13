@@ -48,7 +48,7 @@ def test_mobile_header_nav_links_use_grid(app_base_url: str, page: Page, path: s
     if nav.count() == 0:
         pytest.skip("Header-nav nicht vorhanden")
     expect(nav).to_be_visible()
-    expect(nav.locator("a")).to_have_count(3)
+    expect(nav.locator("a")).to_have_count(4)
 
     display = page.evaluate(
         "() => window.getComputedStyle(document.querySelector('header .nav-links')).display"

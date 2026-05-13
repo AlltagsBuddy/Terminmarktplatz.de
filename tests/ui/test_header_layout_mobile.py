@@ -50,7 +50,7 @@ def test_mobile_header_layout_consistent(app_base_url: str, page: Page, path: st
 
     nav = page.locator("header .nav-links")
     expect(nav).to_be_visible()
-    expect(nav.locator("a")).to_have_count(3)
+    expect(nav.locator("a")).to_have_count(4)
 
     display = page.evaluate(
         "() => window.getComputedStyle(document.querySelector('header .nav-links')).display"

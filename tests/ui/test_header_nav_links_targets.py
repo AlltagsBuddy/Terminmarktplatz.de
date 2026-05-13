@@ -51,11 +51,11 @@ def test_header_nav_links_targets(app_base_url: str, page: Page, path: str) -> N
     _goto_with_retry(page, f"{app_base_url}{path}")
 
     nav_links = page.locator("header .nav-links a")
-    if nav_links.count() != 3:
+    if nav_links.count() != 4:
         pytest.skip("Header-nav nicht vorhanden")
     expect(nav_links.first).to_be_visible()
-    expect(nav_links).to_have_count(3)
+    expect(nav_links).to_have_count(4)
 
     hrefs = nav_links.evaluate_all("els => els.map(el => el.getAttribute('href'))")
     normalized = [_normalize_href(href) for href in hrefs]
-    assert normalized == ["anbieter.html", "suchende.html", "preise.html"]
+    assert normalized == ["anbieter.html", "suchende.html", "preise.html", "/blog"]
