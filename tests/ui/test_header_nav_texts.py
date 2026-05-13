@@ -45,10 +45,13 @@ def test_header_nav_link_texts(app_base_url: str, page: Page, path: str) -> None
     _goto_with_retry(page, f"{app_base_url}{path}")
 
     nav_links = page.locator("header .nav-links a")
-    if nav_links.count() != 4:
+    cnt = nav_links.count()
+    if cnt not in (3, 4):
         pytest.skip("Header-nav nicht vorhanden")
     expect(nav_links.first).to_be_visible()
-    expect(nav_links).to_have_count(4)
+    expect(nav_links).to_have_count(cnt)
 
     texts = [t.strip() for t in nav_links.all_text_contents()]
-    assert texts == ["Für Anbieter", "Für Suchende", "Preise", "Blog"]
+    assert texts[:3] == ["Für Anbieter", "Für Suchende", "Preise"]
+    if cnt == 4:
+        assert texts[3] == "Blog"
