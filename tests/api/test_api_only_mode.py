@@ -1,5 +1,5 @@
 """
-Tests für API_ONLY-Modus: Root liefert JSON, nicht erlaubte Pfade liefern 404.
+Tests für API_ONLY-Modus: Root kann statisches index.html liefern; andere HTML-Pfade 404 (api_only).
 Wird in Subprocess ausgeführt, da API_ONLY vor App-Import gesetzt werden muss.
 """
 import subprocess
@@ -26,8 +26,12 @@ def _run_api_only_script(script: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_api_only_root_returns_json():
-    """In API_ONLY-Modus liefert GET / JSON statt HTML."""
+def test_api_only_root_returns_html_when_index_present():
+    """API_ONLY: GET / liefert statisches index.html (wie gewünscht für Frontend auf gleicher Origin).
+
+    Nur Routen unterhalb werden gegenüber einem reinen JSON-Service eingeschränkt.
+    Maschinenlesbare Gesundheitsdaten: /healthz bzw. /api/health.
+    """
     script = '''
 import os
 import tempfile
@@ -42,7 +46,13 @@ Base.metadata.create_all(app_module.engine, checkfirst=True)
 client = app_module.app.test_client()
 r = client.get("/")
 assert r.status_code == 200
-data = r.get_json()
+ct = (r.headers.get("Content-Type") or "").lower()
+assert "text/html" in ct
+body_lo = r.data[:800].lower()
+assert b"<html" in body_lo or b"<!doctype" in body_lo
+rh = client.get("/healthz")
+assert rh.status_code == 200
+data = rh.get_json()
 assert data is not None
 assert data.get("ok") is True
 assert data.get("service") == "api"
