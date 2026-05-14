@@ -22,6 +22,8 @@
   
   <!-- Canonical URL -->
   <link rel="canonical" href="https://terminmarktplatz.de/">
+  <link rel="alternate" hreflang="de" href="https://terminmarktplatz.de/">
+  <link rel="alternate" hreflang="x-default" href="https://terminmarktplatz.de/">
   
   <!-- Weitere SEO Meta-Tags -->
   <meta name="keywords" content="Kurzfristige Termine, freie Termine, Terminbörse, Terminlücken, Spontantermin, Terminbuchung, Onlinebuchung, Dienstleister, Terminmarktplatz">
@@ -58,7 +60,19 @@
         "@type": "Organization",
         "name": "Terminmarktplatz",
         "url": "https://terminmarktplatz.de/",
-        "logo": "https://terminmarktplatz.de/static/favicon.png"
+        "logo": "https://terminmarktplatz.de/static/favicon.png",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Steigerwaldstraße 35",
+          "postalCode": "96191",
+          "addressLocality": "Viereth",
+          "addressRegion": "Bayern",
+          "addressCountry": "DE"
+        },
+        "areaServed": {
+          "@type": "Country",
+          "name": "DE"
+        }
       }
     ]
   }
@@ -1186,14 +1200,6 @@
       }
     }
   </style>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-508763756');
-  </script>
 </head>
 
 <body>
@@ -1657,7 +1663,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein" loading="lazy" decoding="async">
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
@@ -1665,9 +1671,13 @@
       </div>
       <div class="foot-col">
         <h4>Produkt</h4>
+        <a class="foot-link" href="/suche.html">Termine suchen</a>
         <a class="foot-link" href="anbieter.html">Für Anbieter</a>
         <a class="foot-link" href="suchende.html">Für Suchende</a>
-        <a class="foot-link" href="hilfe.html">Hilfe & FAQ</a>
+        <a class="foot-link" href="preise.html">Preise</a>
+        <a class="foot-link" href="kategorien.html">Kategorien</a>
+        <a class="foot-link" href="technik.html">Technik &amp; Sicherheit</a>
+        <a class="foot-link" href="hilfe.html">Hilfe &amp; FAQ</a>
         <a class="foot-link" href="/blog">Blog</a>
       </div>
       <div class="foot-col">
@@ -1904,6 +1914,15 @@
         return true;
       });
     })();
+  </script>
+
+  <!-- gtag.js -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-508763756');
   </script>
 
   </body>

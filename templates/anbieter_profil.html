@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ provider.name }}{% if provider.city %} – {{ provider.city }}{% endif %}{% if provider.branch %} | {{ provider.branch }}{% endif %} | Terminmarktplatz</title>
-  <meta name="description" content="{{ provider.name }}{% if provider.city %} in {{ provider.city }}{% endif %}{% if provider.branch %} – {{ provider.branch }}{% endif %}. Jetzt freie Termine online buchen auf Terminmarktplatz.de." />
+  <meta name="description" content="{{ provider.name }}{% if provider.city %} in {{ provider.city }}{% endif %}{% if provider.branch %} – {{ provider.branch }}{% endif %} – Online-Termine und Terminlücken über die Terminmarktplatz-Terminbörse buchen." />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#6f53ff" />
 
@@ -323,7 +323,7 @@
               <div class="gallery-grid">
                 {% for url in gallery %}
                   {% if url.strip() %}
-                    <img src="{{ url.strip() }}" alt="Galerie Bild">
+                    <img src="{{ url.strip() }}" alt="Galeriefoto {{ loop.index }} – {{ provider.name }}">
                   {% endif %}
                 {% endfor %}
               </div>
@@ -817,7 +817,7 @@
       <div>
         <div class="brand" style="margin-bottom:10px">
           <div class="brand-logo" aria-hidden="true">
-            <img src="static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein">
+            <img src="static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein" loading="lazy" decoding="async">
           </div>
           <div class="brand-title">Terminmarktplatz</div>
         </div>
