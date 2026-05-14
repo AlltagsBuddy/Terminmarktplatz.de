@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Terminmarktplatz – Freie Termine in deiner Nähe</title>
-  <meta name="description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe – Friseur, Kosmetik, Therapie, Handwerk & mehr. Anbieter können freie Slots sofort veröffentlichen und füllen.">
+  <title>Terminmarktplatz – Kurzfristige Termine finden &amp; buchen</title>
+  <meta name="description" content="Auf Terminmarktplatz kurzfristige Termine und freie Terminlücken finden und direkt online buchen. Spontantermin sichern – jetzt Terminbörse durchsuchen!">
   <meta name="theme-color" content="#6f53ff">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
-  <meta property="og:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
+  <meta property="og:title" content="Terminmarktplatz – Kurzfristige Termine finden &amp; buchen">
+  <meta property="og:description" content="Kurzfristige Termine und freie Terminlücken finden und direkt online buchen. Jetzt Spontantermin in der Terminbörse sichern.">
   <meta property="og:site_name" content="Terminmarktplatz">
   <meta property="og:url" content="https://terminmarktplatz.de/">
   <meta property="og:image" content="https://terminmarktplatz.de/static/og-cover.jpg">
@@ -18,39 +18,49 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:locale" content="de_DE">
-  <meta property="og:image:alt" content="Terminmarktplatz – Freie Termine bei Dienstleistern in deiner Nähe finden und buchen">
+  <meta property="og:image:alt" content="Terminmarktplatz – Kurzfristige Termine finden und online buchen">
   
   <!-- Canonical URL -->
   <link rel="canonical" href="https://terminmarktplatz.de/">
   
   <!-- Weitere SEO Meta-Tags -->
-  <meta name="keywords" content="Terminmarktplatz, freie Termine, Terminbörse, Friseur Termine, Kosmetik Termine, Physiotherapie Termine, Termine finden, kurzfristige Termine, Terminlücken, Termin-Sofortbörse">
+  <meta name="keywords" content="Kurzfristige Termine, freie Termine, Terminbörse, Terminlücken, Spontantermin, Terminbuchung, Onlinebuchung, Dienstleister, Terminmarktplatz">
   <meta name="author" content="Terminmarktplatz">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="googlebot" content="index, follow">
   <meta name="bingbot" content="index, follow">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Terminmarktplatz – Freie Termine in deiner Nähe">
-  <meta name="twitter:description" content="Finde kurzfristig freigewordene Termine bei Dienstleistern in deiner Nähe.">
+  <meta name="twitter:title" content="Terminmarktplatz – Kurzfristige Termine finden &amp; buchen">
+  <meta name="twitter:description" content="Kurzfristige Termine und Terminlücken finden und direkt buchen – jetzt Terminbörse durchsuchen.">
   <meta name="twitter:image" content="https://terminmarktplatz.de/static/og-cover.jpg">
 
-  <!-- Schema.org WebSite + SearchAction -->
+  <!-- Schema.org: WebSite mit SearchAction + Organization -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Terminmarktplatz",
-    "url": "https://terminmarktplatz.de/",
-    "description": "Terminmarktplatz – Freie Termine bei Dienstleistern in deiner Nähe finden und direkt online buchen.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://terminmarktplatz.de/suche?q={search_term_string}"
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "Terminmarktplatz",
+        "url": "https://terminmarktplatz.de/",
+        "description": "Kurzfristige Termine und freie Terminlücken finden und direkt online buchen.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://terminmarktplatz.de/suche.html?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
       },
-      "query-input": "required name=search_term_string"
-    }
+      {
+        "@type": "Organization",
+        "name": "Terminmarktplatz",
+        "url": "https://terminmarktplatz.de/",
+        "logo": "https://terminmarktplatz.de/static/favicon.png"
+      }
+    ]
   }
   </script>
 

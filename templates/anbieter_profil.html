@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#6f53ff" />
 
   {% if provider.number %}
-  <link rel="canonical" href="{{ frontend_url }}/provider/{{ provider.number }}" />
+  <link rel="canonical" href="{{ frontend_url }}/anbieter/{{ provider.number }}" />
   {% endif %}
 
   <!-- Open Graph -->
@@ -17,7 +17,7 @@
   <meta property="og:title" content="{{ provider.name }}{% if provider.city %} – {{ provider.city }}{% endif %} | Terminmarktplatz" />
   <meta property="og:description" content="{{ provider.name }}{% if provider.city %} in {{ provider.city }}{% endif %}{% if provider.branch %} – {{ provider.branch }}{% endif %}. Freie Termine online buchen." />
   {% if provider.number %}
-  <meta property="og:url" content="{{ frontend_url }}/provider/{{ provider.number }}" />
+  <meta property="og:url" content="{{ frontend_url }}/anbieter/{{ provider.number }}" />
   {% endif %}
   {% if provider.logo_url %}
   <meta property="og:image" content="{{ provider.logo_url }}" />
@@ -49,7 +49,7 @@
       "reviewCount": "{{ review_count }}"
     },
     {% endif %}
-    "sameAs": "{{ frontend_url }}/provider/{{ provider.number }}"
+    "sameAs": "{{ frontend_url }}/anbieter/{{ provider.number }}"
   }
   </script>
 

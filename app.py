@@ -2800,35 +2800,66 @@ def robots():
 
 @app.get("/sitemap.xml")
 def sitemap():
-    """Dynamische Sitemap mit allen öffentlichen Anbieter-Profilseiten."""
-    static_urls = [
-        "/", "/suche", "/preise", "/anbieter", "/suchende", "/kontakt",
-        "/blog", "/blog/leere-termine-fuellen", "/blog/no-show-vermeiden",
-        "/blog/kurzfristig-termin-finden", "/blog/online-buchbar-werden",
+    """Öffentliche Sitemap: statische Seiten + freigegebene Anbieterprofile (/anbieter/)."""
+    base = (BASE_URL or "https://terminmarktplatz.de").rstrip("/")
+    lastmod = date.today().isoformat()
+
+    # Canonical-Pfade wie in den HTML-Seiten (/, suche.html, übrige .html, Blog ohne Endung)
+    static_priority: list[tuple[str, float]] = [
+        ("/", 1.0),
+        ("/suche.html", 0.9),
+        ("/preise.html", 0.8),
+        ("/anbieter.html", 0.8),
+        ("/suchende.html", 0.8),
+        ("/kontakt.html", 0.8),
+        ("/hilfe.html", 0.8),
+        ("/technik.html", 0.8),
+        ("/kategorien.html", 0.8),
+        ("/login.html", 0.8),
+        ("/impressum.html", 0.8),
+        ("/datenschutz.html", 0.8),
+        ("/agb.html", 0.8),
+        ("/widerruf.html", 0.8),
+        ("/cookie-einstellungen.html", 0.8),
+        ("/benachrichtigung-einrichten.html", 0.8),
+        ("/benachrichtigung-bestaetigung.html", 0.8),
+        ("/blog", 0.8),
+        ("/blog/leere-termine-fuellen", 0.8),
+        ("/blog/no-show-vermeiden", 0.8),
+        ("/blog/kurzfristig-termin-finden", 0.8),
+        ("/blog/online-buchbar-werden", 0.8),
     ]
-    url_entries = [
-        f"  <url><loc>{BASE_URL}{path}</loc></url>" for path in static_urls
+
+    def _url_xml(path: str, priority: float) -> str:
+        loc = f"{base}{path}"
+        return (
+            "  <url>\n"
+            f"    <loc>{loc}</loc>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
+            f"    <priority>{priority:.1f}</priority>\n"
+            "  </url>"
+        )
+
+    chunks = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ]
+    for path, prio in static_priority:
+        chunks.append(_url_xml(path, prio))
     try:
         with Session(engine) as s:
-            providers = s.execute(
-                select(Provider).where(
+            nums = s.execute(
+                select(Provider.provider_number).where(
                     Provider.provider_number.isnot(None),
-                    Provider.published_at.isnot(None),
+                    Provider.status == "approved",
                 )
             ).scalars().all()
-        for p in providers:
-            url_entries.append(
-                f"  <url><loc>{BASE_URL}/provider/{p.provider_number}</loc></url>"
-            )
+        for num in nums:
+            chunks.append(_url_xml(f"/anbieter/{int(num)}", 0.8))
     except Exception:
         app.logger.exception("sitemap: DB-Fehler beim Laden der Anbieter")
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + "\n".join(url_entries)
-        + "\n</urlset>"
-    )
+    chunks.append("</urlset>")
+    xml = "\n".join(chunks) + "\n"
     return Response(xml, mimetype="application/xml")
 
 
