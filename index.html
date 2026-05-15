@@ -141,6 +141,16 @@
       }
     }
 
+    /* Wie body in /static/style.css (~Zeilen 66–70): Hero-Fläche = gleicher dunkler Layer wie Startseite */
+    .hero {
+      background:
+        radial-gradient(900px 520px at 15% -10%, rgba(255,107,203,.25), transparent 60%),
+        radial-gradient(900px 520px at 90% -20%, rgba(6,182,212,.25), transparent 55%),
+        radial-gradient(1200px 600px at 50% 120%, rgba(132,204,22,.18), transparent 55%),
+        var(--bg);
+      background-color: var(--bg);
+    }
+
     /* Hero-CTA für Anbieter (Buttons unter dem Lead-Text) */
     .hero-cta-providers {
       display:flex;
