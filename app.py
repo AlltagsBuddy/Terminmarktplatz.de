@@ -2826,6 +2826,7 @@ def sitemap():
         ("/blog", 0.8),
         ("/blog/leere-termine-fuellen", 0.8),
         ("/blog/no-show-vermeiden", 0.8),
+        ("/blog/terminluecken-sofort-fuellen", 0.8),
         ("/blog/kurzfristig-termin-finden", 0.8),
         ("/blog/online-buchbar-werden", 0.8),
     ]
@@ -3423,6 +3424,14 @@ if _html_enabled():
 
     # Blog-Artikel mit automatischer Veröffentlichung per Datum
     BLOG_ARTICLES = [
+        {
+            "slug": "terminluecken-sofort-fuellen",
+            "title": "5 Wege wie du Terminlücken sofort füllst",
+            "description": "Absagen und kurzfristige Lücken kosten Umsatz. So füllst du Terminlücken sofort — vom Direktcall bis zur Terminbörse.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 5, 7),
+            "reading_time": "6 Min",
+        },
         {
             "slug": "no-show-vermeiden",
             "title": "No-Show vermeiden: Was Dienstleister wirklich tun können",
