@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 from uuid import uuid4
 import traceback
@@ -618,7 +619,7 @@ def _ensure_base_tables():
                     from models import Base
                     Base.metadata.create_all(engine, checkfirst=True)
                 except Exception as e:
-                    print(f"[WARN] Warnung: Basistabellen konnten nicht erstellt werden (PostgreSQL): {e}", flush=True)
+                    _migration_print(f"[WARN] Warnung: Basistabellen konnten nicht erstellt werden (PostgreSQL): {e}")
             else:
                 # SQLite: Erstelle Tabellen manuell (SQLite-kompatibel)
                 try:
@@ -717,9 +718,9 @@ def _ensure_base_tables():
                 conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS booking_slot_id_idx ON booking(slot_id)")
                 conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS booking_provider_id_idx ON booking(provider_id)")
                 
-                print("✓ Basistabellen für SQLite erstellt", flush=True)
+                _migration_print("[OK] Basistabellen fuer SQLite erstellt.")
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: Basistabellen konnten nicht erstellt werden: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: Basistabellen konnten nicht erstellt werden: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -774,7 +775,7 @@ def _ensure_review_table():
                     "CREATE INDEX IF NOT EXISTS review_provider_id_idx ON review(provider_id)"
                 )
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_review_table fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_review_table fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -803,7 +804,7 @@ def _ensure_provider_logo_url():
                 except Exception:
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_provider_logo_url fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_provider_logo_url fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -832,7 +833,7 @@ def _ensure_provider_logo_consent():
                 except Exception:
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_provider_logo_consent fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -873,7 +874,7 @@ def _ensure_provider_public_profile_fields():
                     if col not in cols:
                         conn.exec_driver_sql(f"ALTER TABLE provider ADD COLUMN {col} TEXT")
     except Exception as e:
-        print(f"[WARN] Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_provider_public_profile_fields fehlgeschlagen: {e}")
 
 # Startup-Migrationen werden unten non-blocking gestartet
 
@@ -908,7 +909,7 @@ def _ensure_booking_reminder_fields():
                             f"ALTER TABLE booking ADD COLUMN {col} {type_map.get(typ, 'TEXT')}"
                         )
     except Exception as e:
-        print(f"[WARN] Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_booking_reminder_fields fehlgeschlagen: {e}")
 
 # Startup-Migrationen werden unten non-blocking gestartet
 
@@ -987,7 +988,7 @@ def _ensure_geo_tables():
             conn.exec_driver_sql(ddl_cache)
     except (OperationalError, SQLAlchemyError) as e:
         # Logge den Fehler, aber verhindere nicht den App-Start
-        print(f"[WARN] Warnung: Geocode-Tabellen konnten nicht erstellt werden: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: Geocode-Tabellen konnten nicht erstellt werden: {e}")
         print("   Die Tabellen werden beim ersten Request erstellt, wenn die DB verfügbar ist.", flush=True)
 
 
@@ -1018,7 +1019,7 @@ def _remove_provider_branch_constraint():
             else:
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: remove_provider_branch_constraint fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: remove_provider_branch_constraint fehlgeschlagen: {e}")
 
 
 # --------------------------------------------------------
@@ -1050,7 +1051,7 @@ def _remove_category_constraint():
                 # Die Validierung erfolgt sowieso in der Anwendung
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: remove_category_constraint fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: remove_category_constraint fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1089,7 +1090,7 @@ def _ensure_alert_deleted_at():
                     # Tabelle existiert nicht - ignorieren (wird später erstellt)
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_alert_deleted_at fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_alert_deleted_at fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1155,7 +1156,7 @@ def _ensure_password_reset_table():
                     # Indizes existieren möglicherweise bereits
                     pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_password_reset_table fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_password_reset_table fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1248,7 +1249,7 @@ def _ensure_provider_number_field():
             except Exception:
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_provider_number_field fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_provider_number_field fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1287,7 +1288,41 @@ def _ensure_last_login_field():
                 else:
                     conn.execute(text("ALTER TABLE provider ADD COLUMN last_login_at DATETIME"))
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_last_login_field fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_last_login_field fehlgeschlagen: {e}")
+
+
+def _migration_print(message: str) -> None:
+    """Migrations-/Warn-Ausgabe; unter Windows (cp1252) ohne Crash bei Sonderzeichen in DB-Fehlern."""
+    try:
+        print(message, flush=True)
+    except UnicodeEncodeError:
+        try:
+            sys.stdout.buffer.write((message + "\n").encode("ascii", errors="replace"))
+            sys.stdout.buffer.flush()
+        except Exception:
+            print(message.encode("ascii", errors="replace").decode("ascii"), flush=True)
+
+
+def _pg_ddl_autocommit(sql: str, label: str) -> None:
+    """PostgreSQL: einzelnes DDL mit AUTOCOMMIT.
+
+    So bleibt die Verbindung nach einem Fehler nutzbar; innerhalb eines
+    ``engine.begin()``-Blocks würde ein Fehler sonst die Transaktion abbrechen
+    und alle folgenden Befehle mit „current transaction is aborted“ scheitern.
+    """
+    if not IS_POSTGRESQL:
+        return
+    try:
+        raw = engine.raw_connection()
+        try:
+            raw.autocommit = True
+            cur = raw.cursor()
+            cur.execute(sql)
+            cur.close()
+        finally:
+            raw.close()
+    except Exception as e:
+        _migration_print(f"[WARN] Migration PG ({label}): {e}")
 
 
 # --------------------------------------------------------
@@ -1313,7 +1348,7 @@ def _ensure_provider_warevision_webhook():
         finally:
             raw.close()
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_provider_warevision_webhook fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_provider_warevision_webhook fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1327,60 +1362,56 @@ def _ensure_archive_fields():
     Fügt archived Flag zu Slots und archived_at/exported_at zu Invoices hinzu (Aufbewahrungspflicht).
     """
     try:
-        with engine.begin() as conn:
-            if IS_POSTGRESQL:
-                ddl_slot_archived = """
+        if IS_POSTGRESQL:
+            ddl_slot_archived = """
                 ALTER TABLE public.slot
                   ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
                 """
-                ddl_invoice_archived_at = """
+            ddl_invoice_archived_at = """
                 ALTER TABLE public.invoice
                   ADD COLUMN IF NOT EXISTS archived_at timestamp without time zone;
                 """
-                ddl_invoice_exported_at = """
+            ddl_invoice_exported_at = """
                 ALTER TABLE public.invoice
                   ADD COLUMN IF NOT EXISTS exported_at timestamp without time zone;
                 """
-                
-                # PostgreSQL: ADD COLUMN IF NOT EXISTS funktioniert direkt
-                for ddl in [ddl_slot_archived, ddl_invoice_archived_at, ddl_invoice_exported_at]:
-                    try:
-                        conn.exec_driver_sql(ddl)
-                    except Exception:
-                        pass
-            else:
-                # SQLite: Prüfe manuell ob Tabellen und Spalten existieren
-                # Slot: archived
+            for ddl in (ddl_slot_archived, ddl_invoice_archived_at, ddl_invoice_exported_at):
+                _pg_ddl_autocommit(ddl.strip(), "ensure_archive_fields")
+            return
+
+        with engine.begin() as conn:
+            # SQLite: Prüfe manuell ob Tabellen und Spalten existieren
+            # Slot: archived
+            try:
+                conn.execute(text("SELECT 1 FROM slot LIMIT 1"))
                 try:
-                    conn.execute(text("SELECT 1 FROM slot LIMIT 1"))
-                    try:
-                        conn.execute(text("SELECT archived FROM slot LIMIT 1"))
-                    except Exception:
-                        conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN archived INTEGER DEFAULT 0")
+                    conn.execute(text("SELECT archived FROM slot LIMIT 1"))
                 except Exception:
-                    pass
-                
-                # Invoice: archived_at
+                    conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN archived INTEGER DEFAULT 0")
+            except Exception:
+                pass
+
+            # Invoice: archived_at
+            try:
+                conn.execute(text("SELECT 1 FROM invoice LIMIT 1"))
                 try:
-                    conn.execute(text("SELECT 1 FROM invoice LIMIT 1"))
-                    try:
-                        conn.execute(text("SELECT archived_at FROM invoice LIMIT 1"))
-                    except Exception:
-                        conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN archived_at DATETIME")
+                    conn.execute(text("SELECT archived_at FROM invoice LIMIT 1"))
                 except Exception:
-                    pass
-                
-                # Invoice: exported_at
+                    conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN archived_at DATETIME")
+            except Exception:
+                pass
+
+            # Invoice: exported_at
+            try:
+                conn.execute(text("SELECT 1 FROM invoice LIMIT 1"))
                 try:
-                    conn.execute(text("SELECT 1 FROM invoice LIMIT 1"))
-                    try:
-                        conn.execute(text("SELECT exported_at FROM invoice LIMIT 1"))
-                    except Exception:
-                        conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN exported_at DATETIME")
+                    conn.execute(text("SELECT exported_at FROM invoice LIMIT 1"))
                 except Exception:
-                    pass
+                    conn.exec_driver_sql("ALTER TABLE invoice ADD COLUMN exported_at DATETIME")
+            except Exception:
+                pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_archive_fields fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_archive_fields fehlgeschlagen: {e}")
 
 
 # --------------------------------------------------------
@@ -1407,9 +1438,9 @@ def _ensure_slot_archived_is_boolean():
                 ALTER TABLE public.slot
                 ALTER COLUMN archived TYPE boolean USING (COALESCE(archived, 0) = 1)
             """)
-            print("✓ slot.archived: INTEGER → BOOLEAN konvertiert", flush=True)
+            _migration_print("[OK] slot.archived: INTEGER -> BOOLEAN konvertiert")
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_slot_archived_is_boolean fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_slot_archived_is_boolean fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1466,7 +1497,7 @@ def _ensure_slot_status_constraint():
                 # Die Validierung erfolgt in der Anwendung (normalize_category, etc.)
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_slot_status_constraint fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_slot_status_constraint fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1490,7 +1521,7 @@ def _ensure_slot_description_field():
                     # Spalte existiert nicht, hinzufügen
                     conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN description TEXT")
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_slot_description_field fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_slot_description_field fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1569,7 +1600,7 @@ def _ensure_publish_quota_tables():
                 # Tabelle existiert nicht - ignorieren
                 pass
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_publish_quota_tables fehlgeschlagen: {e}")
 
 
 def _ensure_stripe_connect_fields() -> None:
@@ -1606,45 +1637,68 @@ def _ensure_stripe_connect_fields() -> None:
                     except Exception:
                         conn.exec_driver_sql(f"ALTER TABLE {tbl} ADD COLUMN {col} {typ}")
     except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}", flush=True)
+        _migration_print(f"[WARN] Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}")
 
 
 def _ensure_business_pack_schema() -> None:
-    """Business-Paket: employee-Tabelle, Slot.employee_id, Provider.api_key."""
+    """Business-Paket: employee-Tabelle, Slot.employee_id, Provider.api_key.
+
+    PostgreSQL: Jedes DDL in eigener AUTOCOMMIT-Verbindung; FK nur wenn die Constraint
+    noch fehlt (keine gemeinsame Transaktion → kein „current transaction is aborted“).
+
+    SQLite: Eigenes ``engine.begin()`` pro Schritt; keine geschluckten Fehler innerhalb
+    einer laufenden Transaktion mit Folgebefehlen.
+    """
     try:
-        with engine.begin() as conn:
-            if IS_POSTGRESQL:
-                conn.exec_driver_sql(
+        if IS_POSTGRESQL:
+            pk_ddls: list[tuple[str, str]] = [
+                (
+                    "employee table",
                     """
-                    CREATE TABLE IF NOT EXISTS public.employee (
-                      id uuid PRIMARY KEY,
-                      provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
-                      name text NOT NULL,
-                      email text,
-                      active boolean NOT NULL DEFAULT true
-                    );
-                    """
-                )
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON public.employee(provider_id);"
-                )
-                conn.exec_driver_sql(
-                    "ALTER TABLE public.provider ADD COLUMN IF NOT EXISTS api_key text;"
-                )
-                conn.exec_driver_sql(
-                    "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS employee_id uuid;"
-                )
-                try:
-                    conn.exec_driver_sql(
-                        """
-                        ALTER TABLE public.slot
-                          ADD CONSTRAINT slot_employee_id_fkey
-                          FOREIGN KEY (employee_id) REFERENCES public.employee(id) ON DELETE SET NULL;
-                        """
-                    )
-                except Exception:
-                    pass
-            else:
+CREATE TABLE IF NOT EXISTS public.employee (
+  id uuid PRIMARY KEY,
+  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  email text,
+  active boolean NOT NULL DEFAULT true
+);
+""".strip(),
+                ),
+                (
+                    "employee index",
+                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON public.employee(provider_id);",
+                ),
+                (
+                    "provider api_key",
+                    "ALTER TABLE public.provider ADD COLUMN IF NOT EXISTS api_key text;",
+                ),
+                (
+                    "slot employee_id",
+                    "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS employee_id uuid;",
+                ),
+            ]
+            for label, sql in pk_ddls:
+                _pg_ddl_autocommit(sql, f"business_pack:{label}")
+
+            fk_sql = """
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_namespace n ON n.oid = c.connamespace
+    WHERE c.conname = 'slot_employee_id_fkey' AND n.nspname = 'public'
+  ) THEN
+    ALTER TABLE public.slot
+      ADD CONSTRAINT slot_employee_id_fkey
+      FOREIGN KEY (employee_id) REFERENCES public.employee(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+""".strip()
+            _pg_ddl_autocommit(fk_sql, "business_pack:slot_employee_fk")
+            return
+
+        try:
+            with engine.begin() as conn:
                 conn.exec_driver_sql(
                     """
                     CREATE TABLE IF NOT EXISTS employee (
@@ -1656,21 +1710,41 @@ def _ensure_business_pack_schema() -> None:
                     );
                     """
                 )
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee table): {e}")
+
+        try:
+            with engine.begin() as conn:
                 conn.exec_driver_sql(
                     "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON employee(provider_id);"
                 )
-                try:
-                    conn.execute(text("SELECT api_key FROM provider LIMIT 1"))
-                except Exception:
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee index): {e}")
+
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("SELECT api_key FROM provider LIMIT 1"))
+        except Exception:
+            try:
+                with engine.begin() as conn:
                     conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN api_key TEXT")
-                try:
-                    conn.execute(text("SELECT employee_id FROM slot LIMIT 1"))
-                except Exception:
+            except (OperationalError, SQLAlchemyError) as e:
+                _migration_print(f"[WARN] ensure_business_pack_schema (sqlite api_key): {e}")
+
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("SELECT employee_id FROM slot LIMIT 1"))
+        except Exception:
+            try:
+                with engine.begin() as conn:
                     conn.exec_driver_sql(
                         "ALTER TABLE slot ADD COLUMN employee_id TEXT REFERENCES employee(id) ON DELETE SET NULL"
                     )
-    except (OperationalError, SQLAlchemyError) as e:
-        print(f"[WARN] Warnung: ensure_business_pack_schema fehlgeschlagen: {e}", flush=True)
+            except (OperationalError, SQLAlchemyError) as e:
+                _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee_id): {e}")
+
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_business_pack_schema fehlgeschlagen: {e}")
 
 
 # Startup-Migrationen werden unten non-blocking gestartet
@@ -1703,7 +1777,7 @@ def _run_startup_migrations() -> None:
         try:
             fn()
         except Exception as e:
-            print(f"[WARN] Warnung: Startup-Migration fehlgeschlagen ({fn.__name__}): {e}", flush=True)
+            _migration_print(f"[WARN] Warnung: Startup-Migration fehlgeschlagen ({fn.__name__}): {e}")
 
 
 def _start_startup_migrations() -> None:
@@ -1717,7 +1791,7 @@ def _start_startup_migrations() -> None:
         try:
             fn()
         except Exception as e:
-            print(f"[WARN] Warnung: Kritische Migration {fn.__name__} fehlgeschlagen: {e}", flush=True)
+            _migration_print(f"[WARN] Warnung: Kritische Migration {fn.__name__} fehlgeschlagen: {e}")
     threading.Thread(
         target=_run_startup_migrations,
         name="startup-migrations",
@@ -3782,9 +3856,16 @@ def _authenticate(email: str, password: str):
     pw = password or ""
     # expire_on_commit=False verhindert DetachedInstanceError nach Commit
     with Session(engine, expire_on_commit=False) as s:
+        def _rollback_sess() -> None:
+            try:
+                s.rollback()
+            except Exception:
+                pass
+
         try:
             p = s.scalar(select(Provider).where(Provider.email == email))
         except Exception as e:
+            _rollback_sess()
             # Falls provider_number Spalte fehlt, Migration nochmal versuchen
             if "provider_number" in str(e).lower() or "undefinedcolumn" in str(e).lower():
                 app.logger.warning("provider_number column missing, running migration...")
@@ -3793,6 +3874,7 @@ def _authenticate(email: str, password: str):
                     p = s.scalar(select(Provider).where(Provider.email == email))
                 except Exception as e2:
                     app.logger.exception("Migration failed during auth: %r", e2)
+                    _rollback_sess()
                     return None, "server_error"
             else:
                 raise
@@ -3809,6 +3891,7 @@ def _authenticate(email: str, password: str):
             p.last_login_at = _now()
             s.commit()
         except Exception as e:
+            _rollback_sess()
             if "last_login_at" in str(e).lower() or "undefinedcolumn" in str(e).lower():
                 app.logger.warning("last_login_at column missing, running migration...")
                 try:
@@ -3819,6 +3902,7 @@ def _authenticate(email: str, password: str):
                         s.commit()
                 except Exception as e2:
                     app.logger.exception("Migration failed during login: %r", e2)
+                    _rollback_sess()
             else:
                 raise
         return p, None
