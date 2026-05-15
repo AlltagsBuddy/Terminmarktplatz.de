@@ -94,6 +94,9 @@ class Provider(Base):
     webhook_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     webhook_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Business-Paket: öffentliche API
+    api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     slots: Mapped[list["Slot"]] = relationship(
         "Slot",
         back_populates="provider",
@@ -124,6 +127,13 @@ class Provider(Base):
 
     reviews: Mapped[list["Review"]] = relationship(
         "Review",
+        back_populates="provider",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    employees: Mapped[list["Employee"]] = relationship(
+        "Employee",
         back_populates="provider",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -189,6 +199,33 @@ class Provider(Base):
 
 
 # ------------------------------------------------------------
+# Mitarbeiter:in (Business-Paket)
+# ------------------------------------------------------------
+class Employee(Base):
+    """Dem Slot zuordenbare Mitarbeiter eines Providers (nur Business-Tarif)."""
+
+    __tablename__ = "employee"
+
+    id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
+    provider_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False),
+        ForeignKey("provider.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    provider: Mapped["Provider"] = relationship("Provider", back_populates="employees")
+
+
+# ------------------------------------------------------------
 # Slot (freies Zeitfenster)
 # ------------------------------------------------------------
 class Slot(Base):
@@ -205,6 +242,12 @@ class Slot(Base):
         Uuid(as_uuid=False),
         ForeignKey("provider.id", ondelete="CASCADE"),
         nullable=False,
+    )
+
+    employee_id: Mapped[str | None] = mapped_column(
+        Uuid(as_uuid=False),
+        ForeignKey("employee.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -254,6 +297,8 @@ class Slot(Base):
         back_populates="slots",
     )
 
+    employee: Mapped["Employee | None"] = relationship("Employee")
+
     bookings: Mapped[list["Booking"]] = relationship(
         "Booking",
         back_populates="slot",
@@ -279,6 +324,7 @@ class Slot(Base):
         data: dict = {
             "id": self.id,
             "provider_id": self.provider_id,
+            "employee_id": self.employee_id,
             "title": self.title,
             "category": self.category,
             "start_at": self.start_at,

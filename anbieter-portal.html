@@ -780,6 +780,69 @@
           <a href="#" id="link-stripe-setup-main" class="btn primary" style="font-weight:600;">Zahlungen einrichten</a>
         </div>
 
+        <!-- Nur Business-Paket -->
+        <div id="business-dashboard-panel" class="panel" style="display:none; margin-top:20px; padding:22px;">
+          <h2 style="margin:0 0 12px 0; font-size:1.25rem;">Business-Dashboard</h2>
+          <p class="muted" style="margin:0 0 16px 0; font-size:14px;">Statistiken, API-Zugang und Mitarbeiterverwaltung (bis 5 aktive Einträge).</p>
+
+          <div id="biz-stats-block" style="margin-bottom:20px;">
+            <h3 style="margin:0 0 8px 0; font-size:1.05rem;">Auswertungen</h3>
+            <div class="stats-grid" style="margin-bottom:12px;">
+              <div class="stat-card">
+                <div class="stat-label">Auslastung (30 Tage)</div>
+                <div class="stat-value" id="biz-stat-util">–</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Bestätigte Buchungen (30 T.)</div>
+                <div class="stat-value" id="biz-stat-bookings-window">–</div>
+              </div>
+            </div>
+            <div class="muted small" style="margin-bottom:6px;"><strong>Buchungen pro Monat</strong></div>
+            <ul id="biz-list-bookings-month" class="muted small" style="margin:0 0 12px 16px; padding:0;"></ul>
+            <div class="muted small" style="margin-bottom:6px;"><strong>Umsatz pro Monat</strong> (bestätigte Buchungen, geschätzt)</div>
+            <ul id="biz-list-revenue-month" class="muted small" style="margin:0 0 12px 16px; padding:0;"></ul>
+            <div class="muted small" style="margin-bottom:6px;"><strong>Beliebteste Slots</strong></div>
+            <ul id="biz-list-popular-slots" class="muted small" style="margin:0 0 16px 16px; padding:0;"></ul>
+          </div>
+
+          <div style="margin-bottom:20px; padding-top:16px; border-top:1px solid rgba(15,23,42,.08);">
+            <h3 style="margin:0 0 8px 0; font-size:1.05rem;">API-Schlüssel</h3>
+            <p class="muted small" style="margin:0 0 8px 0;">Wird beim ersten Abruf erzeugt und hier angezeigt. Bitte vertraulich behandeln.</p>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+              <input id="biz-api-key" type="text" readonly class="input" style="flex:1 1 240px; font-family:monospace; font-size:13px;" placeholder="Wird geladen …"/>
+              <button type="button" class="btn" id="biz-api-key-copy">Kopieren</button>
+              <button type="button" class="btn" id="biz-api-key-refresh">Neu laden</button>
+            </div>
+            <div id="biz-api-key-msg" class="msg" style="margin-top:8px;"></div>
+          </div>
+
+          <div style="padding-top:16px; border-top:1px solid rgba(15,23,42,.08);">
+            <h3 style="margin:0 0 8px 0; font-size:1.05rem;">Mitarbeiter:innen</h3>
+            <div class="table-wrap" style="margin-bottom:12px;">
+              <table class="table" id="tbl-employees">
+                <thead>
+                  <tr><th>Name</th><th>E-Mail</th><th>Aktiv</th></tr>
+                </thead>
+                <tbody><tr><td colspan="3" class="muted">Lade …</td></tr></tbody>
+              </table>
+            </div>
+            <form id="form-add-employee" class="grid" style="max-width:520px;">
+              <div class="field">
+                <label for="emp-name">Name <span class="req">*</span></label>
+                <input id="emp-name" required maxlength="200" placeholder="z. B. Maria Mustermann"/>
+              </div>
+              <div class="field">
+                <label for="emp-email">E-Mail (optional)</label>
+                <input id="emp-email" type="email" maxlength="200" placeholder="optional"/>
+              </div>
+              <div class="toolbar" style="grid-column:1/-1;">
+                <button type="submit" class="btn primary">Mitarbeiter:in anlegen</button>
+              </div>
+            </form>
+            <div id="msg-employees" class="msg" style="margin-top:8px;"></div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -901,6 +964,13 @@
                 <div class="deposit-setup-required" id="deposit-setup-required" style="display:none; margin-top:12px;">
                   <a href="#" id="link-stripe-setup" class="btn primary" style="font-size:1.25rem; font-weight:600; padding:10px 16px;">Erfordert Zahlung einrichten</a>
                 </div>
+              </div>
+              <div class="field" id="field-sl-employee" style="display:none;">
+                <label for="sl-employee">Mitarbeiter:in (optional)</label>
+                <select id="sl-employee" aria-label="Mitarbeiter für diesen Slot">
+                  <option value="">— keine Zuordnung —</option>
+                </select>
+                <span class="hint" style="font-size:12px;">Nur im Business-Paket: Zuordnung zu einem angelegten Mitarbeitenden.</span>
               </div>
               <div class="field" style="grid-column:1/-1">
                 <label for="sl-description">Beschreibung (für Suchende sichtbar)</label>
@@ -1409,10 +1479,142 @@
     let ME = null;
     let CURRENT_FILTER = 'active'; // 'active' oder 'archived'
     let HAS_PRO_FEATURES = false;
+    let HAS_BUSINESS_FEATURES = false;
+    let EMPLOYEES_CACHE = [];
+
     function computeProFeatures(){
       const key = (ME?.plan || ME?.plan_key || '').toString().trim().toLowerCase();
       HAS_PRO_FEATURES = (key === 'profi' || key === 'business');
+      HAS_BUSINESS_FEATURES = ME?.has_business_features === true;
     }
+
+    function _bizEscapeHtml(s){
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function refreshBusinessDashboard(){
+      if (!HAS_BUSINESS_FEATURES) return;
+      await Promise.all([loadBizStats(), loadBizApiKey(), loadEmployeesForPortal()]);
+    }
+
+    function _bizFmtMonthKey(mk){
+      const parts = String(mk || '').split('-').map(Number);
+      if (parts.length < 2 || !parts[0] || !parts[1]) return String(mk || '');
+      return new Date(parts[0], parts[1] - 1, 1).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+    }
+
+    async function loadBizStats(){
+      const utilEl = document.getElementById('biz-stat-util');
+      const bookWinEl = document.getElementById('biz-stat-bookings-window');
+      try{
+        const res = await fetch(`${API}/me/stats`, { credentials:'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          if (utilEl) utilEl.textContent = '—';
+          if (bookWinEl) bookWinEl.textContent = '—';
+          const ulB = document.getElementById('biz-list-bookings-month');
+          const ulR = document.getElementById('biz-list-revenue-month');
+          const ulP = document.getElementById('biz-list-popular-slots');
+          if (ulB) ulB.innerHTML = `<li class="muted">${data.error || 'Statistik nicht verfügbar.'}</li>`;
+          if (ulR) ulR.innerHTML = '';
+          if (ulP) ulP.innerHTML = '';
+          return;
+        }
+        const u = data.utilization_last_30d || {};
+        const rate = u.rate;
+        if (utilEl) utilEl.textContent = rate != null ? `${(Number(rate) * 100).toFixed(1)} %` : '—';
+        if (bookWinEl){
+          bookWinEl.textContent = `${u.confirmed_bookings ?? '–'} Buchungen · Kap.-Summe ${u.published_slot_capacity_sum ?? '–'}`;
+        }
+        const ulB = document.getElementById('biz-list-bookings-month');
+        if (ulB){
+          const rows = data.bookings_per_month || [];
+          ulB.innerHTML = rows.map(r => `<li>${_bizFmtMonthKey(r.month)}: ${r.count} Buchungen</li>`).join('');
+        }
+        const ulR = document.getElementById('biz-list-revenue-month');
+        if (ulR){
+          const rows = data.revenue_per_month || [];
+          ulR.innerHTML = rows.map(r => `<li>${_bizFmtMonthKey(r.month)}: ${Number(r.revenue_eur).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</li>`).join('');
+        }
+        const ulP = document.getElementById('biz-list-popular-slots');
+        if (ulP){
+          const rows = data.popular_slots || [];
+          ulP.innerHTML = rows.length
+            ? rows.map(r => `<li>${_bizEscapeHtml(r.title || 'Slot')}: ${r.confirmed_bookings} Buchungen</li>`).join('')
+            : '<li class="muted">Noch keine ausreichenden Daten.</li>';
+        }
+      }catch(_e){
+        if (utilEl) utilEl.textContent = '—';
+        if (bookWinEl) bookWinEl.textContent = '—';
+      }
+    }
+
+    async function loadBizApiKey(){
+      const input = document.getElementById('biz-api-key');
+      const msg = document.getElementById('biz-api-key-msg');
+      try{
+        const res = await fetch(`${API}/me/api-key`, { credentials:'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          if (input) input.value = '';
+          if (msg){
+            msg.textContent = data.error || 'API-Key konnte nicht geladen werden.';
+            msg.style.color = '#b91c1c';
+          }
+          return;
+        }
+        if (input) input.value = data.api_key || '';
+        if (msg){ msg.textContent = ''; msg.style.color = ''; }
+      }catch(_e){
+        if (msg){
+          msg.textContent = 'Netzwerkfehler beim Laden des API-Keys.';
+          msg.style.color = '#b91c1c';
+        }
+      }
+    }
+
+    function fillEmployeeSelect(preserveId){
+      const sel = document.getElementById('sl-employee');
+      if (!sel) return;
+      const want = preserveId !== undefined && preserveId !== null ? String(preserveId) : sel.value;
+      sel.innerHTML = '<option value="">— keine Zuordnung —</option>';
+      for (const e of EMPLOYEES_CACHE){
+        if (!e.active) continue;
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = e.name || e.id;
+        sel.appendChild(opt);
+      }
+      if (want && [...sel.options].some(o => o.value === want)) sel.value = want;
+      else sel.value = '';
+    }
+
+    async function loadEmployeesForPortal(){
+      const tbody = document.querySelector('#tbl-employees tbody');
+      const preserve = document.getElementById('sl-employee')?.value;
+      try{
+        const res = await fetch(`${API}/me/employees`, { credentials:'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          EMPLOYEES_CACHE = [];
+          if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="muted">${_bizEscapeHtml(data.error || 'Fehler beim Laden')}</td></tr>`;
+          fillEmployeeSelect('');
+          return;
+        }
+        EMPLOYEES_CACHE = Array.isArray(data) ? data : [];
+        if (tbody){
+          tbody.innerHTML = EMPLOYEES_CACHE.length
+            ? EMPLOYEES_CACHE.map(e => `<tr><td>${_bizEscapeHtml(e.name)}</td><td>${_bizEscapeHtml(e.email)}</td><td>${e.active ? 'ja' : 'nein'}</td></tr>`).join('')
+            : '<tr><td colspan="3" class="muted">Noch keine Mitarbeiter:innen angelegt.</td></tr>';
+        }
+        fillEmployeeSelect(preserve);
+      }catch(_e){
+        EMPLOYEES_CACHE = [];
+        if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="muted">Netzwerkfehler.</td></tr>';
+        fillEmployeeSelect('');
+      }
+    }
+
     async function requireAuth(){
       try{
         const r = await fetch(`${API}/me`, { credentials:'include' });
@@ -1554,6 +1756,17 @@
         }
         if (proHint) {
           proHint.style.display = HAS_PRO_FEATURES ? 'none' : 'block';
+        }
+
+        const bizPanel = document.getElementById('business-dashboard-panel');
+        const fieldEmployee = document.getElementById('field-sl-employee');
+        if (bizPanel) bizPanel.style.display = HAS_BUSINESS_FEATURES ? 'block' : 'none';
+        if (fieldEmployee) fieldEmployee.style.display = HAS_BUSINESS_FEATURES ? 'block' : 'none';
+        if (!HAS_BUSINESS_FEATURES) {
+          const slEmpClr = document.getElementById('sl-employee');
+          if (slEmpClr) slEmpClr.innerHTML = '<option value="">— keine Zuordnung —</option>';
+        } else {
+          refreshBusinessDashboard();
         }
 
         setCalendarLinks();
@@ -1739,6 +1952,12 @@
         notes: notes || null
       };
 
+      if (HAS_BUSINESS_FEATURES) {
+        const empSel = document.getElementById('sl-employee');
+        const ev = empSel ? empSel.value.trim() : '';
+        payload.employee_id = ev ? ev : null;
+      }
+
       try {
         let res;
         let data = {};
@@ -1795,6 +2014,8 @@
             showMsg('msg-slot', (data.message || 'Für Anzahlungen musst du zuerst Zahlungen einrichten.') + ' Klicke auf „Zahlungen einrichten".', false);
           } else if (data.error === 'profi_plan_required') {
             showMsg('msg-slot', (data.message || 'Anzahlungen sind nur mit dem Profi- oder Business-Paket möglich.'), false);
+          } else if (data.error === 'business_plan_required') {
+            showMsg('msg-slot', (data.message || 'Diese Funktion ist nur im Business-Paket verfügbar.'), false);
           } else {
             showMsg('msg-slot', data.error || 'Slot konnte nicht gespeichert werden.', false);
             // Scroll zum Formular, damit die Meldung sichtbar ist
@@ -1912,6 +2133,8 @@
       if (unit) unit.value = 'min';
       recalcEnd();
       copyProfileAddressToSlot(false);
+      const slEmp = document.getElementById('sl-employee');
+      if (slEmp && HAS_BUSINESS_FEATURES) fillEmployeeSelect('');
       const submitBtn = document.getElementById('slot-submit-btn');
       if (submitBtn) submitBtn.textContent = 'Slot anlegen';
       const cancelEditBtnInner = document.getElementById('btn-slot-cancel-edit');
@@ -1996,6 +2219,10 @@
         if (stInput) stInput.value = loc.street;
         if (zipInput) zipInput.value = loc.zip;
         if (cityInput) cityInput.value = loc.city;
+      }
+
+      if (HAS_BUSINESS_FEATURES) {
+        fillEmployeeSelect(slot.employee_id || '');
       }
 
       const submitBtn = document.getElementById('slot-submit-btn');
@@ -2499,6 +2726,66 @@
     document.getElementById('link-stripe-setup-main')?.addEventListener('click', function(e){ e.preventDefault(); doStripeOnboard(); });
     $('#btn-export')?.addEventListener('click', exportSlots);
     $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
+
+    document.getElementById('form-add-employee')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameIn = document.getElementById('emp-name');
+      const emailIn = document.getElementById('emp-email');
+      const name = nameIn ? nameIn.value.trim() : '';
+      const email = emailIn ? emailIn.value.trim() : '';
+      const msgEl = document.getElementById('msg-employees');
+      if (!name) {
+        if (msgEl) { msgEl.textContent = 'Bitte einen Namen angeben.'; msgEl.style.color = '#b91c1c'; }
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/me/employees`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email: email || undefined })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (msgEl) {
+            msgEl.textContent = data.error === 'employee_limit_reached'
+              ? 'Maximal 5 aktive Mitarbeiter:innen erlaubt.'
+              : (data.error || 'Speichern fehlgeschlagen.');
+            msgEl.style.color = '#b91c1c';
+          }
+          return;
+        }
+        if (nameIn) nameIn.value = '';
+        if (emailIn) emailIn.value = '';
+        if (msgEl) { msgEl.textContent = 'Mitarbeiter:in angelegt.'; msgEl.style.color = '#15803d'; }
+        await loadEmployeesForPortal();
+      } catch (_err) {
+        if (msgEl) { msgEl.textContent = 'Netzwerkfehler.'; msgEl.style.color = '#b91c1c'; }
+      }
+    });
+
+    document.getElementById('biz-api-key-copy')?.addEventListener('click', async () => {
+      const input = document.getElementById('biz-api-key');
+      const v = input ? input.value.trim() : '';
+      const msg = document.getElementById('biz-api-key-msg');
+      if (!v) {
+        if (msg) { msg.textContent = 'Kein API-Key geladen.'; msg.style.color = '#b91c1c'; }
+        return;
+      }
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(v);
+        } else if (input) {
+          input.focus();
+          input.select();
+          document.execCommand('copy');
+        }
+        if (msg) { msg.textContent = 'In Zwischenablage kopiert.'; msg.style.color = '#15803d'; }
+      } catch (_e) {
+        if (msg) { msg.textContent = 'Kopieren fehlgeschlagen.'; msg.style.color = '#b91c1c'; }
+      }
+    });
+    document.getElementById('biz-api-key-refresh')?.addEventListener('click', () => { loadBizApiKey(); });
 
     // Filter-Buttons für Aktive/Archivierte Termine
     const btnShowActive = $('#btn-show-active');

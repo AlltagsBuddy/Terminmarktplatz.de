@@ -8,6 +8,7 @@ from decimal import Decimal  # für Geldbeträge
 from typing import Optional
 
 import json
+import secrets
 import hmac
 import hashlib
 import base64
@@ -24,7 +25,7 @@ import requests
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 import time
-from sqlalchemy import create_engine, select, and_, or_, func, text, cast, String
+from sqlalchemy import create_engine, select, and_, or_, func, text, cast, String, case
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError, DisconnectionError
 
@@ -54,7 +55,19 @@ except ImportError:
     stripe = None
 
 # Deine ORM-Modelle
-from models import Base, Provider, Slot, Booking, PlanPurchase, Invoice, AlertSubscription, PasswordReset, Review, provider_review_aggregates
+from models import (
+    Base,
+    Provider,
+    Employee,
+    Slot,
+    Booking,
+    PlanPurchase,
+    Invoice,
+    AlertSubscription,
+    PasswordReset,
+    Review,
+    provider_review_aggregates,
+)
 
 from utils.errors import json_error as _json_error
 from utils.time_geo import (
@@ -332,8 +345,8 @@ PLANS = {
     "business": {
         "key": "business",
         "name": "Business",
-        "price_eur": Decimal("39.90"),
-        "price_cents": 3990,
+        "price_eur": Decimal("34.90"),
+        "price_cents": 3490,
         "free_slots": 5000,
     },
 }
@@ -1596,6 +1609,70 @@ def _ensure_stripe_connect_fields() -> None:
         print(f"[WARN] Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}", flush=True)
 
 
+def _ensure_business_pack_schema() -> None:
+    """Business-Paket: employee-Tabelle, Slot.employee_id, Provider.api_key."""
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                conn.exec_driver_sql(
+                    """
+                    CREATE TABLE IF NOT EXISTS public.employee (
+                      id uuid PRIMARY KEY,
+                      provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
+                      name text NOT NULL,
+                      email text,
+                      active boolean NOT NULL DEFAULT true
+                    );
+                    """
+                )
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON public.employee(provider_id);"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.provider ADD COLUMN IF NOT EXISTS api_key text;"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS employee_id uuid;"
+                )
+                try:
+                    conn.exec_driver_sql(
+                        """
+                        ALTER TABLE public.slot
+                          ADD CONSTRAINT slot_employee_id_fkey
+                          FOREIGN KEY (employee_id) REFERENCES public.employee(id) ON DELETE SET NULL;
+                        """
+                    )
+                except Exception:
+                    pass
+            else:
+                conn.exec_driver_sql(
+                    """
+                    CREATE TABLE IF NOT EXISTS employee (
+                      id TEXT PRIMARY KEY NOT NULL,
+                      provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                      name TEXT NOT NULL,
+                      email TEXT,
+                      active INTEGER NOT NULL DEFAULT 1
+                    );
+                    """
+                )
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON employee(provider_id);"
+                )
+                try:
+                    conn.execute(text("SELECT api_key FROM provider LIMIT 1"))
+                except Exception:
+                    conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN api_key TEXT")
+                try:
+                    conn.execute(text("SELECT employee_id FROM slot LIMIT 1"))
+                except Exception:
+                    conn.exec_driver_sql(
+                        "ALTER TABLE slot ADD COLUMN employee_id TEXT REFERENCES employee(id) ON DELETE SET NULL"
+                    )
+    except (OperationalError, SQLAlchemyError) as e:
+        print(f"[WARN] Warnung: ensure_business_pack_schema fehlgeschlagen: {e}", flush=True)
+
+
 # Startup-Migrationen werden unten non-blocking gestartet
 
 
@@ -1621,6 +1698,7 @@ def _run_startup_migrations() -> None:
         _ensure_slot_description_field,
         _ensure_publish_quota_tables,
         _ensure_stripe_connect_fields,
+        _ensure_business_pack_schema,
     ):
         try:
             fn()
@@ -2020,6 +2098,7 @@ def slot_to_json(x: Slot):
         "house_number": getattr(x, "house_number", None),
         "zip": getattr(x, "zip", None),
         "city": getattr(x, "city", None),
+        "employee_id": getattr(x, "employee_id", None),
 
     }
 
@@ -2107,6 +2186,35 @@ def _has_pro_features(p: Provider) -> bool:
         except Exception:
             return True
     return True
+
+
+def _has_business_features(p: Provider) -> bool:
+    """Aktives Business-Abo (exklusiv, nicht Starter/Profi)."""
+    plan = (getattr(p, "plan", None) or "").strip().lower()
+    if plan != "business":
+        return False
+    valid_until = getattr(p, "plan_valid_until", None)
+    if valid_until:
+        try:
+            return valid_until >= date.today()
+        except Exception:
+            return True
+    return True
+
+
+def _provider_premium_listing_sql_expr():
+    """SQL-Ausdruck: 0 wenn Business aktiv (Premium-Reihenfolge), sonst 1."""
+    today_d = date.today()
+    return case(
+        (
+            and_(
+                func.lower(func.coalesce(Provider.plan, "")) == "business",
+                or_(Provider.plan_valid_until.is_(None), Provider.plan_valid_until >= today_d),
+            ),
+            0,
+        ),
+        else_=1,
+    )
 
 
 # --------------------------------------------------------
@@ -2461,6 +2569,12 @@ def _send_warevision_webhook(
     webhook_url_override/webhook_api_key_override: wenn gesetzt, werden diese statt provider-Attribute verwendet.
     """
     if not provider:
+        return
+    if not _has_business_features(provider):
+        app.logger.info(
+            "WareVision webhook skipped: business plan required (provider %s)",
+            getattr(provider, "id", "?"),
+        )
         return
     url = (webhook_url_override or (getattr(provider, "webhook_url", None) or "")).strip()
     api_key = (webhook_api_key_override or (getattr(provider, "webhook_api_key", None) or "")).strip()
@@ -4411,8 +4525,13 @@ def me():
                 "calendar_ics_url": calendar_ics_url,
                 "calendar_webcal_url": calendar_webcal_url,
                 "stripe_account_id": getattr(p, "stripe_account_id", None),
-                "webhook_url": getattr(p, "webhook_url", None),
-                "webhook_api_key": getattr(p, "webhook_api_key", None),
+                "has_business_features": _has_business_features(p),
+                "webhook_url": getattr(p, "webhook_url", None)
+                if _has_business_features(p)
+                else None,
+                "webhook_api_key": getattr(p, "webhook_api_key", None)
+                if _has_business_features(p)
+                else None,
             }
         )
 
@@ -4594,6 +4713,12 @@ def me_update():
             if not p:
                 return _json_error("not_found", 404)
 
+            if not _has_business_features(p):
+                if "webhook_url" in data or "webhook_api_key" in data:
+                    return _json_error("business_plan_required", 403)
+                upd.pop("webhook_url", None)
+                upd.pop("webhook_api_key", None)
+
             # Wenn house_number vorhanden, aber kein street im Update, bestehende street verwenden
             if house_number and "street" not in upd and p.street:
                 upd["street"] = f"{p.street} {house_number}".strip()
@@ -4636,6 +4761,240 @@ def me_update():
     except Exception as e:
         print("[/me] server error:", repr(e), flush=True)
         return jsonify({"error": "server_error"}), 500
+
+
+def _me_stats_payload(session: Session, provider_id: str) -> dict:
+    """Erweiterte Kennzahlen für Business-Tarif."""
+    pid = str(provider_id)
+    today = datetime.now(BERLIN).date()
+    months_list: list[tuple[int, int]] = []
+    cy, cm = today.year, today.month
+    for _ in range(12):
+        months_list.append((cy, cm))
+        cm -= 1
+        if cm == 0:
+            cy -= 1
+            cm = 12
+    months_list.reverse()
+
+    bookings_per_month: list[dict] = []
+    revenue_per_month: list[dict] = []
+    for (y, m) in months_list:
+        start_local = datetime(y, m, 1, 0, 0, 0, tzinfo=BERLIN)
+        if m == 12:
+            next_local = datetime(y + 1, 1, 1, 0, 0, 0, tzinfo=BERLIN)
+        else:
+            next_local = datetime(y, m + 1, 1, 0, 0, 0, tzinfo=BERLIN)
+        start_db = _to_db_utc_naive(start_local)
+        next_db = _to_db_utc_naive(next_local)
+        cnt = (
+            session.scalar(
+                select(func.count())
+                .select_from(Booking)
+                .where(
+                    Booking.provider_id == pid,
+                    Booking.status == "confirmed",
+                    Booking.created_at >= start_db,
+                    Booking.created_at < next_db,
+                )
+            )
+            or 0
+        )
+        rev = (
+            session.scalar(
+                select(func.coalesce(func.sum(Booking.provider_fee_eur), 0)).where(
+                    Booking.provider_id == pid,
+                    Booking.status == "confirmed",
+                    Booking.created_at >= start_db,
+                    Booking.created_at < next_db,
+                )
+            )
+            or Decimal("0")
+        )
+        mk = f"{y:04d}-{m:02d}"
+        bookings_per_month.append({"month": mk, "count": int(cnt)})
+        revenue_per_month.append({"month": mk, "revenue_eur": float(rev)})
+
+    pop_rows = session.execute(
+        select(Slot.id, Slot.title, func.count(Booking.id).label("bc"))
+        .join(Booking, Booking.slot_id == Slot.id)
+        .where(Booking.provider_id == pid, Booking.status == "confirmed")
+        .group_by(Slot.id, Slot.title)
+        .order_by(func.count(Booking.id).desc())
+        .limit(5)
+    ).all()
+    popular_slots = [
+        {"slot_id": r[0], "title": (r[1] or ""), "confirmed_bookings": int(r[2])}
+        for r in pop_rows
+    ]
+
+    win_start = _now() - timedelta(days=30)
+    win_start_db = _to_db_utc_naive(win_start)
+    win_end_db = _to_db_utc_naive(_now())
+    cap_sum = (
+        session.scalar(
+            select(func.coalesce(func.sum(Slot.capacity), 0)).where(
+                Slot.provider_id == pid,
+                Slot.status == SLOT_STATUS_PUBLISHED,
+                Slot.start_at >= win_start_db,
+                Slot.start_at <= win_end_db,
+            )
+        )
+        or 0
+    )
+    booked_cnt = (
+        session.scalar(
+            select(func.count())
+            .select_from(Booking)
+            .join(Slot, Slot.id == Booking.slot_id)
+            .where(
+                Booking.provider_id == pid,
+                Booking.status == "confirmed",
+                Slot.start_at >= win_start_db,
+                Slot.start_at <= win_end_db,
+            )
+        )
+        or 0
+    )
+    cap_sum_i = int(cap_sum)
+    booked_cnt_i = int(booked_cnt)
+    util_rate = (booked_cnt_i / cap_sum_i) if cap_sum_i > 0 else None
+
+    return {
+        "bookings_per_month": bookings_per_month,
+        "revenue_per_month": revenue_per_month,
+        "popular_slots": popular_slots,
+        "utilization_last_30d": {
+            "confirmed_bookings": booked_cnt_i,
+            "published_slot_capacity_sum": cap_sum_i,
+            "rate": round(util_rate, 4) if util_rate is not None else None,
+        },
+    }
+
+
+@app.get("/me/stats")
+@auth_required()
+def me_stats():
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            return jsonify(_me_stats_payload(s, str(p.id)))
+    except Exception:
+        app.logger.exception("me_stats failed")
+        return _json_error("server_error", 500)
+
+
+@app.get("/me/api-key")
+@auth_required()
+def me_api_key_get():
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            key = getattr(p, "api_key", None)
+            if not key:
+                p.api_key = secrets.token_urlsafe(32)
+                s.commit()
+                key = p.api_key
+            return jsonify({"api_key": key})
+    except Exception:
+        app.logger.exception("me_api_key_get failed")
+        return _json_error("server_error", 500)
+
+
+@app.get("/me/employees")
+@auth_required()
+def me_employees_list():
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            rows = (
+                s.execute(
+                    select(Employee)
+                    .where(Employee.provider_id == p.id)
+                    .order_by(Employee.active.desc(), Employee.name.asc())
+                )
+                .scalars()
+                .all()
+            )
+            return jsonify(
+                [
+                    {
+                        "id": e.id,
+                        "name": e.name,
+                        "email": e.email or "",
+                        "active": bool(e.active),
+                    }
+                    for e in rows
+                ]
+            )
+    except Exception:
+        app.logger.exception("me_employees_list failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/me/employees")
+@auth_required()
+def me_employees_create():
+    try:
+        data = request.get_json(force=True) or {}
+        name = (data.get("name") or "").strip()
+        email_raw = (data.get("email") or "").strip() or None
+        if not name:
+            return _json_error("missing_fields", 400)
+        email_norm = None
+        if email_raw:
+            try:
+                email_norm = validate_email(email_raw, check_deliverability=False).normalized
+            except EmailNotValidError:
+                return _json_error("invalid_email", 400)
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            n_active = (
+                s.scalar(
+                    select(func.count())
+                    .select_from(Employee)
+                    .where(Employee.provider_id == p.id, Employee.active.is_(True))
+                )
+                or 0
+            )
+            if int(n_active) >= 5:
+                return _json_error("employee_limit_reached", 400)
+
+            e = Employee(
+                provider_id=p.id,
+                name=name[:200],
+                email=(email_norm[:200] if email_norm else None),
+                active=True,
+            )
+            s.add(e)
+            s.commit()
+            s.refresh(e)
+            return (
+                jsonify(
+                    {
+                        "ok": True,
+                        "employee": {
+                            "id": e.id,
+                            "name": e.name,
+                            "email": e.email or "",
+                            "active": bool(e.active),
+                        },
+                    }
+                ),
+                201,
+            )
+    except Exception:
+        app.logger.exception("me_employees_create failed")
+        return _json_error("server_error", 500)
 
 
 @app.post("/me/logo")
@@ -6221,6 +6580,17 @@ def slots_create():
                 line2 = " ".join(x for x in [slot_kwargs_extra.get("zip") or "", slot_kwargs_extra.get("city") or ""] if x).strip()
                 location_db = ", ".join(x for x in [line1, line2] if x)[:120]
 
+            emp_id_final = None
+            emp_raw = data.get("employee_id")
+            if emp_raw is not None and str(emp_raw).strip() != "":
+                if not _has_business_features(p):
+                    return _json_error("business_plan_required", 403)
+                e_lookup = str(emp_raw).strip()
+                em_obj = s.get(Employee, e_lookup)
+                if not em_obj or em_obj.provider_id != request.provider_id or not em_obj.active:
+                    return _json_error("invalid_employee", 400)
+                emp_id_final = e_lookup
+
             slot = Slot(
                 provider_id=request.provider_id,
                 title=title,
@@ -6236,6 +6606,7 @@ def slots_create():
                 notes=(data.get("notes") or None),
                 description=(data.get("description") or None),
                 status=SLOT_STATUS_DRAFT,
+                employee_id=emp_id_final,
                 **slot_kwargs_extra,
             )
 
@@ -6411,6 +6782,22 @@ def slots_update(slot_id):
                             "error": "stripe_onboarding_required",
                             "message": "Für Anzahlungen musst du zuerst Zahlungen einrichten.",
                         }), 400
+
+            if "employee_id" in data:
+                emp_raw = data.get("employee_id")
+                provider_obj = s.get(Provider, slot.provider_id)
+                if not provider_obj:
+                    return _json_error("not_found", 404)
+                if emp_raw is None or (isinstance(emp_raw, str) and emp_raw.strip() == ""):
+                    slot.employee_id = None
+                else:
+                    if not _has_business_features(provider_obj):
+                        return _json_error("business_plan_required", 403)
+                    e_lookup = str(emp_raw).strip()
+                    em_obj = s.get(Employee, e_lookup)
+                    if not em_obj or em_obj.provider_id != slot.provider_id or not em_obj.active:
+                        return _json_error("invalid_employee", 400)
+                    slot.employee_id = e_lookup
 
             # WICHTIG: Updates dürfen NICHT nur bei capacity laufen
             for k in [
@@ -6609,11 +6996,13 @@ def slots_duplicate(slot_id):
                 contact_method=slot.contact_method,
                 booking_link=slot.booking_link,
                 price_cents=slot.price_cents,
+                deposit_cents=getattr(slot, "deposit_cents", None),
                 notes=slot.notes,
                 description=getattr(slot, "description", None),
                 status=SLOT_STATUS_DRAFT,
                 archived=False,
                 published_at=None,
+                employee_id=getattr(slot, "employee_id", None),
             )
             s.add(new_slot)
             s.commit()
@@ -8009,7 +8398,7 @@ def public_slots_view():
                     
                     sq = sq.where(or_(*conditions))
 
-                sq = sq.order_by(Slot.start_at.asc()).limit(300)
+                sq = sq.order_by(_provider_premium_listing_sql_expr(), Slot.start_at.asc()).limit(300)
 
                 rows = s.execute(sq).all()
 
@@ -8096,6 +8485,8 @@ def public_slots_view():
                             provider_dict.get("logo_url"),
                             _external_base(),
                         )
+
+                    provider_dict["premium_listing"] = bool(_has_business_features(provider))
 
                     item["provider"] = provider_dict
                     item["provider_zip"] = p_zip

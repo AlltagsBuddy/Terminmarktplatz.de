@@ -98,6 +98,21 @@
       border-color: rgba(111, 83, 255, 0.7);
     }
 
+    .premium-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #6f53ff;
+      background: linear-gradient(135deg, rgba(111,83,255,.14) 0%, rgba(99,102,241,.1) 100%);
+      border: 1px solid rgba(111,83,255,.35);
+      border-radius: 6px;
+      vertical-align: middle;
+    }
+
     /* Toolbar über den Ergebnissen */
     .results-toolbar {
       display: flex;
@@ -1481,8 +1496,11 @@
         return okZeit && okDeposit;
       });
 
-      // Sortierung
+      // Sortierung: Business-Premium zuerst (wie API), dann Zeit
       items.sort((a,b) => {
+        const pa = (a.provider && a.provider.premium_listing) ? 0 : 1;
+        const pb = (b.provider && b.provider.premium_listing) ? 0 : 1;
+        if (pa !== pb) return pa - pb;
         const da = new Date(a.start_at).getTime();
         const db = new Date(b.start_at).getTime();
         return (sortSel.value === 'latest') ? (db - da) : (da - db);
@@ -1534,6 +1552,9 @@
         const providerLogo = (p.logo_url || '').toString().trim();
         const providerLogoSrc = providerLogo ? assetUrlFromApi(providerLogo) : '';
         const providerInitial = (providerName || 'A').toString().trim().charAt(0).toUpperCase() || 'A';
+        const premiumBadge = (p.premium_listing === true)
+          ? '<span class="premium-badge" title="Premium-Anbieter">Premium</span>'
+          : '';
         const providerBadge = providerLogoSrc
           ? `<img class="provider-logo" src="${providerLogoSrc}" alt="${providerName}">`
           : `<div class="provider-logo-fallback">${providerInitial}</div>`;
@@ -1596,6 +1617,7 @@
                     ${profileUrl
                       ? `<a href="${profileUrl}" class="provider-link">${providerName}</a>`
                       : `<span class="provider-text">${providerName}</span>`}
+                    ${premiumBadge}
                   </span>
                 </div>
               </div>
