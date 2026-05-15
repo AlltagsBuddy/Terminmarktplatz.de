@@ -1723,25 +1723,17 @@ END $$;
 
         try:
             with engine.begin() as conn:
-                conn.execute(text("SELECT api_key FROM provider LIMIT 1"))
-        except Exception:
-            try:
-                with engine.begin() as conn:
-                    conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN api_key TEXT")
-            except (OperationalError, SQLAlchemyError) as e:
-                _migration_print(f"[WARN] ensure_business_pack_schema (sqlite api_key): {e}")
+                conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN IF NOT EXISTS api_key TEXT")
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite api_key): {e}")
 
         try:
             with engine.begin() as conn:
-                conn.execute(text("SELECT employee_id FROM slot LIMIT 1"))
-        except Exception:
-            try:
-                with engine.begin() as conn:
-                    conn.exec_driver_sql(
-                        "ALTER TABLE slot ADD COLUMN employee_id TEXT REFERENCES employee(id) ON DELETE SET NULL"
-                    )
-            except (OperationalError, SQLAlchemyError) as e:
-                _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee_id): {e}")
+                conn.exec_driver_sql(
+                    "ALTER TABLE slot ADD COLUMN IF NOT EXISTS employee_id TEXT REFERENCES employee(id) ON DELETE SET NULL"
+                )
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee_id): {e}")
 
     except Exception as e:
         _migration_print(f"[WARN] Warnung: ensure_business_pack_schema fehlgeschlagen: {e}")
@@ -1772,7 +1764,6 @@ def _run_startup_migrations() -> None:
         _ensure_slot_description_field,
         _ensure_publish_quota_tables,
         _ensure_stripe_connect_fields,
-        _ensure_business_pack_schema,
     ):
         try:
             fn()
@@ -1787,7 +1778,14 @@ def _start_startup_migrations() -> None:
             return
         _STARTUP_MIGRATIONS_STARTED = True
     # Basistabellen zuerst synchron — kritische Migrationen erwarten provider/booking.
-    for fn in (_ensure_base_tables, _ensure_booking_reminder_fields, _ensure_provider_warevision_webhook):
+    # Business-Paket synchron: vermeidet UndefinedColumn (provider.api_key, slot.employee_id)
+    # auf PostgreSQL bevor der Hintergrund-Thread fertig ist.
+    for fn in (
+        _ensure_base_tables,
+        _ensure_booking_reminder_fields,
+        _ensure_provider_warevision_webhook,
+        _ensure_business_pack_schema,
+    ):
         try:
             fn()
         except Exception as e:
