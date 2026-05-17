@@ -30,7 +30,7 @@ def _auth_headers(provider_id: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access}"}
 
 
-def _create_provider() -> str:
+def _create_provider(plan: str | None = None) -> str:
     with Session(app_module.engine) as s:
         p = Provider(
             email=f"html-{uuid4()}@example.com",
@@ -43,6 +43,8 @@ def _create_provider() -> str:
             phone="1234567",
             status="approved",
         )
+        if plan:
+            p.plan = plan
         s.add(p)
         s.commit()
         return p.id
@@ -184,4 +186,46 @@ def test_anbieter_portal_with_auth_returns_html(test_client):
     r = test_client.get("/anbieter-portal", headers=_auth_headers(provider_id))
     assert r.status_code == 200
     assert "html" in (r.content_type or "").lower()
+
+
+def test_business_dashboard_html_requires_auth(test_client):
+    """GET /business-dashboard.html ohne Login → Redirect zum Login."""
+    r = test_client.get("/business-dashboard.html", follow_redirects=False)
+    assert r.status_code == 302
+    assert "/login" in (r.location or "")
+
+
+def test_business_dashboard_html_redirects_non_business(test_client):
+    """Business-Dashboard nur mit Business-Paket."""
+    pid = _create_provider(plan="profi")
+    r = test_client.get(
+        "/business-dashboard.html",
+        headers=_auth_headers(pid),
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+    assert "preise" in (r.location or "").lower()
+
+
+def test_business_dashboard_html_ok_for_business(test_client):
+    """GET /business-dashboard.html mit Business-Paket liefert HTML."""
+    pid = _create_provider(plan="business")
+    r = test_client.get("/business-dashboard.html", headers=_auth_headers(pid))
+    assert r.status_code == 200
+    assert "html" in (r.content_type or "").lower()
+
+
+def test_business_dashboard_api_requires_business(test_client):
+    """GET /business/dashboard ist ohne Business-Paket nicht erlaubt."""
+    pid = _create_provider(plan="starter")
+    r = test_client.get("/business/dashboard", headers=_auth_headers(pid))
+    assert r.status_code == 403
+
+    pid_biz = _create_provider(plan="business")
+    r2 = test_client.get("/business/dashboard", headers=_auth_headers(pid_biz))
+    assert r2.status_code == 200
+    data = r2.get_json()
+    assert data is not None
+    assert "bookings_per_month" in data
+    assert "revenue_per_month" in data
 

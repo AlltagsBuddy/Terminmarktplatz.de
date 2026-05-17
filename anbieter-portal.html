@@ -732,6 +732,7 @@
           <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
           <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
           <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
+          <a href="business-dashboard.html" class="item auth-in business-only" role="menuitem" id="nav-business-dashboard" style="display:none;">Business-Dashboard</a>
           <a href="https://terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" id="admin-invoices-link" style="display:none;">Rechnungen (Admin)</a>
           <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
 
@@ -780,67 +781,11 @@
           <a href="#" id="link-stripe-setup-main" class="btn primary" style="font-weight:600;">Zahlungen einrichten</a>
         </div>
 
-        <!-- Nur Business-Paket -->
-        <div id="business-dashboard-panel" class="panel" style="display:none; margin-top:20px; padding:22px;">
-          <h2 style="margin:0 0 12px 0; font-size:1.25rem;">Business-Dashboard</h2>
-          <p class="muted" style="margin:0 0 16px 0; font-size:14px;">Statistiken, API-Zugang und Mitarbeiterverwaltung (bis 5 aktive Einträge).</p>
-
-          <div id="biz-stats-block" style="margin-bottom:20px;">
-            <h3 style="margin:0 0 8px 0; font-size:1.05rem;">Auswertungen</h3>
-            <div class="stats-grid" style="margin-bottom:12px;">
-              <div class="stat-card">
-                <div class="stat-label">Auslastung (30 Tage)</div>
-                <div class="stat-value" id="biz-stat-util">–</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-label">Bestätigte Buchungen (30 T.)</div>
-                <div class="stat-value" id="biz-stat-bookings-window">–</div>
-              </div>
-            </div>
-            <div class="muted small" style="margin-bottom:6px;"><strong>Buchungen pro Monat</strong></div>
-            <ul id="biz-list-bookings-month" class="muted small" style="margin:0 0 12px 16px; padding:0;"></ul>
-            <div class="muted small" style="margin-bottom:6px;"><strong>Umsatz pro Monat</strong> (bestätigte Buchungen, geschätzt)</div>
-            <ul id="biz-list-revenue-month" class="muted small" style="margin:0 0 12px 16px; padding:0;"></ul>
-            <div class="muted small" style="margin-bottom:6px;"><strong>Beliebteste Slots</strong></div>
-            <ul id="biz-list-popular-slots" class="muted small" style="margin:0 0 16px 16px; padding:0;"></ul>
-          </div>
-
-          <div style="margin-bottom:20px; padding-top:16px; border-top:1px solid rgba(15,23,42,.08);">
-            <h3 style="margin:0 0 8px 0; font-size:1.05rem;">API-Schlüssel</h3>
-            <p class="muted small" style="margin:0 0 8px 0;">Wird beim ersten Abruf erzeugt und hier angezeigt. Bitte vertraulich behandeln.</p>
-            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-              <input id="biz-api-key" type="text" readonly class="input" style="flex:1 1 240px; font-family:monospace; font-size:13px;" placeholder="Wird geladen …"/>
-              <button type="button" class="btn" id="biz-api-key-copy">Kopieren</button>
-              <button type="button" class="btn" id="biz-api-key-refresh">Neu laden</button>
-            </div>
-            <div id="biz-api-key-msg" class="msg" style="margin-top:8px;"></div>
-          </div>
-
-          <div style="padding-top:16px; border-top:1px solid rgba(15,23,42,.08);">
-            <h3 style="margin:0 0 8px 0; font-size:1.05rem;">Mitarbeiter:innen</h3>
-            <div class="table-wrap" style="margin-bottom:12px;">
-              <table class="table" id="tbl-employees">
-                <thead>
-                  <tr><th>Name</th><th>E-Mail</th><th>Aktiv</th></tr>
-                </thead>
-                <tbody><tr><td colspan="3" class="muted">Lade …</td></tr></tbody>
-              </table>
-            </div>
-            <form id="form-add-employee" class="grid" style="max-width:520px;">
-              <div class="field">
-                <label for="emp-name">Name <span class="req">*</span></label>
-                <input id="emp-name" required maxlength="200" placeholder="z. B. Maria Mustermann"/>
-              </div>
-              <div class="field">
-                <label for="emp-email">E-Mail (optional)</label>
-                <input id="emp-email" type="email" maxlength="200" placeholder="optional"/>
-              </div>
-              <div class="toolbar" style="grid-column:1/-1;">
-                <button type="submit" class="btn primary">Mitarbeiter:in anlegen</button>
-              </div>
-            </form>
-            <div id="msg-employees" class="msg" style="margin-top:8px;"></div>
-          </div>
+        <!-- Nur Business-Paket: Link zur Detailseite -->
+        <div id="business-dashboard-teaser" class="panel" style="display:none; margin-top:20px; padding:20px; background:linear-gradient(135deg, rgba(111,83,255,.08) 0%, rgba(99,102,241,.06) 100%); border:1px solid rgba(111,83,255,.2);">
+          <h3 style="margin:0 0 8px 0; font-size:1.1rem;">Business-Dashboard</h3>
+          <p class="muted" style="margin:0 0 12px 0; font-size:14px;">Statistiken, API-Zugang, Webhooks und Mitarbeiter:innen (bis 5 aktiv) verwaltest du auf einer eigenen Seite.</p>
+          <a href="business-dashboard.html" class="btn primary" style="font-weight:600;">Zum Business-Dashboard</a>
         </div>
 
       </div>
@@ -1488,88 +1433,17 @@
       HAS_BUSINESS_FEATURES = ME?.has_business_features === true;
     }
 
-    function _bizEscapeHtml(s){
-      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    async function refreshBusinessDashboard(){
-      if (!HAS_BUSINESS_FEATURES) return;
-      await Promise.all([loadBizStats(), loadBizApiKey(), loadEmployeesForPortal()]);
-    }
-
-    function _bizFmtMonthKey(mk){
-      const parts = String(mk || '').split('-').map(Number);
-      if (parts.length < 2 || !parts[0] || !parts[1]) return String(mk || '');
-      return new Date(parts[0], parts[1] - 1, 1).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
-    }
-
-    async function loadBizStats(){
-      const utilEl = document.getElementById('biz-stat-util');
-      const bookWinEl = document.getElementById('biz-stat-bookings-window');
+    async function loadEmployeesForSlotForm(){
+      const preserve = document.getElementById('sl-employee')?.value;
       try{
-        const res = await fetch(`${API}/me/stats`, { credentials:'include' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok){
-          if (utilEl) utilEl.textContent = '—';
-          if (bookWinEl) bookWinEl.textContent = '—';
-          const ulB = document.getElementById('biz-list-bookings-month');
-          const ulR = document.getElementById('biz-list-revenue-month');
-          const ulP = document.getElementById('biz-list-popular-slots');
-          if (ulB) ulB.innerHTML = `<li class="muted">${data.error || 'Statistik nicht verfügbar.'}</li>`;
-          if (ulR) ulR.innerHTML = '';
-          if (ulP) ulP.innerHTML = '';
-          return;
-        }
-        const u = data.utilization_last_30d || {};
-        const rate = u.rate;
-        if (utilEl) utilEl.textContent = rate != null ? `${(Number(rate) * 100).toFixed(1)} %` : '—';
-        if (bookWinEl){
-          bookWinEl.textContent = `${u.confirmed_bookings ?? '–'} Buchungen · Kap.-Summe ${u.published_slot_capacity_sum ?? '–'}`;
-        }
-        const ulB = document.getElementById('biz-list-bookings-month');
-        if (ulB){
-          const rows = data.bookings_per_month || [];
-          ulB.innerHTML = rows.map(r => `<li>${_bizFmtMonthKey(r.month)}: ${r.count} Buchungen</li>`).join('');
-        }
-        const ulR = document.getElementById('biz-list-revenue-month');
-        if (ulR){
-          const rows = data.revenue_per_month || [];
-          ulR.innerHTML = rows.map(r => `<li>${_bizFmtMonthKey(r.month)}: ${Number(r.revenue_eur).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</li>`).join('');
-        }
-        const ulP = document.getElementById('biz-list-popular-slots');
-        if (ulP){
-          const rows = data.popular_slots || [];
-          ulP.innerHTML = rows.length
-            ? rows.map(r => `<li>${_bizEscapeHtml(r.title || 'Slot')}: ${r.confirmed_bookings} Buchungen</li>`).join('')
-            : '<li class="muted">Noch keine ausreichenden Daten.</li>';
-        }
+        const res = await fetch(`${API}/me/employees`, { credentials:'include' });
+        const data = await res.json().catch(() => ([]));
+        if (!res.ok){ EMPLOYEES_CACHE = []; fillEmployeeSelect(''); return; }
+        EMPLOYEES_CACHE = Array.isArray(data) ? data : [];
+        fillEmployeeSelect(preserve);
       }catch(_e){
-        if (utilEl) utilEl.textContent = '—';
-        if (bookWinEl) bookWinEl.textContent = '—';
-      }
-    }
-
-    async function loadBizApiKey(){
-      const input = document.getElementById('biz-api-key');
-      const msg = document.getElementById('biz-api-key-msg');
-      try{
-        const res = await fetch(`${API}/me/api-key`, { credentials:'include' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok){
-          if (input) input.value = '';
-          if (msg){
-            msg.textContent = data.error || 'API-Key konnte nicht geladen werden.';
-            msg.style.color = '#b91c1c';
-          }
-          return;
-        }
-        if (input) input.value = data.api_key || '';
-        if (msg){ msg.textContent = ''; msg.style.color = ''; }
-      }catch(_e){
-        if (msg){
-          msg.textContent = 'Netzwerkfehler beim Laden des API-Keys.';
-          msg.style.color = '#b91c1c';
-        }
+        EMPLOYEES_CACHE = [];
+        fillEmployeeSelect('');
       }
     }
 
@@ -1587,32 +1461,6 @@
       }
       if (want && [...sel.options].some(o => o.value === want)) sel.value = want;
       else sel.value = '';
-    }
-
-    async function loadEmployeesForPortal(){
-      const tbody = document.querySelector('#tbl-employees tbody');
-      const preserve = document.getElementById('sl-employee')?.value;
-      try{
-        const res = await fetch(`${API}/me/employees`, { credentials:'include' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok){
-          EMPLOYEES_CACHE = [];
-          if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="muted">${_bizEscapeHtml(data.error || 'Fehler beim Laden')}</td></tr>`;
-          fillEmployeeSelect('');
-          return;
-        }
-        EMPLOYEES_CACHE = Array.isArray(data) ? data : [];
-        if (tbody){
-          tbody.innerHTML = EMPLOYEES_CACHE.length
-            ? EMPLOYEES_CACHE.map(e => `<tr><td>${_bizEscapeHtml(e.name)}</td><td>${_bizEscapeHtml(e.email)}</td><td>${e.active ? 'ja' : 'nein'}</td></tr>`).join('')
-            : '<tr><td colspan="3" class="muted">Noch keine Mitarbeiter:innen angelegt.</td></tr>';
-        }
-        fillEmployeeSelect(preserve);
-      }catch(_e){
-        EMPLOYEES_CACHE = [];
-        if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="muted">Netzwerkfehler.</td></tr>';
-        fillEmployeeSelect('');
-      }
     }
 
     async function requireAuth(){
@@ -1758,15 +1606,15 @@
           proHint.style.display = HAS_PRO_FEATURES ? 'none' : 'block';
         }
 
-        const bizPanel = document.getElementById('business-dashboard-panel');
+        const bizTeaser = document.getElementById('business-dashboard-teaser');
         const fieldEmployee = document.getElementById('field-sl-employee');
-        if (bizPanel) bizPanel.style.display = HAS_BUSINESS_FEATURES ? 'block' : 'none';
+        if (bizTeaser) bizTeaser.style.display = HAS_BUSINESS_FEATURES ? 'block' : 'none';
         if (fieldEmployee) fieldEmployee.style.display = HAS_BUSINESS_FEATURES ? 'block' : 'none';
         if (!HAS_BUSINESS_FEATURES) {
           const slEmpClr = document.getElementById('sl-employee');
           if (slEmpClr) slEmpClr.innerHTML = '<option value="">— keine Zuordnung —</option>';
         } else {
-          refreshBusinessDashboard();
+          loadEmployeesForSlotForm();
         }
 
         setCalendarLinks();
@@ -2727,66 +2575,6 @@
     $('#btn-export')?.addEventListener('click', exportSlots);
     $('#calendar-copy-btn')?.addEventListener('click', copyCalendarLink);
 
-    document.getElementById('form-add-employee')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nameIn = document.getElementById('emp-name');
-      const emailIn = document.getElementById('emp-email');
-      const name = nameIn ? nameIn.value.trim() : '';
-      const email = emailIn ? emailIn.value.trim() : '';
-      const msgEl = document.getElementById('msg-employees');
-      if (!name) {
-        if (msgEl) { msgEl.textContent = 'Bitte einen Namen angeben.'; msgEl.style.color = '#b91c1c'; }
-        return;
-      }
-      try {
-        const res = await fetch(`${API}/me/employees`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email: email || undefined })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (msgEl) {
-            msgEl.textContent = data.error === 'employee_limit_reached'
-              ? 'Maximal 5 aktive Mitarbeiter:innen erlaubt.'
-              : (data.error || 'Speichern fehlgeschlagen.');
-            msgEl.style.color = '#b91c1c';
-          }
-          return;
-        }
-        if (nameIn) nameIn.value = '';
-        if (emailIn) emailIn.value = '';
-        if (msgEl) { msgEl.textContent = 'Mitarbeiter:in angelegt.'; msgEl.style.color = '#15803d'; }
-        await loadEmployeesForPortal();
-      } catch (_err) {
-        if (msgEl) { msgEl.textContent = 'Netzwerkfehler.'; msgEl.style.color = '#b91c1c'; }
-      }
-    });
-
-    document.getElementById('biz-api-key-copy')?.addEventListener('click', async () => {
-      const input = document.getElementById('biz-api-key');
-      const v = input ? input.value.trim() : '';
-      const msg = document.getElementById('biz-api-key-msg');
-      if (!v) {
-        if (msg) { msg.textContent = 'Kein API-Key geladen.'; msg.style.color = '#b91c1c'; }
-        return;
-      }
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(v);
-        } else if (input) {
-          input.focus();
-          input.select();
-          document.execCommand('copy');
-        }
-        if (msg) { msg.textContent = 'In Zwischenablage kopiert.'; msg.style.color = '#15803d'; }
-      } catch (_e) {
-        if (msg) { msg.textContent = 'Kopieren fehlgeschlagen.'; msg.style.color = '#b91c1c'; }
-      }
-    });
-    document.getElementById('biz-api-key-refresh')?.addEventListener('click', () => { loadBizApiKey(); });
-
     // Filter-Buttons für Aktive/Archivierte Termine
     const btnShowActive = $('#btn-show-active');
     const btnShowArchived = $('#btn-show-archived');
@@ -2883,18 +2671,25 @@
 
       async function updateAuthUI(){
         let loggedIn = false;
+        let business = false;
         try{
           const res = await fetch(`${API_LOCAL}/me`, { credentials:'include' });
           loggedIn = res.ok;
+          if (loggedIn){
+            const me = await res.json().catch(() => ({}));
+            business = me.has_business_features === true;
+          }
         }catch(e){
           loggedIn = false;
         }
 
-        document.querySelectorAll('.auth-in').forEach(el => { 
-          // Admin-only Links werden separat von requireAuth() behandelt - hier überspringen
-          if (!el.classList.contains('admin-only')) {
-            el.style.display = loggedIn ? '' : 'none';
+        document.querySelectorAll('.auth-in').forEach(el => {
+          if (el.classList.contains('admin-only')) return;
+          if (el.classList.contains('business-only')) {
+            el.style.display = (loggedIn && business) ? '' : 'none';
+            return;
           }
+          el.style.display = loggedIn ? '' : 'none';
         });
         document.querySelectorAll('.auth-out').forEach(el => { el.style.display = loggedIn ? 'none' : ''; });
       }

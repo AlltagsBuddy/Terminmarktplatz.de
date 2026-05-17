@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Business-Dashboard | Terminmarktplatz</title>
+  <meta name="description" content="Auswertungen, API-Schlüssel, Webhooks und Mitarbeiterverwaltung für Business-Anbieter auf dem Terminmarktplatz." />
+  <meta name="theme-color" content="#6f53ff" />
+  <meta name="robots" content="noindex, follow" />
+  <link rel="canonical" href="https://terminmarktplatz.de/business-dashboard.html" />
+  <base href="/" />
+  <link rel="icon" href="static/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="static/style.css?v=20251103" />
+  <style>
+    html, body { width: 100%; margin: 0; padding: 0; }
+    .page-portal .container { max-width: 1120px; box-sizing: border-box; }
+    .page-portal .panel { width: 100%; box-sizing: border-box; border-radius: var(--r-3xl); box-shadow: var(--shadow-2); }
+    .page-portal .btn,
+    .page-portal .btn.primary {
+      color:#0f172a !important;
+      background:#ffffff !important;
+      border:1px solid #cbd5e1 !important;
+      text-shadow:none !important;
+      background-image:none !important;
+    }
+    .muted { color: var(--ink-dim); }
+    .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .biz-grid-2 { display:grid; gap:16px; }
+    @media (min-width: 920px) {
+      .biz-grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .biz-chart {
+      display:flex; align-items:flex-end; gap:6px; min-height:140px;
+      padding:12px 8px 8px; border-radius:12px; background:#f8fafc;
+      border:1px solid rgba(15,23,42,.08);
+    }
+    .biz-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
+    .biz-bar {
+      width:100%; max-width:36px; border-radius:8px 8px 2px 2px;
+      background: linear-gradient(180deg, #6366f1 0%, #6f53ff 100%);
+      min-height:4px;
+    }
+    .biz-bar-label { font-size:10px; color:#64748b; text-align:center; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; }
+    .biz-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .biz-table th, .biz-table td { padding:8px 10px; border-bottom:1px solid rgba(15,23,42,.08); text-align:left; }
+    .biz-table th { background:#f8fafc; color:#0f172a; font-weight:600; }
+    .field{
+      display:flex; flex-direction:column; gap:6px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px;
+    }
+    .field input,.field select,.field textarea{
+      background:#fff; color:#0f172a; border:1px solid rgba(15,23,42,.28);
+      border-radius:12px; padding:10px;
+    }
+    .req { color:#ef4444; font-weight:700; }
+    .password-wrapper { position:relative; display:flex; align-items:center; }
+    .password-wrapper input { padding-right:40px; width:100%; }
+    .password-toggle{
+      position:absolute; right:12px; background:none; border:none; cursor:pointer;
+      color:#64748b; font-size:18px;
+    }
+    .stat-card-mini {
+      padding:14px 16px; border-radius:12px;
+      background:#fff; border:1px solid rgba(15,23,42,.08);
+      box-shadow:0 6px 16px rgba(15,23,42,0.06);
+    }
+    .stat-card-mini .lbl { font-size:13px; color:#64748b; margin-bottom:4px; }
+    .stat-card-mini .val { font-size:1.35rem; font-weight:700; color:#0f172a; }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-508763756');
+  </script>
+</head>
+<body class="page-portal">
+  <header>
+    <div class="container nav" role="navigation" aria-label="Hauptnavigation">
+      <a class="brand" href="index.html" aria-label="Startseite">
+        <div class="brand-logo" aria-hidden="true">
+          <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo" width="50" height="50">
+        </div>
+        <div class="brand-title">Terminmarktplatz</div>
+      </a>
+
+      <div class="user-menu">
+        <button id="userMenuBtn" class="btn" aria-haspopup="menu" aria-expanded="false">☰ Menü</button>
+        <div id="userMenu" class="menu" role="menu" hidden>
+          <a href="login.html?tab=login" class="item auth-out" role="menuitem">Anmelden</a>
+          <button type="button" class="item auth-in" data-action="logout" role="menuitem">Abmelden</button>
+          <a href="anbieter-profil.html" class="item auth-in" role="menuitem">Profil</a>
+          <a href="anbieter-portal.html" class="item auth-in" role="menuitem">Slots</a>
+          <a href="anbieter-bewertungen.html" class="item auth-in" role="menuitem">Bewertungen</a>
+          <a href="business-dashboard.html" class="item auth-in business-only" role="menuitem" aria-current="page">Business-Dashboard</a>
+          <a href="https://terminmarktplatz.de/admin-rechnungen.html" class="item auth-in admin-only" role="menuitem" id="admin-invoices-link" style="display:none;">Rechnungen (Admin)</a>
+          <button class="item danger auth-in" data-action="delete" role="menuitem">Konto löschen</button>
+          <a href="kontakt.html" class="item" role="menuitem">Kontakt</a>
+          <a href="hilfe.html" class="item" role="menuitem">Hilfe</a>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="anbieter.html">Für Anbieter</a>
+        <a href="suchende.html">Für Suchende</a>
+        <a href="preise.html">Preise</a>
+        <a href="/blog">Blog</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding:36px 0 18px">
+      <div class="container">
+        <span class="badge">Business</span>
+        <h1>Business-Dashboard</h1>
+        <p class="lead muted">Auswertungen, Schnittstellen und Team – zentral an einem Ort.</p>
+      </div>
+    </section>
+
+    <section style="padding-bottom:48px">
+      <div class="container">
+
+        <div class="panel" style="padding:22px; margin-bottom:20px;">
+          <h2 style="margin:0 0 12px; font-size:1.2rem;">Auslastung &amp; Buchungen</h2>
+          <div class="biz-grid-2" style="margin-bottom:16px;">
+            <div class="stat-card-mini">
+              <div class="lbl">Auslastungsrate (letzte 30 Tage)</div>
+              <div class="val" id="bd-util-rate">–</div>
+              <div class="muted" style="font-size:13px; margin-top:6px;" id="bd-util-detail"></div>
+            </div>
+            <div class="stat-card-mini">
+              <div class="lbl">Beliebteste Slots</div>
+              <ol id="bd-popular" class="muted" style="margin:8px 0 0 18px; padding:0; font-size:14px;"></ol>
+            </div>
+          </div>
+          <h3 style="font-size:1.05rem; margin:16px 0 8px;">Buchungen pro Monat</h3>
+          <div id="bd-chart-bookings" class="biz-chart" aria-label="Balkendiagramm Buchungen"></div>
+          <div id="bd-table-bookings-wrap" style="margin-top:16px; overflow:auto;"></div>
+
+          <h3 style="font-size:1.05rem; margin:24px 0 8px;">Umsatz pro Monat</h3>
+          <div id="bd-chart-revenue" class="biz-chart" aria-label="Balkendiagramm Umsatz"></div>
+          <div id="bd-table-revenue-wrap" style="margin-top:16px; overflow:auto;"></div>
+          <div id="bd-stats-msg" class="msg" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="panel" style="padding:22px; margin-bottom:20px;">
+          <h2 style="margin:0 0 8px; font-size:1.2rem;">Mitarbeiter:innen</h2>
+          <p class="muted" style="margin:0 0 14px; font-size:14px;">Maximal 5 aktive Einträge. Inaktive Einträge zählen nicht gegen das Limit.</p>
+          <p class="muted" style="margin:0 0 12px; font-size:14px;" id="bd-emp-count"></p>
+          <div style="overflow:auto; margin-bottom:16px;">
+            <table class="biz-table" id="bd-tbl-employees">
+              <thead>
+                <tr><th>Name</th><th>E-Mail</th><th>Aktiv</th><th style="width:200px;">Aktionen</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size:1.05rem; margin:0 0 10px;">Neue Person anlegen</h3>
+          <form id="bd-form-emp-add" class="biz-grid-2" style="align-items:flex-end;">
+            <div class="field">
+              <label for="bd-emp-name">Name <span class="req">*</span></label>
+              <input id="bd-emp-name" maxlength="200" required placeholder="z. B. Maria Mustermann" />
+            </div>
+            <div class="field">
+              <label for="bd-emp-email">E-Mail (optional)</label>
+              <input id="bd-emp-email" type="email" maxlength="200" placeholder="optional" />
+            </div>
+            <div class="toolbar" style="grid-column:1/-1;">
+              <button type="submit" class="btn primary">Hinzufügen</button>
+            </div>
+          </form>
+
+          <div id="bd-emp-editor" style="display:none; margin-top:20px; padding-top:20px; border-top:1px solid rgba(15,23,42,.08);">
+            <h3 style="font-size:1.05rem; margin:0 0 10px;">Eintrag bearbeiten</h3>
+            <input type="hidden" id="bd-emp-edit-id" />
+            <div class="biz-grid-2">
+              <div class="field">
+                <label for="bd-emp-edit-name">Name <span class="req">*</span></label>
+                <input id="bd-emp-edit-name" maxlength="200" />
+              </div>
+              <div class="field">
+                <label for="bd-emp-edit-email">E-Mail</label>
+                <input id="bd-emp-edit-email" type="email" maxlength="200" placeholder="optional" />
+              </div>
+              <div class="field" style="grid-column:1/-1;">
+                <label style="display:flex; gap:8px; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="bd-emp-edit-active" /> Aktiv (in Auswahl für Slots)
+                </label>
+              </div>
+              <div class="toolbar" style="grid-column:1/-1;">
+                <button type="button" class="btn primary" id="bd-emp-save">Speichern</button>
+                <button type="button" class="btn" id="bd-emp-cancel-edit">Abbrechen</button>
+              </div>
+            </div>
+          </div>
+          <div id="bd-emp-msg" class="msg" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="panel" style="padding:22px; margin-bottom:20px;">
+          <h2 style="margin:0 0 8px; font-size:1.2rem;">API-Schlüssel</h2>
+          <p class="muted" style="margin:0 0 12px; font-size:14px;">Wird beim ersten Abruf erzeugt. Bei „Neu generieren“ wird der alte Schlüssel ungültig.</p>
+          <div class="toolbar" style="flex-wrap:wrap;">
+            <input id="bd-api-key" type="text" readonly class="input" style="flex:1 1 260px; font-family:monospace; font-size:13px;" placeholder="Wird geladen …" />
+            <button type="button" class="btn" id="bd-api-key-copy">Kopieren</button>
+            <button type="button" class="btn" id="bd-api-key-reload">Neu laden</button>
+            <button type="button" class="btn danger" id="bd-api-key-regen">Neu generieren</button>
+          </div>
+          <div id="bd-api-msg" class="msg" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="panel" style="padding:22px;">
+          <h2 style="margin:0 0 8px; font-size:1.2rem;">Webhook (WareVision / WWS)</h2>
+          <p class="muted" style="margin:0 0 14px; font-size:14px;">URL und gemeinsamer Schlüssel für ausgehende Benachrichtigungen an deine Warenwirtschaft.</p>
+          <div class="field">
+            <label for="bd-webhook-url">Webhook-URL</label>
+            <input id="bd-webhook-url" type="url" placeholder="https://…/api/v1/appointments/webhook/termin-marktplatz" />
+          </div>
+          <div class="field">
+            <label for="bd-webhook-key">API-Schlüssel</label>
+            <div class="password-wrapper">
+              <input id="bd-webhook-key" type="password" autocomplete="off" placeholder="Geheimer Schlüssel" />
+              <button type="button" class="password-toggle" data-target="bd-webhook-key" aria-label="Passwort anzeigen">👁️</button>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top:12px;">
+            <button type="button" class="btn primary" id="bd-webhook-save">Webhook speichern</button>
+          </div>
+          <div id="bd-webhook-msg" class="msg" style="margin-top:10px;"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div class="brand" style="margin-bottom:10px">
+          <div class="brand-logo" aria-hidden="true">
+            <img src="/static/terminmarktplatz-logo.png" alt="Terminmarktplatz Logo klein" loading="lazy" decoding="async">
+          </div>
+          <div class="brand-title">Terminmarktplatz</div>
+        </div>
+        <p class="muted">Ein AlltagsBuddy-Projekt: smarte Lösungen für deinen Alltag.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a class="foot-link" href="anbieter.html">Für Anbieter</a>
+        <a class="foot-link" href="suchende.html">Für Suchende</a>
+        <a class="foot-link" href="hilfe.html">Hilfe &amp; FAQ</a>
+        <a class="foot-link" href="/blog">Blog</a>
+      </div>
+      <div class="foot-col">
+        <h4>Rechtliches</h4>
+        <a class="foot-link" href="impressum.html">Impressum</a>
+        <a class="foot-link" href="datenschutz.html">Datenschutz</a>
+        <a class="foot-link" href="agb.html">AGB</a>
+        <a class="foot-link" href="widerruf.html">Widerruf</a>
+        <a class="foot-link" href="cookie-einstellungen.html">Cookie-Einstellungen</a>
+      </div>
+      <div class="foot-col">
+        <h4>Kontakt</h4>
+        <a class="foot-link" href="kontakt.html">Kontaktformular</a>
+        <a class="foot-link" href="mailto:info@terminmarktplatz.de">info@terminmarktplatz.de</a>
+      </div>
+    </div>
+    <div class="container copyright">© <span id="y"></span> Terminmarktplatz · Alle Rechte vorbehalten.</div>
+    <script>document.getElementById('y').textContent=new Date().getFullYear();</script>
+  </footer>
+
+  <script>
+    const API = (() => {
+      const h = location.hostname;
+      const proto = location.protocol;
+      const isLocal =
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        /^192\.168\./.test(h) ||
+        /^10\./.test(h) ||
+        h.endsWith('.local');
+      if (isLocal) return `${proto}//${h}:5000`;
+      if (h.startsWith('test.') || h.includes('testsystem') || h.includes('onrender.com')) {
+        return `${proto}//${location.host}`;
+      }
+      if (h === 'terminmarktplatz.de' || h === 'www.terminmarktplatz.de') {
+        return `${proto}//${h}`;
+      }
+      return 'https://terminmarktplatz.de';
+    })();
+    window.API = API;
+
+    function esc(s){
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmtMonthKey(mk){
+      const parts = String(mk || '').split('-').map(Number);
+      if (parts.length < 2 || !parts[0] || !parts[1]) return String(mk || '');
+      return new Date(parts[0], parts[1] - 1, 1).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+    }
+
+    function renderBarChart(containerId, rows, valueKey, formatVal){
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!rows || !rows.length){ el.innerHTML = '<span class="muted">Keine Daten.</span>'; return; }
+      const vals = rows.map(r => Number(r[valueKey]) || 0);
+      const max = Math.max(...vals, 1);
+      el.innerHTML = rows.map((r, i) => {
+        const v = vals[i];
+        const pct = Math.round((v / max) * 100);
+        const h = Math.max(8, Math.round((v / max) * 110));
+        return `<div class="biz-bar-wrap" title="${esc(fmtMonthKey(r.month))}: ${formatVal(r)}">
+          <div class="biz-bar" style="height:${h}px"></div>
+          <span class="biz-bar-label">${esc(fmtMonthKey(r.month))}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderTable(containerId, rows, colLabel, formatCell){
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!rows || !rows.length){ el.innerHTML = '<p class="muted">Keine Daten.</p>'; return; }
+      el.innerHTML = `<table class="biz-table"><thead><tr><th>Monat</th><th>${esc(colLabel)}</th></tr></thead><tbody>` +
+        rows.map(r => `<tr><td>${esc(fmtMonthKey(r.month))}</td><td>${formatCell(r)}</td></tr>`).join('') +
+        '</tbody></table>';
+    }
+
+    async function loadStats(){
+      const msg = document.getElementById('bd-stats-msg');
+      try{
+        const res = await fetch(`${API}/business/dashboard`, { credentials:'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          if (msg){ msg.textContent = data.error || 'Statistik nicht verfügbar.'; msg.style.color = '#b91c1c'; }
+          return;
+        }
+        if (msg){ msg.textContent = ''; msg.style.color = ''; }
+        const u = data.utilization_last_30d || {};
+        const rate = u.rate;
+        const utilEl = document.getElementById('bd-util-rate');
+        const detEl = document.getElementById('bd-util-detail');
+        if (utilEl) utilEl.textContent = rate != null ? `${(Number(rate) * 100).toFixed(1)} %` : '–';
+        if (detEl){
+          detEl.textContent = `${u.confirmed_bookings ?? '–'} bestätigte Buchungen · Kapazitätssumme veröffentlichter Slots ${u.published_slot_capacity_sum ?? '–'}`;
+        }
+        const pop = document.getElementById('bd-popular');
+        if (pop){
+          const rows = data.popular_slots || [];
+          pop.innerHTML = rows.length
+            ? rows.map(r => `<li>${esc(r.title || 'Slot')}: ${r.confirmed_bookings} Buchungen</li>`).join('')
+            : '<li class="muted">Noch keine ausreichenden Daten.</li>';
+        }
+        const bpm = data.bookings_per_month || [];
+        const rpm = data.revenue_per_month || [];
+        renderBarChart('bd-chart-bookings', bpm, 'count', r => `${r.count} Buchungen`);
+        renderBarChart('bd-chart-revenue', rpm, 'revenue_eur', r =>
+          `${Number(r.revenue_eur).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`);
+        renderTable('bd-table-bookings-wrap', bpm, 'Buchungen', r => String(r.count));
+        renderTable('bd-table-revenue-wrap', rpm, 'Umsatz (EUR)', r =>
+          Number(r.revenue_eur).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €');
+      }catch(_e){
+        if (msg){ msg.textContent = 'Netzwerkfehler beim Laden der Statistik.'; msg.style.color = '#b91c1c'; }
+      }
+    }
+
+    async function loadApiKey(){
+      const input = document.getElementById('bd-api-key');
+      const msg = document.getElementById('bd-api-msg');
+      try{
+        const res = await fetch(`${API}/me/api-key`, { credentials:'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          if (input) input.value = '';
+          if (msg){ msg.textContent = data.error || 'API-Key konnte nicht geladen werden.'; msg.style.color = '#b91c1c'; }
+          return;
+        }
+        if (input) input.value = data.api_key || '';
+        if (msg){ msg.textContent = ''; msg.style.color = ''; }
+      }catch(_e){
+        if (msg){ msg.textContent = 'Netzwerkfehler.'; msg.style.color = '#b91c1c'; }
+      }
+    }
+
+    async function regenerateApiKey(){
+      const msg = document.getElementById('bd-api-msg');
+      if (!confirm('Neuen API-Schlüssel erzeugen? Bestehende Integrationen mit dem alten Schlüssel funktionieren danach nicht mehr.')) return;
+      try{
+        const res = await fetch(`${API}/me/api-key/regenerate`, { method:'POST', credentials:'include' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          if (msg){ msg.textContent = data.error || 'Konnte nicht neu generieren.'; msg.style.color = '#b91c1c'; }
+          return;
+        }
+        const input = document.getElementById('bd-api-key');
+        if (input) input.value = data.api_key || '';
+        if (msg){ msg.textContent = 'Neuer Schlüssel gespeichert.'; msg.style.color = '#15803d'; }
+      }catch(_e){
+        if (msg){ msg.textContent = 'Netzwerkfehler.'; msg.style.color = '#b91c1c'; }
+      }
+    }
+
+    function setEmpMsg(text, ok){
+      const el = document.getElementById('bd-emp-msg');
+      if (!el) return;
+      el.textContent = text || '';
+      el.style.color = ok ? '#15803d' : (text ? '#b91c1c' : '');
+    }
+
+    async function loadEmployees(){
+      const tbody = document.querySelector('#bd-tbl-employees tbody');
+      const cntEl = document.getElementById('bd-emp-count');
+      try{
+        const res = await fetch(`${API}/me/employees`, { credentials:'include' });
+        const data = await res.json().catch(() => ([]));
+        if (!res.ok){
+          if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="muted">${esc(data.error || 'Fehler')}</td></tr>`;
+          return;
+        }
+        const list = Array.isArray(data) ? data : [];
+        const nActive = list.filter(e => e.active).length;
+        if (cntEl) cntEl.textContent = `Aktive Mitarbeiter:innen: ${nActive} / 5`;
+        if (tbody){
+          tbody.innerHTML = list.length ? list.map(e => `
+            <tr data-id="${esc(e.id)}">
+              <td>${esc(e.name)}</td>
+              <td>${esc(e.email || '')}</td>
+              <td>${e.active ? 'ja' : 'nein'}</td>
+              <td>
+                <button type="button" class="btn bd-edit-emp" data-id="${esc(e.id)}">Bearbeiten</button>
+                <button type="button" class="btn danger bd-del-emp" data-id="${esc(e.id)}">Löschen</button>
+              </td>
+            </tr>`).join('') : '<tr><td colspan="4" class="muted">Noch keine Einträge.</td></tr>';
+        }
+      }catch(_e){
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="muted">Netzwerkfehler.</td></tr>';
+      }
+    }
+
+    function closeEmpEditor(){
+      document.getElementById('bd-emp-editor').style.display = 'none';
+      document.getElementById('bd-emp-edit-id').value = '';
+    }
+
+    function openEmpEditor(emp){
+      document.getElementById('bd-emp-editor').style.display = 'block';
+      document.getElementById('bd-emp-edit-id').value = emp.id;
+      document.getElementById('bd-emp-edit-name').value = emp.name || '';
+      document.getElementById('bd-emp-edit-email').value = emp.email || '';
+      document.getElementById('bd-emp-edit-active').checked = !!emp.active;
+    }
+
+    document.getElementById('bd-tbl-employees')?.addEventListener('click', async (e) => {
+      const del = e.target.closest('.bd-del-emp');
+      const ed = e.target.closest('.bd-edit-emp');
+      if (del){
+        const id = del.getAttribute('data-id');
+        if (!id || !confirm('Diese Person wirklich löschen? Zugeordnete Slots werden ohne Zuordnung weitergeführt.')) return;
+        try{
+          const res = await fetch(`${API}/me/employees/${encodeURIComponent(id)}`, { method:'DELETE', credentials:'include' });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok){ setEmpMsg(data.error || 'Löschen fehlgeschlagen.', false); return; }
+          setEmpMsg('Gelöscht.', true);
+          closeEmpEditor();
+          await loadEmployees();
+        }catch(_e){ setEmpMsg('Netzwerkfehler.', false); }
+      }
+      if (ed){
+        const id = ed.getAttribute('data-id');
+        try{
+          const res = await fetch(`${API}/me/employees`, { credentials:'include' });
+          const list = await res.json().catch(() => ([]));
+          if (!res.ok){ setEmpMsg('Konnte Daten nicht laden.', false); return; }
+          const emp = Array.isArray(list) ? list.find(x => x.id === id) : null;
+          if (!emp){ setEmpMsg('Eintrag nicht gefunden.', false); return; }
+          openEmpEditor(emp);
+          setEmpMsg('', true);
+        }catch(_e){ setEmpMsg('Netzwerkfehler.', false); }
+      }
+    });
+
+    document.getElementById('bd-form-emp-add')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('bd-emp-name').value.trim();
+      const email = document.getElementById('bd-emp-email').value.trim();
+      if (!name){ setEmpMsg('Bitte einen Namen angeben.', false); return; }
+      try{
+        const res = await fetch(`${API}/me/employees`, {
+          method:'POST',
+          credentials:'include',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ name, email: email || undefined }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          setEmpMsg(data.error === 'employee_limit_reached'
+            ? 'Maximal 5 aktive Mitarbeiter:innen erlaubt.'
+            : (data.error || 'Speichern fehlgeschlagen.'), false);
+          return;
+        }
+        document.getElementById('bd-emp-name').value = '';
+        document.getElementById('bd-emp-email').value = '';
+        setEmpMsg('Angelegt.', true);
+        await loadEmployees();
+      }catch(_e){ setEmpMsg('Netzwerkfehler.', false); }
+    });
+
+    document.getElementById('bd-emp-save')?.addEventListener('click', async () => {
+      const id = document.getElementById('bd-emp-edit-id').value.trim();
+      const name = document.getElementById('bd-emp-edit-name').value.trim();
+      const email = document.getElementById('bd-emp-edit-email').value.trim();
+      const active = document.getElementById('bd-emp-edit-active').checked;
+      if (!id || !name){ setEmpMsg('Bitte Namen ausfüllen.', false); return; }
+      try{
+        const res = await fetch(`${API}/me/employees/${encodeURIComponent(id)}`, {
+          method:'PUT',
+          credentials:'include',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ name, email: email || null, active }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          setEmpMsg(data.error === 'employee_limit_reached'
+            ? 'Maximal 5 aktive Mitarbeiter:innen erlaubt.'
+            : (data.error || 'Speichern fehlgeschlagen.'), false);
+          return;
+        }
+        setEmpMsg('Gespeichert.', true);
+        closeEmpEditor();
+        await loadEmployees();
+      }catch(_e){ setEmpMsg('Netzwerkfehler.', false); }
+    });
+
+    document.getElementById('bd-emp-cancel-edit')?.addEventListener('click', closeEmpEditor);
+
+    document.getElementById('bd-webhook-save')?.addEventListener('click', async () => {
+      const msg = document.getElementById('bd-webhook-msg');
+      const url = document.getElementById('bd-webhook-url').value.trim();
+      const key = document.getElementById('bd-webhook-key').value.trim();
+      try{
+        const res = await fetch(`${API}/me`, {
+          method:'PUT',
+          credentials:'include',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({
+            webhook_url: url || null,
+            webhook_api_key: key || null,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok){
+          const t = data.error === 'invalid_webhook_url'
+            ? 'Webhook-URL muss mit http:// oder https:// beginnen.'
+            : (data.error || 'Speichern fehlgeschlagen.');
+          if (msg){ msg.textContent = t; msg.style.color = '#b91c1c'; }
+          return;
+        }
+        if (msg){ msg.textContent = 'Webhook gespeichert.'; msg.style.color = '#15803d'; }
+      }catch(_e){
+        if (msg){ msg.textContent = 'Netzwerkfehler.'; msg.style.color = '#b91c1c'; }
+      }
+    });
+
+    document.getElementById('bd-api-key-copy')?.addEventListener('click', async () => {
+      const input = document.getElementById('bd-api-key');
+      const v = input ? input.value.trim() : '';
+      const msg = document.getElementById('bd-api-msg');
+      if (!v){ if (msg){ msg.textContent = 'Kein Schlüssel geladen.'; msg.style.color = '#b91c1c'; } return; }
+      try{
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(v);
+        else if (input){ input.focus(); input.select(); document.execCommand('copy'); }
+        if (msg){ msg.textContent = 'Kopiert.'; msg.style.color = '#15803d'; }
+      }catch(_e){
+        if (msg){ msg.textContent = 'Kopieren fehlgeschlagen.'; msg.style.color = '#b91c1c'; }
+      }
+    });
+    document.getElementById('bd-api-key-reload')?.addEventListener('click', loadApiKey);
+    document.getElementById('bd-api-key-regen')?.addEventListener('click', regenerateApiKey);
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.password-toggle');
+      if (!btn) return;
+      const tid = btn.getAttribute('data-target');
+      const inp = document.getElementById(tid);
+      if (!inp) return;
+      if (inp.type === 'password'){ inp.type = 'text'; btn.textContent = '🙈'; }
+      else { inp.type = 'password'; btn.textContent = '👁️'; }
+    });
+
+    (async function init(){
+      try{
+        const r = await fetch(`${API}/me`, { credentials:'include' });
+        if (!r.ok){
+          window.location.href = 'login.html?tab=login';
+          return;
+        }
+        const me = await r.json().catch(() => ({}));
+        if (me.has_business_features !== true){
+          window.location.href = 'preise.html#business';
+          return;
+        }
+        const adminInvoicesLink = document.getElementById('admin-invoices-link');
+        if (adminInvoicesLink){
+          adminInvoicesLink.style.display = me.is_admin === true ? 'block' : 'none';
+        }
+        document.getElementById('bd-webhook-url').value = me.webhook_url || '';
+        document.getElementById('bd-webhook-key').value = me.webhook_api_key || '';
+
+        await Promise.all([loadStats(), loadApiKey(), loadEmployees()]);
+      }catch(_e){
+        window.location.href = 'login.html?tab=login';
+      }
+    })();
+
+    (function(){
+      const btn = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('userMenu');
+      if (!btn || !menu) return;
+      const API_LOCAL = (typeof window.API === 'string') ? window.API : '';
+
+      function openMenu(open){
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      }
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openMenu(menu.hidden); });
+      document.addEventListener('click', () => openMenu(false));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openMenu(false); });
+
+      async function updateAuthUI(){
+        let loggedIn = false;
+        let business = false;
+        try{
+          const res = await fetch(`${API_LOCAL}/me`, { credentials:'include' });
+          loggedIn = res.ok;
+          if (loggedIn){
+            const j = await res.json().catch(() => ({}));
+            business = j.has_business_features === true;
+          }
+        }catch(_e){ loggedIn = false; }
+
+        document.querySelectorAll('.auth-in').forEach(el => {
+          if (el.classList.contains('admin-only')) return;
+          if (el.classList.contains('business-only')){
+            el.style.display = (loggedIn && business) ? '' : 'none';
+            return;
+          }
+          el.style.display = loggedIn ? '' : 'none';
+        });
+        document.querySelectorAll('.auth-out').forEach(el => {
+          el.style.display = loggedIn ? 'none' : '';
+        });
+      }
+
+      menu.addEventListener('click', async (e) => {
+        const el = e.target.closest('.item');
+        if (!el) return;
+        const action = el.dataset.action;
+        if (action === 'logout'){
+          try{ await fetch(`${API_LOCAL}/auth/logout`, { method:'POST', credentials:'include' }); updateAuthUI(); }catch(_){}
+          setTimeout(() => { location.href = '/login.html'; }, 100);
+        }
+        if (action === 'delete'){
+          const ok = confirm('Wirklich den gesamten Account mit allen Slots und Buchungen löschen? Dieser Schritt ist endgültig.');
+          if (!ok) return;
+          try{
+            const res = await fetch(`${API_LOCAL}/me`, { method:'DELETE', credentials:'include' });
+            if (res.ok) location.href = '/login.html?deleted=1';
+            else {
+              const data = await res.json().catch(() => ({}));
+              alert(data?.error ? `Löschen fehlgeschlagen: ${data.error}` : 'Löschen fehlgeschlagen.');
+            }
+          }catch(_err){ alert('Netzwerkfehler – bitte später erneut versuchen.'); }
+        }
+      });
+
+      updateAuthUI();
+    })();
+  </script>
+
+  <script>
+    (function(){
+      const cookieKey = 'tm_cookie_consent_v8';
+      if (localStorage.getItem(cookieKey) === 'accepted') {
+        const script1 = document.createElement('script');
+        script1.async = true;
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        document.head.appendChild(script1);
+        const script2 = document.createElement('script');
+        script2.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-YNZ8GW523R');
+        `;
+        document.head.appendChild(script2);
+      }
+    })();
+  </script>
+  <script src="static/session-timeout.js?v=1" defer></script>
+</body>
+</html>

@@ -2923,6 +2923,7 @@ def auth_required(admin: bool = False):
                     "/public/",
                     "/alerts/",
                     "/webhook/",
+                    "/business/",
                 )
                 json_paths = {"/me"}
                 is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
@@ -2943,6 +2944,7 @@ def auth_required(admin: bool = False):
                     "/public/",
                     "/alerts/",
                     "/webhook/",
+                    "/business/",
                 )
                 json_paths = {"/me"}
                 is_json_endpoint = request.path in json_paths or request.path.startswith(json_prefixes)
@@ -3305,6 +3307,24 @@ if _html_enabled():
     @auth_required()
     def anbieter_bewertungen_page_html():
         return send_from_directory(APP_ROOT, "anbieter-bewertungen.html")
+
+    @app.get("/business-dashboard")
+    @auth_required()
+    def business_dashboard_page():
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return redirect("/preise.html#business")
+        return send_from_directory(APP_ROOT, "business-dashboard.html")
+
+    @app.get("/business-dashboard.html")
+    @auth_required()
+    def business_dashboard_page_html():
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return redirect("/preise.html#business")
+        return send_from_directory(APP_ROOT, "business-dashboard.html")
 
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
@@ -4984,6 +5004,21 @@ def me_stats():
         return _json_error("server_error", 500)
 
 
+@app.get("/business/dashboard")
+@auth_required()
+def business_dashboard_api():
+    """Erweiterte Statistiken – nur Business-Tarif (Payload wie /me/stats)."""
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            return jsonify(_me_stats_payload(s, str(p.id)))
+    except Exception:
+        app.logger.exception("business_dashboard_api failed")
+        return _json_error("server_error", 500)
+
+
 @app.get("/me/api-key")
 @auth_required()
 def me_api_key_get():
@@ -5000,6 +5035,23 @@ def me_api_key_get():
             return jsonify({"api_key": key})
     except Exception:
         app.logger.exception("me_api_key_get failed")
+        return _json_error("server_error", 500)
+
+
+@app.post("/me/api-key/regenerate")
+@auth_required()
+def me_api_key_regenerate():
+    """Erzeugt einen neuen API-Schlüssel (Business)."""
+    try:
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            p.api_key = secrets.token_urlsafe(32)
+            s.commit()
+            return jsonify({"api_key": p.api_key})
+    except Exception:
+        app.logger.exception("me_api_key_regenerate failed")
         return _json_error("server_error", 500)
 
 
@@ -5092,6 +5144,95 @@ def me_employees_create():
             )
     except Exception:
         app.logger.exception("me_employees_create failed")
+        return _json_error("server_error", 500)
+
+
+@app.put("/me/employees/<employee_id>")
+@auth_required()
+def me_employees_update(employee_id: str):
+    try:
+        data = request.get_json(force=True) or {}
+        eid = str(employee_id or "").strip()
+        if not eid:
+            return _json_error("missing_fields", 400)
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            e = s.get(Employee, eid)
+            if not e or str(e.provider_id) != str(p.id):
+                return _json_error("not_found", 404)
+
+            if "name" in data:
+                name = (data.get("name") or "").strip()
+                if not name:
+                    return _json_error("missing_fields", 400)
+                e.name = name[:200]
+
+            if "email" in data:
+                email_raw = (data.get("email") or "").strip() or None
+                email_norm = None
+                if email_raw:
+                    try:
+                        email_norm = validate_email(email_raw, check_deliverability=False).normalized
+                    except EmailNotValidError:
+                        return _json_error("invalid_email", 400)
+                e.email = email_norm[:200] if email_norm else None
+
+            if "active" in data:
+                want_active = bool(data.get("active"))
+                if want_active and not e.active:
+                    n_active = (
+                        s.scalar(
+                            select(func.count())
+                            .select_from(Employee)
+                            .where(Employee.provider_id == p.id, Employee.active.is_(True))
+                        )
+                        or 0
+                    )
+                    if int(n_active) >= 5:
+                        return _json_error("employee_limit_reached", 400)
+                e.active = want_active
+
+            s.commit()
+            s.refresh(e)
+            return jsonify(
+                {
+                    "ok": True,
+                    "employee": {
+                        "id": e.id,
+                        "name": e.name,
+                        "email": e.email or "",
+                        "active": bool(e.active),
+                    },
+                }
+            )
+    except Exception:
+        app.logger.exception("me_employees_update failed")
+        return _json_error("server_error", 500)
+
+
+@app.delete("/me/employees/<employee_id>")
+@auth_required()
+def me_employees_delete(employee_id: str):
+    try:
+        eid = str(employee_id or "").strip()
+        if not eid:
+            return _json_error("missing_fields", 400)
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p or not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
+            e = s.get(Employee, eid)
+            if not e or str(e.provider_id) != str(p.id):
+                return _json_error("not_found", 404)
+            s.delete(e)
+            s.commit()
+            return jsonify({"ok": True})
+    except Exception:
+        app.logger.exception("me_employees_delete failed")
         return _json_error("server_error", 500)
 
 
