@@ -316,6 +316,9 @@ for env_name, plan_key in [
     if pid:
         COPECART_PRODUCT_PLAN_MAP[pid] = plan_key
 
+# Checkout-Produkt-IDs (Fallback ohne .env), z. B. Business unter https://copecart.com/products/22c20bd2/checkout
+COPECART_PRODUCT_PLAN_MAP.setdefault("22c20bd2", "business")
+
 # CopeCart Checkout-URLs (aus .env) für Provider-Pakete
 COPECART_STARTER_URL = os.getenv("COPECART_STARTER_URL")
 COPECART_PROFI_URL = os.getenv("COPECART_PROFI_URL")
@@ -8020,9 +8023,11 @@ def copecart_webhook_view():
         app.logger.warning("CopeCart webhook: missing required fields")
         return "OK", 200
 
-    product_id_str = str(product_id)
+    product_id_str = str(product_id).strip()
 
     plan_key = COPECART_PRODUCT_PLAN_MAP.get(product_id_str)
+    if plan_key is None and product_id_str:
+        plan_key = COPECART_PRODUCT_PLAN_MAP.get(product_id_str.lower())
     alert_plan_key = COPECART_ALERT_PRODUCT_MAP.get(product_id_str)
 
     if not plan_key and not alert_plan_key:
