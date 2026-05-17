@@ -1325,6 +1325,26 @@ def _pg_ddl_autocommit(sql: str, label: str) -> None:
         _migration_print(f"[WARN] Migration PG ({label}): {e}")
 
 
+def _ensure_provider_api_key_column() -> None:
+    """Spalte ``provider.api_key`` (nullable), falls noch nicht vorhanden — unabhängig vom Rest des Business-Schemas."""
+    try:
+        if IS_POSTGRESQL:
+            _pg_ddl_autocommit(
+                "ALTER TABLE public.provider ADD COLUMN IF NOT EXISTS api_key text;",
+                "ensure_provider_api_key",
+            )
+            return
+        try:
+            with engine.begin() as conn:
+                conn.exec_driver_sql(
+                    "ALTER TABLE provider ADD COLUMN IF NOT EXISTS api_key TEXT"
+                )
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] Warnung: ensure_provider_api_key_column fehlgeschlagen: {e}")
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_provider_api_key_column fehlgeschlagen: {e}")
+
+
 # --------------------------------------------------------
 # WareVision-Webhook-Felder für Provider
 # --------------------------------------------------------
@@ -1641,7 +1661,9 @@ def _ensure_stripe_connect_fields() -> None:
 
 
 def _ensure_business_pack_schema() -> None:
-    """Business-Paket: employee-Tabelle, Slot.employee_id, Provider.api_key.
+    """Business-Paket: employee-Tabelle, Slot.employee_id.
+
+    ``provider.api_key`` wird separat in :func:`_ensure_provider_api_key_column` angelegt.
 
     PostgreSQL: Jedes DDL in eigener AUTOCOMMIT-Verbindung; FK nur wenn die Constraint
     noch fehlt (keine gemeinsame Transaktion → kein „current transaction is aborted“).
@@ -1667,10 +1689,6 @@ CREATE TABLE IF NOT EXISTS public.employee (
                 (
                     "employee index",
                     "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON public.employee(provider_id);",
-                ),
-                (
-                    "provider api_key",
-                    "ALTER TABLE public.provider ADD COLUMN IF NOT EXISTS api_key text;",
                 ),
                 (
                     "slot employee_id",
@@ -1723,12 +1741,6 @@ END $$;
 
         try:
             with engine.begin() as conn:
-                conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN IF NOT EXISTS api_key TEXT")
-        except (OperationalError, SQLAlchemyError) as e:
-            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite api_key): {e}")
-
-        try:
-            with engine.begin() as conn:
                 conn.exec_driver_sql(
                     "ALTER TABLE slot ADD COLUMN IF NOT EXISTS employee_id TEXT REFERENCES employee(id) ON DELETE SET NULL"
                 )
@@ -1745,6 +1757,7 @@ END $$;
 def _run_startup_migrations() -> None:
     for fn in (
         _ensure_base_tables,
+        _ensure_provider_api_key_column,
         _ensure_review_table,
         _ensure_provider_logo_url,
         _ensure_provider_logo_consent,
@@ -1778,10 +1791,10 @@ def _start_startup_migrations() -> None:
             return
         _STARTUP_MIGRATIONS_STARTED = True
     # Basistabellen zuerst synchron — kritische Migrationen erwarten provider/booking.
-    # Business-Paket synchron: vermeidet UndefinedColumn (provider.api_key, slot.employee_id)
-    # auf PostgreSQL bevor der Hintergrund-Thread fertig ist.
+    # api_key synchron direkt nach Basistabellen; employee/slot.employee_id im Business-Pack.
     for fn in (
         _ensure_base_tables,
+        _ensure_provider_api_key_column,
         _ensure_booking_reminder_fields,
         _ensure_provider_warevision_webhook,
         _ensure_business_pack_schema,
