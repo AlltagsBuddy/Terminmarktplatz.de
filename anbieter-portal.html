@@ -911,11 +911,11 @@
                 </div>
               </div>
               <div class="field" id="field-sl-employee" style="display:none;">
-                <label for="sl-employee">Mitarbeiter:in (optional)</label>
+                <label for="sl-employee">Mitarbeiter</label>
                 <select id="sl-employee" aria-label="Mitarbeiter für diesen Slot">
-                  <option value="">— keine Zuordnung —</option>
+                  <option value="">Kein bestimmter Mitarbeiter</option>
                 </select>
-                <span class="hint" style="font-size:12px;">Nur im Business-Paket: Zuordnung zu einem angelegten Mitarbeitenden.</span>
+                <span class="hint" style="font-size:12px;">Nur mit Business-Paket: optional eine feste Zuordnung für diesen Slot.</span>
               </div>
               <div class="field" style="grid-column:1/-1">
                 <label for="sl-description">Beschreibung (für Suchende sichtbar)</label>
@@ -1451,7 +1451,7 @@
       const sel = document.getElementById('sl-employee');
       if (!sel) return;
       const want = preserveId !== undefined && preserveId !== null ? String(preserveId) : sel.value;
-      sel.innerHTML = '<option value="">— keine Zuordnung —</option>';
+      sel.innerHTML = '<option value="">Kein bestimmter Mitarbeiter</option>';
       for (const e of EMPLOYEES_CACHE){
         if (!e.active) continue;
         const opt = document.createElement('option');
@@ -1612,7 +1612,7 @@
         if (fieldEmployee) fieldEmployee.style.display = HAS_BUSINESS_FEATURES ? 'block' : 'none';
         if (!HAS_BUSINESS_FEATURES) {
           const slEmpClr = document.getElementById('sl-employee');
-          if (slEmpClr) slEmpClr.innerHTML = '<option value="">— keine Zuordnung —</option>';
+          if (slEmpClr) slEmpClr.innerHTML = '<option value="">Kein bestimmter Mitarbeiter</option>';
         } else {
           loadEmployeesForSlotForm();
         }

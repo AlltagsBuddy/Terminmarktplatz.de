@@ -1127,6 +1127,9 @@
       if (!endIso) return start;
       return `${start} - ${fmtTime(endIso)}`;
     };
+    function escapeHtml(s){
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
     const inZeitfenster = (iso, zeit) => {
       if (!zeit) return true;
       const h = new Date(iso).getHours();
@@ -1239,6 +1242,8 @@
 
         const content = `
           <div class="tm-slot-iw" style="font-size:13px; line-height:1.5;">
+            <strong>${escapeHtml(item.slotTitle || 'Termin')}</strong><br>
+            ${item.employeeName ? `Mit: ${escapeHtml(item.employeeName)}<br>` : ''}
             ${item.startAt ? `${fmtDate(item.startAt)} ${fmtTimeRange(item.startAt, item.endAt)}<br>` : ''}
             <strong>Anbieter:</strong> ${item.providerName || 'Anbieter'}<br>
             ${item.category ? `<strong>Kategorie:</strong> ${item.category}<br>` : ''}
@@ -1581,11 +1586,17 @@
           ? `<span class="pill" style="margin-left:6px; background:#e0f2fe; color:#0369a1;">Anzahlung ${((x.deposit_cents||0)/100).toFixed(2)} €</span>`
           : '';
 
+        const empName = (x.employee_name && String(x.employee_name).trim()) ? String(x.employee_name).trim() : '';
+        const empLine = empName
+          ? `<p class="muted" style="margin:6px 0 0; font-size:14px;">Mit: ${escapeHtml(empName)}</p>`
+          : '';
+
         if (terminAddress) {
           mapItems.push({
             address: terminAddress,
             providerName,
             slotTitle: x.title || 'Termin',
+            employeeName: empName,
             startAt: x.start_at,
             endAt: x.end_at,
             category: x.category || '',
@@ -1603,7 +1614,8 @@
         el.innerHTML = `
           <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start">
             <div>
-              <h3>${x.title || 'Termin'} ${availableBadge}${depositBadge}</h3>
+              <h3>${escapeHtml(x.title || 'Termin')} ${availableBadge}${depositBadge}</h3>
+              ${empLine}
               <p class="muted">
                 <b>${fmtDate(x.start_at)}</b> · ${fmtTimeRange(x.start_at, x.end_at)}
                 · Kategorie: ${x.category || '—'}

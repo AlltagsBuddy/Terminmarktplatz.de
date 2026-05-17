@@ -2209,6 +2209,22 @@ def slot_to_json(x: Slot):
     }
 
 
+def _employee_display_name_for_slot(session: Session, slot: Slot) -> str | None:
+    """Anzeigename der zugewiesenen aktiven Mitarbeiter:in (öffentlich / E-Mail)."""
+    eid = getattr(slot, "employee_id", None)
+    if not eid:
+        return None
+    name = session.scalar(
+        select(Employee.name).where(
+            Employee.id == str(eid),
+            Employee.provider_id == str(slot.provider_id),
+            Employee.active.is_(True),
+        )
+    )
+    n = (name or "").strip()
+    return n or None
+
+
 # ---- Validierungen & Profil-Check ----
 def _is_valid_zip(v: str | None) -> bool:
     v = (v or "").strip()
@@ -8554,9 +8570,18 @@ def public_slots_view():
                         Slot,
                         Provider,
                         func.coalesce(bq.c.booked, 0).label("booked"),
+                        Employee.name.label("employee_name"),
                     )
                     .join(Provider, Provider.id == Slot.provider_id)
                     .outerjoin(bq, bq.c.slot_id == Slot.id)
+                    .outerjoin(
+                        Employee,
+                        and_(
+                            Employee.id == Slot.employee_id,
+                            Employee.active.is_(True),
+                            Employee.provider_id == Slot.provider_id,
+                        ),
+                    )
                     .where(Slot.status == SLOT_STATUS_PUBLISHED)
                 )
 
@@ -8656,7 +8681,7 @@ def public_slots_view():
                 rows = s.execute(sq).all()
 
                 out = []
-                for slot, provider, booked in rows:
+                for slot, provider, booked, employee_name in rows:
                     cap = slot.capacity or 1
                     available = max(0, cap - int(booked or 0))
                     if not include_full and available <= 0:
@@ -8709,6 +8734,12 @@ def public_slots_view():
 
                     item = slot_to_json(slot)
                     item["available"] = available
+                    ename = employee_name
+                    if isinstance(ename, str):
+                        ename = ename.strip() or None
+                    else:
+                        ename = None
+                    item["employee_name"] = ename
 
                     try:
                         provider_dict = provider.to_public_dict()
@@ -8848,6 +8879,7 @@ def _public_book_impl():
             return _json_error("slot_full", 409)
 
         provider = s.get(Provider, slot.provider_id)
+        emp_name = _employee_display_name_for_slot(s, slot)
         if provider:
             same_time = (
                 s.scalar(
@@ -8950,6 +8982,8 @@ def _public_book_impl():
                 email_body = f"Hallo {name},\n\n"
                 email_body += f"du hast eine Buchungsanfrage für folgenden Termin gestellt:\n\n"
                 email_body += f"Termin: {slot.title}\n"
+                if emp_name:
+                    email_body += f"Ihr Termin mit {emp_name} am {start_str} Uhr\n"
                 email_body += f"Kategorie: {slot.category}\n"
                 email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
                 if slot_address:
@@ -8982,6 +9016,8 @@ def _public_book_impl():
                     prov_body = f"Hallo,\n\n"
                     prov_body += f"Neue Buchungsanfrage von {name} ({email}) für:\n\n"
                     prov_body += f"Termin: {slot.title}\n"
+                    if emp_name:
+                        prov_body += f"Mitarbeiter:in: {emp_name}\n"
                     prov_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
                     prov_body += f"Anzahlung: {deposit_eur:.2f} €\n"
                     if message:
@@ -9032,6 +9068,8 @@ def _public_book_impl():
         
         email_body = f"Hallo {name},\n\n"
         email_body += f"du hast einen Termin gebucht:\n\n"
+        if emp_name:
+            email_body += f"Ihr Termin mit {emp_name} am {start_str} Uhr\n\n"
         email_body += f"Termin: {slot.title}\n"
         email_body += f"Kategorie: {slot.category}\n"
         email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
@@ -9129,8 +9167,15 @@ def public_confirm_view():
                         provider_address = f"{provider_obj.street}, {provider_address}".strip()
                     slot_address = provider_address
                 
+                emp_cn = _employee_display_name_for_slot(s, slot_obj)
+
                 confirm_email_body = f"Hallo {b.customer_name},\n\n"
-                confirm_email_body += f"dein Termin ist bestätigt:\n\n"
+                if emp_cn:
+                    confirm_email_body += (
+                        f"Ihr Termin mit {emp_cn} am {start_str} Uhr ist bestätigt.\n\n"
+                    )
+                else:
+                    confirm_email_body += f"dein Termin ist bestätigt:\n\n"
                 confirm_email_body += f"Termin: {slot_obj.title}\n"
                 confirm_email_body += f"Kategorie: {slot_obj.category}\n"
                 confirm_email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
@@ -9170,6 +9215,8 @@ def public_confirm_view():
                         provider_email_body += f"Es wurde eine neue Buchung für einen deiner Termine bestätigt:\n\n"
                         provider_email_body += f"Termin-Details:\n"
                         provider_email_body += f"Titel: {slot_obj.title}\n"
+                        if emp_cn:
+                            provider_email_body += f"Mitarbeiter:in: {emp_cn}\n"
                         if slot_obj.category:
                             provider_email_body += f"Kategorie: {slot_obj.category}\n"
                         provider_email_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"

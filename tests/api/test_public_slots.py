@@ -13,7 +13,7 @@ os.close(_DB_FD)
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_DB_PATH}")
 
 import app as app_module
-from models import Base, Provider, Slot, Booking
+from models import Base, Provider, Slot, Booking, Employee
 
 
 @pytest.fixture(scope="module")
@@ -179,6 +179,52 @@ def test_public_slots_from_to_iso_range(test_client, seeded_data):
     ids = {item["id"] for item in data}
     assert slot1.id in ids
     assert slot2.id not in ids
+
+
+def test_public_slots_includes_employee_name_when_set(test_client, seeded_data):
+    """GET /public/slots liefert employee_name für aktive Zuordnung."""
+    slot_a_id, _slot_b_id = seeded_data
+    with Session(app_module.engine) as s:
+        slot_a = s.get(Slot, slot_a_id)
+        assert slot_a is not None
+        emp = Employee(
+            provider_id=slot_a.provider_id,
+            name="Lisa M.",
+            active=True,
+        )
+        s.add(emp)
+        s.flush()
+        slot_a.employee_id = emp.id
+        s.commit()
+
+    r = test_client.get("/public/slots?location=Teststadt&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json()
+    row = next((x for x in data if x.get("id") == slot_a_id), None)
+    assert row is not None
+    assert row.get("employee_name") == "Lisa M."
+
+
+def test_public_slots_employee_name_null_when_inactive_employee(test_client, seeded_data):
+    slot_a_id, _ = seeded_data
+    with Session(app_module.engine) as s:
+        slot_a = s.get(Slot, slot_a_id)
+        emp = Employee(
+            provider_id=slot_a.provider_id,
+            name="Ghost",
+            active=False,
+        )
+        s.add(emp)
+        s.flush()
+        slot_a.employee_id = emp.id
+        s.commit()
+
+    r = test_client.get("/public/slots?location=Teststadt&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json()
+    row = next((x for x in data if x.get("id") == slot_a_id), None)
+    assert row is not None
+    assert row.get("employee_name") is None
 
 
 def test_public_slots_radius_filter(test_client, seeded_data):
