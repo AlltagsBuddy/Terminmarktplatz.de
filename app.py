@@ -1663,6 +1663,60 @@ def _ensure_stripe_connect_fields() -> None:
         _migration_print(f"[WARN] Warnung: ensure_stripe_connect_fields fehlgeschlagen: {e}")
 
 
+def _ensure_employee_table() -> None:
+    """Business-Paket: ``employee``-Tabelle und Index, falls noch nicht vorhanden.
+
+    Nutzt ``CREATE TABLE IF NOT EXISTS`` / ``CREATE INDEX IF NOT EXISTS`` (vgl.
+    ``db_migration_business.sql``). Referenz auf ``provider`` → nach Basistabellen ausführen.
+    """
+    try:
+        if IS_POSTGRESQL:
+            _pg_ddl_autocommit(
+                """
+CREATE TABLE IF NOT EXISTS public.employee (
+  id uuid PRIMARY KEY,
+  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  email text,
+  active boolean NOT NULL DEFAULT true
+);
+""".strip(),
+                "employee_table:create",
+            )
+            _pg_ddl_autocommit(
+                "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON public.employee(provider_id);",
+                "employee_table:index",
+            )
+            return
+
+        try:
+            with engine.begin() as conn:
+                conn.exec_driver_sql(
+                    """
+                    CREATE TABLE IF NOT EXISTS employee (
+                      id TEXT PRIMARY KEY NOT NULL,
+                      provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
+                      name TEXT NOT NULL,
+                      email TEXT,
+                      active INTEGER NOT NULL DEFAULT 1
+                    );
+                    """
+                )
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] ensure_employee_table (sqlite create): {e}")
+
+        try:
+            with engine.begin() as conn:
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON employee(provider_id);"
+                )
+        except (OperationalError, SQLAlchemyError) as e:
+            _migration_print(f"[WARN] ensure_employee_table (sqlite index): {e}")
+
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_employee_table fehlgeschlagen: {e}")
+
+
 def _ensure_business_pack_schema() -> None:
     """Business-Paket: employee-Tabelle, Slot.employee_id.
 
@@ -1675,24 +1729,10 @@ def _ensure_business_pack_schema() -> None:
     einer laufenden Transaktion mit Folgebefehlen.
     """
     try:
+        _ensure_employee_table()
+
         if IS_POSTGRESQL:
             pk_ddls: list[tuple[str, str]] = [
-                (
-                    "employee table",
-                    """
-CREATE TABLE IF NOT EXISTS public.employee (
-  id uuid PRIMARY KEY,
-  provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  email text,
-  active boolean NOT NULL DEFAULT true
-);
-""".strip(),
-                ),
-                (
-                    "employee index",
-                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON public.employee(provider_id);",
-                ),
                 (
                     "slot employee_id",
                     "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS employee_id uuid;",
@@ -1721,30 +1761,6 @@ END $$;
         try:
             with engine.begin() as conn:
                 conn.exec_driver_sql(
-                    """
-                    CREATE TABLE IF NOT EXISTS employee (
-                      id TEXT PRIMARY KEY NOT NULL,
-                      provider_id TEXT NOT NULL REFERENCES provider(id) ON DELETE CASCADE,
-                      name TEXT NOT NULL,
-                      email TEXT,
-                      active INTEGER NOT NULL DEFAULT 1
-                    );
-                    """
-                )
-        except (OperationalError, SQLAlchemyError) as e:
-            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee table): {e}")
-
-        try:
-            with engine.begin() as conn:
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS employee_provider_id_idx ON employee(provider_id);"
-                )
-        except (OperationalError, SQLAlchemyError) as e:
-            _migration_print(f"[WARN] ensure_business_pack_schema (sqlite employee index): {e}")
-
-        try:
-            with engine.begin() as conn:
-                conn.exec_driver_sql(
                     "ALTER TABLE slot ADD COLUMN IF NOT EXISTS employee_id TEXT REFERENCES employee(id) ON DELETE SET NULL"
                 )
         except (OperationalError, SQLAlchemyError) as e:
@@ -1761,6 +1777,7 @@ def _run_startup_migrations() -> None:
     for fn in (
         _ensure_base_tables,
         _ensure_provider_api_key_column,
+        _ensure_employee_table,
         _ensure_review_table,
         _ensure_provider_logo_url,
         _ensure_provider_logo_consent,
@@ -1800,6 +1817,7 @@ def _start_startup_migrations() -> None:
         _ensure_provider_api_key_column,
         _ensure_booking_reminder_fields,
         _ensure_provider_warevision_webhook,
+        _ensure_employee_table,
         _ensure_business_pack_schema,
     ):
         try:
