@@ -3308,24 +3308,6 @@ if _html_enabled():
     def anbieter_bewertungen_page_html():
         return send_from_directory(APP_ROOT, "anbieter-bewertungen.html")
 
-    @app.get("/business-dashboard")
-    @auth_required()
-    def business_dashboard_page():
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p or not _has_business_features(p):
-                return redirect("/preise.html#business")
-        return send_from_directory(APP_ROOT, "business-dashboard.html")
-
-    @app.get("/business-dashboard.html")
-    @auth_required()
-    def business_dashboard_page_html():
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p or not _has_business_features(p):
-                return redirect("/preise.html#business")
-        return send_from_directory(APP_ROOT, "business-dashboard.html")
-
     # --- Suche mit Google Maps API Key ---
     @app.get("/suche")
     def suche_page():
@@ -3805,6 +3787,18 @@ def copecart_kaufen_always():
 @auth_required(admin=True)
 def admin_rechnungen_page_always():
     return render_template("admin-rechnungen.html")
+
+
+@app.get("/business-dashboard")
+@app.get("/business-dashboard.html")
+@auth_required()
+def business_dashboard_page_always():
+    """Business-Dashboard nur mit aktivem Business-Paket."""
+    with Session(engine) as s:
+        p = s.get(Provider, request.provider_id)
+        if not p or not _has_business_features(p):
+            return redirect("/preise.html#business")
+    return send_from_directory(APP_ROOT, "business-dashboard.html")
 
 
 if not _html_enabled():
