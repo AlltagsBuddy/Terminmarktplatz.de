@@ -949,6 +949,18 @@ def _browser_upload_url(stored_url: str | None) -> str | None:
 
 
 # --------------------------------------------------------
+# Provider: Logo-Einwilligung (DSGVO – nur explizit true)
+# --------------------------------------------------------
+def _consent_logo_display_for_api(provider) -> bool:
+    """True nur bei expliziter Einwilligung in der DB und vorhandenem Logo."""
+    raw = getattr(provider, "consent_logo_display", False)
+    if raw is not True and raw != 1:
+        return False
+    logo = (getattr(provider, "logo_url", None) or "").strip()
+    return bool(logo)
+
+
+# --------------------------------------------------------
 # Provider: Logo URL mit Cache-Buster (mtime)
 # --------------------------------------------------------
 def _logo_url_with_buster(logo_url: str | None, _base_url: str | None = None) -> str | None:
@@ -4676,7 +4688,7 @@ def me():
                 "phone": p.phone,
                 "whatsapp": p.whatsapp,
                 "logo_url": _logo_url_with_buster(getattr(p, "logo_url", None), _external_base()),
-                "consent_logo_display": bool(getattr(p, "consent_logo_display", False)),
+                "consent_logo_display": _consent_logo_display_for_api(p),
                 "about_text": getattr(p, "about_text", None),
                 "opening_hours": getattr(p, "opening_hours", None),
                 "website_url": getattr(p, "website_url", None),
@@ -8826,7 +8838,7 @@ def public_slots_view():
                             "phone": provider.phone,
                             "whatsapp": provider.whatsapp,
                             "logo_url": getattr(provider, "logo_url", None),
-                            "consent_logo_display": bool(getattr(provider, "consent_logo_display", False)),
+                            "consent_logo_display": _consent_logo_display_for_api(provider),
                             "review_avg": None,
                             "review_count": 0,
                         }

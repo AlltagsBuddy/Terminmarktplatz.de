@@ -82,6 +82,21 @@ def test_me_update_house_number_combines_street(test_client):
     assert data.get("house_number") == "5a"
 
 
+def test_me_get_consent_false_without_logo_even_if_db_flag(test_client):
+    provider_id = _create_provider("consent-nologo@example.com")
+    with Session(app_module.engine) as s:
+        p = s.get(Provider, provider_id)
+        p.consent_logo_display = True
+        p.logo_url = None
+        s.commit()
+
+    r_me = test_client.get("/me", headers=_auth_headers(provider_id))
+    assert r_me.status_code == 200
+    data = r_me.get_json() or {}
+    assert data.get("consent_logo_display") is False
+    assert data.get("logo_url") is None
+
+
 def test_me_update_revokes_logo_consent(test_client):
     provider_id = _create_provider("consent@example.com")
     r1 = test_client.put(

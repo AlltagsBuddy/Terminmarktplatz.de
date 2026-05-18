@@ -318,7 +318,7 @@
             </div>
             <div class="hint" style="font-size: 12px; margin-top:6px;">Zeigt Profil und veröffentlichte Termine an.</div>
           </div>
-          <form id="form-profile" class="grid" novalidate>
+          <form id="form-profile" class="grid" novalidate autocomplete="off">
             <div class="field">
               <label for="pf-company">Firma / Praxis / Studio <span class="req">*</span></label>
               <input id="pf-company" name="company_name" placeholder="z. B. Salon Mira" required aria-required="true"/>
@@ -427,19 +427,21 @@
                 <button type="button" class="btn" id="pf-logo-upload-btn">Logo hochladen</button>
                 <button type="button" class="btn danger" id="pf-logo-delete-btn">Logo löschen</button>
               </div>
-              <label class="check" style="margin-top:6px;">
-                <input type="checkbox" id="pf-logo-consent" autocomplete="off" value="1">
-                Ich willige ein, dass mein Logo in der Suche und bei meinen Angeboten öffentlich angezeigt wird.
-              </label>
               <img id="pf-logo-preview" class="logo-preview" alt="Logo Vorschau" style="display:none;">
               <span class="hint" style="font-size: 12px;">Wird in der Suche angezeigt und sorgt für Wiedererkennung.</span>
             </div>
-            <div class="toolbar">
-              <button class="btn primary" type="submit">Profil speichern</button>
-              <span class="muted">Pflicht: Firma, Branche, Straße, PLZ, Ort, Telefon.</span>
-            </div>
             <div id="msg-profile" class="msg"></div>
           </form>
+          <!-- DSGVO: außerhalb von form-profile – Browser dürfen die Einwilligung nicht vorausfüllen -->
+          <label class="check pf-logo-consent-block" id="pf-logo-consent-wrap" style="display:flex;margin:8px 0 12px;color:#0f172a;">
+            <input type="checkbox" id="pf-logo-consent" autocomplete="off" aria-describedby="pf-logo-consent-hint">
+            <span>Ich willige ein, dass mein Logo in der Suche und bei meinen Angeboten öffentlich angezeigt wird.</span>
+          </label>
+          <p id="pf-logo-consent-hint" class="hint" style="font-size:12px;margin:-6px 0 12px;display:none;color:#475569;"></p>
+          <div class="toolbar">
+            <button class="btn primary" type="submit" form="form-profile" id="pf-profile-save-btn">Profil speichern</button>
+            <span class="muted">Pflicht: Firma, Branche, Straße, PLZ, Ort, Telefon.</span>
+          </div>
         </div>
 
         <script>
@@ -593,7 +595,28 @@
 
     function setLogoConsentCheckbox(checked){
       const el = document.getElementById('pf-logo-consent');
-      if (el) el.checked = checked === true;
+      if (!el) return;
+      el.checked = false;
+      el.defaultChecked = false;
+      el.removeAttribute('checked');
+      if (checked === true) {
+        el.checked = true;
+      }
+    }
+
+    function syncLogoConsentFromMe(me){
+      const hasConsent = parseConsentLogoDisplay(me?.consent_logo_display);
+      setLogoConsentCheckbox(hasConsent);
+      const hint = document.getElementById('pf-logo-consent-hint');
+      if (hint) {
+        if (hasConsent) {
+          hint.textContent = 'Einwilligung liegt vor. Häkchen entfernen und „Profil speichern“, um die öffentliche Logo-Anzeige zu beenden.';
+          hint.style.display = 'block';
+        } else {
+          hint.textContent = '';
+          hint.style.display = 'none';
+        }
+      }
     }
 
     function parseGalleryUrls(raw){
@@ -639,6 +662,10 @@
     let CURRENT_ME = null;
 
     setLogoConsentCheckbox(false);
+    window.addEventListener('pageshow', () => {
+      if (CURRENT_ME) syncLogoConsentFromMe(CURRENT_ME);
+      else setLogoConsentCheckbox(false);
+    });
 
     async function requireAuth(){
       try{
@@ -681,7 +708,7 @@
         if (pfWebhookUrl) pfWebhookUrl.value = ME.webhook_url || '';
         if (pfWebhookKey) pfWebhookKey.value = ME.webhook_api_key || '';
         renderGalleryPreview(parseGalleryUrls(ME.gallery_urls));
-        setLogoConsentCheckbox(parseConsentLogoDisplay(ME.consent_logo_display));
+        syncLogoConsentFromMe(ME);
         setLogoPreview(ME.logo_url || '');
 
         const providerIdDisplay = document.getElementById('provider-id-display');
@@ -796,6 +823,7 @@
         if(r.ok){
           if (Object.prototype.hasOwnProperty.call(payload, 'consent_logo_display') && CURRENT_ME) {
             CURRENT_ME.consent_logo_display = payload.consent_logo_display;
+            syncLogoConsentFromMe(CURRENT_ME);
           }
           showMsg('msg-profile', 'Gespeichert ✓', true);
         }else{
@@ -862,8 +890,12 @@
           const data = await res.json().catch(()=> ({}));
           if (res.ok) {
             setLogoPreview('');
-            setLogoConsentCheckbox(false);
-            if (CURRENT_ME) CURRENT_ME.consent_logo_display = false;
+            if (CURRENT_ME) {
+              CURRENT_ME.consent_logo_display = false;
+              syncLogoConsentFromMe(CURRENT_ME);
+            } else {
+              setLogoConsentCheckbox(false);
+            }
             showMsg('msg-profile', 'Logo gelöscht.', true);
           } else {
             showMsg('msg-profile', data.error || 'Logo konnte nicht gelöscht werden.');
