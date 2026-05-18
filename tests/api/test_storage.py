@@ -53,7 +53,7 @@ def test_hetzner_available_reads_from_environ():
     assert hetzner_object_storage_available() is True
 
 
-def test_public_url_virtual_hosted_style():
+def test_public_url_path_style():
     configure_storage(
         HetznerStorageConfig(
             access_key="ak",
@@ -63,7 +63,7 @@ def test_public_url_virtual_hosted_style():
         )
     )
     url = public_url_for_key("provider-logos/abc.jpg")
-    assert url == "https://my-bucket.nbg1.your-objectstorage.com/provider-logos/abc.jpg"
+    assert url == "https://nbg1.your-objectstorage.com/my-bucket/provider-logos/abc.jpg"
 
 
 def test_public_url_custom_base():
@@ -133,8 +133,8 @@ def test_boto3_client_uses_hetzner_signature_and_region():
     kwargs = mock_client.call_args.kwargs
     assert kwargs["endpoint_url"] == "https://nbg1.your-objectstorage.com"
     assert kwargs["region_name"] == "eu-central-1"
-    assert kwargs["config"].signature_version == "s3"
-    assert kwargs["config"].s3["addressing_style"] == "virtual"
+    assert kwargs["config"].signature_version == "s3v4"
+    assert kwargs["config"].s3["addressing_style"] == "path"
 
 
 def test_region_defaults_to_location_from_endpoint():

@@ -109,7 +109,8 @@ def _public_url_prefix(cfg: HetznerStorageConfig) -> str:
     host = parsed.netloc
     if not host:
         raise StorageError("HETZNER_ENDPOINT_URL ist ungültig")
-    return f"{scheme}://{cfg.bucket_name}.{host}/"
+    base = cfg.endpoint_url.rstrip("/")
+    return f"{base}/{cfg.bucket_name}/"
 
 
 def _region_name(cfg: HetznerStorageConfig) -> str:
@@ -144,7 +145,7 @@ def _s3_client_cached(
 
     print(
         f"[storage] boto3-Client: endpoint={endpoint_url}, region={region_name}, "
-        "signature=s3, addressing=virtual"
+        "signature=s3v4, addressing=path"
     )
     return boto3.client(
         "s3",
@@ -153,19 +154,24 @@ def _s3_client_cached(
         aws_secret_access_key=secret_key,
         region_name=region_name,
         config=Config(
-            signature_version="s3",
-            s3={"addressing_style": "virtual"},
+            signature_version="s3v4",
+            s3={"addressing_style": "path"},
         ),
     )
 
 
 def _s3_client(cfg: HetznerStorageConfig):
-    return _s3_client_cached(
-        cfg.access_key,
-        cfg.secret_key,
-        cfg.endpoint_url,
-        _region_name(cfg),
-    )
+    try:
+        return _s3_client_cached(
+            cfg.access_key,
+            cfg.secret_key,
+            cfg.endpoint_url,
+            _region_name(cfg),
+        )
+    except Exception as e:
+        print(f"[storage] ERROR S3-Client: {e}")
+        logger.exception("S3-Client konnte nicht erstellt werden")
+        raise StorageError(f"S3-Client konnte nicht erstellt werden: {e}") from e
 
 
 def public_url_for_key(object_key: str) -> str:
@@ -176,30 +182,33 @@ def public_url_for_key(object_key: str) -> str:
 
 
 def upload_logo(file: BinaryIO, filename: str) -> str:
-    """Lädt eine Bilddatei hoch und gibt die öffentliche URL zurück."""
-    cfg = _require_config()
-    key = filename.lstrip("/")
-    if not key:
-        raise StorageError("Object-Key fehlt")
+    """Lädt eine Bilddatei hoch und gibt die öffentliche URL zurück.
 
-    print(f"[storage] Uploading to Hetzner: {key}")
-    print(f"[storage] Bucket: {cfg.bucket_name}")
-    print(f"[storage] Endpoint: {cfg.endpoint_url}")
-    print(f"[storage] Region: {_region_name(cfg)}")
-
-    body = file.read()
-    if not body:
-        raise StorageError("Leere Datei – Upload abgebrochen")
-
-    client = _s3_client(cfg)
-    put_args = {
-        "Bucket": cfg.bucket_name,
-        "Key": key,
-        "Body": body,
-        "ContentType": _guess_content_type(key),
-    }
-
+    Wirft ``StorageError`` bei Fehlern – kein unbehandelter Crash im Worker.
+    """
     try:
+        cfg = _require_config()
+        key = filename.lstrip("/")
+        if not key:
+            raise StorageError("Object-Key fehlt")
+
+        print(f"[storage] Uploading to Hetzner: {key}")
+        print(f"[storage] Bucket: {cfg.bucket_name}")
+        print(f"[storage] Endpoint: {cfg.endpoint_url}")
+        print(f"[storage] Region: {_region_name(cfg)}")
+
+        body = file.read()
+        if not body:
+            raise StorageError("Leere Datei – Upload abgebrochen")
+
+        client = _s3_client(cfg)
+        put_args = {
+            "Bucket": cfg.bucket_name,
+            "Key": key,
+            "Body": body,
+            "ContentType": _guess_content_type(key),
+        }
+
         from botocore.exceptions import BotoCoreError, ClientError
 
         try:
@@ -211,14 +220,16 @@ def upload_logo(file: BinaryIO, filename: str) -> str:
                 acl_err,
             )
             client.put_object(**put_args)
+
+        public_url = public_url_for_key(key)
+        print(f"[storage] OK: {public_url}")
+        return public_url
+    except StorageError:
+        raise
     except Exception as e:
         print(f"[storage] ERROR: {e}")
-        logger.exception("upload_logo fehlgeschlagen key=%s", key)
+        logger.exception("upload_logo fehlgeschlagen filename=%s", filename)
         raise StorageError(f"Upload fehlgeschlagen: {e}") from e
-
-    public_url = public_url_for_key(key)
-    print(f"[storage] OK: {public_url}")
-    return public_url
 
 
 def delete_logo(filename: str) -> None:

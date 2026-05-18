@@ -5201,7 +5201,7 @@ def me_logo_upload():
             object_key = f"provider-logos/{filename}"
             try:
                 logo_path = upload_logo(buf, object_key)
-            except StorageError as exc:
+            except (StorageError, Exception) as exc:
                 print(f"[storage] Fallback lokal nach StorageError: {exc}")
                 app.logger.warning(
                     "me_logo_upload: Object Storage fehlgeschlagen (%s), Fallback lokal",
