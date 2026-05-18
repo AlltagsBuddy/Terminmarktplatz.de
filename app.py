@@ -257,6 +257,11 @@ SMTP_PASS = os.getenv("SMTP_PASS")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
 from services.mail import MailConfig, configure_mail, send_mail, send_sms
+from services.storage import (
+    delete_managed_logo_by_public_url,
+    hetzner_object_storage_available,
+    upload_logo,
+)
 
 configure_mail(
     MailConfig(
@@ -950,6 +955,8 @@ def _logo_url_with_buster(logo_url: str | None, _base_url: str | None = None) ->
     if not logo_url:
         return None
     path_only = logo_url.split("?", 1)[0]
+    if path_only.startswith(("http://", "https://")):
+        return logo_url
     browser_path = _browser_upload_url(path_only)
     if not browser_path or not browser_path.startswith("/media/provider-logos/"):
         return logo_url
@@ -961,6 +968,27 @@ def _logo_url_with_buster(logo_url: str | None, _base_url: str | None = None) ->
     except Exception:
         url = browser_path
     return url
+
+
+def _cleanup_stored_provider_logo(stored_url: str | None) -> None:
+    """Entfernt Logo aus Object Storage und lokal unter LOGO_UPLOAD_DIR (falls vorhanden)."""
+    if not stored_url:
+        return
+    delete_managed_logo_by_public_url(stored_url)
+    clean = stored_url.split("?", 1)[0].strip()
+    mapped = _browser_upload_url(clean) or clean
+    fname = None
+    if mapped.startswith("/media/provider-logos/"):
+        fname = mapped.rstrip("/").split("/")[-1]
+    elif clean.startswith("/static/uploads/provider-logos/"):
+        fname = clean.split("/")[-1]
+    if fname:
+        path = os.path.join(LOGO_UPLOAD_DIR, fname)
+        if os.path.isfile(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
 
 # --------------------------------------------------------
@@ -4827,7 +4855,7 @@ def me_update():
             if not url:
                 upd["logo_url"] = None
             else:
-                if len(url) > 300:
+                if len(url) > 2048:
                     return _json_error("invalid_logo_url", 400)
                 if any(ch in url for ch in ['"', "'", "<", ">"]):
                     return _json_error("invalid_logo_url", 400)
@@ -4870,9 +4898,11 @@ def me_update():
             elif house_number and "street" not in upd:
                 upd["street"] = house_number
 
+            prev_logo_url = p.logo_url
             for k, v in upd.items():
                 setattr(p, k, v)
             if "consent_logo_display" in upd and not upd["consent_logo_display"]:
+                _cleanup_stored_provider_logo(prev_logo_url)
                 p.logo_url = None
 
             try:
@@ -5311,6 +5341,14 @@ def me_logo_upload():
         ext = "png" if fmt == "PNG" else "jpg"
         filename = f"{request.provider_id}.{ext}"
         target_path = os.path.join(LOGO_UPLOAD_DIR, filename)
+
+        old_url = None
+        with Session(engine) as s:
+            p0 = s.get(Provider, request.provider_id)
+            if not p0:
+                return _json_error("not_found", 404)
+            old_url = p0.logo_url
+
         for old_ext in ("jpg", "png"):
             old_path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{old_ext}")
             if old_path != target_path and os.path.exists(old_path):
@@ -5329,9 +5367,20 @@ def me_logo_upload():
             img = img.convert("RGB")
         img.thumbnail((LOGO_SIZE_PX, LOGO_SIZE_PX), Image.Resampling.LANCZOS)
         save_kw = {"format": "PNG"} if ext == "png" else {"format": "JPEG", "quality": 88, "optimize": True}
-        img.save(target_path, **save_kw)
 
-        logo_path = f"/media/provider-logos/{filename}"
+        if hetzner_object_storage_available():
+            buf = io.BytesIO()
+            img.save(buf, **save_kw)
+            buf.seek(0)
+            object_key = f"provider-logos/{filename}"
+            try:
+                logo_path = upload_logo(buf, object_key)
+            except Exception:
+                app.logger.exception("me_logo_upload object storage failed")
+                return jsonify({"error": "logo_storage_failed"}), 502
+        else:
+            img.save(target_path, **save_kw)
+            logo_path = f"/media/provider-logos/{filename}"
 
         with Session(engine) as s:
             p = s.get(Provider, request.provider_id)
@@ -5340,6 +5389,11 @@ def me_logo_upload():
             p.logo_url = logo_path
             p.consent_logo_display = True
             s.commit()
+
+        old_clean = (old_url or "").split("?", 1)[0].strip()
+        new_clean = logo_path.split("?", 1)[0].strip()
+        if old_clean and old_clean != new_clean:
+            _cleanup_stored_provider_logo(old_url)
 
         return jsonify({"ok": True, "logo_url": _logo_url_with_buster(logo_path, _external_base())})
     except Exception:
@@ -5351,6 +5405,17 @@ def me_logo_upload():
 @auth_required()
 def me_logo_delete():
     try:
+        prev_url = None
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            prev_url = p.logo_url
+            p.logo_url = None
+            p.consent_logo_display = False
+            s.commit()
+
+        _cleanup_stored_provider_logo(prev_url)
         removed = False
         for ext in ("jpg", "png"):
             path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{ext}")
@@ -5360,14 +5425,6 @@ def me_logo_delete():
                     removed = True
                 except Exception:
                     pass
-
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p:
-                return _json_error("not_found", 404)
-            p.logo_url = None
-            p.consent_logo_display = False
-            s.commit()
 
         return jsonify({"ok": True, "deleted": removed})
     except Exception:
