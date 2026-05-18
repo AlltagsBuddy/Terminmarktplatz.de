@@ -389,7 +389,7 @@
               <label for="pf-payment">Zahlungsmethoden (optional)</label>
               <input id="pf-payment" name="payment_methods" placeholder="Bar, Karte, PayPal">
             </div>
-            <div class="field" style="grid-column:1/-1; padding:14px; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:12px;">
+            <div id="pf-webhook-block" class="field" style="grid-column:1/-1; padding:14px; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:12px; display:none;">
               <div style="font-weight:600; margin-bottom:8px;">Warenwirtschaft / WareVision (optional)</div>
               <p class="muted" style="font-size:0.9rem; margin-bottom:12px;">Buchungen automatisch an dein Warenwirtschaftssystem senden. Webhook-URL und API-Schlüssel aus den WareVision-Einstellungen eintragen.</p>
               <div class="field" style="margin-bottom:12px;">
@@ -621,6 +621,8 @@
       block.style.display = 'block';
     }
 
+    let CURRENT_ME = null;
+
     async function requireAuth(){
       try{
         const r = await fetch(`${API}/me`, { credentials:'include' });
@@ -633,6 +635,11 @@
           return;
         }
         const ME = await r.json();
+        CURRENT_ME = ME;
+        const webhookBlock = document.getElementById('pf-webhook-block');
+        if (webhookBlock) {
+          webhookBlock.style.display = ME.has_business_features ? '' : 'none';
+        }
         $('#pf-company').value  = ME.company_name || '';
         $('#pf-branch').value   = ME.branch || '';
         $('#pf-street').value = `${ME.street || ''}${ME.house_number ? ' ' + ME.house_number : ''}`.trim();
@@ -745,10 +752,14 @@
           cancellation_policy: $('#pf-cancel').value.trim(),
           directions: $('#pf-directions').value.trim(),
           gallery_urls: $('#pf-gallery').value.trim(),
-          webhook_url: ($('#pf-webhook-url')?.value || '').trim() || null,
-          webhook_api_key: ($('#pf-webhook-api-key')?.value || '').trim() || null,
-        consent_logo_display: $('#pf-logo-consent')?.checked || false,
+          consent_logo_display: $('#pf-logo-consent')?.checked || false,
       };
+      if (CURRENT_ME?.has_business_features) {
+        const wu = ($('#pf-webhook-url')?.value || '').trim();
+        const wk = ($('#pf-webhook-api-key')?.value || '').trim();
+        if (wu) payload.webhook_url = wu;
+        if (wk) payload.webhook_api_key = wk;
+      }
       if (!isValidStreetWithNumber(combined) || !isValidZip(payload.zip) || !isValidPhone(payload.phone)) {
         showMsg('msg-profile', 'Bitte Pflichtfelder korrekt ausfüllen.');
         return;
@@ -770,6 +781,8 @@
               ? 'Logo-URL ist ungültig.'
               : (data.error === 'invalid_webhook_url')
                 ? 'Webhook-URL muss mit https:// oder http:// beginnen.'
+              : (data.error === 'business_plan_required')
+                ? 'Diese Funktion ist nur im Business-Paket verfügbar.'
               : (data.error === 'db_constraint_error')
                 ? 'Ein Feld wurde abgelehnt (z. B. Branche). Bitte andere Werte wählen.'
                 : (data.error || 'Konnte Profil nicht speichern.');
@@ -803,7 +816,13 @@
             setLogoPreview(data.logo_url);
             showMsg('msg-profile', 'Logo hochgeladen.', true);
           } else {
-            showMsg('msg-profile', data.error || 'Logo-Upload fehlgeschlagen.');
+            const err = data.error || 'Logo-Upload fehlgeschlagen.';
+            showMsg(
+              'msg-profile',
+              err === 'business_plan_required'
+                ? 'Logo-Upload ist für deinen Tarif verfügbar – bitte Seite neu laden oder Support kontaktieren.'
+                : err,
+            );
           }
         } catch (e2) {
           showMsg('msg-profile', 'Netzwerkfehler beim Logo-Upload.');

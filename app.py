@@ -258,10 +258,14 @@ SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
 from services.mail import MailConfig, configure_mail, send_mail, send_sms
 from services.storage import (
+    StorageError,
+    configure_storage,
     delete_managed_logo_by_public_url,
     hetzner_object_storage_available,
     upload_logo,
 )
+
+configure_storage()
 
 configure_mail(
     MailConfig(
@@ -4886,9 +4890,11 @@ def me_update():
             if not p:
                 return _json_error("not_found", 404)
 
+            webhook_url_set = "webhook_url" in data and upd.get("webhook_url")
+            webhook_key_set = "webhook_api_key" in data and upd.get("webhook_api_key")
+            if (webhook_url_set or webhook_key_set) and not _has_business_features(p):
+                return _json_error("business_plan_required", 403)
             if not _has_business_features(p):
-                if "webhook_url" in data or "webhook_api_key" in data:
-                    return _json_error("business_plan_required", 403)
                 upd.pop("webhook_url", None)
                 upd.pop("webhook_api_key", None)
 
@@ -5112,6 +5118,150 @@ def me_api_key_regenerate():
         return _json_error("server_error", 500)
 
 
+@app.post("/me/logo")
+@auth_required()
+def me_logo_upload():
+    """Logo-Upload für alle Tarife (basic, starter, profi, business) – kein Business-Gate."""
+    try:
+        if "logo" not in request.files:
+            return _json_error("missing_file", 400)
+        file = request.files["logo"]
+        if not file or not file.filename:
+            return _json_error("missing_file", 400)
+
+        consent_val = request.form.get("consent_logo_display")
+        consent = (consent_val or "").strip().lower() in ("true", "1", "yes", "on")
+        if not consent:
+            return _json_error("logo_consent_required", 400)
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > LOGO_MAX_BYTES:
+            return _json_error("logo_too_large", 400)
+
+        try:
+            img = Image.open(file.stream)
+            img.verify()
+        except UnidentifiedImageError:
+            return _json_error("invalid_logo_format", 400)
+        except Exception:
+            return _json_error("invalid_logo_format", 400)
+        finally:
+            file.stream.seek(0)
+
+        try:
+            img = Image.open(file.stream)
+            width, height = img.size
+            fmt = (img.format or "").upper()
+        except Exception:
+            return _json_error("invalid_logo_format", 400)
+        finally:
+            file.stream.seek(0)
+
+        if fmt not in ("JPEG", "PNG"):
+            return _json_error("invalid_logo_format", 400)
+        if width > LOGO_MAX_PX or height > LOGO_MAX_PX:
+            return _json_error("invalid_logo_size", 400)
+
+        ext = "png" if fmt == "PNG" else "jpg"
+        filename = f"{request.provider_id}.{ext}"
+        target_path = os.path.join(LOGO_UPLOAD_DIR, filename)
+
+        old_url = None
+        with Session(engine) as s:
+            p0 = s.get(Provider, request.provider_id)
+            if not p0:
+                return _json_error("not_found", 404)
+            old_url = p0.logo_url
+
+        for old_ext in ("jpg", "png"):
+            old_path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{old_ext}")
+            if old_path != target_path and os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+
+        file.stream.seek(0)
+        img = Image.open(file.stream)
+        if ext == "png":
+            if img.mode != "RGBA":
+                img = img.convert("RGBA")
+        else:
+            img = img.convert("RGB")
+        img.thumbnail((LOGO_SIZE_PX, LOGO_SIZE_PX), Image.Resampling.LANCZOS)
+        save_kw = {"format": "PNG"} if ext == "png" else {"format": "JPEG", "quality": 88, "optimize": True}
+
+        logo_path = f"/media/provider-logos/{filename}"
+        if hetzner_object_storage_available():
+            buf = io.BytesIO()
+            img.save(buf, **save_kw)
+            buf.seek(0)
+            object_key = f"provider-logos/{filename}"
+            try:
+                logo_path = upload_logo(buf, object_key)
+            except StorageError as exc:
+                app.logger.warning(
+                    "me_logo_upload: Object Storage fehlgeschlagen (%s), Fallback lokal",
+                    exc,
+                )
+                img.save(target_path, **save_kw)
+                logo_path = f"/media/provider-logos/{filename}"
+        else:
+            img.save(target_path, **save_kw)
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            p.logo_url = logo_path
+            p.consent_logo_display = True
+            s.commit()
+
+        old_clean = (old_url or "").split("?", 1)[0].strip()
+        new_clean = logo_path.split("?", 1)[0].strip()
+        if old_clean and old_clean != new_clean:
+            _cleanup_stored_provider_logo(old_url)
+
+        return jsonify({"ok": True, "logo_url": _logo_url_with_buster(logo_path, _external_base())})
+    except Exception:
+        app.logger.exception("me_logo_upload failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.delete("/me/logo")
+@auth_required()
+def me_logo_delete():
+    """Logo löschen – für alle Tarife."""
+    try:
+        prev_url = None
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            prev_url = p.logo_url
+            p.logo_url = None
+            p.consent_logo_display = False
+            s.commit()
+
+        _cleanup_stored_provider_logo(prev_url)
+        removed = False
+        for ext in ("jpg", "png"):
+            path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{ext}")
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    removed = True
+                except Exception:
+                    pass
+
+        return jsonify({"ok": True, "deleted": removed})
+    except Exception:
+        app.logger.exception("me_logo_delete failed")
+        return jsonify({"error": "server_error"}), 500
+
+
 @app.get("/me/employees")
 @auth_required()
 def me_employees_list():
@@ -5291,145 +5441,6 @@ def me_employees_delete(employee_id: str):
     except Exception:
         app.logger.exception("me_employees_delete failed")
         return _json_error("server_error", 500)
-
-
-@app.post("/me/logo")
-@auth_required()
-def me_logo_upload():
-    try:
-        if "logo" not in request.files:
-            return _json_error("missing_file", 400)
-        file = request.files["logo"]
-        if not file or not file.filename:
-            return _json_error("missing_file", 400)
-
-        consent_val = request.form.get("consent_logo_display")
-        consent = (consent_val or "").strip().lower() in ("true", "1", "yes", "on")
-        if not consent:
-            return _json_error("logo_consent_required", 400)
-
-        file.stream.seek(0, os.SEEK_END)
-        size = file.stream.tell()
-        file.stream.seek(0)
-        if size > LOGO_MAX_BYTES:
-            return _json_error("logo_too_large", 400)
-
-        try:
-            img = Image.open(file.stream)
-            img.verify()
-        except UnidentifiedImageError:
-            return _json_error("invalid_logo_format", 400)
-        except Exception:
-            return _json_error("invalid_logo_format", 400)
-        finally:
-            file.stream.seek(0)
-
-        try:
-            img = Image.open(file.stream)
-            width, height = img.size
-            fmt = (img.format or "").upper()
-        except Exception:
-            return _json_error("invalid_logo_format", 400)
-        finally:
-            file.stream.seek(0)
-
-        if fmt not in ("JPEG", "PNG"):
-            return _json_error("invalid_logo_format", 400)
-        if width > LOGO_MAX_PX or height > LOGO_MAX_PX:
-            return _json_error("invalid_logo_size", 400)
-
-        ext = "png" if fmt == "PNG" else "jpg"
-        filename = f"{request.provider_id}.{ext}"
-        target_path = os.path.join(LOGO_UPLOAD_DIR, filename)
-
-        old_url = None
-        with Session(engine) as s:
-            p0 = s.get(Provider, request.provider_id)
-            if not p0:
-                return _json_error("not_found", 404)
-            old_url = p0.logo_url
-
-        for old_ext in ("jpg", "png"):
-            old_path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{old_ext}")
-            if old_path != target_path and os.path.exists(old_path):
-                try:
-                    os.remove(old_path)
-                except Exception:
-                    pass
-
-        # Auf Zielgröße skalieren (Seitenverhältnis beibehalten)
-        file.stream.seek(0)
-        img = Image.open(file.stream)
-        if ext == "png":
-            if img.mode != "RGBA":
-                img = img.convert("RGBA")
-        else:
-            img = img.convert("RGB")
-        img.thumbnail((LOGO_SIZE_PX, LOGO_SIZE_PX), Image.Resampling.LANCZOS)
-        save_kw = {"format": "PNG"} if ext == "png" else {"format": "JPEG", "quality": 88, "optimize": True}
-
-        if hetzner_object_storage_available():
-            buf = io.BytesIO()
-            img.save(buf, **save_kw)
-            buf.seek(0)
-            object_key = f"provider-logos/{filename}"
-            try:
-                logo_path = upload_logo(buf, object_key)
-            except Exception:
-                app.logger.exception("me_logo_upload object storage failed")
-                return jsonify({"error": "logo_storage_failed"}), 502
-        else:
-            img.save(target_path, **save_kw)
-            logo_path = f"/media/provider-logos/{filename}"
-
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p:
-                return _json_error("not_found", 404)
-            p.logo_url = logo_path
-            p.consent_logo_display = True
-            s.commit()
-
-        old_clean = (old_url or "").split("?", 1)[0].strip()
-        new_clean = logo_path.split("?", 1)[0].strip()
-        if old_clean and old_clean != new_clean:
-            _cleanup_stored_provider_logo(old_url)
-
-        return jsonify({"ok": True, "logo_url": _logo_url_with_buster(logo_path, _external_base())})
-    except Exception:
-        app.logger.exception("me_logo_upload failed")
-        return jsonify({"error": "server_error"}), 500
-
-
-@app.delete("/me/logo")
-@auth_required()
-def me_logo_delete():
-    try:
-        prev_url = None
-        with Session(engine) as s:
-            p = s.get(Provider, request.provider_id)
-            if not p:
-                return _json_error("not_found", 404)
-            prev_url = p.logo_url
-            p.logo_url = None
-            p.consent_logo_display = False
-            s.commit()
-
-        _cleanup_stored_provider_logo(prev_url)
-        removed = False
-        for ext in ("jpg", "png"):
-            path = os.path.join(LOGO_UPLOAD_DIR, f"{request.provider_id}.{ext}")
-            if os.path.exists(path):
-                try:
-                    os.remove(path)
-                    removed = True
-                except Exception:
-                    pass
-
-        return jsonify({"ok": True, "deleted": removed})
-    except Exception:
-        app.logger.exception("me_logo_delete failed")
-        return jsonify({"error": "server_error"}), 500
 
 
 def _parse_gallery_urls(raw: str | None) -> list[str]:

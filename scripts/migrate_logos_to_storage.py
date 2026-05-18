@@ -36,8 +36,9 @@ def main() -> int:
     from sqlalchemy.orm import Session
 
     from models import Provider
-    from services.storage import hetzner_object_storage_available, upload_logo
+    from services.storage import configure_storage, hetzner_object_storage_available, upload_logo
 
+    configure_storage()
     if not hetzner_object_storage_available():
         print(
             "[migrate-logos] Hetzner Object Storage nicht konfiguriert "

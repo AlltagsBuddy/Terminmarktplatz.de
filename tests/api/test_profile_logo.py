@@ -1,6 +1,8 @@
 import io
+import io
 import os
 import tempfile
+from datetime import date, timedelta
 
 import pytest
 from PIL import Image
@@ -68,6 +70,39 @@ def test_logo_upload_requires_consent(test_client, provider_id):
     )
     assert res.status_code == 400
     assert res.get_json()["error"] == "logo_consent_required"
+
+
+def test_logo_upload_works_for_starter_plan(test_client):
+    with Session(app_module.engine) as s:
+        provider = Provider(
+            email="logo-starter@example.com",
+            pw_hash="test",
+            company_name="Starter GmbH",
+            branch="Friseur",
+            street="Teststrasse 1",
+            zip="12345",
+            city="Teststadt",
+            phone="1234567",
+            status="approved",
+            plan="starter",
+            plan_valid_until=date.today() + timedelta(days=30),
+        )
+        s.add(provider)
+        s.commit()
+        provider_id = provider.id
+
+    data = _jpeg_logo()
+    res = test_client.post(
+        "/me/logo",
+        data={"logo": (io.BytesIO(data), "logo.jpg"), "consent_logo_display": "true"},
+        content_type="multipart/form-data",
+        headers=_auth_headers(provider_id),
+    )
+    assert res.status_code == 200, res.get_json()
+    body = res.get_json()
+    assert body.get("ok") is True
+    assert body.get("logo_url")
+    assert (body.get("error") or "") != "business_plan_required"
 
 
 def test_logo_upload_and_delete_flow(test_client, provider_id):
