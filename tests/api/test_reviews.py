@@ -1,6 +1,7 @@
 import os
 import tempfile
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import select
@@ -14,6 +15,12 @@ os.environ.setdefault("FRONTEND_URL", "http://testserver")
 
 import app as app_module
 from models import Base, Provider, Slot, Booking, Review
+
+
+@pytest.fixture(autouse=True)
+def _mock_send_mail():
+    with patch.object(app_module, "send_mail", return_value=(True, "mocked")):
+        yield
 
 
 @pytest.fixture(scope="function")
@@ -118,6 +125,28 @@ def test_review_submit_creates_review_once(test_client):
             .all()
         )
         assert len(count) == 1
+
+
+def test_confirmation_email_contains_review_link_after_public_confirm(test_client):
+    provider_id, _, booking_id = _seed_booking(confirmed=False, ended=False)
+    with Session(app_module.engine) as s:
+        b = s.get(Booking, booking_id)
+        assert b.status == "hold"
+
+    token_booking = app_module._booking_token(str(booking_id))
+    with patch.object(app_module, "send_mail", return_value=(True, "mocked")) as m:
+        r = test_client.get(f"/public/confirm?token={token_booking}")
+        assert r.status_code == 200
+
+    texts = []
+    for c in m.call_args_list:
+        kwargs = c.kwargs
+        if kwargs.get("text"):
+            texts.append(kwargs["text"])
+        elif len(c.args) >= 3 and c.args[2]:
+            texts.append(c.args[2])
+    joined = "\n".join(texts)
+    assert "/bewertung?token=" in joined
 
 
 def test_provider_can_reply_to_review(test_client):
