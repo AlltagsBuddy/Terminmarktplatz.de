@@ -428,7 +428,7 @@
                 <button type="button" class="btn danger" id="pf-logo-delete-btn">Logo löschen</button>
               </div>
               <label class="check" style="margin-top:6px;">
-                <input type="checkbox" id="pf-logo-consent">
+                <input type="checkbox" id="pf-logo-consent" autocomplete="off" value="1">
                 Ich willige ein, dass mein Logo in der Suche und bei meinen Angeboten öffentlich angezeigt wird.
               </label>
               <img id="pf-logo-preview" class="logo-preview" alt="Logo Vorschau" style="display:none;">
@@ -581,6 +581,21 @@
       else { img.removeAttribute('src'); img.style.display = 'none'; }
     }
 
+    /** DSGVO: nur echte Zustimmung aus der API (kein truthy-Coercion, z. B. nicht !!\"false\"). */
+    function parseConsentLogoDisplay(value){
+      if (value === true || value === 1) return true;
+      if (value === false || value === 0 || value == null || value === '') return false;
+      if (typeof value === 'string') {
+        return ['true', '1', 'yes', 'on'].includes(value.trim().toLowerCase());
+      }
+      return false;
+    }
+
+    function setLogoConsentCheckbox(checked){
+      const el = document.getElementById('pf-logo-consent');
+      if (el) el.checked = checked === true;
+    }
+
     function parseGalleryUrls(raw){
       return String(raw || '')
         .split(/\r?\n/)
@@ -623,6 +638,8 @@
 
     let CURRENT_ME = null;
 
+    setLogoConsentCheckbox(false);
+
     async function requireAuth(){
       try{
         const r = await fetch(`${API}/me`, { credentials:'include' });
@@ -664,8 +681,7 @@
         if (pfWebhookUrl) pfWebhookUrl.value = ME.webhook_url || '';
         if (pfWebhookKey) pfWebhookKey.value = ME.webhook_api_key || '';
         renderGalleryPreview(parseGalleryUrls(ME.gallery_urls));
-        const logoConsent = document.getElementById('pf-logo-consent');
-        if (logoConsent) logoConsent.checked = !!ME.consent_logo_display;
+        setLogoConsentCheckbox(parseConsentLogoDisplay(ME.consent_logo_display));
         setLogoPreview(ME.logo_url || '');
 
         const providerIdDisplay = document.getElementById('provider-id-display');
@@ -752,8 +768,13 @@
           cancellation_policy: $('#pf-cancel').value.trim(),
           directions: $('#pf-directions').value.trim(),
           gallery_urls: $('#pf-gallery').value.trim(),
-          consent_logo_display: $('#pf-logo-consent')?.checked || false,
       };
+      const consentEl = document.getElementById('pf-logo-consent');
+      const consentChecked = !!(consentEl && consentEl.checked);
+      const serverConsent = parseConsentLogoDisplay(CURRENT_ME?.consent_logo_display);
+      if (consentChecked !== serverConsent) {
+        payload.consent_logo_display = consentChecked;
+      }
       if (CURRENT_ME?.has_business_features) {
         const wu = ($('#pf-webhook-url')?.value || '').trim();
         const wk = ($('#pf-webhook-api-key')?.value || '').trim();
@@ -773,6 +794,9 @@
         });
         const data = await r.json().catch(()=> ({}));
         if(r.ok){
+          if (Object.prototype.hasOwnProperty.call(payload, 'consent_logo_display') && CURRENT_ME) {
+            CURRENT_ME.consent_logo_display = payload.consent_logo_display;
+          }
           showMsg('msg-profile', 'Gespeichert ✓', true);
         }else{
           const errMsg = (data.error === 'invalid_zip')
@@ -814,6 +838,8 @@
           const data = await res.json().catch(()=> ({}));
           if (res.ok && data.logo_url) {
             setLogoPreview(data.logo_url);
+            setLogoConsentCheckbox(true);
+            if (CURRENT_ME) CURRENT_ME.consent_logo_display = true;
             showMsg('msg-profile', 'Logo hochgeladen.', true);
           } else {
             const err = data.error || 'Logo-Upload fehlgeschlagen.';
@@ -836,8 +862,8 @@
           const data = await res.json().catch(()=> ({}));
           if (res.ok) {
             setLogoPreview('');
-            const logoConsent = document.getElementById('pf-logo-consent');
-            if (logoConsent) logoConsent.checked = false;
+            setLogoConsentCheckbox(false);
+            if (CURRENT_ME) CURRENT_ME.consent_logo_display = false;
             showMsg('msg-profile', 'Logo gelöscht.', true);
           } else {
             showMsg('msg-profile', data.error || 'Logo konnte nicht gelöscht werden.');
