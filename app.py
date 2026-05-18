@@ -6,7 +6,7 @@ import traceback
 from datetime import datetime, timedelta, timezone, date
 import threading
 from decimal import Decimal  # für Geldbeträge
-from typing import Optional
+from typing import Callable, Optional
 
 import json
 import secrets
@@ -28,7 +28,13 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 import time
 from sqlalchemy import create_engine, select, and_, or_, func, text, cast, String, case
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError, DisconnectionError
+from sqlalchemy.exc import (
+    IntegrityError,
+    SQLAlchemyError,
+    OperationalError,
+    DisconnectionError,
+    ProgrammingError,
+)
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
@@ -112,8 +118,6 @@ REMINDER_LEAD_HOURS = 24
 REMINDER_RUN_INTERVAL_SEC = 300
 _REMINDER_LAST_RUN = 0.0
 _REMINDER_LOCK = threading.Lock()
-_STARTUP_MIGRATIONS_LOCK = threading.Lock()
-_STARTUP_MIGRATIONS_STARTED = False
 
 IS_RENDER = bool(
     os.environ.get("RENDER")
@@ -1306,6 +1310,44 @@ def _migration_print(message: str) -> None:
             print(message.encode("ascii", errors="replace").decode("ascii"), flush=True)
 
 
+def _is_migration_privilege_error(exc: BaseException) -> bool:
+    """PostgreSQL 42501 / typische DDL-Rechte-Fehler — App darf nicht abbrechen."""
+    orig = getattr(exc, "orig", None)
+    if orig is not None:
+        code = getattr(orig, "pgcode", None)
+        if code == "42501":
+            return True
+    msg = str(exc).lower()
+    return (
+        "permission denied" in msg
+        or "must be owner" in msg
+        or "insufficient privilege" in msg
+    )
+
+
+def _is_missing_db_column_error(exc: BaseException) -> bool:
+    """ORM/SQL meldet fehlende Spalte — kein DDL durch die App, nur Hinweis."""
+    s_compact = str(exc).lower().replace(" ", "")
+    if "undefinedcolumn" in s_compact or "nosuchcolumn" in s_compact:
+        return True
+    msg = str(exc).lower()
+    return "does not exist" in msg and "column" in msg
+
+
+def _migration_log_warning(fn_name: str, exc: BaseException) -> None:
+    """Einheitliche Warnung (stdout + App-Logger wenn verfügbar)."""
+    hint = ""
+    if _is_migration_privilege_error(exc) or isinstance(
+        exc, (OperationalError, ProgrammingError, SQLAlchemyError)
+    ):
+        hint = " Als DB-Admin ggf. python scripts/migrate.py ausführen."
+    _migration_print(f"[WARN] Migration {fn_name}: {exc}{hint}")
+    try:
+        app.logger.warning("Migration %s übersprungen/fehlgeschlagen: %s", fn_name, exc)
+    except Exception:
+        pass
+
+
 def _pg_ddl_autocommit(sql: str, label: str) -> None:
     """PostgreSQL: einzelnes DDL mit AUTOCOMMIT.
 
@@ -1325,7 +1367,7 @@ def _pg_ddl_autocommit(sql: str, label: str) -> None:
         finally:
             raw.close()
     except Exception as e:
-        _migration_print(f"[WARN] Migration PG ({label}): {e}")
+        _migration_log_warning(f"PG DDL ({label})", e)
 
 
 def _ensure_provider_api_key_column() -> None:
@@ -1770,71 +1812,48 @@ END $$;
         _migration_print(f"[WARN] Warnung: ensure_business_pack_schema fehlgeschlagen: {e}")
 
 
-# Startup-Migrationen werden unten non-blocking gestartet
+# Alle DDL-Schritte für scripts/migrate.py (nicht beim App-Start).
+ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
+    _ensure_base_tables,
+    _ensure_provider_api_key_column,
+    _ensure_employee_table,
+    _ensure_business_pack_schema,
+    _ensure_review_table,
+    _ensure_provider_logo_url,
+    _ensure_provider_logo_consent,
+    _ensure_provider_public_profile_fields,
+    _ensure_booking_reminder_fields,
+    _ensure_geo_tables,
+    _remove_provider_branch_constraint,
+    _remove_category_constraint,
+    _ensure_alert_deleted_at,
+    _ensure_password_reset_table,
+    _ensure_provider_number_field,
+    _ensure_last_login_field,
+    _ensure_provider_warevision_webhook,
+    _ensure_archive_fields,
+    _ensure_slot_archived_is_boolean,
+    _ensure_slot_status_constraint,
+    _ensure_slot_description_field,
+    _ensure_publish_quota_tables,
+    _ensure_stripe_connect_fields,
+)
 
 
-def _run_startup_migrations() -> None:
-    for fn in (
-        _ensure_base_tables,
-        _ensure_provider_api_key_column,
-        _ensure_employee_table,
-        _ensure_review_table,
-        _ensure_provider_logo_url,
-        _ensure_provider_logo_consent,
-        _ensure_provider_public_profile_fields,
-        _ensure_booking_reminder_fields,
-        _ensure_geo_tables,
-        _remove_provider_branch_constraint,
-        _remove_category_constraint,
-        _ensure_alert_deleted_at,
-        _ensure_password_reset_table,
-        _ensure_provider_number_field,
-        _ensure_last_login_field,
-        _ensure_provider_warevision_webhook,
-        _ensure_archive_fields,
-        _ensure_slot_archived_is_boolean,
-        _ensure_slot_status_constraint,
-        _ensure_slot_description_field,
-        _ensure_publish_quota_tables,
-        _ensure_stripe_connect_fields,
-    ):
+def run_schema_migrations() -> None:
+    """Führt alle inkrementellen DDL-Migrationen aus.
+
+    Nur manuell als DB-Admin: ``python scripts/migrate.py``.
+    Nicht beim Start der Flask-App (App-DB-User hat typischerweise kein DDL-Recht).
+    """
+    for fn in ALL_SCHEMA_MIGRATION_FUNCTIONS:
         try:
             fn()
         except Exception as e:
-            _migration_print(f"[WARN] Warnung: Startup-Migration fehlgeschlagen ({fn.__name__}): {e}")
+            _migration_log_warning(fn.__name__, e)
 
 
-def _start_startup_migrations() -> None:
-    global _STARTUP_MIGRATIONS_STARTED
-    with _STARTUP_MIGRATIONS_LOCK:
-        if _STARTUP_MIGRATIONS_STARTED:
-            return
-        _STARTUP_MIGRATIONS_STARTED = True
-    # Basistabellen zuerst synchron — kritische Migrationen erwarten provider/booking.
-    # api_key synchron direkt nach Basistabellen; employee/slot.employee_id im Business-Pack.
-    for fn in (
-        _ensure_base_tables,
-        _ensure_provider_api_key_column,
-        _ensure_booking_reminder_fields,
-        _ensure_provider_warevision_webhook,
-        _ensure_employee_table,
-        _ensure_business_pack_schema,
-    ):
-        try:
-            fn()
-        except Exception as e:
-            _migration_print(f"[WARN] Warnung: Kritische Migration {fn.__name__} fehlgeschlagen: {e}")
-    threading.Thread(
-        target=_run_startup_migrations,
-        name="startup-migrations",
-        daemon=True,
-    ).start()
-
-
-# Starte Migrationen im Hintergrund, damit der Port sofort binden kann
-_start_startup_migrations()
-
-
+# DDL-Migrationen laufen nicht beim App-Import oder Worker-Start — siehe scripts/migrate.py
 def _gc_key(zip_code: str | None, city: str | None) -> str:
     if zip_code and zip_code.strip():
         return f"zip:{zip_code.strip()}"
@@ -3928,18 +3947,14 @@ def _authenticate(email: str, password: str):
             p = s.scalar(select(Provider).where(Provider.email == email))
         except Exception as e:
             _rollback_sess()
-            # Falls provider_number Spalte fehlt, Migration nochmal versuchen
-            if "provider_number" in str(e).lower() or "undefinedcolumn" in str(e).lower():
-                app.logger.warning("provider_number column missing, running migration...")
-                try:
-                    _ensure_provider_number_field()
-                    p = s.scalar(select(Provider).where(Provider.email == email))
-                except Exception as e2:
-                    app.logger.exception("Migration failed during auth: %r", e2)
-                    _rollback_sess()
-                    return None, "server_error"
-            else:
-                raise
+            if _is_missing_db_column_error(e) and "provider_number" in str(e).lower():
+                app.logger.warning(
+                    "Schema unvollständig (provider_number). DDL nicht zur Laufzeit — "
+                    "als DB-Admin: python scripts/migrate.py — %s",
+                    e,
+                )
+                return None, "server_error"
+            raise
         
         if not p:
             return None, "invalid_credentials"
@@ -3954,19 +3969,14 @@ def _authenticate(email: str, password: str):
             s.commit()
         except Exception as e:
             _rollback_sess()
-            if "last_login_at" in str(e).lower() or "undefinedcolumn" in str(e).lower():
-                app.logger.warning("last_login_at column missing, running migration...")
-                try:
-                    _ensure_last_login_field()
-                    p = s.get(Provider, p.id)
-                    if p:
-                        p.last_login_at = _now()
-                        s.commit()
-                except Exception as e2:
-                    app.logger.exception("Migration failed during login: %r", e2)
-                    _rollback_sess()
-            else:
-                raise
+            if _is_missing_db_column_error(e) and "last_login" in str(e).lower():
+                app.logger.warning(
+                    "last_login_at fehlt in DB — Login ohne Zeitstempel. "
+                    "Schema mit scripts/migrate.py anlegen. (%s)",
+                    e,
+                )
+                return p, None
+            raise
         return p, None
 
 
@@ -4510,17 +4520,14 @@ def me():
         try:
             p = s.get(Provider, request.provider_id)
         except Exception as e:
-            # Falls provider_number Spalte fehlt, Migration nochmal versuchen
-            if "provider_number" in str(e).lower() or "undefinedcolumn" in str(e).lower():
-                app.logger.warning("provider_number column missing in /me, running migration...")
-                try:
-                    _ensure_provider_number_field()
-                    p = s.get(Provider, request.provider_id)
-                except Exception as e2:
-                    app.logger.exception("Migration failed during /me: %r", e2)
-                    return _json_error("server_error", 500)
-            else:
-                raise
+            if _is_missing_db_column_error(e) and "provider_number" in str(e).lower():
+                app.logger.warning(
+                    "Schema unvollständig (provider_number). DDL nicht zur Laufzeit — "
+                    "python scripts/migrate.py — %s",
+                    e,
+                )
+                return _json_error("server_error", 503)
+            raise
         
         if not p:
             return _json_error("not_found", 404)
@@ -4590,20 +4597,12 @@ def me():
                 except (ValueError, TypeError, AttributeError):
                     pass
             
-            # Falls immer noch None, führe Migration aus
+            # Falls keine Nummer: keine DDL zur Laufzeit (App-DB-User ohne Rechte)
             if provider_number is None:
-                app.logger.info(f"Provider {request.provider_id} has no provider_number, running migration...")
-                try:
-                    _ensure_provider_number_field()
-                    # Nochmal direkt aus DB lesen
-                    result = s.execute(text("""
-                        SELECT provider_number FROM provider WHERE id = :pid
-                    """), {"pid": str(request.provider_id)}).scalar()
-                    if result is not None:
-                        provider_number = int(result)
-                        app.logger.info(f"Provider {request.provider_id} provider_number after migration: {provider_number}")
-                except Exception as e_mig:
-                    app.logger.warning(f"Migration failed for provider {request.provider_id}: %r", e_mig)
+                app.logger.warning(
+                    "Provider %s ohne provider_number — bei Bedarf scripts/migrate.py ausführen",
+                    request.provider_id,
+                )
                     
         except Exception as e:
             app.logger.warning(f"Could not get provider_number for {request.provider_id}: %r", e)
