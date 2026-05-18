@@ -5202,6 +5202,7 @@ def me_logo_upload():
             try:
                 logo_path = upload_logo(buf, object_key)
             except StorageError as exc:
+                print(f"[storage] Fallback lokal nach StorageError: {exc}")
                 app.logger.warning(
                     "me_logo_upload: Object Storage fehlgeschlagen (%s), Fallback lokal",
                     exc,
@@ -5209,6 +5210,7 @@ def me_logo_upload():
                 img.save(target_path, **save_kw)
                 logo_path = f"/media/provider-logos/{filename}"
         else:
+            print("[storage] Kein Hetzner – Logo wird nur lokal gespeichert")
             img.save(target_path, **save_kw)
 
         with Session(engine) as s:

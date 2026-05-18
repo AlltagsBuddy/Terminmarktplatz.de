@@ -11,6 +11,9 @@ from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
+# True, wenn configure_storage() mit explizitem HetznerStorageConfig aufgerufen wurde (Tests).
+_config_explicit: bool = False
+
 
 class StorageError(RuntimeError):
     """Fehler beim Upload/Löschen in Object Storage."""
@@ -23,6 +26,7 @@ class HetznerStorageConfig:
     bucket_name: str
     endpoint_url: str
     public_base_url: str | None = None
+    region_name: str | None = None
 
 
 _config: HetznerStorageConfig | None = None
@@ -34,26 +38,55 @@ def _read_config_from_environ() -> HetznerStorageConfig | None:
     bucket_name = os.environ.get("HETZNER_BUCKET_NAME", "").strip()
     endpoint_url = os.environ.get("HETZNER_ENDPOINT_URL", "").strip().rstrip("/")
     public_base = (os.environ.get("HETZNER_PUBLIC_URL") or "").strip().rstrip("/") or None
-    if not (access_key and secret_key and bucket_name and endpoint_url):
+    region_name = (os.environ.get("HETZNER_REGION") or "").strip() or None
+
+    missing = [
+        name
+        for name, val in (
+            ("HETZNER_ACCESS_KEY", access_key),
+            ("HETZNER_SECRET_KEY", secret_key),
+            ("HETZNER_BUCKET_NAME", bucket_name),
+            ("HETZNER_ENDPOINT_URL", endpoint_url),
+        )
+        if not val
+    ]
+    if missing:
+        print(f"[storage] Hetzner nicht konfiguriert – fehlend: {', '.join(missing)}")
         return None
+
+    print(
+        "[storage] Konfiguration aus Umgebung geladen "
+        f"(access_key=gesetzt, bucket={bucket_name}, endpoint={endpoint_url})"
+    )
     return HetznerStorageConfig(
         access_key=access_key,
         secret_key=secret_key,
         bucket_name=bucket_name,
         endpoint_url=endpoint_url,
         public_base_url=public_base,
+        region_name=region_name,
     )
 
 
 def configure_storage(cfg: HetznerStorageConfig | None = None) -> None:
     """Konfiguration aus ``cfg`` oder aktueller Umgebung (nach ``load_dotenv()``)."""
-    global _config
-    _config = cfg if cfg is not None else _read_config_from_environ()
+    global _config, _config_explicit
+    if cfg is not None:
+        _config = cfg
+        _config_explicit = True
+    else:
+        _config_explicit = False
+        _config = _read_config_from_environ()
+    _clear_s3_client_cache()
+
+
+def _refresh_config_from_environ_if_needed() -> None:
+    if not _config_explicit:
+        configure_storage()
 
 
 def _require_config() -> HetznerStorageConfig:
-    if _config is None:
-        configure_storage()
+    _refresh_config_from_environ_if_needed()
     if _config is None:
         raise StorageError("Hetzner Object Storage ist nicht konfiguriert")
     return _config
@@ -61,9 +94,11 @@ def _require_config() -> HetznerStorageConfig:
 
 def hetzner_object_storage_available() -> bool:
     """True, wenn alle Zugangsdaten gesetzt sind (ohne Netzwerkcheck)."""
-    if _config is None:
-        configure_storage()
-    return _config is not None
+    _refresh_config_from_environ_if_needed()
+    available = _config is not None
+    if not available:
+        print("[storage] hetzner_object_storage_available() -> False")
+    return available
 
 
 def _public_url_prefix(cfg: HetznerStorageConfig) -> str:
@@ -77,11 +112,13 @@ def _public_url_prefix(cfg: HetznerStorageConfig) -> str:
     return f"{scheme}://{cfg.bucket_name}.{host}/"
 
 
-def _region_from_endpoint(endpoint_url: str) -> str:
-    host = urlparse(endpoint_url).netloc
+def _region_name(cfg: HetznerStorageConfig) -> str:
+    if cfg.region_name:
+        return cfg.region_name
+    host = urlparse(cfg.endpoint_url).netloc
     if host.endswith(".your-objectstorage.com"):
         return host.split(".", 1)[0]
-    return "us-east-1"
+    return "eu-central-1"
 
 
 def _guess_content_type(filename: str) -> str:
@@ -91,23 +128,44 @@ def _guess_content_type(filename: str) -> str:
     return "image/jpeg"
 
 
-@lru_cache(maxsize=1)
-def _s3_client_cached(access_key: str, secret_key: str, endpoint_url: str):
+def _clear_s3_client_cache() -> None:
+    _s3_client_cached.cache_clear()
+
+
+@lru_cache(maxsize=8)
+def _s3_client_cached(
+    access_key: str,
+    secret_key: str,
+    endpoint_url: str,
+    region_name: str,
+):
     import boto3
     from botocore.config import Config
 
+    print(
+        f"[storage] boto3-Client: endpoint={endpoint_url}, region={region_name}, "
+        "signature=s3, addressing=virtual"
+    )
     return boto3.client(
         "s3",
         endpoint_url=endpoint_url,
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
-        region_name=_region_from_endpoint(endpoint_url),
-        config=Config(signature_version="s3v4"),
+        region_name=region_name,
+        config=Config(
+            signature_version="s3",
+            s3={"addressing_style": "virtual"},
+        ),
     )
 
 
 def _s3_client(cfg: HetznerStorageConfig):
-    return _s3_client_cached(cfg.access_key, cfg.secret_key, cfg.endpoint_url)
+    return _s3_client_cached(
+        cfg.access_key,
+        cfg.secret_key,
+        cfg.endpoint_url,
+        _region_name(cfg),
+    )
 
 
 def public_url_for_key(object_key: str) -> str:
@@ -123,6 +181,11 @@ def upload_logo(file: BinaryIO, filename: str) -> str:
     key = filename.lstrip("/")
     if not key:
         raise StorageError("Object-Key fehlt")
+
+    print(f"[storage] Uploading to Hetzner: {key}")
+    print(f"[storage] Bucket: {cfg.bucket_name}")
+    print(f"[storage] Endpoint: {cfg.endpoint_url}")
+    print(f"[storage] Region: {_region_name(cfg)}")
 
     body = file.read()
     if not body:
@@ -142,16 +205,20 @@ def upload_logo(file: BinaryIO, filename: str) -> str:
         try:
             client.put_object(**put_args, ACL="public-read")
         except (ClientError, BotoCoreError) as acl_err:
+            print(f"[storage] ACL public-read fehlgeschlagen, Retry ohne ACL: {acl_err}")
             logger.warning(
                 "put_object mit ACL public-read fehlgeschlagen, erneuter Versuch ohne ACL: %r",
                 acl_err,
             )
             client.put_object(**put_args)
     except Exception as e:
+        print(f"[storage] ERROR: {e}")
         logger.exception("upload_logo fehlgeschlagen key=%s", key)
         raise StorageError(f"Upload fehlgeschlagen: {e}") from e
 
-    return public_url_for_key(key)
+    public_url = public_url_for_key(key)
+    print(f"[storage] OK: {public_url}")
+    return public_url
 
 
 def delete_logo(filename: str) -> None:
@@ -164,7 +231,9 @@ def delete_logo(filename: str) -> None:
         return
     try:
         _s3_client(cfg).delete_object(Bucket=cfg.bucket_name, Key=key)
-    except Exception:
+        print(f"[storage] Gelöscht: {key}")
+    except Exception as e:
+        print(f"[storage] ERROR delete: {e}")
         logger.exception("delete_logo fehlgeschlagen key=%s", key)
 
 

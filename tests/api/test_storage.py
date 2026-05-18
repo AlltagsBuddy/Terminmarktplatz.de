@@ -23,10 +23,24 @@ from services.storage import (
 )
 
 
+_HETZNER_ENV_KEYS = (
+    "HETZNER_ACCESS_KEY",
+    "HETZNER_SECRET_KEY",
+    "HETZNER_BUCKET_NAME",
+    "HETZNER_ENDPOINT_URL",
+    "HETZNER_PUBLIC_URL",
+    "HETZNER_REGION",
+)
+
+
 @pytest.fixture(autouse=True)
-def _reset_storage_config():
+def _reset_storage_config(monkeypatch):
+    for key in _HETZNER_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
     configure_storage(None)
     yield
+    for key in _HETZNER_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
     configure_storage(None)
 
 
@@ -97,3 +111,41 @@ def test_upload_logo_empty_file_raises():
     )
     with pytest.raises(StorageError, match="Leere Datei"):
         upload_logo(io.BytesIO(b""), "provider-logos/x.jpg")
+
+
+def test_boto3_client_uses_hetzner_signature_and_region():
+    configure_storage(
+        HetznerStorageConfig(
+            access_key="ak",
+            secret_key="sk",
+            bucket_name="b",
+            endpoint_url="https://nbg1.your-objectstorage.com",
+            region_name="eu-central-1",
+        )
+    )
+    from services.storage import _clear_s3_client_cache, _require_config, _s3_client
+
+    _clear_s3_client_cache()
+    with patch("boto3.client") as mock_client:
+        mock_client.return_value = MagicMock()
+        _s3_client(_require_config())
+    mock_client.assert_called_once()
+    kwargs = mock_client.call_args.kwargs
+    assert kwargs["endpoint_url"] == "https://nbg1.your-objectstorage.com"
+    assert kwargs["region_name"] == "eu-central-1"
+    assert kwargs["config"].signature_version == "s3"
+    assert kwargs["config"].s3["addressing_style"] == "virtual"
+
+
+def test_region_defaults_to_location_from_endpoint():
+    configure_storage(
+        HetznerStorageConfig(
+            access_key="ak",
+            secret_key="sk",
+            bucket_name="b",
+            endpoint_url="https://fsn1.your-objectstorage.com",
+        )
+    )
+    from services.storage import _region_name, _require_config
+
+    assert _region_name(_require_config()) == "fsn1"
