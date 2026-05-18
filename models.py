@@ -460,6 +460,19 @@ class Booking(Base):
 
 
 # ------------------------------------------------------------
+# Geocode-Cache (Nominatim / Umkreissuche)
+# ------------------------------------------------------------
+class GeocodeCache(Base):
+    """Zwischengespeicherte Koordinaten; Schlüssel z. B. ``zip:96191`` oder ``city:…``."""
+
+    __tablename__ = "geocode_cache"
+
+    key: Mapped[str] = mapped_column(Text, primary_key=True)
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(18, 14), nullable=True)
+    lon: Mapped[Decimal | None] = mapped_column(Numeric(18, 14), nullable=True)
+
+
+# ------------------------------------------------------------
 # PlanPurchase
 # ------------------------------------------------------------
 class PlanPurchase(Base):
