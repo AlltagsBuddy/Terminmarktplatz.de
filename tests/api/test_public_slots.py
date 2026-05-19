@@ -137,7 +137,7 @@ def test_public_slots_day_from_to_range(test_client, seeded_data):
     assert r.status_code == 200
     data = r.get_json()
     ids = {item["id"] for item in data}
-    assert slot1.id in ids
+    assert slot1.id not in ids  # ausgebucht
     assert slot2.id in ids
 
 
@@ -150,7 +150,7 @@ def test_public_slots_day_to_only(test_client, seeded_data):
     assert r.status_code == 200
     data = r.get_json()
     ids = {item["id"] for item in data}
-    assert slot1.id in ids
+    assert slot1.id not in ids
     assert slot2.id not in ids
 
 
@@ -177,52 +177,52 @@ def test_public_slots_from_to_iso_range(test_client, seeded_data):
     assert r.status_code == 200
     data = r.get_json()
     ids = {item["id"] for item in data}
-    assert slot1.id in ids
+    assert slot1.id not in ids
     assert slot2.id not in ids
 
 
 def test_public_slots_includes_employee_name_when_set(test_client, seeded_data):
     """GET /public/slots liefert employee_name für aktive Zuordnung."""
-    slot_a_id, _slot_b_id = seeded_data
+    _slot_a_id, slot_b_id = seeded_data
     with Session(app_module.engine) as s:
-        slot_a = s.get(Slot, slot_a_id)
-        assert slot_a is not None
+        slot_b = s.get(Slot, slot_b_id)
+        assert slot_b is not None
         emp = Employee(
-            provider_id=slot_a.provider_id,
+            provider_id=slot_b.provider_id,
             name="Lisa M.",
             active=True,
         )
         s.add(emp)
         s.flush()
-        slot_a.employee_id = emp.id
+        slot_b.employee_id = emp.id
         s.commit()
 
-    r = test_client.get("/public/slots?location=Teststadt&include_full=1")
+    r = test_client.get("/public/slots?location=Anderstadt&include_full=1")
     assert r.status_code == 200
     data = r.get_json()
-    row = next((x for x in data if x.get("id") == slot_a_id), None)
+    row = next((x for x in data if x.get("id") == slot_b_id), None)
     assert row is not None
     assert row.get("employee_name") == "Lisa M."
 
 
 def test_public_slots_employee_name_null_when_inactive_employee(test_client, seeded_data):
-    slot_a_id, _ = seeded_data
+    _slot_a_id, slot_b_id = seeded_data
     with Session(app_module.engine) as s:
-        slot_a = s.get(Slot, slot_a_id)
+        slot_b = s.get(Slot, slot_b_id)
         emp = Employee(
-            provider_id=slot_a.provider_id,
+            provider_id=slot_b.provider_id,
             name="Ghost",
             active=False,
         )
         s.add(emp)
         s.flush()
-        slot_a.employee_id = emp.id
+        slot_b.employee_id = emp.id
         s.commit()
 
-    r = test_client.get("/public/slots?location=Teststadt&include_full=1")
+    r = test_client.get("/public/slots?location=Anderstadt&include_full=1")
     assert r.status_code == 200
     data = r.get_json()
-    row = next((x for x in data if x.get("id") == slot_a_id), None)
+    row = next((x for x in data if x.get("id") == slot_b_id), None)
     assert row is not None
     assert row.get("employee_name") is None
 
@@ -250,5 +250,5 @@ def test_public_slots_radius_filter(test_client, seeded_data):
     assert r.status_code == 200
     data = r.get_json()
     ids = {item["id"] for item in data}
-    assert slot1_id in ids
+    assert slot1_id not in ids
     assert slot2_id not in ids

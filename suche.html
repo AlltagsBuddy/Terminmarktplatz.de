@@ -1493,12 +1493,17 @@
         return;
       }
 
-      // Clientseitig: Zeitfenster und Anzahlung filtern (Freitext erledigt das Backend)
+      // Clientseitig: Zeitfenster, Anzahlung, Vergangenheit, Auslastung (Freitext/ Ort: Backend)
+      const nowMs = Date.now();
       let items = data.filter(x => {
         const okZeit = inZeitfenster(x.start_at, zeit2);
         const hasDeposit = (x.deposit_cents || 0) > 0;
         const okDeposit = deposit2 === 'with' ? hasDeposit : (deposit2 === 'without' ? !hasDeposit : true);
-        return okZeit && okDeposit;
+        const avail = (typeof x.available === 'number') ? x.available : null;
+        const hasCapacity = avail === null ? true : avail > 0;
+        const startMs = x.start_at ? new Date(x.start_at).getTime() : 0;
+        const notPast = !startMs || startMs >= nowMs;
+        return okZeit && okDeposit && hasCapacity && notPast;
       });
 
       // Sortierung: Business-Premium zuerst (wie API), dann Zeit

@@ -2338,6 +2338,9 @@ SLOT_STATUS_PUBLISHED = "PUBLISHED"
 SLOT_STATUS_EXPIRED = "EXPIRED"
 VALID_STATUSES = {SLOT_STATUS_DRAFT, SLOT_STATUS_PUBLISHED, SLOT_STATUS_EXPIRED}
 
+# Buchungen, die einen Slot-Kapazitätsplatz belegen (öffentliche Suche / Buchung)
+BOOKING_STATUSES_OCCUPYING = ("hold", "confirmed")
+
 
 def _effective_monthly_limit(raw_limit) -> tuple[int, bool]:
     """
@@ -8565,7 +8568,8 @@ def public_slots_view():
     day_to_str = (request.args.get("day_to") or "").strip()
     from_str = (request.args.get("from") or "").strip()
     to_str = (request.args.get("to") or "").strip()
-    include_full = request.args.get("include_full") == "1"
+    now_utc = _now()
+    now_db = _to_db_utc_naive(now_utc)
 
     if location_raw and not zip_filter and not city_q:
         if location_raw.isdigit() and len(location_raw) == 5:
@@ -8620,10 +8624,15 @@ def public_slots_view():
             if to_str:
                 end_until = parse_iso_utc(to_str)
         else:
-            start_from = _now()
+            start_from = now_utc
     except Exception:
-        start_from = _now()
+        start_from = now_utc
         end_until = None
+
+    if start_from is not None:
+        start_from = max(_as_utc_aware(start_from), now_utc)
+    else:
+        start_from = now_utc
 
     # Retry-Logik für Datenbankverbindungsfehler (max 2 Versuche)
     for attempt in range(1, 3):
@@ -8650,7 +8659,7 @@ def public_slots_view():
 
                 bq = (
                     select(Booking.slot_id, func.count().label("booked"))
-                    .where(Booking.status == "confirmed")
+                    .where(Booking.status.in_(BOOKING_STATUSES_OCCUPYING))
                     .group_by(Booking.slot_id)
                     .subquery()
                 )
@@ -8672,7 +8681,12 @@ def public_slots_view():
                             Employee.provider_id == Slot.provider_id,
                         ),
                     )
-                    .where(Slot.status == SLOT_STATUS_PUBLISHED)
+                    .where(
+                        Slot.status == SLOT_STATUS_PUBLISHED,
+                        _slot_archived_clause(False),
+                        Slot.start_at >= now_db,
+                        Slot.end_at > now_db,
+                    )
                 )
 
                 if start_from is not None:
@@ -8774,7 +8788,7 @@ def public_slots_view():
                 for slot, provider, booked, employee_name in rows:
                     cap = slot.capacity or 1
                     available = max(0, cap - int(booked or 0))
-                    if not include_full and available <= 0:
+                    if available <= 0:
                         continue
 
                     p_zip = provider.zip

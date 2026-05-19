@@ -3,6 +3,7 @@ import tempfile
 from datetime import timedelta
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 _DB_FD, _DB_PATH = tempfile.mkstemp(suffix=".db")
@@ -98,12 +99,13 @@ def seeded_slots():
 
 
 def test_public_slots_q_matches_category(test_client, seeded_slots):
-    slot_friseur_id, slot_kosmetik_id, _ = seeded_slots
+    slot_friseur_id, slot_kosmetik_id, slot_city_id = seeded_slots
     r = test_client.get("/public/slots?q=friseur&include_full=1")
     assert r.status_code == 200
     data = r.get_json() or []
     ids = {item["id"] for item in data}
-    assert slot_friseur_id in ids
+    assert slot_friseur_id not in ids  # ausgebucht
+    assert slot_city_id in ids
     assert slot_kosmetik_id not in ids
 
 
@@ -113,7 +115,7 @@ def test_public_slots_location_zip_filter(test_client, seeded_slots):
     assert r.status_code == 200
     data = r.get_json() or []
     ids = {item["id"] for item in data}
-    assert slot_friseur_id in ids
+    assert slot_friseur_id not in ids
     assert slot_city_id in ids
     assert slot_kosmetik_id not in ids
 
@@ -124,15 +126,42 @@ def test_public_slots_location_city_filter(test_client, seeded_slots):
     assert r.status_code == 200
     data = r.get_json() or []
     ids = {item["id"] for item in data}
-    assert slot_friseur_id in ids
+    assert slot_friseur_id not in ids
     assert slot_city_id in ids
     assert slot_kosmetik_id not in ids
 
 
-def test_public_slots_include_full_shows_full(test_client, seeded_slots):
+def test_public_slots_include_full_still_hides_booked_out(test_client, seeded_slots):
+    """Ausgebuchte Slots erscheinen nicht – auch nicht mit include_full=1."""
     slot_friseur_id, _, _ = seeded_slots
     r = test_client.get("/public/slots?include_full=1")
     assert r.status_code == 200
     data = r.get_json() or []
     ids = {item["id"] for item in data}
-    assert slot_friseur_id in ids
+    assert slot_friseur_id not in ids
+
+
+def test_public_slots_excludes_hold_booking(test_client, seeded_slots):
+    """Hold-Buchungen belegen Kapazität wie confirmed."""
+    slot_friseur_id, _, slot_city_id = seeded_slots
+    with Session(app_module.engine) as s:
+        s.query(Booking).filter(Booking.slot_id == slot_friseur_id).delete()
+        s.add(
+            Booking(
+                slot_id=slot_friseur_id,
+                provider_id=s.scalar(
+                    select(Slot.provider_id).where(Slot.id == slot_friseur_id)
+                ),
+                customer_name="Hold Kunde",
+                customer_email="hold@example.com",
+                status="hold",
+            )
+        )
+        s.commit()
+
+    r = test_client.get("/public/slots?location=Teststadt&include_full=1")
+    assert r.status_code == 200
+    data = r.get_json() or []
+    ids = {item["id"] for item in data}
+    assert slot_friseur_id not in ids
+    assert slot_city_id in ids
