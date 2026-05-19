@@ -3125,6 +3125,7 @@ def sitemap():
         ("/benachrichtigung-einrichten.html", 0.8),
         ("/benachrichtigung-bestaetigung.html", 0.8),
         ("/blog", 0.8),
+        ("/blog/spontankunden-gewinnen", 0.8),
         ("/blog/leere-termine-fuellen", 0.8),
         ("/blog/no-show-vermeiden", 0.8),
         ("/blog/terminluecken-sofort-fuellen", 0.8),
@@ -3725,6 +3726,14 @@ if _html_enabled():
 
     # Blog-Artikel mit automatischer Veröffentlichung per Datum
     BLOG_ARTICLES = [
+        {
+            "slug": "spontankunden-gewinnen",
+            "title": "Warum Spontankunden oft die treuesten sind",
+            "description": "Spontankunden gewinnen und langfristig binden: Warum kurzfristige Buchungen oft loyaler sind – für Friseure, Therapeuten und Handwerker.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 5, 18),
+            "reading_time": "5 Min",
+        },
         {
             "slug": "terminluecken-sofort-fuellen",
             "title": "5 Wege wie du Terminlücken sofort füllst",
