@@ -52,7 +52,9 @@ def _seed_slots():
             location="Hauptweg 1, 12345 Teststadt",
             city="Teststadt",
             zip="12345",
-            capacity=1,
+            # In anderen Public-Slots-Tests gilt: ausgebuchte Slots werden auch mit include_full=1
+            # nicht ausgeliefert. Für reine q-Filter-Tests halten wir daher Kapazität > Buchungen.
+            capacity=2,
             status="PUBLISHED",
         )
         slot_b = Slot(
@@ -116,6 +118,21 @@ def test_public_slots_city_param_filters(test_client):
 
 def test_public_slots_excludes_full_by_default(test_client):
     slot_a_id, slot_b_id = _seed_slots()
+    # slot_a hat capacity=2 und bereits 1 confirmed Booking aus _seed_slots().
+    # Für diesen Test füllen wir slot_a komplett auf, damit es "voll" ist.
+    with Session(app_module.engine) as s:
+        slot_a = s.get(Slot, slot_a_id)
+        assert slot_a is not None
+        s.add(
+            Booking(
+                slot_id=slot_a.id,
+                provider_id=slot_a.provider_id,
+                customer_name="Zweitbuchung",
+                customer_email="second@example.com",
+                status="confirmed",
+            )
+        )
+        s.commit()
     r = test_client.get("/public/slots")
     assert r.status_code == 200
     data = r.get_json() or []
