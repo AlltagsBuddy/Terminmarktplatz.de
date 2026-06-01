@@ -195,6 +195,82 @@
     .st-arch{background:#f1f5f9}
     .st-canceled{background:#fee2e2}
 
+    /* ---------- Abrechnungstabellen (eigene, robuste Darstellung) ---------- */
+    .billing-table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 8px;
+      table-layout:auto;
+    }
+    .billing-table th,.billing-table td{
+      padding:10px 12px;
+      text-align:left;
+      background:#fff;
+      vertical-align:top;
+      font-size:.9rem;
+    }
+    .billing-table thead th{
+      background:#f8fafc;
+      color:#0f172a;
+      font-size:.8rem;
+      letter-spacing:.01em;
+      border-bottom:1px solid var(--border);
+      white-space:nowrap;
+    }
+    .billing-table tbody tr{
+      box-shadow:0 4px 12px rgba(15,23,42,.06);
+      outline:1px solid var(--border);
+      border-radius:12px;
+    }
+    .billing-table tbody td:first-child{ border-top-left-radius:12px; border-bottom-left-radius:12px; }
+    .billing-table tbody td:last-child{ border-top-right-radius:12px; border-bottom-right-radius:12px; }
+    .billing-table td.nowrap,.billing-table th.nowrap{ white-space:nowrap; }
+    .billing-table td.num,.billing-table th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+    .billing-table .cell-main{ display:block; }
+    .billing-table .cell-title{ font-weight:600; }
+    .billing-table .cell-sub{ font-size:.78rem; color:#64748b; margin-top:2px; }
+    .billing-table td.muted{ color:#64748b; }
+
+    @media (max-width:768px){
+      .billing-table{ border-spacing:0; }
+      .billing-table thead{ display:none; }
+      .billing-table,
+      .billing-table tbody,
+      .billing-table tr,
+      .billing-table td{ display:block; width:100%; }
+      .billing-table tbody tr{
+        margin:0 0 12px;
+        padding:6px 14px;
+        border-radius:12px;
+      }
+      .billing-table td{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:14px;
+        padding:9px 0;
+        border-bottom:1px solid #f1f5f9;
+        text-align:right;
+        white-space:normal !important;
+        font-size:.92rem;
+      }
+      .billing-table td:last-child{ border-bottom:0; }
+      .billing-table td.num{ text-align:right; }
+      .billing-table td::before{
+        content:attr(data-label);
+        font-weight:600;
+        color:#64748b;
+        text-align:left;
+        flex:0 0 42%;
+        white-space:normal;
+      }
+      .billing-table td[colspan]{ justify-content:flex-start; }
+      .billing-table td[colspan]::before{ content:none; }
+      .billing-table .cell-main{ display:flex; flex-direction:column; align-items:flex-end; }
+      .billing-table .cell-sub{ text-align:right; }
+      .billing-table td .btn{ width:auto; }
+    }
+
     .table tr.slot-past td{ color:#94a3b8; }
     .table tr.slot-pending td{ background:#fef9c3; }
     .table tr.slot-free td{ background:#e0f2fe; }
@@ -1077,13 +1153,13 @@
           </div>
 
           <div class="table-wrap">
-            <table class="table" id="tbl-bill-current">
+            <table class="billing-table" id="tbl-bill-current">
               <thead>
                 <tr>
                   <th class="nowrap">Buchungsdatum</th>
                   <th>Termin</th>
                   <th>Kunde</th>
-                  <th class="nowrap">Gebühr</th>
+                  <th class="nowrap num">Gebühr</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -1096,12 +1172,12 @@
           <!-- Erstellte Rechnungen -->
           <h3 style="margin:24px 0 8px">Erstellte Rechnungen (PDF)</h3>
           <div class="table-wrap">
-            <table class="table" id="tbl-invoices">
+            <table class="billing-table" id="tbl-invoices">
               <thead>
                 <tr>
                   <th class="nowrap">Rechnungs-Nr.</th>
                   <th class="nowrap">Zeitraum</th>
-                  <th class="nowrap">Betrag</th>
+                  <th class="nowrap num">Betrag</th>
                   <th>Status</th>
                   <th class="nowrap">Erstellt</th>
                   <th class="nowrap">PDF</th>
@@ -2785,13 +2861,15 @@
         const stKey = (it.fee_status || 'open');
         const stLabel = statusMap[stKey] || stKey;
         tr.innerHTML = `
-          <td data-label="Buchungsdatum">${fmtDateOnly(it.date)}</td>
+          <td data-label="Buchungsdatum" class="nowrap">${fmtDateOnly(it.date)}</td>
           <td data-label="Termin">
-            <div class="slot-title">${(it.slot_title || 'Termin')}</div>
-            ${it.slot_start ? `<div class="muted small">Termin am ${fmtLocal(it.slot_start)}</div>` : ''}
+            <span class="cell-main">
+              <span class="cell-title">${(it.slot_title || 'Termin')}</span>
+              ${it.slot_start ? `<span class="cell-sub">Termin am ${fmtLocal(it.slot_start)}</span>` : ''}
+            </span>
           </td>
           <td data-label="Kunde">${it.customer_name || '–'}</td>
-          <td data-label="Gebühr" class="nowrap">${fmtEUR(it.fee_eur)}</td>
+          <td data-label="Gebühr" class="nowrap num">${fmtEUR(it.fee_eur)}</td>
           <td data-label="Status"><span class="badge-st ${stKey === 'open' ? 'st-pending' : 'st-pub'}">${stLabel}</span></td>
         `;
         tbody.appendChild(tr);
@@ -2831,7 +2909,7 @@
         tr.innerHTML = `
           <td data-label="Rechnungs-Nr." class="nowrap">${inv.number || (inv.id || '').slice(0,8).toUpperCase()}</td>
           <td data-label="Zeitraum" class="nowrap">${zeitraum}</td>
-          <td data-label="Betrag" class="nowrap">${fmtEUR(inv.total_eur)}</td>
+          <td data-label="Betrag" class="nowrap num">${fmtEUR(inv.total_eur)}</td>
           <td data-label="Status"><span class="badge-st ${stKey === 'paid' ? 'st-pub' : 'st-pending'}">${stLabel}</span></td>
           <td data-label="Erstellt" class="nowrap">${fmtDateOnly(inv.created_at)}</td>
           <td data-label="PDF"><button class="btn" type="button" data-inv-pdf="${inv.id}" data-inv-no="${inv.number || ''}">PDF laden</button></td>
