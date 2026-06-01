@@ -278,6 +278,9 @@ class Slot(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)  # Beschreibung für Suchende (öffentlich sichtbar)
 
+    # Externe ID aus einem angebundenen System (API/Warenwirtschaft) – für Idempotenz & Zuordnung
+    external_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # ✅ kompatibel zu app.py
     status: Mapped[str] = mapped_column(Text, default="DRAFT")
 

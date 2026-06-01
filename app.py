@@ -1441,6 +1441,34 @@ def _ensure_provider_api_key_column() -> None:
 
 
 # --------------------------------------------------------
+# Externe Slot-ID (API-Anbindung an Fremdsysteme)
+# --------------------------------------------------------
+def _ensure_slot_external_id() -> None:
+    """Spalte ``slot.external_id`` (nullable) + eindeutiger Index je Anbieter (API-Idempotenz)."""
+    try:
+        if IS_POSTGRESQL:
+            _pg_ddl_autocommit(
+                "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS external_id text;",
+                "ensure_slot_external_id",
+            )
+            _pg_ddl_autocommit(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_slot_provider_external_id "
+                "ON public.slot (provider_id, external_id) WHERE external_id IS NOT NULL;",
+                "ensure_slot_external_id_idx",
+            )
+            return
+        with engine.begin() as conn:
+            try:
+                conn.exec_driver_sql("SELECT external_id FROM slot LIMIT 1")
+            except Exception:
+                conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN external_id TEXT")
+    except (OperationalError, SQLAlchemyError) as e:
+        _migration_print(f"[WARN] Warnung: ensure_slot_external_id fehlgeschlagen: {e}")
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_slot_external_id fehlgeschlagen: {e}")
+
+
+# --------------------------------------------------------
 # WareVision-Webhook-Felder für Provider
 # --------------------------------------------------------
 def _ensure_provider_warevision_webhook():
@@ -1881,6 +1909,7 @@ ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
     _ensure_provider_number_field,
     _ensure_last_login_field,
     _ensure_provider_warevision_webhook,
+    _ensure_slot_external_id,
     _ensure_archive_fields,
     _ensure_slot_archived_is_boolean,
     _ensure_slot_status_constraint,
@@ -2274,6 +2303,7 @@ def slot_to_json(x: Slot):
         "zip": getattr(x, "zip", None),
         "city": getattr(x, "city", None),
         "employee_id": getattr(x, "employee_id", None),
+        "external_id": getattr(x, "external_id", None),
 
     }
 
@@ -2796,6 +2826,22 @@ def _send_warevision_webhook(
         "external_booking_id": f"tm-{booking_id}",
         "action": action,
     }
+
+    # Slot-Zuordnung mitsenden, damit das Fremdsystem die Buchung seinem eigenen
+    # Termin zuordnen kann (slot_external_id = die im Fremdsystem vergebene ID).
+    try:
+        with Session(engine) as _wv_s:
+            _wv_b = _wv_s.get(Booking, booking_id)
+            if _wv_b and _wv_b.slot_id:
+                payload["slot_id"] = str(_wv_b.slot_id)
+                _wv_ext = _wv_s.scalar(
+                    select(Slot.external_id).where(Slot.id == _wv_b.slot_id)
+                )
+                if _wv_ext:
+                    payload["slot_external_id"] = str(_wv_ext)
+    except Exception as e:
+        app.logger.warning("WareVision webhook: slot lookup failed for booking %s: %r", booking_id, e)
+
     if action == "cancel":
         pass  # action already set
     elif action in ("booking", "update"):
@@ -3076,6 +3122,57 @@ def auth_required(admin: bool = False):
                     result.set_cookie("refresh_token", new_refresh_token, max_age=mr, **flags)
 
             return result
+
+        inner.__name__ = fn.__name__
+        return inner
+
+    return wrapper
+
+
+def _provider_id_from_api_key() -> tuple[str | None, str | None]:
+    """Authentifiziert eine Maschine-zu-Maschine-Anfrage über den persönlichen API-Key.
+
+    Akzeptiert ``X-API-Key: <key>`` oder ``Authorization: Bearer <key>``.
+    Gibt ``(provider_id, None)`` bei Erfolg zurück, sonst ``(None, fehlercode)``.
+    Nur für aktive Business-Tarife.
+    """
+    key = (request.headers.get("X-API-Key") or "").strip()
+    if not key:
+        auth = request.headers.get("Authorization", "")
+        if auth.lower().startswith("bearer "):
+            key = auth.split(" ", 1)[1].strip()
+    if not key or len(key) < 16:
+        return None, "missing_api_key"
+    try:
+        with Session(engine) as s:
+            p = s.scalar(select(Provider).where(Provider.api_key == key))
+            if not p:
+                return None, "invalid_api_key"
+            if not _has_business_features(p):
+                return None, "business_plan_required"
+            return str(p.id), None
+    except Exception:
+        app.logger.exception("api_key auth lookup failed")
+        return None, "server_error"
+
+
+def api_key_required():
+    """Decorator für die externe REST-API (``/api/v1/*``): Auth via persönlichem API-Key (Business)."""
+    def wrapper(fn):
+        def inner(*args, **kwargs):
+            pid, err = _provider_id_from_api_key()
+            if err == "missing_api_key":
+                return _json_error("missing_api_key", 401)
+            if err == "invalid_api_key":
+                return _json_error("invalid_api_key", 401)
+            if err == "business_plan_required":
+                return _json_error("business_plan_required", 403)
+            if err == "server_error" or not pid:
+                return _json_error("server_error", 500)
+            request.provider_id = pid
+            request.is_admin = False
+            request.api_authenticated = True
+            return fn(*args, **kwargs)
 
         inner.__name__ = fn.__name__
         return inner
@@ -7533,6 +7630,358 @@ def slots_delete(slot_id):
             s.delete(slot)
             s.commit()
             return jsonify({"ok": True, "deleted": True})
+
+
+# --------------------------------------------------------
+# Externe REST-API (/api/v1/*) – Auth via persönlichem API-Key (Business)
+# Fremdsysteme/Kalender können Slots anlegen+veröffentlichen, ändern und zurückziehen.
+# --------------------------------------------------------
+def _api_slot_address_kwargs(provider: Provider, data: dict) -> dict:
+    """Adress-Felder für einen Slot aus den Eingabedaten ableiten (Provider-Profil als Fallback)."""
+    prov_zip = (provider.zip or "").strip()
+    prov_city = (provider.city or "").strip()
+    prov_street = (provider.street or "").strip()
+
+    data_street = (data.get("street") or "").strip()
+    data_house = (data.get("house_number") or "").strip()
+    data_zip = normalize_zip(data.get("zip"))
+    data_city = (data.get("city") or "").strip()
+
+    extra: dict[str, object] = {}
+    if hasattr(Slot, "street"):
+        extra["street"] = (data_street[:120] if data_street else (prov_street[:120] or None))
+    if hasattr(Slot, "house_number"):
+        extra["house_number"] = (data_house[:20] if data_house else None)
+    if hasattr(Slot, "zip"):
+        z = data_zip if len(data_zip) == 5 else prov_zip
+        extra["zip"] = (z[:5] if z else None)
+    if hasattr(Slot, "city"):
+        extra["city"] = (data_city[:80] if data_city else (prov_city[:80] or None))
+    return extra
+
+
+def _api_resolve_slot(session: Session, provider_id: str, slot_ref: str) -> Slot | None:
+    """Findet einen Slot per interner ID ODER per external_id (jeweils anbieter-gebunden)."""
+    slot = session.get(Slot, slot_ref)
+    if slot and slot.provider_id == provider_id:
+        return slot
+    return session.scalar(
+        select(Slot).where(
+            Slot.provider_id == provider_id,
+            Slot.external_id == slot_ref,
+        )
+    )
+
+
+@app.post("/api/v1/slots")
+@api_key_required()
+def api_v1_slots_create():
+    """Legt einen Slot an und veröffentlicht ihn direkt (ein Aufruf).
+
+    Pflichtfelder: title, category, start_at (ISO-8601), end_at, location.
+    Optional: capacity, price_cents, deposit_cents, notes, description,
+    booking_link, contact_method, employee_id, street/house_number/zip/city, external_id.
+    Idempotent über ``external_id`` (zweiter Aufruf liefert den bestehenden Slot).
+    """
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        required = ["title", "category", "start_at", "end_at", "location"]
+        missing = [k for k in required if not str(data.get(k) or "").strip()]
+        if missing:
+            return jsonify({"error": "missing_fields", "fields": missing}), 400
+
+        try:
+            start = parse_iso_utc(data["start_at"])
+            end = parse_iso_utc(data["end_at"])
+        except Exception:
+            return _json_error("bad_datetime", 400)
+        if end <= start:
+            return _json_error("end_before_start", 400)
+        if start <= _now():
+            return _json_error("start_in_past", 409)
+
+        location = (data.get("location") or "").strip()
+        cap = int(data.get("capacity") or 1)
+        if cap < 1:
+            return _json_error("bad_capacity", 400)
+
+        external_id = (str(data.get("external_id") or "")).strip() or None
+
+        deposit_cents_int = None
+        deposit_raw = data.get("deposit_cents")
+        if deposit_raw not in (None, ""):
+            try:
+                deposit_cents_int = int(deposit_raw)
+            except (ValueError, TypeError):
+                deposit_cents_int = None
+
+        start_db = _to_db_utc_naive(start)
+        end_db = _to_db_utc_naive(end)
+
+        with Session(engine) as s:
+            p = s.get(Provider, request.provider_id)
+            if not p:
+                return _json_error("not_found", 404)
+            if not is_profile_complete(p):
+                return _json_error("profile_incomplete", 400)
+
+            # Idempotenz: gleicher external_id => bestehenden Slot zurückgeben
+            if external_id:
+                existing = s.scalar(
+                    select(Slot).where(
+                        Slot.provider_id == request.provider_id,
+                        Slot.external_id == external_id,
+                    )
+                )
+                if existing:
+                    out = slot_to_json(existing)
+                    out["idempotent"] = True
+                    return jsonify(out), 200
+
+            if deposit_cents_int is not None and deposit_cents_int > 0:
+                if not getattr(p, "stripe_account_id", None) and not STRIPE_DEPOSIT_TEST_MODE:
+                    return jsonify({
+                        "error": "stripe_onboarding_required",
+                        "message": "Für Anzahlungen muss zuerst Stripe eingerichtet werden.",
+                    }), 400
+
+            emp_id_final = None
+            emp_raw = data.get("employee_id")
+            if emp_raw is not None and str(emp_raw).strip() != "":
+                e_lookup = str(emp_raw).strip()
+                em_obj = s.get(Employee, e_lookup)
+                if not em_obj or em_obj.provider_id != request.provider_id or not em_obj.active:
+                    return _json_error("invalid_employee", 400)
+                emp_id_final = e_lookup
+
+            title = (str(data["title"]).strip() or "Slot")[:100]
+            category = normalize_category(data.get("category"))
+            location_db = location[:120]
+            slot_kwargs_extra = _api_slot_address_kwargs(p, data)
+
+            slot = Slot(
+                provider_id=request.provider_id,
+                title=title,
+                category=category,
+                start_at=start_db,
+                end_at=end_db,
+                location=location_db,
+                capacity=cap,
+                contact_method=(data.get("contact_method") or "mail"),
+                booking_link=(data.get("booking_link") or None),
+                price_cents=(data.get("price_cents") or None),
+                deposit_cents=deposit_cents_int if (deposit_cents_int is not None and deposit_cents_int > 0) else None,
+                notes=(data.get("notes") or None),
+                description=(data.get("description") or None),
+                status=SLOT_STATUS_DRAFT,
+                employee_id=emp_id_final,
+                external_id=external_id,
+                **slot_kwargs_extra,
+            )
+            s.add(slot)
+            try:
+                s.commit()
+            except IntegrityError:
+                # Parallel-Anlage mit gleichem external_id => bestehenden Slot liefern
+                s.rollback()
+                if external_id:
+                    existing = s.scalar(
+                        select(Slot).where(
+                            Slot.provider_id == request.provider_id,
+                            Slot.external_id == external_id,
+                        )
+                    )
+                    if existing:
+                        out = slot_to_json(existing)
+                        out["idempotent"] = True
+                        return jsonify(out), 200
+                return _json_error("db_constraint_error", 400)
+            except SQLAlchemyError as e:
+                s.rollback()
+                return jsonify({"error": "db_error", "detail": str(e)}), 400
+
+            slot_id = slot.id
+
+            # Direkt veröffentlichen (durchläuft Monatskontingent)
+            try:
+                with s.begin():
+                    _publish_slot_quota_tx(s, request.provider_id, slot_id)
+            except PublishLimitReached:
+                return _json_error("monthly_publish_limit_reached", 409)
+            except ValueError as e:
+                msg = str(e)
+                code = 409 if msg in ("start_in_past", "not_draft") else 400
+                return _json_error(msg or "bad_request", code)
+
+            try:
+                notify_alerts_for_slot(slot_id)
+            except Exception:
+                app.logger.exception("notify_alerts_for_slot (api_v1_slots_create) failed")
+
+            slot = s.get(Slot, slot_id)
+            return jsonify(slot_to_json(slot)), 201
+    except Exception as e:
+        app.logger.exception("api_v1_slots_create failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
+@app.patch("/api/v1/slots/<slot_ref>")
+@api_key_required()
+def api_v1_slots_update(slot_ref):
+    """Aktualisiert einen Slot (per interner ID oder external_id).
+
+    Aktualisierbar: title, category, location/Adresse, notes, description,
+    price_cents, deposit_cents, booking_link, contact_method, employee_id,
+    start_at, end_at. Kapazität nur, solange der Slot noch nicht veröffentlicht ist.
+    """
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        with Session(engine) as s:
+            slot = _api_resolve_slot(s, request.provider_id, slot_ref)
+            if not slot:
+                return _json_error("not_found", 404)
+            if getattr(slot, "archived", False):
+                return _json_error("already_archived", 409)
+
+            start_changed = False
+            end_changed = False
+
+            if "start_at" in data or "end_at" in data:
+                try:
+                    new_start = parse_iso_utc(data["start_at"]) if data.get("start_at") else _as_utc_aware(slot.start_at)
+                    new_end = parse_iso_utc(data["end_at"]) if data.get("end_at") else _as_utc_aware(slot.end_at)
+                except Exception:
+                    return _json_error("bad_datetime", 400)
+                if new_end <= new_start:
+                    return _json_error("end_before_start", 400)
+                if "start_at" in data and data.get("start_at"):
+                    if new_start <= _now():
+                        return _json_error("start_in_past", 409)
+                    slot.start_at = _to_db_utc_naive(new_start)
+                    start_changed = True
+                if "end_at" in data and data.get("end_at"):
+                    slot.end_at = _to_db_utc_naive(new_end)
+                    end_changed = True
+
+            if "capacity" in data and data.get("capacity") not in (None, ""):
+                if slot.status == SLOT_STATUS_PUBLISHED:
+                    return _json_error("capacity_change_not_allowed_when_published", 409)
+                try:
+                    new_cap = int(data.get("capacity"))
+                except (ValueError, TypeError):
+                    return _json_error("bad_capacity", 400)
+                if new_cap < 1:
+                    return _json_error("bad_capacity", 400)
+                slot.capacity = new_cap
+
+            if "title" in data and str(data.get("title") or "").strip():
+                slot.title = str(data["title"]).strip()[:100]
+            if "category" in data and str(data.get("category") or "").strip():
+                slot.category = normalize_category(data.get("category"))
+            if "location" in data and str(data.get("location") or "").strip():
+                slot.location = str(data["location"]).strip()[:120]
+            if "notes" in data:
+                slot.notes = (data.get("notes") or None)
+            if "description" in data:
+                slot.description = (data.get("description") or None)
+            if "booking_link" in data:
+                slot.booking_link = (data.get("booking_link") or None)
+            if "contact_method" in data and str(data.get("contact_method") or "").strip():
+                slot.contact_method = str(data["contact_method"]).strip()
+            if "price_cents" in data:
+                slot.price_cents = (data.get("price_cents") or None)
+
+            for k in ("street", "house_number", "zip", "city"):
+                if k in data:
+                    addr = _api_slot_address_kwargs(s.get(Provider, request.provider_id), data)
+                    for ak, av in addr.items():
+                        setattr(slot, ak, av)
+                    break
+
+            if "employee_id" in data:
+                emp_raw = data.get("employee_id")
+                if emp_raw in (None, ""):
+                    slot.employee_id = None
+                else:
+                    e_lookup = str(emp_raw).strip()
+                    em_obj = s.get(Employee, e_lookup)
+                    if not em_obj or em_obj.provider_id != request.provider_id or not em_obj.active:
+                        return _json_error("invalid_employee", 400)
+                    slot.employee_id = e_lookup
+
+            s.commit()
+
+            # Bei Zeitänderung: bestätigte Buchungen ans Fremdsystem melden
+            if start_changed or end_changed:
+                provider_obj = s.get(Provider, slot.provider_id)
+                if provider_obj and (getattr(provider_obj, "webhook_url", None) or "").strip():
+                    confirmed = s.execute(
+                        select(Booking).where(
+                            Booking.slot_id == slot.id,
+                            Booking.status == "confirmed",
+                        )
+                    ).scalars().all()
+                    for b in confirmed:
+                        try:
+                            _send_warevision_webhook(
+                                provider_obj,
+                                "update",
+                                str(b.id),
+                                _as_utc_aware(slot.start_at),
+                                _as_utc_aware(slot.end_at),
+                            )
+                        except Exception as e:
+                            app.logger.warning("api_v1_slots_update: webhook failed for %s: %r", b.id, e)
+
+            slot = s.get(Slot, slot.id)
+            return jsonify(slot_to_json(slot)), 200
+    except Exception as e:
+        app.logger.exception("api_v1_slots_update failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
+@app.delete("/api/v1/slots/<slot_ref>")
+@api_key_required()
+def api_v1_slots_delete(slot_ref):
+    """Zieht einen Slot zurück (per interner ID oder external_id).
+
+    Zukünftige, ungebuchte Slots werden gelöscht; bereits gebuchte/abgelaufene
+    werden archiviert (Aufbewahrungspflicht).
+    """
+    try:
+        with Session(engine) as s:
+            slot = _api_resolve_slot(s, request.provider_id, slot_ref)
+            if not slot:
+                return _json_error("not_found", 404)
+            if getattr(slot, "archived", False):
+                return _json_error("already_archived", 409)
+
+            has_bookings = (
+                s.scalar(
+                    select(func.count())
+                    .select_from(Booking)
+                    .where(
+                        Booking.slot_id == slot.id,
+                        Booking.status == "confirmed",
+                    )
+                )
+                or 0
+            ) > 0
+
+            slot_end_aware = _as_utc_aware(slot.end_at)
+            has_ended = slot_end_aware < _now()
+
+            if has_ended or has_bookings:
+                slot.archived = True
+                slot.status = SLOT_STATUS_EXPIRED
+                s.commit()
+                return jsonify({"ok": True, "archived": True})
+            s.delete(slot)
+            s.commit()
+            return jsonify({"ok": True, "deleted": True})
+    except Exception as e:
+        app.logger.exception("api_v1_slots_delete failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
 
 
 # --------------------------------------------------------
