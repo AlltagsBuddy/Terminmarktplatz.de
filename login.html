@@ -858,8 +858,12 @@
       'forgot-password': document.getElementById('tab-forgot-password'),
     };
     function switchTab(name){
-      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-      Object.entries(panels).forEach(([k, el]) => { el.hidden = (k !== name); });
+      tabs.forEach(t => {
+        const isActive = t.dataset.tab === name;
+        t.classList.toggle('active', isActive);
+        t.setAttribute('aria-selected', String(isActive));
+      });
+      Object.entries(panels).forEach(([k, el]) => { if (el) el.hidden = (k !== name); });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       if (name === 'profile') loadProfileIfAuthed();
     }
