@@ -344,6 +344,9 @@ COPECART_PLAN_URLS = {
 }
 
 # Pakete / Pläne (Provider)
+# Standard-Erfolgsprovision pro gebuchtem Slot (greift auch ohne aktives Paket / Basis)
+DEFAULT_BOOKING_FEE_EUR = Decimal("2.00")
+
 PLANS = {
     "starter": {
         "key": "starter",
@@ -351,6 +354,7 @@ PLANS = {
         "price_eur": Decimal("9.90"),
         "price_cents": 990,
         "free_slots": 50,
+        "booking_fee_eur": DEFAULT_BOOKING_FEE_EUR,
     },
     "profi": {
         "key": "profi",
@@ -358,6 +362,7 @@ PLANS = {
         "price_eur": Decimal("19.90"),
         "price_cents": 1990,
         "free_slots": 100,
+        "booking_fee_eur": DEFAULT_BOOKING_FEE_EUR,
     },
     "business": {
         "key": "business",
@@ -365,6 +370,7 @@ PLANS = {
         "price_eur": Decimal("34.90"),
         "price_cents": 3490,
         "free_slots": 5000,
+        "booking_fee_eur": DEFAULT_BOOKING_FEE_EUR,
     },
 }
 
@@ -8379,6 +8385,7 @@ def paket_buchen_start():
         p.plan = plan_key
         p.plan_valid_until = period_end
         p.free_slots_per_month = plan["free_slots"]
+        p.booking_fee_eur = plan.get("booking_fee_eur", DEFAULT_BOOKING_FEE_EUR)
 
         purchase = PlanPurchase(
             provider_id=p.id,
@@ -8506,6 +8513,7 @@ def stripe_webhook_view():
             p.plan = plan_key
             p.plan_valid_until = period_end
             p.free_slots_per_month = plan["free_slots"]
+            p.booking_fee_eur = plan.get("booking_fee_eur", DEFAULT_BOOKING_FEE_EUR)
 
             purchase = PlanPurchase(
                 provider_id=p.id,
@@ -8623,6 +8631,7 @@ def copecart_webhook_view():
                 p.plan = plan_key
                 p.plan_valid_until = period_end
                 p.free_slots_per_month = plan_conf["free_slots"]
+                p.booking_fee_eur = plan_conf.get("booking_fee_eur", DEFAULT_BOOKING_FEE_EUR)
 
                 purchase = PlanPurchase(
                     provider_id=p.id,
@@ -9294,7 +9303,7 @@ def _public_book_impl():
         if provider and provider.booking_fee_eur is not None:
             fee = provider.booking_fee_eur
         else:
-            fee = Decimal("2.00")
+            fee = DEFAULT_BOOKING_FEE_EUR
 
         deposit_cents = getattr(slot, "deposit_cents", None) or 0
         stripe_acct = getattr(provider, "stripe_account_id", None) if provider else None

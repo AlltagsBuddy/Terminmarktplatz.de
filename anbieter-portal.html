@@ -1041,7 +1041,7 @@
             Hinweis: Neue Slots werden zunächst als <em>Entwurf</em> angelegt und sind erst nach dem Veröffentlichen öffentlich sichtbar.
           </div>
           <div id="pro-features-hint" class="muted small" style="display:none; margin-bottom:10px;">
-            Duplizieren, Archivieren und Export sind im <strong>Profi</strong>- und <strong>Business</strong>-Paket verfügbar.
+            Kopieren, Archivieren und Export sind im <strong>Profi</strong>- und <strong>Business</strong>-Paket verfügbar.
             <a href="preise.html">Paket ansehen</a>
           </div>
 
@@ -2410,7 +2410,7 @@
 
         const actionsHtml = [
           (canEdit && !isArchived) ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : '',
-          (!isArchived) ? `<button class="btn" data-copy="${s.id}">Kopieren</button>` : '',
+          (HAS_PRO_FEATURES && !isArchived) ? `<button class="btn" data-copy="${s.id}">Kopieren</button>` : '',
           (canPublish && !isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : '',
           (!isArchived) ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : '',
           (HAS_PRO_FEATURES && isPublished && !isArchived) ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : '',
