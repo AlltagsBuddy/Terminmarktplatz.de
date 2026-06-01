@@ -8136,6 +8136,183 @@ def admin_invoice_send_email_view(invoice_id):
 
 
 # --------------------------------------------------------
+# Anbieter: Eigene Abrechnung (laufender Monat + Rechnungen)
+# --------------------------------------------------------
+def _parse_iso_date_or_none(val):
+    """Parst 'YYYY-MM-DD' robust; gibt None bei ungültiger/leerer Eingabe."""
+    if not val:
+        return None
+    try:
+        return date.fromisoformat(str(val).strip()[:10])
+    except Exception:
+        return None
+
+
+@app.get("/provider/billing/current")
+@auth_required()
+def provider_billing_current():
+    """Tagesgenaue, laufende Abrechnung des aktuellen Anbieters.
+
+    Read-only Vorschau der Vermittlungsgebühren für einen Zeitraum
+    (Default: 1. des laufenden Monats bis heute). Tagesgenau über die
+    optionalen Query-Parameter ?from=YYYY-MM-DD&to=YYYY-MM-DD steuerbar.
+    Basis ist – wie bei der Monats-Sammelrechnung – das Buchungsdatum
+    (created_at) bestätigter Buchungen.
+    """
+    pid = request.provider_id
+
+    now_berlin = datetime.now(BERLIN)
+    default_from = date(now_berlin.year, now_berlin.month, 1)
+    from_d = _parse_iso_date_or_none(request.args.get("from")) or default_from
+    to_d = _parse_iso_date_or_none(request.args.get("to")) or now_berlin.date()
+    if to_d < from_d:
+        from_d, to_d = to_d, from_d
+
+    start_local = datetime(from_d.year, from_d.month, from_d.day, 0, 0, 0, tzinfo=BERLIN)
+    # to_d ist inklusiv -> exklusive Obergrenze = nächster Tag 00:00
+    end_local = datetime(to_d.year, to_d.month, to_d.day, 0, 0, 0, tzinfo=BERLIN) + timedelta(days=1)
+    start_db = _to_db_utc_naive(start_local)
+    end_db = _to_db_utc_naive(end_local)
+
+    try:
+        with Session(engine) as s:
+            rows = s.execute(
+                select(Booking, Slot.title, Slot.start_at)
+                .join(Slot, Booking.slot_id == Slot.id)
+                .where(
+                    Booking.provider_id == pid,
+                    Booking.status == "confirmed",
+                    Booking.created_at >= start_db,
+                    Booking.created_at < end_db,
+                )
+                .order_by(Booking.created_at.asc())
+            ).all()
+
+            items = []
+            total = Decimal("0.00")
+            total_open = Decimal("0.00")
+            for b, slot_title, slot_start in rows:
+                fee = b.provider_fee_eur or Decimal("0.00")
+                total += fee
+                is_open = (b.fee_status or "open") == "open"
+                if is_open:
+                    total_open += fee
+                items.append(
+                    {
+                        "booking_id": b.id,
+                        "date": b.created_at.isoformat() if b.created_at else None,
+                        "slot_title": slot_title or "Termin",
+                        "slot_start": slot_start.isoformat() if slot_start else None,
+                        "customer_name": b.customer_name or "",
+                        "fee_eur": float(fee),
+                        "fee_status": b.fee_status or "open",
+                        "is_billed": bool(b.is_billed),
+                    }
+                )
+
+        return jsonify(
+            {
+                "from": from_d.isoformat(),
+                "to": to_d.isoformat(),
+                "count": len(items),
+                "total_eur": float(total),
+                "open_eur": float(total_open),
+                "billed_eur": float(total - total_open),
+                "items": items,
+                "note": "Vorschau der Vermittlungsgebühren. Die verbindliche Rechnung erfolgt als Monats-Sammelrechnung.",
+            }
+        )
+    except Exception:
+        app.logger.exception("provider_billing_current failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.get("/provider/invoices")
+@auth_required()
+def provider_invoices_list():
+    """Listet die erstellten Monats-Sammelrechnungen des aktuellen Anbieters."""
+    pid = request.provider_id
+    try:
+        with Session(engine) as s:
+            invoices = (
+                s.execute(
+                    select(Invoice)
+                    .where(Invoice.provider_id == pid)
+                    .order_by(Invoice.created_at.desc())
+                )
+                .scalars()
+                .all()
+            )
+            out = []
+            for inv in invoices:
+                out.append(
+                    {
+                        "id": inv.id,
+                        "number": inv.id[:8].upper(),
+                        "period_start": inv.period_start.isoformat() if inv.period_start else None,
+                        "period_end": inv.period_end.isoformat() if inv.period_end else None,
+                        "total_eur": float(inv.total_eur),
+                        "status": inv.status,
+                        "created_at": inv.created_at.isoformat() if inv.created_at else None,
+                    }
+                )
+        return jsonify(out)
+    except Exception:
+        app.logger.exception("provider_invoices_list failed")
+        return jsonify({"error": "server_error"}), 500
+
+
+@app.get("/provider/invoices/<invoice_id>/pdf")
+@auth_required()
+def provider_invoice_pdf(invoice_id):
+    """Lädt eine eigene Rechnung als PDF herunter (nur eigene Rechnungen)."""
+    pid = request.provider_id
+    try:
+        with Session(engine) as s:
+            inv = s.get(Invoice, invoice_id)
+            # 404 (statt 403) auch bei fremder Rechnung, um Existenz nicht zu verraten
+            if not inv or str(inv.provider_id) != str(pid):
+                return _json_error("not_found", 404)
+
+            provider = s.get(Provider, inv.provider_id)
+            if not provider:
+                return _json_error("provider_not_found", 404)
+
+            bookings = (
+                s.execute(
+                    select(Booking)
+                    .where(Booking.invoice_id == invoice_id)
+                    .order_by(Booking.created_at.asc())
+                )
+                .scalars()
+                .all()
+            )
+
+            if not billing_svc.REPORTLAB_AVAILABLE:
+                return (
+                    jsonify(
+                        {
+                            "error": "pdf_generation_not_available",
+                            "detail": "reportlab nicht installiert",
+                        }
+                    ),
+                    503,
+                )
+
+            pdf_bytes = generate_invoice_pdf(inv, provider, bookings, s)
+            filename = f"Rechnung_{inv.id[:8].upper()}_{inv.period_start.strftime('%Y%m')}.pdf"
+
+            return Response(
+                pdf_bytes,
+                mimetype="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+    except Exception as e:
+        app.logger.exception("provider_invoice_pdf failed")
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
+# --------------------------------------------------------
 # Pakete / Stripe / CopeCart (Provider)
 # --------------------------------------------------------
 @app.post("/paket-buchen")

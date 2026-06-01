@@ -1034,6 +1034,88 @@
           <div id="msg-slots" class="msg"></div>
         </div>
 
+        <!-- Abrechnung -->
+        <div class="panel" style="grid-column:1/-1">
+          <h2 style="margin:0 0 4px">Abrechnung</h2>
+          <div class="muted" style="margin:0 0 16px">
+            Vermittlungsgebühren je bestätigter Buchung. Die verbindliche Rechnung erhältst du
+            als <strong>Monats-Sammelrechnung</strong> per E-Mail.
+          </div>
+
+          <!-- Laufende Abrechnung (tagesgenau) -->
+          <h3 style="margin:0 0 8px">Laufende Abrechnung (tagesgenau)</h3>
+          <div class="toolbar" style="gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px">
+            <div class="field" style="margin:0">
+              <label for="bill-from">Von</label>
+              <input id="bill-from" type="date">
+            </div>
+            <div class="field" style="margin:0">
+              <label for="bill-to">Bis</label>
+              <input id="bill-to" type="date">
+            </div>
+            <button class="btn" id="btn-bill-refresh" type="button">Aktualisieren</button>
+            <button class="btn" id="btn-bill-month" type="button">Laufender Monat</button>
+          </div>
+
+          <div class="stats-grid" id="bill-stats">
+            <div class="stat-card">
+              <div class="stat-label">Buchungen im Zeitraum</div>
+              <div class="stat-value" id="bill-count">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Noch offen (nächste Rechnung)</div>
+              <div class="stat-value" id="bill-open">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Bereits abgerechnet</div>
+              <div class="stat-value" id="bill-billed">–</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Gesamt im Zeitraum</div>
+              <div class="stat-value" id="bill-total">–</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="tbl-bill-current">
+              <thead>
+                <tr>
+                  <th class="nowrap">Buchungsdatum</th>
+                  <th>Termin</th>
+                  <th>Kunde</th>
+                  <th class="nowrap">Gebühr</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" class="muted">Lade …</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Erstellte Rechnungen -->
+          <h3 style="margin:24px 0 8px">Erstellte Rechnungen (PDF)</h3>
+          <div class="table-wrap">
+            <table class="table" id="tbl-invoices">
+              <thead>
+                <tr>
+                  <th class="nowrap">Rechnungs-Nr.</th>
+                  <th class="nowrap">Zeitraum</th>
+                  <th class="nowrap">Betrag</th>
+                  <th>Status</th>
+                  <th class="nowrap">Erstellt</th>
+                  <th class="nowrap">PDF</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" class="muted">Lade …</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="msg-billing" class="msg"></div>
+        </div>
+
       </div>
     </section>
   </main>
@@ -2633,6 +2715,161 @@
     // Initial: Aktive Termine anzeigen
     if (btnShowActive) btnShowActive.classList.add('primary');
 
+    // ---------- Abrechnung (laufender Monat + Rechnungen) ----------
+    function fmtEUR(n){
+      const v = (typeof n === 'number' && isFinite(n)) ? n : 0;
+      return v.toLocaleString('de-DE', { style:'currency', currency:'EUR' });
+    }
+
+    function fmtDateOnly(iso){
+      if (!iso) return '–';
+      const d = parseApiDate(iso) || new Date(iso);
+      if (isNaN(d.getTime())) return '–';
+      return d.toLocaleDateString('de-DE');
+    }
+
+    function billDefaultRange(){
+      const now = new Date();
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      const toInput = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      return { from: toInput(first), to: toInput(now) };
+    }
+
+    function setBillMonthRange(){
+      const r = billDefaultRange();
+      const f = document.getElementById('bill-from');
+      const t = document.getElementById('bill-to');
+      if (f) f.value = r.from;
+      if (t) t.value = r.to;
+    }
+
+    async function loadBillingCurrent(){
+      const tbody = $('#tbl-bill-current tbody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="muted">Lade …</td></tr>`;
+      const f = document.getElementById('bill-from');
+      const t = document.getElementById('bill-to');
+      const params = new URLSearchParams();
+      if (f && f.value) params.set('from', f.value);
+      if (t && t.value) params.set('to', t.value);
+      try{
+        const r = await fetch(`${API}/provider/billing/current?${params.toString()}`, { credentials:'include' });
+        if (!r.ok){
+          if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="muted">Abrechnung konnte nicht geladen werden.</td></tr>`;
+          return;
+        }
+        const data = await r.json();
+        renderBillingCurrent(data);
+      }catch(e){
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="muted">Fehler beim Laden.</td></tr>`;
+      }
+    }
+
+    function renderBillingCurrent(data){
+      const setTxt = (id, val)=>{ const el = document.getElementById(id); if (el) el.textContent = val; };
+      setTxt('bill-count', String(data.count ?? 0));
+      setTxt('bill-open', fmtEUR(data.open_eur));
+      setTxt('bill-billed', fmtEUR(data.billed_eur));
+      setTxt('bill-total', fmtEUR(data.total_eur));
+
+      const tbody = $('#tbl-bill-current tbody');
+      if (!tbody) return;
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (!items.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Keine bestätigten Buchungen im gewählten Zeitraum.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = '';
+      const statusMap = { open:'Offen', invoiced:'Abgerechnet', paid:'Bezahlt' };
+      for (const it of items){
+        const tr = document.createElement('tr');
+        const stKey = (it.fee_status || 'open');
+        const stLabel = statusMap[stKey] || stKey;
+        tr.innerHTML = `
+          <td data-label="Buchungsdatum">${fmtDateOnly(it.date)}</td>
+          <td data-label="Termin">
+            <div class="slot-title">${(it.slot_title || 'Termin')}</div>
+            ${it.slot_start ? `<div class="muted small">Termin am ${fmtLocal(it.slot_start)}</div>` : ''}
+          </td>
+          <td data-label="Kunde">${it.customer_name || '–'}</td>
+          <td data-label="Gebühr" class="nowrap">${fmtEUR(it.fee_eur)}</td>
+          <td data-label="Status"><span class="badge-st ${stKey === 'open' ? 'st-pending' : 'st-pub'}">${stLabel}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function loadProviderInvoices(){
+      const tbody = $('#tbl-invoices tbody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="muted">Lade …</td></tr>`;
+      try{
+        const r = await fetch(`${API}/provider/invoices`, { credentials:'include' });
+        if (!r.ok){
+          if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="muted">Rechnungen konnten nicht geladen werden.</td></tr>`;
+          return;
+        }
+        const list = await r.json();
+        renderProviderInvoices(Array.isArray(list) ? list : []);
+      }catch(e){
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="muted">Fehler beim Laden.</td></tr>`;
+      }
+    }
+
+    function renderProviderInvoices(list){
+      const tbody = $('#tbl-invoices tbody');
+      if (!tbody) return;
+      if (!list.length){
+        tbody.innerHTML = `<tr><td colspan="6" class="muted">Noch keine Rechnungen vorhanden. Sammelrechnungen werden nach Monatsende erstellt.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = '';
+      const statusMap = { open:'Offen', paid:'Bezahlt', canceled:'Storniert' };
+      for (const inv of list){
+        const tr = document.createElement('tr');
+        const stKey = (inv.status || 'open');
+        const stLabel = statusMap[stKey] || stKey;
+        const zeitraum = `${fmtDateOnly(inv.period_start)} – ${fmtDateOnly(inv.period_end)}`;
+        tr.innerHTML = `
+          <td data-label="Rechnungs-Nr." class="nowrap">${inv.number || (inv.id || '').slice(0,8).toUpperCase()}</td>
+          <td data-label="Zeitraum" class="nowrap">${zeitraum}</td>
+          <td data-label="Betrag" class="nowrap">${fmtEUR(inv.total_eur)}</td>
+          <td data-label="Status"><span class="badge-st ${stKey === 'paid' ? 'st-pub' : 'st-pending'}">${stLabel}</span></td>
+          <td data-label="Erstellt" class="nowrap">${fmtDateOnly(inv.created_at)}</td>
+          <td data-label="PDF"><button class="btn" type="button" data-inv-pdf="${inv.id}" data-inv-no="${inv.number || ''}">PDF laden</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+      $$('#tbl-invoices [data-inv-pdf]').forEach(b =>
+        b.addEventListener('click', ()=> downloadInvoicePdf(b.dataset.invPdf, b.dataset.invNo || ''))
+      );
+    }
+
+    async function downloadInvoicePdf(id, number){
+      if (!id) return;
+      try{
+        const r = await fetch(`${API}/provider/invoices/${id}/pdf`, { credentials:'include' });
+        if (!r.ok){
+          let msg = 'PDF konnte nicht geladen werden.';
+          if (r.status === 503) msg = 'PDF-Erstellung ist derzeit nicht verfügbar.';
+          showMsg('msg-billing', msg, false);
+          return;
+        }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rechnung_${number || id.slice(0,8).toUpperCase()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=> URL.revokeObjectURL(url), 4000);
+      }catch(e){
+        showMsg('msg-billing', 'Netzwerkfehler beim PDF-Download.', false);
+      }
+    }
+
+    $('#btn-bill-refresh')?.addEventListener('click', loadBillingCurrent);
+    $('#btn-bill-month')?.addEventListener('click', ()=>{ setBillMonthRange(); loadBillingCurrent(); });
+
     (async function init(){
       const sp = new URLSearchParams(location.search);
       const stripeOnboard = sp.get('stripe_onboard');
@@ -2658,6 +2895,9 @@
       fillCategoryOptions();
       recalcEnd();
       await loadSlots();
+      setBillMonthRange();
+      loadBillingCurrent();
+      loadProviderInvoices();
     })();
   </script>
 
