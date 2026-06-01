@@ -1463,6 +1463,60 @@
       else sel.value = '';
     }
 
+    function renderPlanInfo(){
+      if (!ME) return;
+      const PLAN_LABELS = { basic:'Basis (Standard)', starter:'Starter', profi:'Profi', business:'Business' };
+      const planNameEl   = document.getElementById('plan-name');
+      const planValidEl  = document.getElementById('plan-valid-until');
+      const planSlotsEl  = document.getElementById('plan-slots');
+
+      if (planNameEl && planValidEl) {
+        const key   = (ME.plan || ME.plan_key || 'basic');
+        const label = ME.plan_label || PLAN_LABELS[key] || key;
+        planNameEl.textContent = label;
+
+        if (ME.plan_valid_until) {
+          const d = new Date(ME.plan_valid_until);
+          if (!isNaN(d.getTime())) {
+            planValidEl.textContent = '· gültig bis ' + d.toLocaleDateString('de-DE');
+          } else {
+            planValidEl.textContent = '· Laufzeit aktiv';
+          }
+        } else {
+          planValidEl.textContent = '· kein Ablaufdatum hinterlegt';
+        }
+
+        if (planSlotsEl) {
+          if (ME.slots_unlimited) {
+            planSlotsEl.textContent = '· Slots diesen Monat: unbegrenzt';
+          } else if (typeof ME.free_slots_per_month === 'number' &&
+                     typeof ME.slots_used_this_month === 'number') {
+
+            const total = ME.free_slots_per_month;
+            const used  = ME.slots_used_this_month;
+            const left  = (typeof ME.slots_left_this_month === 'number')
+              ? ME.slots_left_this_month
+              : Math.max(0, total - used);
+
+            planSlotsEl.textContent = `· Slots diesen Monat: ${used}/${total} (noch ${left} frei)`;
+          } else {
+            planSlotsEl.textContent = '';
+          }
+        }
+      }
+    }
+
+    // Aktualisiert NUR die Paket-/Slot-Zähleranzeige neu (ohne kompletten Seiten-Reload)
+    async function refreshPlanInfo(){
+      try {
+        const r = await fetch(`${API}/me`, { credentials:'include' });
+        if (r.ok) {
+          ME = await r.json();
+          renderPlanInfo();
+        }
+      } catch(_){}
+    }
+
     async function requireAuth(){
       try{
         const r = await fetch(`${API}/me`, { credentials:'include' });
@@ -1491,47 +1545,9 @@
           }
         }
 
-        const PLAN_LABELS = { basic:'Basis (Standard)', starter:'Starter', profi:'Profi', business:'Business' };
-        const planNameEl   = document.getElementById('plan-name');
-        const planValidEl  = document.getElementById('plan-valid-until');
-        const planSlotsEl  = document.getElementById('plan-slots');
-        const cancelBtn    = document.getElementById('cancel-plan-btn');
+        renderPlanInfo();
 
-        if (planNameEl && planValidEl) {
-          const key   = (ME.plan || ME.plan_key || 'basic');
-          const label = ME.plan_label || PLAN_LABELS[key] || key;
-          planNameEl.textContent = label;
-
-          if (ME.plan_valid_until) {
-            const d = new Date(ME.plan_valid_until);
-            if (!isNaN(d.getTime())) {
-              planValidEl.textContent = '· gültig bis ' + d.toLocaleDateString('de-DE');
-            } else {
-              planValidEl.textContent = '· Laufzeit aktiv';
-            }
-          } else {
-            planValidEl.textContent = '· kein Ablaufdatum hinterlegt';
-          }
-
-          if (planSlotsEl) {
-            if (ME.slots_unlimited) {
-              planSlotsEl.textContent = '· Slots diesen Monat: unbegrenzt';
-            } else if (typeof ME.free_slots_per_month === 'number' &&
-                       typeof ME.slots_used_this_month === 'number') {
-
-              const total = ME.free_slots_per_month;
-              const used  = ME.slots_used_this_month;
-              const left  = (typeof ME.slots_left_this_month === 'number')
-                ? ME.slots_left_this_month
-                : Math.max(0, total - used);
-
-              planSlotsEl.textContent = `· Slots diesen Monat: ${used}/${total} (noch ${left} frei)`;
-            } else {
-              planSlotsEl.textContent = '';
-            }
-          }
-        }
-
+        const cancelBtn = document.getElementById('cancel-plan-btn');
         if (cancelBtn) {
           const planKey = (ME.plan || ME.plan_key || '').trim();
           if (planKey && planKey !== 'basic') {
@@ -2086,6 +2102,19 @@
       }
     }
 
+    // Kopieren: Formular mit den Werten eines bestehenden Slots vorbefüllen,
+    // aber als NEUEN Slot speichern (kein Server-Duplikat, für alle Pakete).
+    function copySlotToForm(slot){
+      if (!slot) return;
+      enterEditMode(slot);
+      EDITING_SLOT = null;
+      const submitBtn = document.getElementById('slot-submit-btn');
+      if (submitBtn) submitBtn.textContent = 'Slot anlegen';
+      const cancelEditBtnInner = document.getElementById('btn-slot-cancel-edit');
+      if (cancelEditBtnInner) cancelEditBtnInner.style.display = 'inline-flex';
+      showMsg('msg-slot', 'Kopie erstellt – passe die Felder (z. B. Datum/Uhrzeit) an und speichere als neuen Slot.', true);
+    }
+
     function renderTable(items){
       const tbody = $('#tbl-slots tbody');
       updateSlotStats(items);
@@ -2223,10 +2252,10 @@
 
         const actionsHtml = [
           (canEdit && !isArchived) ? `<button class="btn" data-edit="${s.id}">Bearbeiten</button>` : '',
+          (!isArchived) ? `<button class="btn" data-copy="${s.id}">Kopieren</button>` : '',
           (canPublish && !isArchived) ? `<button class="btn action" data-arch="${s.id}" data-status="PUBLISHED">Veröffentlichen</button>` : '',
           (!isArchived) ? `<button class="btn danger" data-del="${s.id}">Löschen</button>` : '',
           (HAS_PRO_FEATURES && isPublished && !isArchived) ? `<button class="btn" data-archive="${s.id}">Archivieren</button>` : '',
-          (HAS_PRO_FEATURES && !isArchived) ? `<button class="btn" data-dup="${s.id}">Duplizieren</button>` : '',
         ].filter(Boolean).join('');
 
         const archivedNote = isArchived ? `<span class="muted slot-actions-archived">Archiviert</span>` : '';
@@ -2286,9 +2315,11 @@
         })
       );
 
-      $$('#tbl-slots [data-dup]').forEach(b =>
-        b.addEventListener('click', async ()=>{
-          await duplicateSlot(b.dataset.dup);
+      $$('#tbl-slots [data-copy]').forEach(b =>
+        b.addEventListener('click', ()=>{
+          const id = b.dataset.copy;
+          const slot = items.find(x => x.id === id);
+          if (slot) copySlotToForm(slot);
         })
       );
 
@@ -2361,6 +2392,8 @@
         }
         LAST_ITEMS = await r.json();
         renderTable(LAST_ITEMS);
+        // Paket-/Slot-Zähler nach jeder Slot-Änderung aktualisieren (kein Seiten-Reload nötig)
+        refreshPlanInfo();
       }catch(e){
         tbody.innerHTML = `<tr><td colspan="9" class="muted">Fehler beim Laden.</td></tr>`;
       }
