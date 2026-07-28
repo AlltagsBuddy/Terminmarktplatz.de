@@ -4192,105 +4192,115 @@ def login_page_always():
 
 
 # --------------------------------------------------------
-# KI-Chat-Assistent (Claude API)
+# Chat-Assistent (regelbasiert, lokal – ohne externe KI/API)
 # --------------------------------------------------------
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6").strip()
-CHAT_SYSTEM_PROMPT = (
-    "Du bist der Assistent von Terminmarktplatz.de. "
-    "Du hilfst Suchenden freie Termine zu finden und Anbietern ihre Slots einzutragen. "
-    "Antworte immer auf Deutsch, freundlich und kurz. "
-    "Terminmarktplatz ist eine kostenlose Terminbörse für kurzfristige Termine in Deutschland. "
-    "Anbieter können kostenlos starten, Pakete ab 9,90€. "
-    "Website: terminmarktplatz.de"
+# Läuft vollständig auf unserem Server (EU/Deutschland): keine Übermittlung an
+# Dritte, keine externe KI, keine Speicherung/Protokollierung der Chat-Inhalte,
+# keine API-Kosten. DSGVO-freundlich by design.
+
+def _chat_normalize(text: str) -> str:
+    """Kleinschreibung + Umlaut-Normalisierung für robustes Stichwort-Matching."""
+    t = (text or "").lower()
+    t = t.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    t = re.sub(r"[^a-z0-9 ]+", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+# Wissensbasis: (Stichwörter, Antwort). Reihenfolge = Priorität bei Gleichstand.
+CHAT_KB: list[tuple[list[str], str]] = [
+    (["hallo", "hi", "hey", "moin", "servus", "guten tag", "guten morgen", "gruess"],
+     "Hallo! Ich bin der Assistent von Terminmarktplatz. Ich helfe dir, freie Termine zu finden oder als Anbieter deine freien Slots einzutragen. Frag mich z. B. nach „Termin finden“, „Slot eintragen“ oder „Preise“."),
+    (["danke", "dankeschoen", "vielen dank", "besten dank"],
+     "Gern geschehen! Wenn du noch etwas wissen möchtest, frag einfach."),
+    (["mensch", "echt", "roboter", "bist du", "bist du ein", "ki", "kuenstliche"],
+     "Ich bin ein automatischer Assistent (kein Mensch) und beantworte häufige Fragen zu Terminmarktplatz. Für persönliche Anliegen erreichst du uns unter /kontakt."),
+    (["gratis", "kostenlos", "umsonst", "kost", "gebuehr", "gebuehren"],
+     "Der Einstieg ist kostenlos: Suchende buchen gratis, und Anbieter können kostenlos starten und freie Slots einstellen. Optionale Pakete mit mehr Funktionen gibt es ab 9,90 €. Alle Details unter /preise."),
+    (["preis", "preise", "paket", "pakete", "tarif", "tarife", "990", "9 90", "abo"],
+     "Die Basis ist kostenlos – als Anbieter kannst du gratis starten und Slots einstellen. Für mehr Funktionen gibt es optionale Pakete ab 9,90 €. Eine Übersicht findest du unter /preise."),
+    (["finden", "suche", "such", "suchen", "gesucht", "kurzfristig", "buchen", "buch", "termin"],
+     "So findest du einen Termin: Öffne die Suche unter /suche, filtere nach Ort, Branche und Datum und buche einen freien Slot direkt online – ganz ohne Anruf. Zum Suchen brauchst du kein Konto."),
+    (["anbieter", "slot", "slots", "eintrag", "eintragen", "einstell", "einstellen", "inserier", "veroeffentlich", "anbieten"],
+     "Als Anbieter kannst du kostenlos starten: Registriere dich unter /login.html?tab=register, lege dein Profil an und veröffentliche deine freien Slots. Suchende in deiner Nähe können sie dann sofort buchen."),
+    (["registr", "registrieren", "anmeld", "konto erstellen", "account", "konto anlegen", "profil anlegen"],
+     "Ein Konto brauchst du nur als Anbieter. Registriere dich unter /login.html?tab=register mit deiner E-Mail. Nach der Bestätigung (Double-Opt-In) kannst du dein Profil anlegen und Slots veröffentlichen. Suchende brauchen kein Konto."),
+    (["login", "einlogg", "einloggen", "anmelden", "passwort", "kennwort", "zugang"],
+     "Zum Login geht es über /login.html. Passwort vergessen? Auf der Login-Seite kannst du es über „Passwort zurücksetzen“ neu vergeben."),
+    (["storn", "stornieren", "storno", "absag", "absagen", "termin aendern", "umbuch"],
+     "Buchungen kannst du über die Bestätigungs-E-Mail bzw. dein Konto stornieren. Beachte bitte die Stornobedingungen des jeweiligen Anbieters. Bei Problemen hilft dir unser Kontakt unter /kontakt."),
+    (["zahl", "zahlen", "zahlung", "bezahl", "anzahlung", "stripe", "kreditkarte"],
+     "Viele Termine sind ohne Vorkasse buchbar. Verlangt ein Anbieter eine Anzahlung, läuft die Zahlung sicher über Stripe – deine Kartendaten sehen wir nicht. Die Details siehst du jeweils vor der Buchung."),
+    (["loesch", "loeschen", "daten loeschen", "konto loeschen", "account loeschen"],
+     "Du kannst dein Konto und deine Daten jederzeit löschen lassen. Schreib uns dazu einfach über /kontakt. Mehr zum Datenschutz unter /datenschutz."),
+    (["datenschutz", "dsgvo", "daten", "sicher", "privat", "privatsphaere"],
+     "Datenschutz ist uns wichtig: Wir verarbeiten nur die nötigen Daten, hosten in Deutschland und halten uns an die DSGVO. Dieser Chat läuft komplett auf unserem Server – die Inhalte werden nicht gespeichert. Details unter /datenschutz."),
+    (["branche", "branchen", "kategorie", "kategorien", "friseur", "therapeut", "physio", "handwerk", "kosmetik", "nagel", "wellness", "massage"],
+     "Terminmarktplatz ist für viele Branchen offen – z. B. Friseure, Kosmetik, Nagelstudios, Therapeuten/Physio, Wellness und Handwerker. Schau einfach in der Suche nach deiner Branche: /suche."),
+    (["was ist", "worum", "was macht", "was koennt", "wie funktioniert", "erklaer", "ueber euch"],
+     "Terminmarktplatz ist eine Terminbörse für kurzfristige Termine in Deutschland. Anbieter stellen freie Slots ein, Suchende buchen sie direkt online – ohne Anruf, oft für denselben oder nächsten Tag."),
+    (["kontakt", "support", "erreich", "hilfe", "telefon", "email", "e mail", "ansprechpartner", "problem"],
+     "Du erreichst uns über das Kontaktformular unter /kontakt. Viele Fragen beantwortet auch unsere Hilfe-Seite unter /hilfe."),
+]
+
+CHAT_FALLBACK = (
+    "Das habe ich nicht ganz verstanden. Ich kann dir z. B. bei diesen Themen helfen: "
+    "Termin finden, freie Slots als Anbieter eintragen, Preise, Registrierung oder Stornierung. "
+    "Formuliere deine Frage gern anders – oder schau in die Hilfe unter /hilfe bzw. schreib uns über /kontakt."
 )
 
-# Einfaches In-Memory-Rate-Limit pro (gehashter) IP. Es werden KEINE Chat-Inhalte
-# gespeichert oder geloggt – nur flüchtige Zeitstempel zur Missbrauchsvermeidung.
-_CHAT_RATE: dict[str, list[float]] = {}
-_CHAT_RATE_LOCK = threading.Lock()
-_CHAT_RATE_MAX = 15          # Anfragen
-_CHAT_RATE_WINDOW = 60.0     # Sekunden
+
+def _chat_match_score(norm: str, tokens: set, keywords: list[str]) -> int:
+    score = 0
+    for kw in keywords:
+        if " " in kw:                       # Mehrwort-Phrase
+            if kw in norm:
+                score += 2
+        elif len(kw) < 4:                   # kurze Wörter nur exakt (z. B. "ki")
+            if kw in tokens:
+                score += 1
+        else:                               # Stamm-/Teilwort-Treffer
+            if any(kw in tok for tok in tokens):
+                score += 1
+    return score
 
 
-def _chat_client_key() -> str:
-    """Anonymisierter (gehashter) Client-Schlüssel fürs Rate-Limit – keine Klartext-IP."""
-    ip = (request.headers.get("X-Forwarded-For", request.remote_addr) or "-").split(",")[0].strip()
-    return hashlib.sha256(f"{ip}|{SECRET}".encode("utf-8")).hexdigest()
+def _chat_answer(user_text: str) -> str:
+    norm = _chat_normalize(user_text)
+    tokens = set(norm.split())
+    if not tokens:
+        return CHAT_FALLBACK
+    best_score = 0
+    best_answer = None
+    for keywords, answer in CHAT_KB:
+        score = _chat_match_score(norm, tokens, keywords)
+        if score > best_score:              # erster Treffer gewinnt bei Gleichstand
+            best_score = score
+            best_answer = answer
+    if best_score <= 0 or best_answer is None:
+        return CHAT_FALLBACK
+    return best_answer
 
 
 @app.post("/api/chat")
 def api_chat():
-    """Leichter KI-Assistent auf Basis der Claude-API. Kein Login, keine Speicherung."""
-    if not ANTHROPIC_API_KEY:
-        return jsonify({"error": "Der Chat-Assistent ist derzeit nicht verfügbar."}), 503
-
-    # Rate-Limit pro Client
-    key = _chat_client_key()
-    now = time.time()
-    with _CHAT_RATE_LOCK:
-        recent = [t for t in _CHAT_RATE.get(key, []) if now - t < _CHAT_RATE_WINDOW]
-        if len(recent) >= _CHAT_RATE_MAX:
-            return jsonify({"error": "Zu viele Anfragen. Bitte einen Moment warten."}), 429
-        recent.append(now)
-        _CHAT_RATE[key] = recent
-
+    """Regelbasierter Assistent – vollständig lokal, keine externe KI, keine Speicherung."""
     data = request.get_json(silent=True) or {}
     raw_messages = data.get("messages")
     if not isinstance(raw_messages, list) or not raw_messages:
         return jsonify({"error": "Ungültige Anfrage."}), 400
 
-    # Nachrichten säubern und auf die letzten 10 begrenzen
-    clean: list[dict] = []
-    for m in raw_messages[-10:]:
-        if not isinstance(m, dict):
-            continue
-        role = m.get("role")
-        content = m.get("content")
-        if role not in ("user", "assistant") or not isinstance(content, str):
-            continue
-        content = content.strip()[:2000]
-        if content:
-            clean.append({"role": role, "content": content})
+    # Nur die letzte Nutzernachricht ist für die Antwort relevant
+    last_user = ""
+    for m in reversed(raw_messages):
+        if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+            last_user = m["content"].strip()[:2000]
+            break
 
-    if not clean or clean[-1]["role"] != "user":
+    if not last_user:
         return jsonify({"error": "Ungültige Anfrage."}), 400
 
-    try:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": CLAUDE_MODEL,
-                "max_tokens": 500,
-                "system": CHAT_SYSTEM_PROMPT,
-                "messages": clean,
-            },
-            timeout=30,
-        )
-    except requests.RequestException:
-        return jsonify({"error": "Der Assistent ist gerade nicht erreichbar. Bitte später erneut versuchen."}), 502
-
-    if resp.status_code != 200:
-        return jsonify({"error": "Der Assistent ist gerade nicht erreichbar. Bitte später erneut versuchen."}), 502
-
-    try:
-        payload = resp.json()
-        parts = payload.get("content", []) or []
-        reply = "".join(
-            p.get("text", "") for p in parts if isinstance(p, dict) and p.get("type") == "text"
-        ).strip()
-    except Exception:
-        reply = ""
-
-    if not reply:
-        reply = "Entschuldige, ich konnte gerade keine Antwort erzeugen. Bitte versuche es erneut."
-
-    return jsonify({"reply": reply})
+    return jsonify({"reply": _chat_answer(last_user)})
 
 
 @app.get("/copecart/kaufen")

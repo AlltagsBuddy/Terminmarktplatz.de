@@ -127,16 +127,16 @@
     var panel = document.createElement("div");
     panel.className = "tm-chat-panel";
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "KI-Assistent von Terminmarktplatz");
+    panel.setAttribute("aria-label", "Assistent von Terminmarktplatz");
     panel.innerHTML =
       '<div class="tm-chat-head">' +
       '<span class="tm-dot" aria-hidden="true"></span>' +
-      '<h3>KI-Assistent<span class="tm-sub">Terminmarktplatz.de</span></h3>' +
+      '<h3>Assistent<span class="tm-sub">Terminmarktplatz.de</span></h3>' +
       '<button class="tm-chat-close" type="button" aria-label="Chat schließen">&times;</button>' +
       "</div>" +
       '<div class="tm-chat-body" id="tm-chat-body"></div>' +
       '<div class="tm-chat-foot">' +
-      '<p class="tm-chat-note">KI-Assistent · Antworten können Fehler enthalten · Daten werden nicht gespeichert</p>' +
+      '<p class="tm-chat-note">Automatischer Assistent · kein Mensch · Daten werden nicht gespeichert</p>' +
       '<div class="tm-chat-inputrow">' +
       '<textarea class="tm-chat-input" id="tm-chat-input" rows="1" placeholder="Frag mich etwas…" aria-label="Nachricht"></textarea>' +
       '<button class="tm-chat-send" id="tm-chat-send" type="button" aria-label="Senden">' +
@@ -187,10 +187,48 @@
   function addBubble(role, text) {
     var div = document.createElement("div");
     div.className = "tm-msg " + (role === "user" ? "tm-user" : role === "error" ? "tm-error" : "tm-bot");
-    div.textContent = text; // textContent verhindert HTML-Injection
+    if (role === "user") {
+      div.textContent = text; // textContent verhindert HTML-Injection
+    } else {
+      appendLinkified(div, text); // Bot-Text: interne Links klickbar, XSS-sicher
+    }
     els.body.appendChild(div);
     scrollDown();
     return div;
+  }
+
+  // Wandelt Pfade/URLs in klickbare Links um – ohne innerHTML (XSS-sicher)
+  function appendLinkified(el, text) {
+    var re = /(https?:\/\/[^\s]+|\/[a-zA-Z0-9][a-zA-Z0-9._\-\/?=&%]*)/g;
+    var last = 0;
+    var m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) {
+        el.appendChild(document.createTextNode(text.slice(last, m.index)));
+      }
+      var token = m[0];
+      var trail = "";
+      while (/[).,;:!?]$/.test(token)) {
+        trail = token.slice(-1) + trail;
+        token = token.slice(0, -1);
+      }
+      if (token) {
+        var a = document.createElement("a");
+        a.href = token;
+        a.textContent = token;
+        a.style.color = "#c9bcff";
+        if (/^https?:\/\//.test(token)) {
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+        }
+        el.appendChild(a);
+      }
+      if (trail) el.appendChild(document.createTextNode(trail));
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) {
+      el.appendChild(document.createTextNode(text.slice(last)));
+    }
   }
 
   function scrollDown() {
@@ -203,7 +241,7 @@
     if (history.length === 0) {
       addBubble(
         "bot",
-        "Hallo! Ich bin der KI-Assistent von Terminmarktplatz. Ich helfe dir, freie Termine zu finden oder als Anbieter deine Slots einzutragen. Wie kann ich helfen?"
+        "Hallo! Ich bin der automatische Assistent von Terminmarktplatz. Ich helfe dir, freie Termine zu finden oder als Anbieter deine Slots einzutragen. Frag mich z. B. nach „Termin finden“, „Slot eintragen“ oder „Preise“."
       );
     } else {
       history.forEach(function (m) { addBubble(m.role, m.content); });
