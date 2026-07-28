@@ -1,5 +1,5 @@
 /*
- * Terminmarktplatz – KI-Chat-Assistent (Claude)
+ * Terminmarktplatz – Chat-Assistent (lokal, regelbasiert, keine externe KI)
  * - Lädt erst nach Cookie-Consent (tm_cookie_consent_v8 = "accepted")
  * - Speichert keine personenbezogenen Daten serverseitig
  * - Max. 10 Nachrichten pro Session (localStorage)
@@ -79,11 +79,11 @@
       "height:520px;max-height:calc(100vh - 40px);display:none;flex-direction:column;overflow:hidden;border-radius:18px;" +
       "background:#14121f;color:#f2f0ff;box-shadow:0 20px 60px rgba(10,6,30,.55);border:1px solid rgba(122,92,255,.25);}" +
       ".tm-chat-panel.tm-open{display:flex;}" +
-      ".tm-chat-head{display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(135deg,#6f53ff,#4b2fd6);}" +
+      ".tm-chat-head{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(135deg,#6f53ff,#4b2fd6);}" +
       ".tm-chat-head .tm-dot{width:9px;height:9px;border-radius:50%;background:#48e6a0;box-shadow:0 0 0 3px rgba(72,230,160,.25);}" +
       ".tm-chat-head h3{margin:0;font:700 15px/1.2 Inter,system-ui,sans-serif;color:#fff;flex:1;}" +
       ".tm-chat-head .tm-sub{display:block;font:400 11px/1.3 Inter,system-ui,sans-serif;color:rgba(255,255,255,.8);margin-top:2px;}" +
-      ".tm-chat-close{background:transparent;border:none;color:#fff;cursor:pointer;font-size:22px;line-height:1;padding:2px 6px;border-radius:8px;}" +
+      ".tm-chat-close{flex:0 0 auto;background:transparent;border:none;color:#fff;cursor:pointer;font-size:24px;line-height:1;width:40px;height:40px;margin:-6px -8px -6px 0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;-webkit-tap-highlight-color:transparent;}" +
       ".tm-chat-close:hover{background:rgba(255,255,255,.15);}" +
       ".tm-chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#14121f;}" +
       ".tm-msg{max-width:82%;padding:10px 13px;border-radius:14px;font:400 14px/1.45 Inter,system-ui,sans-serif;white-space:pre-wrap;word-wrap:break-word;}" +
@@ -94,7 +94,7 @@
       ".tm-typing span{width:7px;height:7px;border-radius:50%;background:#9b86ff;opacity:.5;animation:tmBlink 1.2s infinite;}" +
       ".tm-typing span:nth-child(2){animation-delay:.2s;}.tm-typing span:nth-child(3){animation-delay:.4s;}" +
       "@keyframes tmBlink{0%,60%,100%{opacity:.3;}30%{opacity:1;}}" +
-      ".tm-chat-foot{padding:10px 12px;border-top:1px solid rgba(122,92,255,.18);background:#14121f;}" +
+      ".tm-chat-foot{flex:0 0 auto;padding:10px 12px;border-top:1px solid rgba(122,92,255,.18);background:#14121f;}" +
       ".tm-chat-note{font:400 10.5px/1.3 Inter,system-ui,sans-serif;color:#8f88ad;text-align:center;margin:0 0 8px;}" +
       ".tm-chat-inputrow{display:flex;gap:8px;align-items:flex-end;}" +
       ".tm-chat-input{flex:1;resize:none;max-height:96px;min-height:40px;padding:10px 12px;border-radius:12px;border:1px solid rgba(122,92,255,.3);" +
@@ -105,7 +105,9 @@
       ".tm-chat-send:hover{background:#5a40e6;}.tm-chat-send:disabled{opacity:.5;cursor:not-allowed;}" +
       ".tm-chat-limit{text-align:center;font:400 12px/1.4 Inter,system-ui,sans-serif;color:#b7b0d6;}" +
       ".tm-chat-limit a{color:#9b86ff;cursor:pointer;text-decoration:underline;}" +
-      "@media (max-width:480px){.tm-chat-panel{right:8px;bottom:8px;width:calc(100vw - 16px);height:calc(100vh - 16px);max-height:none;}}";
+      "@media (max-width:480px){.tm-chat-panel{top:calc(env(safe-area-inset-top, 0px) + 8px);right:8px;left:8px;" +
+      "bottom:calc(env(safe-area-inset-bottom, 0px) + 8px);width:auto;height:auto;max-width:none;max-height:none;border-radius:14px;}" +
+      ".tm-chat-btn{right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 12px);}}";
     var style = document.createElement("style");
     style.id = "tm-chat-styles";
     style.textContent = css;
