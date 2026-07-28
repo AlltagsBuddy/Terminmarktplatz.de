@@ -1219,6 +1219,923 @@ BODY_JAHRESRUECKBLICK = """
       </div>
 """
 
+# --- Artikel-Inhalte (Teil 2: geplante Artikel ab August 2026) ---
+
+BODY_KOSMETIK_KURZFRISTIG = """
+      <p>
+        Ein spontaner Anlass, ein wichtiges Foto-Shooting oder einfach das Bedürfnis nach ein bisschen Pflege: Manchmal soll der Termin im <strong>Kosmetikstudio</strong> nicht erst in drei Wochen, sondern möglichst heute oder morgen stattfinden. Gerade beliebte Studios sind jedoch oft ausgebucht, und wer nur auf gut Glück anruft, hört meist ein bedauerndes „Tut mir leid, diese Woche ist nichts mehr frei“.
+      </p>
+      <p>
+        Die gute Nachricht: Kurzfristige Kosmetiktermine sind realistischer, als viele denken. Denn genau in diesem Bereich entstehen ständig Lücken – durch Absagen, verschobene Behandlungen oder freigehaltene Puffer, die am Ende doch leer bleiben. Wer weiß, wo und wie er sucht, findet deutlich schneller einen freien Slot als über den klassischen Weg per Telefon.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir, wie du kurzfristig einen Termin für Gesichtsbehandlung, Maniküre, Wimpern oder Make-up bekommst, worauf du bei der Buchung achten solltest und wie digitale Terminbörsen dir dabei helfen, spontan fündig zu werden.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Flexibel bei Zeit und Studio bleiben</h2>
+      </div>
+      <p>
+        Der wichtigste Hebel für einen kurzfristigen Termin ist Flexibilität. Wer nur den Samstagvormittag im Lieblingsstudio akzeptiert, hat kaum Chancen. Wer dagegen auch einen Dienstagnachmittag oder ein Studio zwei Straßen weiter in Betracht zieht, findet oft innerhalb weniger Stunden einen Platz. Randzeiten am frühen Morgen oder späten Nachmittag sind besonders häufig kurzfristig verfügbar.
+      </p>
+      <p>
+        Überlege dir vorab, wie weit du fahren würdest und welche Zeitfenster für dich realistisch sind. Je größer dein Suchradius und dein Zeitfenster, desto mehr freie Slots stehen dir zur Auswahl. Genau hier spielen digitale Plattformen ihre Stärke aus, weil du mehrere Studios gleichzeitig vergleichen kannst, statt nacheinander anzurufen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Online statt Telefon – so sparst du Zeit</h2>
+      </div>
+      <p>
+        Der klassische Anruf hat einen Nachteil: Er funktioniert nur zu den Öffnungszeiten, und während der Behandlung geht ohnehin niemand ans Telefon. Freie Kurzfristtermine tauchen aber oft abends oder am Wochenende auf, wenn jemand absagt. Über eine Online-Terminbörse siehst du in Echtzeit, welche Slots gerade frei geworden sind, und kannst sofort zugreifen – auch um 22 Uhr.
+      </p>
+      <p>
+        Ein weiterer Vorteil: Du siehst direkt, welche Behandlung wie lange dauert und was sie kostet. Das erspart Missverständnisse und langes Nachfragen. Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du nach Branche, Ort und Datum filtern und dir gezielt die freien Kosmetik-Slots in deiner Nähe anzeigen lassen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Die richtige Behandlung für wenig Zeit wählen</h2>
+      </div>
+      <p>
+        Nicht jede Behandlung braucht 90 Minuten. Wenn es schnell gehen muss, lohnt es sich, kompaktere Formate zu wählen. Viele Studios bieten Express-Varianten an, die perfekt in eine Mittagspause passen.
+      </p>
+      <ul>
+        <li><strong>Express-Maniküre:</strong> Feilen, Nagelhaut, Lack – oft in 30 Minuten erledigt.</li>
+        <li><strong>Augenbrauen zupfen oder färben:</strong> Sofort sichtbarer Effekt, meist unter 20 Minuten.</li>
+        <li><strong>Kurze Gesichtsreinigung:</strong> Auffrischung ohne das volle Programm.</li>
+        <li><strong>Make-up für einen Anlass:</strong> Ideal, wenn es abends schön aussehen soll.</li>
+      </ul>
+      <p>
+        Wenn du flexibel bist, welche Behandlung du buchst, erhöhst du deine Chancen zusätzlich – denn ein 30-Minuten-Slot lässt sich viel leichter in einen vollen Kalender einschieben als eine lange Behandlung.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Absagen anderer clever nutzen</h2>
+      </div>
+      <p>
+        Die meisten Kurzfristtermine entstehen durch Stornierungen. Jemand wird krank, ein Meeting kommt dazwischen, das Wetter ändert die Pläne – und plötzlich ist ein begehrter Samstagstermin frei. Wer in dem Moment schnell reagiert, bekommt den Platz. Über digitale Kanäle bekommst du solche frei werdenden Slots deutlich schneller mit als über das Telefon.
+      </p>
+      <p>
+        Hilfreich ist es außerdem, dich für Benachrichtigungen einzutragen, falls ein Studio das anbietet. So wirst du automatisch informiert, sobald in deinem Wunschzeitraum etwas frei wird, und musst nicht selbst ständig nachschauen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Verbindlich buchen und zuverlässig erscheinen</h2>
+      </div>
+      <p>
+        Kurzfristige Termine sind ein Geben und Nehmen. Studios halten dir spontan einen Platz frei – im Gegenzug solltest du zuverlässig erscheinen oder rechtzeitig absagen, falls doch etwas dazwischenkommt. So bleibt der Kurzfristmarkt für alle funktionsfähig, und du wirst als Kundin oder Kunde gern wieder spontan eingeplant.
+      </p>
+      <p>
+        Achte bei der Buchung auf die Stornobedingungen und plane genug Zeit für Anfahrt und Parken ein. Wer entspannt und pünktlich ankommt, hat mehr von der Behandlung – und das Studio behält dich in guter Erinnerung.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Kurzfristige Kosmetiktermine sind kein Glücksspiel. Mit etwas Flexibilität bei Zeit und Studio, der richtigen Behandlung und einer digitalen Terminbörse findest du auch spontan einen freien Platz – oft schneller, als du denkst.</p>
+      </div>
+"""
+
+BODY_GOOGLE_BEWERTUNGEN = """
+      <p>
+        Für kleine Dienstleister sind <strong>Google-Bewertungen</strong> heute so etwas wie die digitale Visitenkarte. Bevor jemand einen Friseur, eine Praxis oder einen Handwerksbetrieb auswählt, wirft er meist einen Blick auf die Sterne und liest ein paar Rezensionen. Wer hier gut abschneidet, gewinnt Vertrauen – und damit Buchungen. Wer wenige oder veraltete Bewertungen hat, wirkt schnell weniger attraktiv, selbst wenn die Arbeit hervorragend ist.
+      </p>
+      <p>
+        Die meisten Betriebe wissen das, tun aber trotzdem wenig aktiv dafür. Dabei ist es gar nicht schwer, kontinuierlich neue, ehrliche Bewertungen zu sammeln. Es braucht keinen Trick und schon gar keine gekauften Rezensionen – die sind nicht nur unzulässig, sondern schaden langfristig dem Vertrauen. Es braucht vor allem ein System, das den zufriedenen Kunden das Bewerten leicht macht.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir, wie du als kleiner Dienstleister mehr echte Google-Bewertungen bekommst, wie du souverän mit Kritik umgehst und warum Bewertungen und eine gute Online-Buchung Hand in Hand gehen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Aktiv fragen – im richtigen Moment</h2>
+      </div>
+      <p>
+        Der häufigste Grund, warum Betriebe wenige Bewertungen haben, ist simpel: Sie fragen nicht danach. Zufriedene Kunden denken selten von allein daran, eine Rezension zu schreiben. Der beste Zeitpunkt zu fragen ist direkt nach der Leistung, wenn die Freude über das Ergebnis noch frisch ist – etwa nach dem neuen Haarschnitt oder der erfolgreichen Reparatur.
+      </p>
+      <p>
+        Wichtig ist, dass die Bitte persönlich und ehrlich klingt. Ein Satz wie „Wenn Sie zufrieden waren, würde uns eine kurze Google-Bewertung sehr helfen“ wirkt authentisch. Vermeide es, nur nach Fünf-Sterne-Bewertungen zu fragen – bitte einfach um ehrliches Feedback. Das ist glaubwürdiger und rechtlich unbedenklich.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Den Weg zur Bewertung so kurz wie möglich machen</h2>
+      </div>
+      <p>
+        Jeder zusätzliche Klick kostet Bewertungen. Wer erst das Studio googeln, das Profil finden und dann zum Bewertungsfeld scrollen muss, gibt oft vorher auf. Mache es deinen Kunden deshalb so einfach wie möglich.
+      </p>
+      <ul>
+        <li><strong>QR-Code:</strong> An der Kasse oder auf dem Kassenbon, der direkt zum Bewertungsformular führt.</li>
+        <li><strong>Direkter Link:</strong> In der Bestätigungs- oder Dankes-E-Mail nach dem Termin.</li>
+        <li><strong>Kurz-URL:</strong> Ein leicht merkbarer Link, den du auch mündlich weitergeben kannst.</li>
+      </ul>
+      <p>
+        Je weniger Hürden zwischen dem Kunden und dem fertigen Text liegen, desto mehr Bewertungen kommen tatsächlich zustande.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Auf jede Bewertung reagieren</h2>
+      </div>
+      <p>
+        Antworten zeigen, dass hinter dem Betrieb echte Menschen stehen, die sich kümmern. Bedanke dich für positives Feedback kurz und persönlich. Das motiviert andere, ebenfalls zu schreiben, und wirkt sympathisch auf alle, die die Bewertungen später lesen.
+      </p>
+      <p>
+        Noch wichtiger ist die Reaktion auf Kritik. Bleibe immer sachlich und freundlich, auch wenn eine Bewertung ungerecht erscheint. Entschuldige dich für das Erlebte, biete eine Lösung an und zeige Verständnis. Interessenten lesen weniger die Kritik selbst als vielmehr, wie du damit umgehst. Eine professionelle Antwort auf eine schlechte Bewertung kann mehr Vertrauen schaffen als zehn perfekte Sterne.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Kontinuität statt Strohfeuer</h2>
+      </div>
+      <p>
+        Ein Betrieb mit 40 Bewertungen aus dem letzten Jahr wirkt lebendiger als einer mit 100 Bewertungen, die alle drei Jahre alt sind. Aktualität signalisiert, dass der Laden gut läuft. Deshalb ist es besser, regelmäßig ein paar neue Bewertungen zu sammeln, als einmalig eine große Aktion zu starten.
+      </p>
+      <p>
+        Baue das Fragen nach Feedback fest in deinen Ablauf ein, damit es nicht in Vergessenheit gerät. Wenn jeder Kunde nach einem gelungenen Termin unkompliziert die Möglichkeit bekommt, wächst deine Bewertungszahl fast von allein und bleibt dauerhaft frisch.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Bewertungen und Online-Buchung verbinden</h2>
+      </div>
+      <p>
+        Bewertungen bringen Menschen auf dein Profil – aber sie müssen anschließend auch buchen können. Wenn Interessenten überzeugt sind und dann feststellen, dass eine Terminvergabe nur telefonisch zu den Öffnungszeiten möglich ist, springen viele wieder ab. Eine einfache Online-Buchung fängt genau diese Interessenten auf.
+      </p>
+      <p>
+        Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du freie Slots veröffentlichen, sodass überzeugte Interessenten sofort einen Termin sichern – ohne Anruf, ohne Wartezeit. So wird aus der guten Bewertung direkt eine echte Buchung.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Mehr Google-Bewertungen bekommst du nicht durch Zufall, sondern durch ein einfaches System: aktiv fragen, den Weg kurz halten, auf jede Rezension reagieren und dranbleiben. In Kombination mit einer schnellen Online-Buchung werden aus Sternen echte Kunden.</p>
+      </div>
+"""
+
+BODY_NAGELSTUDIO_SPONTAN = """
+      <p>
+        Abgebrochener Nagel kurz vor einem wichtigen Termin, eine spontane Einladung oder einfach Lust auf frische Farben: Es gibt viele Gründe, warum ein Besuch im <strong>Nagelstudio</strong> plötzlich ganz oben auf der Liste steht. Doch beliebte Studios sind häufig Tage im Voraus ausgebucht, und die spontane Suche endet oft in Enttäuschung.
+      </p>
+      <p>
+        Dabei ist es durchaus möglich, kurzfristig einen Termin zu bekommen – man muss nur wissen, wie. Denn auch in Nagelstudios entstehen laufend freie Slots durch Absagen und Umbuchungen. Wer flexibel ist und die richtigen Kanäle nutzt, findet oft noch am selben Tag einen Platz.
+      </p>
+      <p>
+        In diesem Artikel erfährst du, wie du spontan einen Nagelstudio-Termin findest, welche Behandlungen sich für wenig Zeit eignen und wie du mit einer digitalen Terminbörse schneller ans Ziel kommst.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Randzeiten und Wochentage nutzen</h2>
+      </div>
+      <p>
+        Der Samstag ist in fast jedem Nagelstudio der begehrteste Tag – und entsprechend schwer kurzfristig zu bekommen. Wer dagegen unter der Woche schaut, hat deutlich bessere Karten. Vormittags an einem Werktag oder in den frühen Nachmittagsstunden sind die Chancen auf einen spontanen Slot am größten.
+      </p>
+      <p>
+        Auch die klassischen Randzeiten direkt nach Öffnung oder kurz vor Schließung werden oft erst spät gebucht. Wenn du zeitlich flexibel bist, kannst du genau diese Lücken für dich nutzen und musst nicht wochenlang auf einen Termin warten.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Mehrere Studios gleichzeitig im Blick haben</h2>
+      </div>
+      <p>
+        Wer nur ein einziges Lieblingsstudio anruft, macht sich abhängig von dessen Auslastung. Viel effektiver ist es, mehrere Studios in der Umgebung gleichzeitig zu vergleichen. Über eine Online-Terminbörse siehst du auf einen Blick, wo gerade etwas frei ist, statt nacheinander telefonieren zu müssen.
+      </p>
+      <p>
+        Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du nach Ort und Datum filtern und dir freie Slots in deiner Nähe anzeigen lassen. So findest du auch ein Studio, das du vielleicht noch gar nicht kanntest – und das gerade genau dann Zeit hat, wenn du sie brauchst.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Die passende Behandlung für wenig Zeit</h2>
+      </div>
+      <p>
+        Wenn es schnell gehen muss, ist die Wahl der Behandlung entscheidend. Ein komplettes neues Set dauert deutlich länger als eine Auffrischung.
+      </p>
+      <ul>
+        <li><strong>Auffüllen (Refill):</strong> Schneller als ein komplettes Neu-Set und ideal, wenn nur nachgewachsen ist.</li>
+        <li><strong>Reparatur einzelner Nägel:</strong> Perfekt, wenn nur ein Nagel abgebrochen ist.</li>
+        <li><strong>Maniküre mit Farblack:</strong> Frische Optik in überschaubarer Zeit.</li>
+        <li><strong>Ablösen und Pflege:</strong> Wenn das alte Set runter soll und die Nägel eine Pause brauchen.</li>
+      </ul>
+      <p>
+        Ein kürzerer Slot lässt sich viel leichter kurzfristig einschieben – wenn du also flexibel bei der Behandlung bist, steigen deine Chancen deutlich.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Schnell reagieren, wenn ein Slot frei wird</h2>
+      </div>
+      <p>
+        Kurzfristige Termine sind heiß begehrt und schnell wieder weg. Wenn du online einen freien Slot entdeckst, zögere nicht lange – buche direkt. Wer erst überlegt und eine Stunde später zurückkommt, findet den Platz oft schon vergeben.
+      </p>
+      <p>
+        Halte am besten die wichtigsten Infos bereit: gewünschte Behandlung, mögliche Zeitfenster und dein Standort. So kannst du im richtigen Moment sofort zugreifen, ohne erst lange zu suchen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Fair bleiben – für dich und das Studio</h2>
+      </div>
+      <p>
+        Spontane Termine funktionieren nur, wenn beide Seiten verlässlich sind. Wenn du kurzfristig gebucht hast, erscheine pünktlich oder sage rechtzeitig ab, falls doch etwas dazwischenkommt. So bleibt der Slot für jemand anderen nutzbar, und das Studio plant dich beim nächsten Mal gern wieder spontan ein.
+      </p>
+      <p>
+        Ein freundlicher Umgang zahlt sich aus: Wer als zuverlässiger Kunde bekannt ist, wird bei kurzfristigen Lücken oft bevorzugt kontaktiert. So wird der spontane Besuch zur festen Option statt zur Ausnahme.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Ein spontaner Nagelstudio-Termin ist kein Wunschtraum. Mit flexiblen Zeiten, mehreren Studios im Blick und einer digitalen Terminbörse findest du auch kurzfristig gepflegte Nägel – oft noch am selben Tag.</p>
+      </div>
+"""
+
+BODY_PREISGESTALTUNG = """
+      <p>
+        Die richtige <strong>Preisgestaltung</strong> ist für Dienstleister eine der schwierigsten Aufgaben überhaupt. Zu niedrige Preise lassen kaum Gewinn übrig und signalisieren geringe Wertigkeit. Zu hohe Preise schrecken Kunden ab, wenn der Mehrwert nicht klar wird. Viele kleine Betriebe orientieren sich einfach an der Konkurrenz oder rechnen aus dem Bauch heraus – und lassen dabei oft bares Geld liegen.
+      </p>
+      <p>
+        Dabei ist ein durchdachter Preis kein Zufall, sondern das Ergebnis einer klaren Kalkulation. Wer weiß, was eine Stunde Arbeit wirklich kostet, welche Fixkosten anfallen und welchen Wert die eigene Leistung hat, kann Preise selbstbewusst festlegen und begründen. Das schafft nicht nur mehr Umsatz, sondern auch mehr Ruhe im Kopf.
+      </p>
+      <p>
+        In diesem Artikel gehen wir die wichtigsten Bausteine einer fairen und wirtschaftlichen Preisgestaltung durch – von den echten Kosten über die Positionierung bis hin zu cleveren Preismodellen für ausgelastete und ruhige Zeiten.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Die echten Kosten kennen</h2>
+      </div>
+      <p>
+        Bevor du einen Preis festlegst, musst du wissen, was dich eine Arbeitsstunde tatsächlich kostet. Dazu gehören nicht nur Material und deine gewünschte Vergütung, sondern auch alle Fixkosten: Miete, Versicherungen, Software, Weiterbildung und die Zeit, in der du nicht direkt am Kunden arbeitest.
+      </p>
+      <p>
+        Viele Selbstständige unterschätzen, wie wenig ihrer Arbeitszeit wirklich abrechenbar ist. Verwaltung, Anfahrt, Vorbereitung und Leerlauf zählen mit. Wenn du deine Jahreskosten durch die tatsächlich verkaufbaren Stunden teilst, bekommst du einen realistischen Mindeststundensatz – die Basis jeder gesunden Preisgestaltung.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Nicht nur über den Preis konkurrieren</h2>
+      </div>
+      <p>
+        Der Preiskampf ist ein Wettlauf, den kleine Betriebe selten gewinnen. Wer immer der Günstigste sein will, arbeitet am Ende viel für wenig Ertrag. Klüger ist es, den eigenen Wert herauszustellen: Erfahrung, Qualität, Beratung, Atmosphäre oder besonderer Service rechtfertigen höhere Preise.
+      </p>
+      <p>
+        Überlege, was dich von anderen unterscheidet, und kommuniziere es klar. Kunden zahlen gern mehr, wenn sie das Gefühl haben, etwas Besseres zu bekommen. Ein durchdachtes Profil, gute Bewertungen und ein professioneller Auftritt unterstützen diese Wahrnehmung und machen den Preis leichter vermittelbar.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Mit Preismodellen die Auslastung steuern</h2>
+      </div>
+      <p>
+        Nicht jede Stunde ist gleich viel wert. Die Nachfrage schwankt über Tag und Woche stark. Mit unterschiedlichen Preisen kannst du Kunden gezielt in ruhigere Zeiten lenken und deine Auslastung glätten.
+      </p>
+      <ul>
+        <li><strong>Randzeiten-Rabatt:</strong> Günstigere Preise für schwach nachgefragte Zeiten wie Vormittage.</li>
+        <li><strong>Last-Minute-Angebote:</strong> Freie Slots kurzfristig etwas reduziert anbieten, statt sie leer zu lassen.</li>
+        <li><strong>Pakete:</strong> Mehrere Leistungen gebündelt zu einem attraktiven Gesamtpreis.</li>
+        <li><strong>Premium-Zeiten:</strong> Für besonders begehrte Termine einen leichten Aufschlag verlangen.</li>
+      </ul>
+      <p>
+        So machst du aus starrer Preisgestaltung ein flexibles Werkzeug, das deine leeren Stunden füllt und in Spitzenzeiten mehr Ertrag bringt.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Preise selbstbewusst kommunizieren</h2>
+      </div>
+      <p>
+        Ein guter Preis nützt wenig, wenn du ihn zögerlich nennst. Transparenz schafft Vertrauen: Wenn Kunden vorab wissen, was eine Leistung kostet, gibt es keine unangenehmen Überraschungen. Zeige deine Preise offen auf deiner Seite oder deinem Profil und stehe dazu.
+      </p>
+      <p>
+        Vermeide es, dich für deine Preise zu entschuldigen oder sie ständig zu senken, sobald jemand zögert. Wer seine Preise klar und ruhig vertritt, wirkt souveräner – und zieht genau die Kunden an, die die Leistung zu schätzen wissen und bereit sind, dafür zu zahlen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Regelmäßig überprüfen und anpassen</h2>
+      </div>
+      <p>
+        Preise sind nicht in Stein gemeißelt. Steigende Kosten, mehr Erfahrung oder eine stärkere Nachfrage sind gute Gründe, die Preise anzupassen. Wer jahrelang dieselben Sätze verlangt, arbeitet real immer günstiger, weil die Kosten weiter steigen.
+      </p>
+      <p>
+        Prüfe deine Preise mindestens einmal im Jahr. Kleine, regelmäßige Anpassungen fallen Kunden kaum auf und sind leichter zu vermitteln als seltene große Sprünge. So bleibt dein Betrieb dauerhaft wirtschaftlich, ohne die Stammkundschaft zu verschrecken.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Gute Preisgestaltung beginnt mit der Kenntnis der echten Kosten, setzt auf Wert statt reinen Wettbewerb und nutzt flexible Modelle, um die Auslastung zu steuern. Wer seine Preise selbstbewusst kommuniziert und regelmäßig prüft, verdient fair – und bleibt langfristig gesund.</p>
+      </div>
+"""
+
+BODY_TIERARZT_KURZFRISTIG = """
+      <p>
+        Wenn das eigene Tier plötzlich Beschwerden zeigt, zählt oft jede Stunde. Ein humpelnder Hund, eine Katze, die nicht mehr frisst, oder ein Kaninchen, das sich seltsam verhält – solche Situationen lösen bei Tierhaltern verständlicherweise Sorge aus. Umso frustrierender ist es, wenn beim <strong>Tierarzt</strong> erst in zwei Wochen ein Termin frei ist.
+      </p>
+      <p>
+        Vorweg das Wichtigste: Bei echten Notfällen wie starken Blutungen, Atemnot, Vergiftungsverdacht oder Unfällen solltest du nicht nach einem regulären Termin suchen, sondern sofort eine Tierklinik oder den tierärztlichen Notdienst aufsuchen. Für alles, was dringend, aber kein akuter Notfall ist, gibt es jedoch Wege, kurzfristig einen Termin zu bekommen.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir, wie du für Kontrolluntersuchungen, Impfungen und leichtere Beschwerden schneller einen Tierarzttermin findest und wie digitale Terminbörsen dabei helfen können.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Notfall von Routine unterscheiden</h2>
+      </div>
+      <p>
+        Der erste Schritt ist einzuschätzen, wie dringend die Situation wirklich ist. Manche Symptome erfordern sofortiges Handeln, andere können einen oder zwei Tage warten. Diese Unterscheidung hilft dir, den richtigen Weg zu wählen und weder in Panik zu geraten noch etwas Ernstes zu verschleppen.
+      </p>
+      <p>
+        Im Zweifel lohnt ein kurzer telefonischer Kontakt zur Praxis oder zum Notdienst, um die Lage schildern zu können. Für planbare Anliegen wie Impfauffrischungen, Wurmkuren, Krallenschneiden oder Nachkontrollen kannst du dagegen entspannt einen kurzfristigen regulären Termin suchen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Mehrere Praxen in der Umgebung prüfen</h2>
+      </div>
+      <p>
+        Viele Tierhalter sind auf eine einzige Stammpraxis fixiert. Doch wenn diese ausgebucht ist, lohnt der Blick auf weitere Praxen in der Umgebung. Gerade für unkomplizierte Anliegen ist es oft kein Problem, einmal eine andere Praxis aufzusuchen – und dort ist möglicherweise schon morgen etwas frei.
+      </p>
+      <p>
+        Über eine Online-Terminbörse wie <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du freie Slots verschiedener Anbieter in deiner Nähe vergleichen, statt nacheinander zu telefonieren. So findest du schneller einen Termin, ohne stundenlang in Warteschleifen zu hängen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Flexible Zeiten erhöhen die Chancen</h2>
+      </div>
+      <p>
+        Wie in anderen Branchen sind auch bei Tierärzten die Randzeiten am ehesten kurzfristig verfügbar. Wer bereit ist, früh morgens oder am späten Nachmittag zu kommen, findet leichter einen Platz als jemand, der nur einen bestimmten Wunschtermin akzeptiert.
+      </p>
+      <ul>
+        <li><strong>Vormittags unter der Woche:</strong> Oft ruhiger als die Nachmittagssprechstunde.</li>
+        <li><strong>Direkt nach Öffnung:</strong> Freie Slots werden hier häufig erst spät gebucht.</li>
+        <li><strong>Kurz vor Sprechstundenende:</strong> Für kurze Anliegen gut geeignet.</li>
+      </ul>
+      <p>
+        Je flexibler du bist, desto größer ist die Auswahl an freien Terminen – und desto schneller ist dein Tier versorgt.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Gut vorbereitet zum Termin</h2>
+      </div>
+      <p>
+        Damit ein kurzfristiger Termin effizient abläuft, hilft eine gute Vorbereitung. Notiere dir die Symptome, seit wann sie bestehen und ob sich etwas verändert hat. Bring den Impfpass und, falls vorhanden, Unterlagen von früheren Behandlungen mit.
+      </p>
+      <p>
+        Wenn dein Tier nervös ist, sorge für einen sicheren Transport in einer geeigneten Box oder an der Leine. Eine ruhige, gut vorbereitete Anreise reduziert Stress für dich und dein Tier und macht die Untersuchung für alle Beteiligten angenehmer.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Verlässlich erscheinen und rechtzeitig absagen</h2>
+      </div>
+      <p>
+        Auch bei Tierärzten sind kurzfristige Termine ein knappes Gut. Wenn du einen Slot ergattert hast, den du doch nicht brauchst, sage rechtzeitig ab. So kann ein anderer Tierhalter, dessen Liebling ebenfalls Hilfe braucht, den Platz nutzen.
+      </p>
+      <p>
+        Zuverlässigkeit zahlt sich aus: Praxen merken sich Kunden, die pünktlich und verlässlich sind, und planen sie bei Engpässen gern wieder ein. So profitierst du langfristig von einer guten Beziehung zu deiner Praxis.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Bei echten Notfällen gilt immer der Weg zur Tierklinik oder zum Notdienst. Für dringende, aber planbare Anliegen findest du mit flexiblen Zeiten, mehreren Praxen im Blick und einer digitalen Terminbörse schneller einen kurzfristigen Tierarzttermin.</p>
+      </div>
+"""
+
+BODY_LOCAL_SEO = """
+      <p>
+        Die meisten Menschen suchen einen Dienstleister heute nicht mehr im Branchenbuch, sondern bei Google – und zwar oft mit dem Zusatz „in meiner Nähe“. Wer als Friseur, Praxis oder Handwerksbetrieb bei diesen lokalen Suchen ganz oben auftaucht, gewinnt Kunden. Wer unsichtbar bleibt, verliert sie an die Konkurrenz. Genau hier setzt <strong>Local SEO</strong> an, also die Optimierung für die lokale Suche.
+      </p>
+      <p>
+        Das Gute daran: Local SEO ist kein Geheimwissen für Agenturen, sondern besteht zu großen Teilen aus Dingen, die jeder Betrieb selbst erledigen kann. Es geht darum, im richtigen Moment am richtigen Ort gefunden zu werden – wenn jemand in deiner Stadt gerade genau deine Leistung sucht.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir die wichtigsten Hebel, mit denen du lokal sichtbarer wirst, mehr Anfragen bekommst und diese Sichtbarkeit direkt in Buchungen verwandelst.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Das Google-Unternehmensprofil pflegen</h2>
+      </div>
+      <p>
+        Das kostenlose Google-Unternehmensprofil ist das Herzstück der lokalen Sichtbarkeit. Es entscheidet, ob du in der Karte und in den lokalen Suchergebnissen auftauchst. Viele Betriebe legen es einmal an und vergessen es dann – ein großer Fehler, denn Google bevorzugt aktuelle, vollständige Profile.
+      </p>
+      <p>
+        Achte darauf, dass alle Angaben stimmen: Name, Adresse, Telefonnummer, Öffnungszeiten und Kategorie. Lade regelmäßig Fotos hoch, halte die Öffnungszeiten aktuell und nutze die Möglichkeit, Beiträge zu veröffentlichen. Je aktiver und vollständiger dein Profil, desto besser wirst du gefunden.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Einheitliche Daten im ganzen Netz</h2>
+      </div>
+      <p>
+        Google und andere Suchmaschinen vertrauen Betrieben, deren Daten überall gleich sind. Wenn deine Adresse oder Telefonnummer auf verschiedenen Plattformen unterschiedlich geschrieben ist, sorgt das für Verwirrung – bei Suchmaschinen wie bei Kunden.
+      </p>
+      <p>
+        Prüfe deshalb, dass Name, Adresse und Telefonnummer auf deiner Website, in Verzeichnissen und in sozialen Netzwerken identisch sind. Diese Konsistenz ist ein wichtiges Signal für die lokale Suche und lässt sich mit etwas Sorgfalt leicht herstellen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Bewertungen aktiv sammeln</h2>
+      </div>
+      <p>
+        Bewertungen sind nicht nur für Kunden wichtig, sondern auch ein starkes Ranking-Signal. Betriebe mit vielen aktuellen, guten Bewertungen erscheinen in der lokalen Suche weiter oben. Frage zufriedene Kunden deshalb aktiv nach einer Rezension und antworte auf jede Bewertung.
+      </p>
+      <ul>
+        <li><strong>Menge:</strong> Viele Bewertungen wirken vertrauenswürdiger als wenige.</li>
+        <li><strong>Aktualität:</strong> Regelmäßig neue Bewertungen zeigen einen aktiven Betrieb.</li>
+        <li><strong>Antworten:</strong> Reaktionen signalisieren Engagement – auch gegenüber Google.</li>
+      </ul>
+      <p>
+        So verbessern Bewertungen gleichzeitig dein Ansehen bei Kunden und deine Position in den Suchergebnissen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Lokale Inhalte auf der eigenen Seite</h2>
+      </div>
+      <p>
+        Wer auf seiner Website konkret benennt, wo und was er anbietet, wird für passende Suchanfragen besser gefunden. Nenne deinen Ort und deine Stadtteile, beschreibe deine Leistungen in verständlicher Sprache und beantworte typische Fragen deiner Kunden.
+      </p>
+      <p>
+        Ein kleiner Blog oder eine Seite mit häufigen Fragen kann zusätzlich helfen, weil du damit genau die Begriffe abdeckst, nach denen Menschen suchen. So wirst du nicht nur für deinen Firmennamen, sondern auch für deine Leistungen in deiner Region sichtbar.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Sichtbarkeit in Buchungen verwandeln</h2>
+      </div>
+      <p>
+        Gefunden zu werden ist nur der erste Schritt. Wenn Interessenten dich entdecken, müssen sie auch unkompliziert einen Termin machen können. Ist der einzige Weg der Anruf zu den Öffnungszeiten, springen viele wieder ab – besonders diejenigen, die abends oder am Wochenende suchen.
+      </p>
+      <p>
+        Mit einer Online-Buchung fängst du genau diese Interessenten auf. Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du deine freien Slots veröffentlichen, sodass gefundene Interessenten sofort buchen – rund um die Uhr, ohne Umweg über das Telefon.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Local SEO macht dich genau dann sichtbar, wenn Menschen in deiner Nähe deine Leistung suchen. Mit einem gepflegten Google-Profil, einheitlichen Daten, aktiven Bewertungen und lokalen Inhalten wirst du gefunden – und mit einer einfachen Online-Buchung wird aus der Sichtbarkeit echter Umsatz.</p>
+      </div>
+"""
+
+BODY_KFZ_WERKSTATT = """
+      <p>
+        Ein seltsames Geräusch beim Bremsen, eine leuchtende Warnlampe oder die fällige Inspektion kurz vor dem Urlaub: Manchmal muss das Auto schnell in die <strong>Werkstatt</strong>. Doch gerade gut ausgelastete Betriebe vergeben Termine oft erst in ein bis zwei Wochen. Wer auf sein Fahrzeug angewiesen ist, gerät dadurch schnell unter Druck.
+      </p>
+      <p>
+        Die gute Nachricht: Auch bei Werkstätten gibt es Wege, kurzfristig einen Termin zu bekommen. Denn Absagen, umgeplante Aufträge und freie Kapazitäten entstehen laufend. Wer flexibel ist und die richtigen Kanäle nutzt, findet oft schneller einen Platz als gedacht.
+      </p>
+      <p>
+        In diesem Artikel erfährst du, wie du kurzfristig einen Werkstatttermin findest, wie du den Aufwand richtig einschätzt und wie dir eine digitale Terminbörse dabei hilft, schnell fündig zu werden.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Dringlichkeit richtig einschätzen</h2>
+      </div>
+      <p>
+        Nicht jedes Warnsignal bedeutet dasselbe. Bei sicherheitsrelevanten Problemen wie Bremsen, Lenkung oder einer roten Warnleuchte solltest du nicht lange warten und im Zweifel direkt in einer Werkstatt vorfahren. Für planbare Arbeiten wie Reifenwechsel, Inspektion oder kleinere Reparaturen kannst du dagegen gezielt einen kurzfristigen Termin suchen.
+      </p>
+      <p>
+        Diese Einschätzung hilft dir, den richtigen Weg zu wählen. Bei akuten Sicherheitsmängeln zählt schnelles Handeln; bei Routinearbeiten hast du Zeit, in Ruhe die beste kurzfristige Option zu finden.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Mehrere Werkstätten vergleichen</h2>
+      </div>
+      <p>
+        Viele Autofahrer fahren jahrelang zur gleichen Werkstatt. Wenn diese aber ausgebucht ist, lohnt der Blick auf Alternativen in der Umgebung. Gerade für Standardarbeiten ist ein Wechsel unkompliziert – und andernorts ist vielleicht schon morgen etwas frei.
+      </p>
+      <p>
+        Über eine Online-Terminbörse wie <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du freie Termine verschiedener Betriebe in deiner Nähe vergleichen, statt reihum zu telefonieren. So sparst du Zeit und findest schneller einen Platz, der zu deinem Zeitplan passt.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Flexibel bei Zeit und Ablauf sein</h2>
+      </div>
+      <p>
+        Wer flexibel ist, findet leichter einen kurzfristigen Termin. Randzeiten und weniger beliebte Wochentage sind eher verfügbar. Auch die Bereitschaft, das Auto morgens abzugeben und später abzuholen, erhöht deine Chancen erheblich.
+      </p>
+      <ul>
+        <li><strong>Frühe Termine:</strong> Viele Werkstätten starten den Tag mit freien Kapazitäten.</li>
+        <li><strong>Bring- und Hol-Service:</strong> Wenn du das Auto den Tag über dalassen kannst, ist die Planung einfacher.</li>
+        <li><strong>Mitte der Woche:</strong> Oft ruhiger als Montag oder Freitag.</li>
+      </ul>
+      <p>
+        Je weniger du auf einen bestimmten Zeitpunkt fixiert bist, desto größer ist die Auswahl an freien Slots.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Das Problem klar beschreiben</h2>
+      </div>
+      <p>
+        Je genauer du das Problem schilderst, desto besser kann die Werkstatt den Aufwand einschätzen und den passenden Slot einplanen. Notiere, wann das Geräusch oder die Warnung auftritt, wie lange das Problem schon besteht und ob sich etwas verändert hat.
+      </p>
+      <p>
+        Eine klare Beschreibung hilft, unnötige Diagnosezeit zu vermeiden und die Reparatur realistisch zu planen. Das erhöht die Chance, dass die Arbeit gleich beim ersten Termin erledigt werden kann, statt einen zweiten Besuch nötig zu machen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Termine verbindlich halten</h2>
+      </div>
+      <p>
+        Kurzfristige Werkstatttermine sind gefragt. Wenn du einen Platz reserviert hast, erscheine pünktlich oder sage rechtzeitig ab, falls sich etwas ändert. So kann die Werkstatt die Kapazität anderweitig nutzen und dich beim nächsten Mal gern wieder kurzfristig einplanen.
+      </p>
+      <p>
+        Ein zuverlässiger Umgang zahlt sich aus: Wer als verlässlicher Kunde bekannt ist, wird bei Engpässen bevorzugt berücksichtigt. So wird der kurzfristige Termin zur verlässlichen Option statt zum Glücksfall.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Bei sicherheitskritischen Problemen zählt schnelles Handeln. Für planbare Arbeiten findest du mit flexiblen Zeiten, mehreren Werkstätten im Blick und einer digitalen Terminbörse auch kurzfristig einen Platz – und bleibst mobil, ohne lange zu warten.</p>
+      </div>
+"""
+
+BODY_STAMMKUNDEN_BINDEN = """
+      <p>
+        Neue Kunden zu gewinnen ist teuer und aufwendig. Einen bestehenden Kunden zu halten, kostet dagegen einen Bruchteil – und bringt oft mehr Umsatz. Trotzdem konzentrieren sich viele Dienstleister fast ausschließlich auf die Neukundengewinnung und vernachlässigen die <strong>Stammkundenbindung</strong>. Dabei sind treue Kunden das Fundament eines stabilen Betriebs.
+      </p>
+      <p>
+        Stammkunden buchen regelmäßig, empfehlen dich weiter und sind weniger preissensibel. Sie sorgen für planbaren Umsatz und füllen deinen Kalender auch in ruhigeren Zeiten. Wer es schafft, aus einem einmaligen Besucher einen wiederkehrenden Kunden zu machen, baut sich ein verlässliches Geschäft auf, das nicht bei jeder Flaute ins Wanken gerät.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir, wie du Kunden nach dem ersten Termin hältst, welche einfachen Maßnahmen die Bindung stärken und wie eine unkomplizierte Terminvergabe dabei eine zentrale Rolle spielt.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Der erste Eindruck entscheidet</h2>
+      </div>
+      <p>
+        Ob ein Kunde wiederkommt, entscheidet sich meist beim ersten Besuch. Neben der eigentlichen Leistung zählen die Details: eine freundliche Begrüßung, echtes Interesse, pünktliche Termine und ein sauberes Umfeld. Kleine Aufmerksamkeiten bleiben im Gedächtnis und machen den Unterschied zwischen „ganz okay“ und „da gehe ich wieder hin“.
+      </p>
+      <p>
+        Nimm dir Zeit, die Wünsche des Kunden zu verstehen, und dokumentiere wichtige Vorlieben. Wer beim zweiten Besuch gefragt wird, ob es wieder wie beim letzten Mal sein soll, fühlt sich gesehen. Genau dieses Gefühl schafft Bindung.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Den nächsten Termin gleich mitdenken</h2>
+      </div>
+      <p>
+        Der einfachste Weg, einen Kunden zu halten, ist der bereits vereinbarte nächste Termin. Wer direkt nach der Behandlung fragt, ob man gleich den Folgetermin einplanen soll, macht die Wiederkehr zur Selbstverständlichkeit. Das gilt besonders für Leistungen mit regelmäßigem Rhythmus.
+      </p>
+      <p>
+        Falls der Kunde noch nicht festlegen möchte, hilft eine unkomplizierte Möglichkeit, später selbst online zu buchen. So bleibt die Hürde niedrig, und der Kunde kann buchen, wann es ihm passt – statt es aufzuschieben und am Ende ganz zu vergessen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>In Kontakt bleiben – ohne zu nerven</h2>
+      </div>
+      <p>
+        Ein freundlicher Kontakt zwischen den Terminen hält dich im Gedächtnis. Wichtig ist das richtige Maß: hilfreiche Erinnerungen und gelegentliche Neuigkeiten ja, ständige Werbung nein.
+      </p>
+      <ul>
+        <li><strong>Terminerinnerungen:</strong> Reduzieren No-Shows und zeigen Zuverlässigkeit.</li>
+        <li><strong>Erinnerung an fällige Folgetermine:</strong> Etwa wenn eine Auffrischung ansteht.</li>
+        <li><strong>Kleine Aufmerksamkeiten:</strong> Ein Gruß zum Geburtstag oder ein saisonaler Tipp.</li>
+      </ul>
+      <p>
+        So bleibst du präsent, ohne aufdringlich zu wirken – und der Kunde denkt an dich, wenn er die Leistung wieder braucht.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Treue spürbar belohnen</h2>
+      </div>
+      <p>
+        Menschen bleiben gern dort, wo ihre Treue geschätzt wird. Das muss kein teures Bonusprogramm sein. Schon kleine Gesten zeigen Wertschätzung und geben einen Anreiz, wiederzukommen.
+      </p>
+      <p>
+        Ein kleiner Vorteil für langjährige Kunden, ein bevorzugter Zugang zu begehrten Terminen oder ein aufrichtiges Dankeschön wirken oft mehr als jeder Rabatt. Wichtig ist, dass sich der Kunde als etwas Besonderes fühlt und nicht wie eine Nummer.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Buchen so einfach wie möglich machen</h2>
+      </div>
+      <p>
+        Selbst der zufriedenste Kunde kommt nicht wieder, wenn die Terminvergabe kompliziert ist. Wer erst zu bestimmten Zeiten anrufen muss und dann in der Warteschleife hängt, schiebt den nächsten Besuch auf. Eine einfache Online-Buchung beseitigt diese Hürde.
+      </p>
+      <p>
+        Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> können deine Kunden ihre Termine rund um die Uhr selbst buchen – bequem und ohne Anruf. Das senkt die Schwelle für den nächsten Besuch und macht aus Zufriedenheit echte Wiederkehr.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Stammkunden sind das stabile Fundament deines Betriebs. Mit einem starken ersten Eindruck, mitgedachten Folgeterminen, wohldosiertem Kontakt und einer einfachen Online-Buchung machst du aus Erstbesuchern treue Kunden, die planbaren Umsatz bringen.</p>
+      </div>
+"""
+
+BODY_FUSSPFLEGE_PODOLOGIE = """
+      <p>
+        Gepflegte, gesunde Füße sind wichtiger, als viele denken – und manchmal wird ein Termin bei der <strong>Fußpflege oder Podologie</strong> plötzlich dringend. Ein eingewachsener Nagel, Druckstellen vor einer langen Reise oder einfach der Wunsch nach gepflegten Füßen im Sommer: Es gibt viele Gründe, warum ein kurzfristiger Termin nötig wird.
+      </p>
+      <p>
+        Gerade die medizinische Fußpflege ist oft gut gebucht, weil viele Kunden regelmäßig kommen. Trotzdem lassen sich auch hier kurzfristig Termine finden – durch Absagen, freie Randzeiten und Praxen, die man bisher noch nicht auf dem Schirm hatte. Mit dem richtigen Vorgehen bekommst du schneller einen Platz, als der Blick in den vollen Kalender vermuten lässt.
+      </p>
+      <p>
+        In diesem Artikel erfährst du, wie du kurzfristig einen Termin für kosmetische oder podologische Fußpflege findest, worauf du achten solltest und wie digitale Terminbörsen die Suche erleichtern.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Das richtige Angebot wählen</h2>
+      </div>
+      <p>
+        Zunächst hilft es zu wissen, welche Art von Fußpflege du brauchst. Die kosmetische Fußpflege kümmert sich um Pflege und Optik, während die medizinische Fußpflege, die Podologie, bei gesundheitlichen Themen wie eingewachsenen Nägeln, Hornhautproblemen oder diabetischem Fuß zum Einsatz kommt.
+      </p>
+      <p>
+        Für rein pflegerische Anliegen ist die Auswahl an Anbietern größer und ein kurzfristiger Termin leichter zu finden. Bei gesundheitlichen Problemen solltest du gezielt nach podologischen Praxen suchen. Diese Klarheit spart Zeit und führt dich schneller zum passenden Termin.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Mehrere Anbieter gleichzeitig prüfen</h2>
+      </div>
+      <p>
+        Wer nur bei einem Anbieter anfragt, ist von dessen Auslastung abhängig. Sinnvoller ist es, mehrere Praxen und Studios in der Umgebung zu vergleichen. Über eine Online-Terminbörse siehst du auf einen Blick, wo gerade etwas frei ist, ohne nacheinander telefonieren zu müssen.
+      </p>
+      <p>
+        Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du nach Ort und Datum filtern und dir freie Slots in deiner Nähe anzeigen lassen. So entdeckst du vielleicht auch einen Anbieter, den du bisher nicht kanntest – und der gerade dann Zeit hat, wenn du sie brauchst.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Randzeiten und flexible Termine nutzen</h2>
+      </div>
+      <p>
+        Wie in anderen Bereichen sind auch bei der Fußpflege die Randzeiten am ehesten kurzfristig frei. Wer flexibel ist, findet leichter einen Platz als jemand, der auf einen bestimmten Wunschtermin besteht.
+      </p>
+      <ul>
+        <li><strong>Vormittags unter der Woche:</strong> Oft ruhiger und eher verfügbar.</li>
+        <li><strong>Früh oder spät am Tag:</strong> Randzeiten werden häufig zuletzt gebucht.</li>
+        <li><strong>Kurzfristige Lücken:</strong> Entstehen laufend durch Absagen.</li>
+      </ul>
+      <p>
+        Je flexibler dein Zeitfenster, desto größer die Chance auf einen schnellen Termin.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Gut vorbereitet zum Termin kommen</h2>
+      </div>
+      <p>
+        Ein kurzfristiger Termin läuft entspannter, wenn du vorbereitet bist. Überlege dir, was genau du brauchst, und schildere gesundheitliche Themen offen. Bei podologischen Anliegen ist es hilfreich, relevante Vorerkrankungen wie Diabetes zu erwähnen, damit die Behandlung sicher abläuft.
+      </p>
+      <p>
+        Plane genug Zeit für Anfahrt und Behandlung ein und komme pünktlich. So bleibt genug Ruhe für eine gründliche Behandlung, und du gehst mit einem guten Gefühl – und gepflegten Füßen – wieder nach Hause.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Regelmäßigkeit als Vorteil nutzen</h2>
+      </div>
+      <p>
+        Gerade bei der Fußpflege lohnt sich Regelmäßigkeit. Wer in festen Abständen kommt, beugt Problemen vor und muss seltener kurzfristig einen dringenden Termin suchen. Viele Anbieter halten Stammkunden bevorzugt Plätze frei.
+      </p>
+      <p>
+        Wenn du einen guten Anbieter gefunden hast, lohnt es sich, den nächsten Termin gleich mitzuplanen oder die Möglichkeit zur Online-Buchung zu nutzen. So bist du langfristig auf der sicheren Seite und musst nicht jedes Mal neu auf die Suche gehen.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Ob kosmetische Pflege oder medizinische Podologie – mit dem passenden Angebot, mehreren Anbietern im Blick, flexiblen Zeiten und einer digitalen Terminbörse findest du auch kurzfristig einen Termin für gesunde, gepflegte Füße.</p>
+      </div>
+"""
+
+BODY_LEERLAUF_NEBENSAISON = """
+      <p>
+        Fast jeder Dienstleister kennt sie: die ruhigen Wochen, in denen der Kalender plötzlich Lücken hat. Ob nach den Feiertagen, in den Ferien oder in der klassischen <strong>Nebensaison</strong> – wenn die Nachfrage sinkt, bleiben Stühle, Räume und Kapazitäten leer. Und jede leere Stunde ist verlorener Umsatz, der sich nicht nachholen lässt.
+      </p>
+      <p>
+        Viele Betriebe nehmen den saisonalen Leerlauf als unvermeidbar hin. Dabei lässt sich mit der richtigen Strategie viel gegensteuern. Die ruhigen Zeiten sind vorhersehbar, und wer sie einplant, kann sie gezielt füllen oder sinnvoll nutzen. So wird aus der gefürchteten Flaute eine planbare Phase statt einer finanziellen Belastung.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir, wie du saisonale Lücken frühzeitig erkennst, mit cleveren Angeboten füllst und die ruhige Zeit produktiv für deinen Betrieb nutzt.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Die eigenen Muster kennen</h2>
+      </div>
+      <p>
+        Der erste Schritt ist zu verstehen, wann die ruhigen Phasen kommen. Fast jeder Betrieb hat wiederkehrende Muster: bestimmte Monate, Wochentage oder Tageszeiten mit weniger Nachfrage. Wer diese Muster kennt, kann rechtzeitig gegensteuern, statt überrascht zu werden.
+      </p>
+      <p>
+        Wirf einen Blick auf die Auslastung der vergangenen Monate und notiere, wann es regelmäßig ruhiger wird. Diese Übersicht ist die Grundlage für alle weiteren Maßnahmen, denn nur wer die Flaute vorhersieht, kann sie gezielt angehen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Gezielte Angebote für ruhige Zeiten</h2>
+      </div>
+      <p>
+        In der Nebensaison lohnt es sich, mit gezielten Angeboten Anreize zu schaffen. Wichtig ist, nicht pauschal die Preise zu senken, sondern gezielt die ruhigen Zeiten attraktiver zu machen.
+      </p>
+      <ul>
+        <li><strong>Aktionen für Randzeiten:</strong> Vergünstigungen genau dann, wenn ohnehin wenig los ist.</li>
+        <li><strong>Neue Leistungen testen:</strong> In ruhigen Phasen ist Platz, um Zusatzangebote auszuprobieren.</li>
+        <li><strong>Pakete und Gutscheine:</strong> Sorgen für Umsatz jetzt und Besuche später.</li>
+      </ul>
+      <p>
+        So lenkst du Nachfrage gezielt in schwache Zeiten und lastest deine Kapazitäten besser aus, ohne deine regulären Preise zu untergraben.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Freie Slots sichtbar machen</h2>
+      </div>
+      <p>
+        Ein leerer Termin bringt nur dann Umsatz, wenn potenzielle Kunden wissen, dass er frei ist. Viele Betriebe verpassen Chancen, weil ihre Lücken nach außen unsichtbar bleiben. Wer freie Kapazitäten aktiv zeigt, erreicht Menschen, die gerade spontan einen Termin suchen.
+      </p>
+      <p>
+        Über eine Terminbörse wie <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du deine freien Slots veröffentlichen und so gezielt Spontankunden erreichen. Gerade in der Nebensaison ist das ein wirksamer Weg, um Lücken zu füllen, die sonst leer geblieben wären.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Bestandskunden reaktivieren</h2>
+      </div>
+      <p>
+        In ruhigen Zeiten lohnt der Blick auf bestehende Kunden, die länger nicht da waren. Eine freundliche Erinnerung kann genau den Anstoß geben, wieder einen Termin zu buchen. Das ist deutlich günstiger und wirksamer, als neue Kunden zu gewinnen.
+      </p>
+      <p>
+        Überlege, wer regelmäßig kam und zuletzt ausgeblieben ist, und melde dich mit einem konkreten Anlass. So füllst du deinen Kalender mit Menschen, die deine Leistung bereits schätzen, und stärkst gleichzeitig die Kundenbindung.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Die ruhige Zeit produktiv nutzen</h2>
+      </div>
+      <p>
+        Nicht jede leere Stunde muss mit Kundschaft gefüllt werden. Ruhige Phasen sind auch die ideale Gelegenheit für all das, was im Alltag liegen bleibt: Weiterbildung, Planung, Marketing oder die Optimierung interner Abläufe.
+      </p>
+      <p>
+        Wer die Nebensaison nutzt, um den Betrieb weiterzuentwickeln, geht gestärkt in die nächste Hochphase. So wird aus der vermeintlichen Flaute eine wertvolle Zeit für Investitionen in die Zukunft deines Geschäfts.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Saisonaler Leerlauf ist planbar – und damit beeinflussbar. Wer seine Muster kennt, gezielte Angebote macht, freie Slots sichtbar macht, Bestandskunden reaktiviert und die ruhige Zeit produktiv nutzt, verwandelt die Nebensaison von einer Belastung in eine Chance.</p>
+      </div>
+"""
+
+BODY_NACHHILFE_KURZFRISTIG = """
+      <p>
+        Eine wichtige Klassenarbeit steht kurz bevor, das Zeugnis wackelt oder ein Thema will einfach nicht in den Kopf: Manchmal wird <strong>Nachhilfe</strong> ganz plötzlich dringend. Doch gute Nachhilfelehrer und Lernstudios sind oft gut gebucht, und die Suche in letzter Minute wirkt aussichtslos. Dabei ist kurzfristige Unterstützung realistischer, als viele Eltern und Schüler denken.
+      </p>
+      <p>
+        Denn der Nachhilfemarkt ist heute deutlich flexibler als früher. Neben klassischen Instituten gibt es zahlreiche einzelne Lehrkräfte, Online-Angebote und freie Kapazitäten, die kurzfristig genutzt werden können. Wer weiß, wo er suchen muss, findet oft schon in wenigen Tagen die passende Unterstützung.
+      </p>
+      <p>
+        In diesem Artikel erfährst du, wie du kurzfristig Nachhilfe findest, worauf du bei der Auswahl achten solltest und wie digitale Terminbörsen dabei helfen, schnell die richtige Hilfe zu bekommen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Das konkrete Ziel klären</h2>
+      </div>
+      <p>
+        Bevor die Suche startet, lohnt es sich, das Ziel genau zu benennen. Geht es um eine einzelne bevorstehende Prüfung, um ein bestimmtes Thema oder um dauerhafte Unterstützung in einem Fach? Je klarer das Anliegen, desto gezielter lässt sich die passende Nachhilfe finden.
+      </p>
+      <p>
+        Für eine akute Prüfungsvorbereitung reicht oft eine intensive Einzelstunde zum richtigen Thema. Für langfristige Lücken ist regelmäßige Begleitung sinnvoller. Diese Klarheit hilft, nicht wahllos zu suchen, sondern schnell die richtige Form der Unterstützung zu wählen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Mehrere Angebote gleichzeitig vergleichen</h2>
+      </div>
+      <p>
+        Wer nur ein einzelnes Institut anfragt, ist von dessen Kapazität abhängig. Viel effektiver ist es, mehrere Anbieter und Lehrkräfte gleichzeitig zu vergleichen. Über eine Online-Terminbörse siehst du auf einen Blick, wer kurzfristig freie Termine hat, statt nacheinander zu telefonieren.
+      </p>
+      <p>
+        Auf <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> kannst du nach Ort und Datum filtern und dir freie Slots in deiner Nähe anzeigen lassen. So findest du schneller eine passende Lehrkraft – auch für den kommenden Nachmittag, wenn es eilig ist.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Online- und Präsenzangebote kombinieren</h2>
+      </div>
+      <p>
+        Kurzfristige Nachhilfe muss nicht immer vor Ort stattfinden. Online-Unterricht erweitert die Auswahl erheblich, weil die Anfahrt entfällt und du nicht auf Lehrkräfte in unmittelbarer Nähe angewiesen bist.
+      </p>
+      <ul>
+        <li><strong>Online:</strong> Schnell verfügbar, flexibel und ohne Anfahrt.</li>
+        <li><strong>Präsenz:</strong> Oft besser für jüngere Schüler und intensives Üben.</li>
+        <li><strong>Kombination:</strong> Kurzfristig online starten, später vor Ort weitermachen.</li>
+      </ul>
+      <p>
+        Wer für beide Formate offen ist, findet deutlich schneller einen freien Termin und kann sofort mit dem Lernen beginnen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Auf Qualität achten – auch in der Eile</h2>
+      </div>
+      <p>
+        Auch wenn es schnell gehen muss, sollte die Qualität stimmen. Eine gute Lehrkraft erklärt verständlich, geht auf den Schüler ein und motiviert. Bewertungen und eine kurze Beschreibung des Angebots helfen, die richtige Wahl zu treffen.
+      </p>
+      <p>
+        Ein kurzes Vorgespräch, ob telefonisch oder online, gibt schnell ein Gefühl, ob die Chemie stimmt. Gerade bei Kindern ist es wichtig, dass sie sich wohlfühlen – denn nur dann ist das Lernen wirklich wirksam, auch unter Zeitdruck.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Verlässlich bleiben und dranbleiben</h2>
+      </div>
+      <p>
+        Ist der kurzfristige Termin gefunden, kommt es auf Zuverlässigkeit an. Erscheine pünktlich und gut vorbereitet, damit die kostbare Zeit optimal genutzt wird. Bring konkrete Fragen, Aufgaben oder das Thema der bevorstehenden Prüfung mit.
+      </p>
+      <p>
+        Wenn die erste Stunde gut läuft, lohnt es sich oft, gleich weitere Termine zu vereinbaren. So wird aus der akuten Hilfe eine kontinuierliche Unterstützung, die nachhaltig für bessere Noten und mehr Sicherheit sorgt.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Kurzfristige Nachhilfe ist gut machbar. Mit einem klaren Ziel, mehreren Angeboten im Vergleich, der Offenheit für Online-Unterricht und einer digitalen Terminbörse findest du schnell die passende Unterstützung – rechtzeitig vor der nächsten Prüfung.</p>
+      </div>
+"""
+
+BODY_DIGITALISIERUNG_BETRIEBE = """
+      <p>
+        Digitalisierung klingt für viele kleine Betriebe nach großen Investitionen, komplizierter Technik und viel Zeitaufwand. Dabei geht es im Kern um etwas ganz Praktisches: den Arbeitsalltag einfacher zu machen und Kunden dort zu erreichen, wo sie ohnehin sind – online. Gerade für Handwerker, Dienstleister und kleine Praxen bietet die <strong>Digitalisierung</strong> enorme Chancen, ohne dass man IT-Experte sein muss.
+      </p>
+      <p>
+        Wer digitale Werkzeuge klug einsetzt, spart Zeit bei der Verwaltung, reduziert Fehler und gewinnt neue Kunden. Der Schlüssel liegt darin, nicht alles auf einmal umzustellen, sondern mit den Bereichen zu beginnen, die den größten Nutzen bringen. Schon kleine Schritte machen im Alltag einen spürbaren Unterschied.
+      </p>
+      <p>
+        In diesem Artikel zeigen wir dir, wo sich die Digitalisierung für kleine Betriebe besonders lohnt, wie du ohne großen Aufwand startest und warum die digitale Terminvergabe oft der beste erste Schritt ist.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">1</span>
+        <h2>Klein anfangen statt alles umkrempeln</h2>
+      </div>
+      <p>
+        Der häufigste Fehler ist der Versuch, alles gleichzeitig zu digitalisieren. Das überfordert und führt oft dazu, dass am Ende gar nichts passiert. Besser ist es, mit einem einzelnen, klar abgegrenzten Bereich zu beginnen und dort echte Erleichterung zu schaffen.
+      </p>
+      <p>
+        Überlege, was dich im Alltag am meisten Zeit oder Nerven kostet. Oft ist es die Terminvergabe, die Rechnungsstellung oder die Kommunikation mit Kunden. Genau dort lohnt der erste Schritt, weil du den Nutzen sofort spürst und motiviert bleibst, weiterzumachen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">2</span>
+        <h2>Die Terminvergabe digitalisieren</h2>
+      </div>
+      <p>
+        Kaum etwas frisst so viel Zeit wie das ständige Hin und Her bei der Terminvereinbarung. Anrufe während der Arbeit, verpasste Rückrufe, Zettelwirtschaft – all das lässt sich mit einer digitalen Terminvergabe deutlich vereinfachen.
+      </p>
+      <p>
+        Über eine Plattform wie <a href="https://terminmarktplatz.de">terminmarktplatz.de</a> können Kunden ihre Termine rund um die Uhr selbst buchen, während du dich auf deine eigentliche Arbeit konzentrierst. Das reduziert Unterbrechungen, senkt No-Shows durch automatische Erinnerungen und macht dich auch außerhalb der Öffnungszeiten buchbar.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">3</span>
+        <h2>Online sichtbar und erreichbar sein</h2>
+      </div>
+      <p>
+        Kunden suchen heute im Internet nach Dienstleistern. Wer online nicht auffindbar ist, existiert für viele schlicht nicht. Dabei braucht es keine aufwendige Website – oft reichen die richtigen Grundlagen, um gefunden zu werden.
+      </p>
+      <ul>
+        <li><strong>Google-Unternehmensprofil:</strong> Kostenlos und entscheidend für die lokale Sichtbarkeit.</li>
+        <li><strong>Aktuelle Kontaktdaten:</strong> Überall gleich und leicht auffindbar.</li>
+        <li><strong>Online-Buchung:</strong> Damit aus Interesse direkt ein Termin wird.</li>
+      </ul>
+      <p>
+        Mit diesen Bausteinen bist du online präsent, ohne viel Geld oder Zeit investieren zu müssen.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">4</span>
+        <h2>Verwaltung vereinfachen</h2>
+      </div>
+      <p>
+        Neben der Kundengewinnung bietet die Digitalisierung großes Potenzial im Hintergrund. Digitale Rechnungen, eine strukturierte Ablage und einfache Buchhaltungstools sparen viel Zeit und reduzieren Fehler. Was früher Stunden dauerte, ist digital oft in Minuten erledigt.
+      </p>
+      <p>
+        Wichtig ist, Werkzeuge zu wählen, die zu deinem Betrieb passen und nicht mehr Aufwand erzeugen, als sie sparen. Lieber wenige, einfache Lösungen konsequent nutzen als viele komplizierte Systeme, die niemand versteht. So bleibt die Verwaltung schlank und beherrschbar.
+      </p>
+
+      <div class="tip-heading">
+        <span class="tip-number">5</span>
+        <h2>Dranbleiben und Schritt für Schritt ausbauen</h2>
+      </div>
+      <p>
+        Digitalisierung ist kein einmaliges Projekt, sondern ein fortlaufender Prozess. Wenn der erste Bereich gut funktioniert, kannst du den nächsten angehen. So wächst dein Betrieb Stück für Stück in die digitale Welt hinein, ohne dass es überfordert.
+      </p>
+      <p>
+        Wichtig ist, offen für Neues zu bleiben und die eigenen Abläufe regelmäßig zu hinterfragen. Was heute gut läuft, kann morgen noch einfacher werden. Wer dranbleibt, verschafft sich einen echten Vorsprung gegenüber Betrieben, die den Wandel verschlafen.
+      </p>
+
+      <div class="highlight-box">
+        <p>Fazit: Digitalisierung muss weder teuer noch kompliziert sein. Wer klein anfängt, mit der Terminvergabe startet, online sichtbar wird und die Verwaltung vereinfacht, spart Zeit und gewinnt Kunden – Schritt für Schritt und ohne IT-Studium.</p>
+      </div>
+"""
+
 ARTICLES = [
     {
         "date": "2026-05-25",
@@ -1351,6 +2268,138 @@ ARTICLES = [
         "body_html": BODY_JAHRESRUECKBLICK,
         "cta_title": "Sei 2027 dabei",
         "cta_text": "Ob Anbieter oder Suchender – entdecke, was Terminmarktplatz für dich tun kann.",
+    },
+    {
+        "date": "2026-08-17",
+        "slug": "kosmetik-termin-kurzfristig",
+        "title": "Kosmetiktermin kurzfristig finden – so klappt's",
+        "description": "Kosmetiktermin kurzfristig finden: Flexible Zeiten, Express-Behandlungen und digitale Suche – so bekommst du spontan einen Platz im Kosmetikstudio.",
+        "keywords": "Kosmetik kurzfristig, Kosmetikstudio Termin heute, Gesichtsbehandlung spontan, Terminbörse, Last-Minute Kosmetik, kurzfristiger Termin",
+        "tag": "Für Suchende",
+        "body_html": BODY_KOSMETIK_KURZFRISTIG,
+        "cta_title": "Freie Kosmetiktermine in deiner Nähe finden",
+        "cta_text": "Suche kurzfristig verfügbare Kosmetik-Slots und buche direkt auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-08-24",
+        "slug": "google-bewertungen-dienstleister",
+        "title": "Mehr Google-Bewertungen bekommen – so geht's",
+        "description": "Mehr Google-Bewertungen für Dienstleister: Aktiv fragen, den Weg kurz halten, auf Kritik reagieren – so sammelst du echte Rezensionen und gewinnst Vertrauen.",
+        "keywords": "Google-Bewertungen bekommen, mehr Rezensionen, Bewertungen Dienstleister, Online-Reputation, Kundenbewertungen, Vertrauen aufbauen",
+        "tag": "Für Anbieter",
+        "body_html": BODY_GOOGLE_BEWERTUNGEN,
+        "cta_title": "Aus Bewertungen echte Buchungen machen",
+        "cta_text": "Veröffentliche freie Slots auf Terminmarktplatz und lass überzeugte Interessenten sofort buchen.",
+    },
+    {
+        "date": "2026-08-31",
+        "slug": "nagelstudio-spontan",
+        "title": "Nagelstudio spontan finden – Termin am selben Tag",
+        "description": "Nagelstudio spontan finden: Randzeiten nutzen, mehrere Studios vergleichen und die passende Behandlung wählen – so bekommst du kurzfristig einen Termin.",
+        "keywords": "Nagelstudio spontan, Nägel Termin heute, Maniküre kurzfristig, Refill Termin, Terminbörse, Last-Minute Nagelstudio",
+        "tag": "Für Suchende",
+        "body_html": BODY_NAGELSTUDIO_SPONTAN,
+        "cta_title": "Freie Nagelstudio-Termine entdecken",
+        "cta_text": "Finde kurzfristig verfügbare Slots in deiner Nähe auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-09-07",
+        "slug": "preisgestaltung-dienstleister",
+        "title": "Preisgestaltung für Dienstleister: fair kalkulieren",
+        "description": "Preisgestaltung für Dienstleister: echte Kosten kennen, über Wert statt Preis konkurrieren und mit flexiblen Modellen die Auslastung steuern.",
+        "keywords": "Preisgestaltung Dienstleister, Preise kalkulieren, Stundensatz berechnen, Preismodelle, Auslastung steuern, Selbstständige Preise",
+        "tag": "Für Anbieter",
+        "body_html": BODY_PREISGESTALTUNG,
+        "cta_title": "Freie Zeiten clever auslasten",
+        "cta_text": "Biete Randzeiten und Last-Minute-Slots gezielt auf terminmarktplatz.de an.",
+    },
+    {
+        "date": "2026-09-14",
+        "slug": "tierarzt-kurzfristig",
+        "title": "Tierarzt kurzfristig finden – was wirklich hilft",
+        "description": "Tierarzt kurzfristig finden: Notfall von Routine unterscheiden, mehrere Praxen prüfen und flexibel bleiben – so bekommst du schneller einen Termin.",
+        "keywords": "Tierarzt kurzfristig, Tierarzttermin heute, Tierarzt Notdienst, Tierklinik, Terminbörse, kurzfristiger Termin Tier",
+        "tag": "Für Suchende",
+        "body_html": BODY_TIERARZT_KURZFRISTIG,
+        "cta_title": "Freie Tierarzttermine in der Nähe finden",
+        "cta_text": "Vergleiche kurzfristig verfügbare Slots und buche direkt auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-09-21",
+        "slug": "local-seo-dienstleister",
+        "title": "Local SEO: Lokal gefunden werden als Dienstleister",
+        "description": "Local SEO für Dienstleister: Google-Profil pflegen, einheitliche Daten, Bewertungen sammeln und lokale Inhalte – so wirst du in deiner Nähe gefunden.",
+        "keywords": "Local SEO, lokal gefunden werden, Google-Unternehmensprofil, in meiner Nähe, Sichtbarkeit Dienstleister, lokale Suche",
+        "tag": "Für Anbieter",
+        "body_html": BODY_LOCAL_SEO,
+        "cta_title": "Sichtbarkeit in Buchungen verwandeln",
+        "cta_text": "Veröffentliche freie Slots auf Terminmarktplatz, damit gefundene Interessenten sofort buchen.",
+    },
+    {
+        "date": "2026-09-28",
+        "slug": "kfz-werkstatt-termin",
+        "title": "Werkstatttermin kurzfristig finden – so geht's",
+        "description": "Werkstatttermin kurzfristig finden: Dringlichkeit einschätzen, mehrere Werkstätten vergleichen und flexibel bleiben – so bleibst du schnell wieder mobil.",
+        "keywords": "Werkstatttermin kurzfristig, KFZ Termin heute, Auto Werkstatt spontan, Reifenwechsel Termin, Inspektion, Terminbörse",
+        "tag": "Für Suchende",
+        "body_html": BODY_KFZ_WERKSTATT,
+        "cta_title": "Freie Werkstatttermine entdecken",
+        "cta_text": "Finde kurzfristig verfügbare Termine in deiner Nähe auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-10-05",
+        "slug": "stammkunden-binden",
+        "title": "Stammkunden binden: aus Erstbesuchern treue Kunden",
+        "description": "Stammkunden binden: starker erster Eindruck, Folgetermine mitdenken, wohldosierter Kontakt und einfache Online-Buchung – so hältst du Kunden langfristig.",
+        "keywords": "Stammkunden binden, Kundenbindung Dienstleister, Kunden halten, Wiederkehr, Folgetermin, Treue belohnen",
+        "tag": "Für Anbieter",
+        "body_html": BODY_STAMMKUNDEN_BINDEN,
+        "cta_title": "Wiederkommen leicht machen",
+        "cta_text": "Lass Kunden ihre Folgetermine rund um die Uhr selbst buchen – auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-10-12",
+        "slug": "fusspflege-podologie-termin",
+        "title": "Fußpflege & Podologie: kurzfristig einen Termin finden",
+        "description": "Fußpflege und Podologie kurzfristig buchen: passendes Angebot wählen, mehrere Anbieter prüfen und Randzeiten nutzen – so findest du schnell einen Termin.",
+        "keywords": "Fußpflege kurzfristig, Podologie Termin, medizinische Fußpflege, eingewachsener Nagel, Terminbörse, kurzfristiger Termin",
+        "tag": "Für Suchende",
+        "body_html": BODY_FUSSPFLEGE_PODOLOGIE,
+        "cta_title": "Freie Fußpflege-Termine finden",
+        "cta_text": "Suche kurzfristig verfügbare Slots in deiner Nähe auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-10-19",
+        "slug": "leerlauf-nebensaison-fuellen",
+        "title": "Leerlauf in der Nebensaison füllen – so gelingt's",
+        "description": "Leerlauf in der Nebensaison füllen: eigene Muster kennen, gezielte Angebote, freie Slots sichtbar machen und Bestandskunden reaktivieren.",
+        "keywords": "Leerlauf Nebensaison, Auslastung Flaute, freie Termine füllen, saisonale Nachfrage, Bestandskunden reaktivieren, Terminbörse",
+        "tag": "Für Anbieter",
+        "body_html": BODY_LEERLAUF_NEBENSAISON,
+        "cta_title": "Ruhige Zeiten mit Spontankunden füllen",
+        "cta_text": "Mach freie Slots sichtbar und erreiche Suchende in Echtzeit auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-10-26",
+        "slug": "nachhilfe-kurzfristig",
+        "title": "Nachhilfe kurzfristig finden – rechtzeitig zur Prüfung",
+        "description": "Nachhilfe kurzfristig finden: Ziel klären, mehrere Angebote vergleichen, Online und Präsenz kombinieren – so bekommst du schnell die passende Unterstützung.",
+        "keywords": "Nachhilfe kurzfristig, Nachhilfe finden, Prüfungsvorbereitung, Nachhilfelehrer spontan, Online-Nachhilfe, Terminbörse",
+        "tag": "Für Suchende",
+        "body_html": BODY_NACHHILFE_KURZFRISTIG,
+        "cta_title": "Freie Nachhilfe-Termine entdecken",
+        "cta_text": "Finde kurzfristig verfügbare Lehrkräfte in deiner Nähe auf terminmarktplatz.de.",
+    },
+    {
+        "date": "2026-11-02",
+        "slug": "digitalisierung-kleine-betriebe",
+        "title": "Digitalisierung für kleine Betriebe: einfach starten",
+        "description": "Digitalisierung für kleine Betriebe: klein anfangen, Terminvergabe digitalisieren, online sichtbar werden und Verwaltung vereinfachen – ohne IT-Studium.",
+        "keywords": "Digitalisierung kleine Betriebe, Betrieb digitalisieren, Online-Terminvergabe, digitale Tools Handwerk, Verwaltung vereinfachen, Terminbörse",
+        "tag": "Für Anbieter",
+        "body_html": BODY_DIGITALISIERUNG_BETRIEBE,
+        "cta_title": "Mit der Online-Buchung digital starten",
+        "cta_text": "Nimm Buchungen rund um die Uhr entgegen – einfach und kostenlos auf terminmarktplatz.de.",
     },
 ]
 

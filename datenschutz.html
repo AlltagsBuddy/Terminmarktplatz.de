@@ -638,6 +638,29 @@
             die Zukunft widerrufen, z. B. über einen Abmeldelink in der E-Mail oder durch Nachricht an uns.
           </p>
 
+          <h3>5.7 KI-Chat-Assistent</h3>
+          <p>
+            Auf einigen Seiten bieten wir einen KI-gestützten Chat-Assistenten an, der allgemeine Fragen zur Nutzung
+            von Terminmarktplatz beantwortet. Der Assistent ist deutlich als <strong>KI-Assistent</strong> gekennzeichnet;
+            du kommunizierst also nicht mit einem Menschen. Eine Nutzung ist ohne Login möglich.
+          </p>
+          <p>
+            Wenn du eine Nachricht sendest, wird der Text deiner Anfrage (sowie die vorangegangenen Nachrichten der
+            laufenden Sitzung) zur Erzeugung einer Antwort an unseren Dienstleister <strong>Anthropic</strong> übermittelt
+            (siehe Punkt 7). Bitte gib im Chat <strong>keine personenbezogenen oder sensiblen Daten</strong> ein.
+            Wir speichern die Chat-Inhalte <strong>nicht</strong> in unserer Datenbank und protokollieren sie nicht. Der
+            Gesprächsverlauf wird ausschließlich lokal in deinem Browser (localStorage) gehalten und ist auf die aktuelle
+            Sitzung sowie eine begrenzte Anzahl an Nachrichten beschränkt; du kannst ihn jederzeit durch Neustart des Chats
+            oder Leeren des Browser-Speichers löschen.
+          </p>
+          <p>
+            Der Chat-Assistent wird erst nach deiner Einwilligung über das Cookie-Banner geladen. Rechtsgrundlage ist
+            Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) sowie Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem
+            hilfreichen Support-Angebot). Zur Missbrauchsvermeidung (Rate-Limiting) verarbeiten wir kurzzeitig einen
+            <strong>anonymisierten (gehashten)</strong> Wert deiner IP-Adresse; eine Speicherung der Klartext-IP im Zusammenhang
+            mit dem Chat erfolgt nicht.
+          </p>
+
           <h2>6. Cookies, Token & ähnliche Technologien</h2>
           <p>
             Wir verwenden auf Terminmarktplatz derzeit lediglich technisch erforderliche Cookies bzw. Token, um
@@ -751,6 +774,16 @@
               Rechtsgrundlage: Art. 6 Abs. 1 lit. b und lit. f DSGVO.
             </li>
             <li>
+              <strong>KI-Chat-Assistent (Anthropic)</strong>: Für den KI-gestützten Chat-Assistenten nutzen wir die Claude-API der
+              Anthropic PBC, 548 Market Street, PMB 90375, San Francisco, CA 94104, USA (bzw. deren europäische Vertretung).
+              Zweck: Beantwortung allgemeiner Fragen zur Nutzung von Terminmarktplatz.
+              Verarbeitete Daten: der von dir eingegebene Nachrichtentext sowie der bisherige Verlauf der laufenden Chat-Sitzung.
+              Wir speichern diese Inhalte nicht dauerhaft. Es besteht ein Vertrag zur Auftragsverarbeitung (AVV) gem. Art. 28 DSGVO;
+              die Übermittlung in die USA erfolgt auf Basis der Standardvertragsklauseln nach Art. 46 DSGVO.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. a und lit. f DSGVO. Weitere Informationen:
+              <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">Anthropic Datenschutzerklärung</a>.
+            </li>
+            <li>
               <strong>Google Maps</strong>: Auf der Suchseite verwenden wir Google Maps zur Anzeige von Karten und Standorten von Anbietern.
               Dienstanbieter: Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland; Muttergesellschaft: Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA.
               Zweck: Darstellung interaktiver Karten zur Visualisierung von Anbieterstandorten und zur Routenplanung.
@@ -770,7 +803,7 @@
             </li>
           </ul>
           <p class="note">
-            <strong>Hinweis:</strong> Unser Kern-Hosting (Hetzner) erfolgt ausschließlich in Deutschland. Externe Dienste (Google, Stripe, CopeCart, E-Mail)
+            <strong>Hinweis:</strong> Unser Kern-Hosting (Hetzner) erfolgt ausschließlich in Deutschland. Externe Dienste (Google, Stripe, CopeCart, E-Mail, Anthropic)
             können teilweise in Drittländern verarbeiten. Details zur Drittlandübermittlung findest du in Punkt 8.
           </p>
 

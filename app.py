@@ -3249,6 +3249,18 @@ def sitemap():
         ("/blog/2026-07-27-auslastung-verbessern", 0.8),
         ("/blog/2026-08-03-online-buchung-kleine-betriebe", 0.8),
         ("/blog/2026-08-10-jahresrueckblick-2026", 0.8),
+        ("/blog/2026-08-17-kosmetik-termin-kurzfristig", 0.8),
+        ("/blog/2026-08-24-google-bewertungen-dienstleister", 0.8),
+        ("/blog/2026-08-31-nagelstudio-spontan", 0.8),
+        ("/blog/2026-09-07-preisgestaltung-dienstleister", 0.8),
+        ("/blog/2026-09-14-tierarzt-kurzfristig", 0.8),
+        ("/blog/2026-09-21-local-seo-dienstleister", 0.8),
+        ("/blog/2026-09-28-kfz-werkstatt-termin", 0.8),
+        ("/blog/2026-10-05-stammkunden-binden", 0.8),
+        ("/blog/2026-10-12-fusspflege-podologie-termin", 0.8),
+        ("/blog/2026-10-19-leerlauf-nebensaison-fuellen", 0.8),
+        ("/blog/2026-10-26-nachhilfe-kurzfristig", 0.8),
+        ("/blog/2026-11-02-digitalisierung-kleine-betriebe", 0.8),
     ]
 
     def _url_xml(path: str, priority: float) -> str:
@@ -3845,6 +3857,102 @@ if _html_enabled():
     # Blog-Artikel mit automatischer Veröffentlichung per Datum
     BLOG_ARTICLES = [
         {
+            "slug": "2026-11-02-digitalisierung-kleine-betriebe",
+            "title": "Digitalisierung für kleine Betriebe: einfach starten",
+            "description": "Digitalisierung für kleine Betriebe: klein anfangen, Terminvergabe digitalisieren, online sichtbar werden – ohne IT-Studium.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 11, 2),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "2026-10-26-nachhilfe-kurzfristig",
+            "title": "Nachhilfe kurzfristig finden – rechtzeitig zur Prüfung",
+            "description": "Nachhilfe kurzfristig finden: Ziel klären, Angebote vergleichen, Online und Präsenz kombinieren.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 10, 26),
+            "reading_time": "4 Min",
+        },
+        {
+            "slug": "2026-10-19-leerlauf-nebensaison-fuellen",
+            "title": "Leerlauf in der Nebensaison füllen – so gelingt's",
+            "description": "Leerlauf in der Nebensaison füllen: Muster kennen, gezielte Angebote, freie Slots sichtbar machen.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 10, 19),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "2026-10-12-fusspflege-podologie-termin",
+            "title": "Fußpflege & Podologie: kurzfristig einen Termin finden",
+            "description": "Fußpflege und Podologie kurzfristig buchen: passendes Angebot wählen, Anbieter prüfen, Randzeiten nutzen.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 10, 12),
+            "reading_time": "4 Min",
+        },
+        {
+            "slug": "2026-10-05-stammkunden-binden",
+            "title": "Stammkunden binden: aus Erstbesuchern treue Kunden",
+            "description": "Stammkunden binden: starker erster Eindruck, Folgetermine mitdenken und einfache Online-Buchung.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 10, 5),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "2026-09-28-kfz-werkstatt-termin",
+            "title": "Werkstatttermin kurzfristig finden – so geht's",
+            "description": "Werkstatttermin kurzfristig finden: Dringlichkeit einschätzen, Werkstätten vergleichen, flexibel bleiben.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 9, 28),
+            "reading_time": "4 Min",
+        },
+        {
+            "slug": "2026-09-21-local-seo-dienstleister",
+            "title": "Local SEO: Lokal gefunden werden als Dienstleister",
+            "description": "Local SEO für Dienstleister: Google-Profil pflegen, einheitliche Daten, Bewertungen sammeln, lokale Inhalte.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 9, 21),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "2026-09-14-tierarzt-kurzfristig",
+            "title": "Tierarzt kurzfristig finden – was wirklich hilft",
+            "description": "Tierarzt kurzfristig finden: Notfall von Routine unterscheiden, mehrere Praxen prüfen, flexibel bleiben.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 9, 14),
+            "reading_time": "4 Min",
+        },
+        {
+            "slug": "2026-09-07-preisgestaltung-dienstleister",
+            "title": "Preisgestaltung für Dienstleister: fair kalkulieren",
+            "description": "Preisgestaltung für Dienstleister: echte Kosten kennen, über Wert konkurrieren, Auslastung steuern.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 9, 7),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "2026-08-31-nagelstudio-spontan",
+            "title": "Nagelstudio spontan finden – Termin am selben Tag",
+            "description": "Nagelstudio spontan finden: Randzeiten nutzen, Studios vergleichen, passende Behandlung wählen.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 8, 31),
+            "reading_time": "4 Min",
+        },
+        {
+            "slug": "2026-08-24-google-bewertungen-dienstleister",
+            "title": "Mehr Google-Bewertungen bekommen – so geht's",
+            "description": "Mehr Google-Bewertungen für Dienstleister: aktiv fragen, Weg kurz halten, auf Kritik reagieren.",
+            "tag": "Für Anbieter",
+            "publish_date": date(2026, 8, 24),
+            "reading_time": "5 Min",
+        },
+        {
+            "slug": "2026-08-17-kosmetik-termin-kurzfristig",
+            "title": "Kosmetiktermin kurzfristig finden – so klappt's",
+            "description": "Kosmetiktermin kurzfristig finden: flexible Zeiten, Express-Behandlungen und digitale Suche.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 8, 17),
+            "reading_time": "4 Min",
+        },
+        {
             "slug": "2026-08-10-jahresrueckblick-2026",
             "title": "Jahresrückblick: Terminmarktplatz 2026",
             "description": "Jahresrückblick 2026: Wachstum, Trends und Ausblick.",
@@ -4081,6 +4189,108 @@ if _html_enabled():
 @app.get("/login.html")
 def login_page_always():
     return send_from_directory(APP_ROOT, "login.html")
+
+
+# --------------------------------------------------------
+# KI-Chat-Assistent (Claude API)
+# --------------------------------------------------------
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6").strip()
+CHAT_SYSTEM_PROMPT = (
+    "Du bist der Assistent von Terminmarktplatz.de. "
+    "Du hilfst Suchenden freie Termine zu finden und Anbietern ihre Slots einzutragen. "
+    "Antworte immer auf Deutsch, freundlich und kurz. "
+    "Terminmarktplatz ist eine kostenlose Terminbörse für kurzfristige Termine in Deutschland. "
+    "Anbieter können kostenlos starten, Pakete ab 9,90€. "
+    "Website: terminmarktplatz.de"
+)
+
+# Einfaches In-Memory-Rate-Limit pro (gehashter) IP. Es werden KEINE Chat-Inhalte
+# gespeichert oder geloggt – nur flüchtige Zeitstempel zur Missbrauchsvermeidung.
+_CHAT_RATE: dict[str, list[float]] = {}
+_CHAT_RATE_LOCK = threading.Lock()
+_CHAT_RATE_MAX = 15          # Anfragen
+_CHAT_RATE_WINDOW = 60.0     # Sekunden
+
+
+def _chat_client_key() -> str:
+    """Anonymisierter (gehashter) Client-Schlüssel fürs Rate-Limit – keine Klartext-IP."""
+    ip = (request.headers.get("X-Forwarded-For", request.remote_addr) or "-").split(",")[0].strip()
+    return hashlib.sha256(f"{ip}|{SECRET}".encode("utf-8")).hexdigest()
+
+
+@app.post("/api/chat")
+def api_chat():
+    """Leichter KI-Assistent auf Basis der Claude-API. Kein Login, keine Speicherung."""
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"error": "Der Chat-Assistent ist derzeit nicht verfügbar."}), 503
+
+    # Rate-Limit pro Client
+    key = _chat_client_key()
+    now = time.time()
+    with _CHAT_RATE_LOCK:
+        recent = [t for t in _CHAT_RATE.get(key, []) if now - t < _CHAT_RATE_WINDOW]
+        if len(recent) >= _CHAT_RATE_MAX:
+            return jsonify({"error": "Zu viele Anfragen. Bitte einen Moment warten."}), 429
+        recent.append(now)
+        _CHAT_RATE[key] = recent
+
+    data = request.get_json(silent=True) or {}
+    raw_messages = data.get("messages")
+    if not isinstance(raw_messages, list) or not raw_messages:
+        return jsonify({"error": "Ungültige Anfrage."}), 400
+
+    # Nachrichten säubern und auf die letzten 10 begrenzen
+    clean: list[dict] = []
+    for m in raw_messages[-10:]:
+        if not isinstance(m, dict):
+            continue
+        role = m.get("role")
+        content = m.get("content")
+        if role not in ("user", "assistant") or not isinstance(content, str):
+            continue
+        content = content.strip()[:2000]
+        if content:
+            clean.append({"role": role, "content": content})
+
+    if not clean or clean[-1]["role"] != "user":
+        return jsonify({"error": "Ungültige Anfrage."}), 400
+
+    try:
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": CLAUDE_MODEL,
+                "max_tokens": 500,
+                "system": CHAT_SYSTEM_PROMPT,
+                "messages": clean,
+            },
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({"error": "Der Assistent ist gerade nicht erreichbar. Bitte später erneut versuchen."}), 502
+
+    if resp.status_code != 200:
+        return jsonify({"error": "Der Assistent ist gerade nicht erreichbar. Bitte später erneut versuchen."}), 502
+
+    try:
+        payload = resp.json()
+        parts = payload.get("content", []) or []
+        reply = "".join(
+            p.get("text", "") for p in parts if isinstance(p, dict) and p.get("type") == "text"
+        ).strip()
+    except Exception:
+        reply = ""
+
+    if not reply:
+        reply = "Entschuldige, ich konnte gerade keine Antwort erzeugen. Bitte versuche es erneut."
+
+    return jsonify({"reply": reply})
 
 
 @app.get("/copecart/kaufen")
