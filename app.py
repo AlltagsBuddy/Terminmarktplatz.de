@@ -125,6 +125,10 @@ IS_RENDER = bool(
     or os.environ.get("RENDER_EXTERNAL_URL")
 )
 API_ONLY = os.environ.get("API_ONLY") == "1"
+# Diagnose-Endpunkte (/_debug*, /api/alerts/debug*) sind standardmäßig AUS, da sie
+# personenbezogene Daten (E-Mails, Tokens) und interne Infos preisgeben könnten.
+# Nur zur Fehlersuche temporär via .env aktivieren: DEBUG_ENDPOINTS_ENABLED=1
+DEBUG_ENDPOINTS_ENABLED = (os.environ.get("DEBUG_ENDPOINTS_ENABLED") or "").strip().lower() in ("1", "true", "yes")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")  # früh laden, da in print() verwendet
 _stripe_test_env = os.getenv("STRIPE_DEPOSIT_TEST_MODE")
 STRIPE_DEPOSIT_TEST_MODE = (
@@ -184,7 +188,21 @@ else:
 # --------------------------------------------------------
 # Config
 # --------------------------------------------------------
-SECRET = os.environ.get("SECRET_KEY", "dev")
+SECRET = (os.environ.get("SECRET_KEY") or "").strip()
+if not SECRET or SECRET == "dev":
+    # In Produktion (Render oder HTTPS-BASE_URL) ist ein starker SECRET_KEY PFLICHT –
+    # sonst sind JWT-/API-Token fälschbar. Lokal ist ein unsicherer Fallback erlaubt.
+    _base_url_env = (os.environ.get("BASE_URL") or os.environ.get("FRONTEND_URL") or "").lower()
+    _looks_like_prod = IS_RENDER or _base_url_env.startswith("https://")
+    if _looks_like_prod:
+        raise RuntimeError(
+            "SECRET_KEY fehlt oder ist unsicher ('dev'). In Produktion MUSS ein starker "
+            "SECRET_KEY gesetzt sein. Erzeugen mit: "
+            "python -c \"import secrets; print(secrets.token_urlsafe(48))\" "
+            "und in der .env auf dem Server als SECRET_KEY=... hinterlegen."
+        )
+    SECRET = SECRET or "dev-insecure-local-only-change-me"
+    print("[WARN] SECRET_KEY nicht gesetzt - unsicherer Dev-Fallback aktiv (NUR lokal verwenden!)")
 DB_URL = os.environ.get("DATABASE_URL", "")
 JWT_ISS = os.environ.get("JWT_ISS", "terminmarktplatz")
 JWT_AUD = os.environ.get("JWT_AUD", "terminmarktplatz_client")
@@ -558,13 +576,45 @@ def handle_cors_preflight():
                 return resp
 
 
+# Content-Security-Policy: bewusst permissiv genug für die bestehende Architektur
+# (viel Inline-JS/CSS -> 'unsafe-inline' nötig) und die genutzten Drittdienste
+# (Google Fonts, Google Tag Manager/Analytics, Google Maps auf /suche, Stripe-Redirect).
+# Schützt dennoch vor fremden Skript-Quellen, Clickjacking, <base>-Injection und Objekten.
+_CSP_POLICY = "; ".join([
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'self'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com "
+    "https://maps.googleapis.com https://*.google-analytics.com",
+    "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com "
+    "https://maps.googleapis.com https://*.googleapis.com",
+    "frame-src 'self' https://js.stripe.com https://checkout.stripe.com",
+    "worker-src 'self' blob:",
+])
+
+
 @app.after_request
 def add_headers(resp):
     resp.headers.setdefault("Cache-Control", "no-store")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     # SAMEORIGIN statt DENY für Facebook in-app Browser Kompatibilität
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
-    resp.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
+    # Datenminimierung: Referrer nur an gleiche Origin voll, sonst nur Origin
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault("Content-Security-Policy", _CSP_POLICY)
+    resp.headers.setdefault(
+        "Permissions-Policy",
+        "geolocation=(self), camera=(), microphone=(), payment=(self)",
+    )
+    # HSTS nur über HTTPS senden (hinter ProxyFix korrekt erkannt)
+    if request.is_secure:
+        resp.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
     
     origin = request.headers.get("Origin")
     if origin:
@@ -3430,6 +3480,19 @@ def debug_html():
 
 
 # --------------------------------------------------------
+# Diagnose-Endpunkte abriegeln (DSGVO: keine PII/Tokens öffentlich)
+# --------------------------------------------------------
+@app.before_request
+def _guard_debug_endpoints():
+    if DEBUG_ENDPOINTS_ENABLED:
+        return
+    p = request.path or ""
+    # /admin/debug* und /me/debug bleiben unberührt (dort greift die eigene Auth)
+    if p.startswith("/_debug") or p.startswith("/api/alerts/debug"):
+        return jsonify({"error": "not_found"}), 404
+
+
+# --------------------------------------------------------
 # API-only Gate (optional)
 # --------------------------------------------------------
 @app.before_request
@@ -4537,8 +4600,48 @@ def _set_auth_cookies(resp, access: str, refresh: str | None = None):
     return resp
 
 
+# --------------------------------------------------------
+# Einfaches Rate-Limiting (Brute-Force-Bremse) – In-Memory, pro Worker.
+# Hinweis: Für harte Limits über mehrere Worker/Server wäre ein zentraler
+# Speicher (z. B. Redis) nötig; pro Worker bietet dies dennoch Basisschutz.
+# --------------------------------------------------------
+_RATE_BUCKETS: dict[str, list[float]] = {}
+_RATE_LOCK = threading.Lock()
+
+
+def _rate_client_ip() -> str:
+    # Hinter ProxyFix ist remote_addr bereits die echte Client-IP.
+    return (request.remote_addr or "unknown").strip()
+
+
+def _rate_limited(bucket: str, max_hits: int, window_sec: int) -> bool:
+    """True, wenn das Limit ERREICHT/ÜBERSCHRITTEN ist (Anfrage ablehnen)."""
+    now = time.time()
+    key = f"{bucket}:{_rate_client_ip()}"
+    cutoff = now - window_sec
+    with _RATE_LOCK:
+        hits = [t for t in _RATE_BUCKETS.get(key, []) if t > cutoff]
+        if len(hits) >= max_hits:
+            _RATE_BUCKETS[key] = hits
+            return True
+        hits.append(now)
+        _RATE_BUCKETS[key] = hits
+        # Gelegentliche Aufräumung, damit der Speicher nicht unbegrenzt wächst
+        if len(_RATE_BUCKETS) > 5000:
+            for k in [k for k, v in _RATE_BUCKETS.items() if not v or v[-1] < cutoff]:
+                _RATE_BUCKETS.pop(k, None)
+        return False
+
+
+def _rate_limit_response():
+    return jsonify({"error": "rate_limited",
+                    "message": "Zu viele Versuche. Bitte versuche es in einigen Minuten erneut."}), 429
+
+
 @app.post("/auth/register")
 def register():
+    if _rate_limited("register", 5, 600):
+        return _rate_limit_response()
     try:
         data = request.get_json(force=True)
         email = (data.get("email") or "").strip().lower()
@@ -4685,6 +4788,8 @@ def auth_verify():
 
 @app.post("/auth/login")
 def auth_login_json():
+    if _rate_limited("login", 10, 300):
+        return _rate_limit_response()
     data = request.get_json(force=True)
     p, err = _authenticate(data.get("email"), data.get("password"))
     if err:
@@ -4720,6 +4825,8 @@ def auth_login_json():
 
 @app.post("/login")
 def auth_login_form():
+    if _rate_limited("login", 10, 300):
+        return _rate_limit_response()
     email = request.form.get("email")
     password = request.form.get("password")
     p, err = _authenticate(email, password)
@@ -4779,6 +4886,8 @@ def auth_logout():
 @app.post("/auth/forgot-password")
 def auth_forgot_password():
     """Fordert einen Passwort-Reset-Link per E-Mail an."""
+    if _rate_limited("forgot", 5, 900):
+        return _rate_limit_response()
     try:
         data = request.get_json(force=True)
         email = (data.get("email") or "").strip().lower()
@@ -4852,6 +4961,8 @@ Falls du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail einfach.
 @app.post("/auth/reset-password")
 def auth_reset_password():
     """Setzt das Passwort mit einem gültigen Token zurück."""
+    if _rate_limited("reset", 10, 900):
+        return _rate_limit_response()
     try:
         data = request.get_json(force=True)
         token = (data.get("token") or "").strip()
