@@ -22,6 +22,11 @@ git reset --hard origin/develop
 echo "[$(date)] Abhängigkeiten aktualisieren..."
 "$DIR/venv/bin/pip" install -r "$DIR/requirements.txt" -q
 
+echo "[$(date)] DB-Schema reparieren..."
+if [ -f "$DIR/scripts/fix-test-db-schema.sh" ]; then
+  bash "$DIR/scripts/fix-test-db-schema.sh" 2>/dev/null || true
+fi
+
 echo "[$(date)] Service neu starten..."
 systemctl restart "$SERVICE"
 

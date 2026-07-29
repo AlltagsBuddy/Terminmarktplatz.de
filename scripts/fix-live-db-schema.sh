@@ -28,6 +28,13 @@ ALTER TABLE slot ADD COLUMN IF NOT EXISTS zip TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS city TEXT;
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS lat NUMERIC(10,7);
 ALTER TABLE slot ADD COLUMN IF NOT EXISTS lng NUMERIC(10,7);
+ALTER TABLE slot ADD COLUMN IF NOT EXISTS external_id TEXT;
+" 2>/dev/null || true
+
+# Slot: external_id – Unique je Anbieter (Idempotenz externe REST-API)
+echo "Slot external_id-Index..."
+sudo -u postgres psql -d "$DB" -c "
+CREATE UNIQUE INDEX IF NOT EXISTS ux_slot_provider_external_id ON slot (provider_id, external_id) WHERE external_id IS NOT NULL;
 " 2>/dev/null || true
 
 # archived war in älteren Schemas INTEGER (0/1) – PostgreSQL erlaubt keinen integer=boolean Vergleich
