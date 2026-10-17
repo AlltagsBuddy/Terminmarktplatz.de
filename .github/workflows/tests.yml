@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      BASE_URL: https://testsystem-terminmarktplatz-de.onrender.com
+      BASE_URL: https://test.terminmarktplatz.de
       PYTHONPATH: ${{ github.workspace }}
       DATABASE_URL: sqlite:///test.db
       APP_ENV: testsystem
