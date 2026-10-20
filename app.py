@@ -11185,6 +11185,21 @@ app.register_blueprint(alerts_public_bp)
 
 
 # --------------------------------------------------------
+# Direkte Startup-Migrationen (laufen beim Import, nicht nur via migrate.py)
+# --------------------------------------------------------
+try:
+    with engine.begin() as _conn:
+        if IS_POSTGRESQL:
+            _conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN IF NOT EXISTS contact_email TEXT;")
+        else:
+            _cols = _sqlite_columns(_conn, "provider")
+            if "contact_email" not in _cols:
+                _conn.exec_driver_sql("ALTER TABLE provider ADD COLUMN contact_email TEXT")
+    app.logger.info("[startup] contact_email Spalte sichergestellt")
+except Exception as _e:
+    app.logger.warning("[startup] contact_email Migration übersprungen: %s", _e)
+
+# --------------------------------------------------------
 # Start
 # --------------------------------------------------------
 if __name__ == "__main__":
