@@ -33,9 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/fonts/fonts.css">
 
   <!-- Main CSS -->
   <link rel="stylesheet" href="/static/style.css?v=20251010" />
@@ -181,13 +179,27 @@
       }
     }
   </style>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-508763756');
+  <!-- Google Analytics: lädt nur nach Einwilligung -->
+  <script src="/static/analytics-consent.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Startseite",
+        "item": "https://terminmarktplatz.de/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Technik & Sicherheit",
+        "item": "https://terminmarktplatz.de/technik.html"
+      }
+    ]
+  }
   </script>
 </head>
 <body>
@@ -460,7 +472,7 @@
       if (localStorage.getItem(cookieKey) === 'accepted') {
         const script1 = document.createElement('script');
         script1.async = true;
-        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-508763756';
         document.head.appendChild(script1);
         
         const script2 = document.createElement('script');
@@ -468,7 +480,7 @@
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-YNZ8GW523R');
+          gtag('config', 'G-508763756');
         `;
         document.head.appendChild(script2);
       }

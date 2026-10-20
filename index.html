@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Terminmarktplatz – Kurzfristige Termine finden &amp; buchen</title>
-  <meta name="description" content="Auf Terminmarktplatz kurzfristige Termine und freie Terminlücken finden und direkt online buchen. Spontantermin sichern – jetzt Terminbörse durchsuchen!">
+  <title>Terminmarktplatz: Terminlücken füllen &amp; kurzfristige Termine</title>
+  <meta name="description" content="Storniert oder No-Show? Stell freie Slots in 60 Sekunden ein und finde kurzfristig neue Kunden. Kostenlos starten, nur bei Erfolg zahlen.">
   <meta name="theme-color" content="#6f53ff">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Terminmarktplatz – Kurzfristige Termine finden &amp; buchen">
-  <meta property="og:description" content="Kurzfristige Termine und freie Terminlücken finden und direkt online buchen. Jetzt Spontantermin in der Terminbörse sichern.">
+  <meta property="og:title" content="Terminmarktplatz: Terminlücken füllen &amp; kurzfristige Termine">
+  <meta property="og:description" content="Storniert oder No-Show? Stell freie Slots in 60 Sekunden ein und finde kurzfristig neue Kunden. Kostenlos starten, nur bei Erfolg zahlen.">
   <meta property="og:site_name" content="Terminmarktplatz">
   <meta property="og:url" content="https://terminmarktplatz.de/">
   <meta property="og:image" content="https://terminmarktplatz.de/static/og-cover.jpg">
@@ -34,8 +34,8 @@
   <meta name="msvalidate.01" content="D559CE8C14244BF2615806BEC0C6C3DA">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Terminmarktplatz – Kurzfristige Termine finden &amp; buchen">
-  <meta name="twitter:description" content="Kurzfristige Termine und Terminlücken finden und direkt buchen – jetzt Terminbörse durchsuchen.">
+  <meta name="twitter:title" content="Terminmarktplatz: Terminlücken füllen &amp; kurzfristige Termine">
+  <meta name="twitter:description" content="Storniert oder No-Show? Stell freie Slots in 60 Sekunden ein und finde kurzfristig neue Kunden. Kostenlos starten, nur bei Erfolg zahlen.">
   <meta name="twitter:image" content="https://terminmarktplatz.de/static/og-cover.jpg">
 
   <!-- Schema.org: WebSite mit SearchAction + Organization -->
@@ -51,11 +51,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
 
   <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/fonts/fonts.css">
 
   <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css?v=9">
@@ -1735,7 +1732,7 @@
       // Script laden
       const script1 = document.createElement('script');
       script1.async = true;
-      script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+      script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-508763756';
       document.head.appendChild(script1);
       
       // Config-Script
@@ -1744,7 +1741,7 @@
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', 'G-YNZ8GW523R');
+        gtag('config', 'G-508763756');
       `;
       document.head.appendChild(script2);
     }
@@ -1929,14 +1926,8 @@
     })();
   </script>
 
-  <!-- gtag.js -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-508763756');
-  </script>
+  <!-- Google Analytics: lädt nur nach Einwilligung -->
+  <script src="/static/analytics-consent.js" defer></script>
 
   <!-- KI-Chat-Assistent (lädt erst nach Cookie-Consent) -->
   <script src="/static/chat-widget.js" defer></script>
