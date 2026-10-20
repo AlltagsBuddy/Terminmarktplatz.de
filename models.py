@@ -382,6 +382,9 @@ class Booking(Base):
 
     # ✅ app.py geht damit um, dass das fehlen kann
     customer_name: Mapped[str | None] = mapped_column(Text)
+    customer_first_name: Mapped[str | None] = mapped_column(Text)
+    customer_last_name: Mapped[str | None] = mapped_column(Text)
+    customer_address: Mapped[str | None] = mapped_column(Text)
     customer_email: Mapped[str | None] = mapped_column(Text)
     customer_phone: Mapped[str | None] = mapped_column(Text)
     customer_message: Mapped[str | None] = mapped_column(Text)  # Notiz des Suchenden an den Anbieter

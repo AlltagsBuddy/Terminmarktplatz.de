@@ -10034,7 +10034,10 @@ def public_book_view():
 def _public_book_impl():
     data = request.get_json(silent=True, force=True) or {}
     slot_id = (data.get("slot_id") or "").strip()
-    name = (data.get("name") or "").strip()
+    first_name = (data.get("first_name") or "").strip()
+    last_name = (data.get("last_name") or "").strip()
+    address = (data.get("address") or "").strip()
+    name = (data.get("name") or f"{first_name} {last_name}").strip()
     email = (data.get("email") or "").strip().lower()
     phone = (data.get("phone") or "").strip()
     message = (data.get("message") or "").strip() or None
@@ -10042,9 +10045,13 @@ def _public_book_impl():
     reminder_opt_in = data.get("reminder_opt_in", True)
     reminder_channel = (data.get("reminder_channel") or "email").strip().lower()
     description_read = data.get("description_read", False)
+    booking_confirmed = data.get("booking_confirmed", False)
 
-    if not slot_id or not name or not email:
+    if not slot_id or not first_name or not last_name or not address or not email or not phone:
         return _json_error("missing_fields")
+
+    if not booking_confirmed:
+        return _json_error("booking_not_confirmed", 400)
 
     if reminder_channel not in ("email", "whatsapp"):
         reminder_channel = "email"
@@ -10123,6 +10130,9 @@ def _public_book_impl():
             slot_id=slot.id,
             provider_id=slot.provider_id,
             customer_name=name,
+            customer_first_name=first_name,
+            customer_last_name=last_name,
+            customer_address=address,
             customer_email=email,
             customer_phone=phone or None,
             customer_message=message,
@@ -10272,8 +10282,8 @@ def _public_book_impl():
                 provider_address = f"{provider.street}, {provider_address}".strip()
             slot_address = provider_address
         
-        email_body = f"Hallo {name},\n\n"
-        email_body += f"du hast einen Termin gebucht:\n\n"
+        email_body = f"Hallo {first_name} {last_name},\n\n"
+        email_body += f"du hast einen Termin verbindlich gebucht:\n\n"
         if emp_name:
             email_body += f"Ihr Termin mit {emp_name} am {start_str} Uhr\n\n"
         email_body += f"Termin: {slot.title}\n"
@@ -10286,9 +10296,13 @@ def _public_book_impl():
         if slot.price_cents:
             price_euro = float(slot.price_cents) / 100
             email_body += f"Preis: {price_euro:.2f} €\n"
-        email_body += f"\n"
-        email_body += f"Bitte bestätige deine Buchung:\n{confirm_link}\n\n"
-        email_body += f"Stornieren:\n{cancel_link}\n"
+        email_body += f"\nDeine Kontaktdaten:\n"
+        email_body += f"Name: {first_name} {last_name}\n"
+        email_body += f"Adresse: {address}\n"
+        email_body += f"Telefon: {phone}\n"
+        email_body += f"E-Mail: {email}\n"
+        email_body += f"\nBitte bestätige deine Buchung:\n{confirm_link}\n\n"
+        email_body += f"Stornieren (bitte rechtzeitig absagen, falls verhindert):\n{cancel_link}\n"
         
         ok, reason = send_mail(
             email,
