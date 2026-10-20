@@ -3263,71 +3263,44 @@ def robots():
 
 @app.get("/sitemap.xml")
 def sitemap():
-    """Öffentliche Sitemap: statische Seiten + freigegebene Anbieterprofile (/anbieter/)."""
+    """Öffentliche Sitemap: statische Seiten + veröffentlichte Blogartikel + freigegebene Anbieterprofile.
+
+    SEO-Regeln:
+    - Blogartikel kommen aus BLOG_ARTICLES und erscheinen erst ab ihrem publish_date
+      (sonst verlinkt die Sitemap auf 404-Seiten).
+    - lastmod nur dort, wo ein echtes Datum bekannt ist (Blog: publish_date bzw. "updated").
+      Ein tägliches "heute" für alle Seiten ignoriert Google.
+    - Funktions-/Bestätigungsseiten (Login, Cookie-Einstellungen, Benachrichtigung) gehören nicht hinein.
+    """
     base = (BASE_URL or "https://terminmarktplatz.de").rstrip("/")
-    lastmod = date.today().isoformat()
 
     # Canonical-Pfade wie in den HTML-Seiten (/, suche.html, übrige .html, Blog ohne Endung)
     static_priority: list[tuple[str, float]] = [
         ("/", 1.0),
         ("/suche.html", 0.9),
-        ("/preise.html", 0.8),
-        ("/anbieter.html", 0.8),
         ("/suchende.html", 0.8),
-        ("/kontakt.html", 0.8),
-        ("/hilfe.html", 0.8),
-        ("/technik.html", 0.8),
+        ("/anbieter.html", 0.8),
+        ("/preise.html", 0.8),
         ("/kategorien.html", 0.8),
-        ("/login.html", 0.8),
-        ("/impressum.html", 0.8),
-        ("/datenschutz.html", 0.8),
-        ("/agb.html", 0.8),
-        ("/widerruf.html", 0.8),
-        ("/cookie-einstellungen.html", 0.8),
-        ("/benachrichtigung-einrichten.html", 0.8),
-        ("/benachrichtigung-bestaetigung.html", 0.8),
-        ("/blog", 0.8),
-        ("/blog/spontankunden-gewinnen", 0.8),
-        ("/blog/leere-termine-fuellen", 0.8),
-        ("/blog/no-show-vermeiden", 0.8),
-        ("/blog/terminluecken-sofort-fuellen", 0.8),
-        ("/blog/kurzfristig-termin-finden", 0.8),
-        ("/blog/online-buchbar-werden", 0.8),
-        ("/blog/2026-05-25-stornierung-kosten", 0.8),
-        ("/blog/2026-06-01-friseur-kurzfristig", 0.8),
-        ("/blog/2026-06-08-therapeut-spontan", 0.8),
-        ("/blog/2026-06-15-last-minute-termine", 0.8),
-        ("/blog/2026-06-22-handwerker-terminluecken", 0.8),
-        ("/blog/2026-06-29-wellness-spontan-buchen", 0.8),
-        ("/blog/2026-07-06-terminmarktplatz-anbieter", 0.8),
-        ("/blog/2026-07-13-dsgvo-online-terminbuchung", 0.8),
-        ("/blog/2026-07-20-no-show-vermeiden-tipps", 0.8),
-        ("/blog/2026-07-27-auslastung-verbessern", 0.8),
-        ("/blog/2026-08-03-online-buchung-kleine-betriebe", 0.8),
-        ("/blog/2026-08-10-jahresrueckblick-2026", 0.8),
-        ("/blog/2026-08-17-kosmetik-termin-kurzfristig", 0.8),
-        ("/blog/2026-08-24-google-bewertungen-dienstleister", 0.8),
-        ("/blog/2026-08-31-nagelstudio-spontan", 0.8),
-        ("/blog/2026-09-07-preisgestaltung-dienstleister", 0.8),
-        ("/blog/2026-09-14-tierarzt-kurzfristig", 0.8),
-        ("/blog/2026-09-21-local-seo-dienstleister", 0.8),
-        ("/blog/2026-09-28-kfz-werkstatt-termin", 0.8),
-        ("/blog/2026-10-05-stammkunden-binden", 0.8),
-        ("/blog/2026-10-12-fusspflege-podologie-termin", 0.8),
-        ("/blog/2026-10-19-leerlauf-nebensaison-fuellen", 0.8),
-        ("/blog/2026-10-26-nachhilfe-kurzfristig", 0.8),
-        ("/blog/2026-11-02-digitalisierung-kleine-betriebe", 0.8),
+        ("/hilfe.html", 0.6),
+        ("/technik.html", 0.5),
+        ("/kontakt.html", 0.5),
+        ("/blog", 0.7),
+        ("/impressum.html", 0.2),
+        ("/datenschutz.html", 0.2),
+        ("/agb.html", 0.2),
+        ("/widerruf.html", 0.2),
+        ("/barrierefreiheit.html", 0.2),
     ]
 
-    def _url_xml(path: str, priority: float) -> str:
+    def _url_xml(path: str, priority: float, lastmod: str | None = None) -> str:
         loc = f"{base}{path}"
-        return (
-            "  <url>\n"
-            f"    <loc>{loc}</loc>\n"
-            f"    <lastmod>{lastmod}</lastmod>\n"
-            f"    <priority>{priority:.1f}</priority>\n"
-            "  </url>"
-        )
+        lines = ["  <url>", f"    <loc>{loc}</loc>"]
+        if lastmod:
+            lines.append(f"    <lastmod>{lastmod}</lastmod>")
+        lines.append(f"    <priority>{priority:.1f}</priority>")
+        lines.append("  </url>")
+        return "\n".join(lines)
 
     chunks = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -3335,6 +3308,15 @@ def sitemap():
     ]
     for path, prio in static_priority:
         chunks.append(_url_xml(path, prio))
+
+    today = _now().astimezone(BERLIN).date()
+    redirects = globals().get("BLOG_REDIRECTS", {})
+    for a in globals().get("BLOG_ARTICLES", []):
+        if a["publish_date"] > today or a["slug"] in redirects:
+            continue
+        mod = a.get("updated") or a["publish_date"]
+        chunks.append(_url_xml(f"/blog/{a['slug']}", 0.6, mod.isoformat()))
+
     try:
         with Session(engine) as s:
             nums = s.execute(
@@ -3344,7 +3326,7 @@ def sitemap():
                 )
             ).scalars().all()
         for num in nums:
-            chunks.append(_url_xml(f"/anbieter/{int(num)}", 0.8))
+            chunks.append(_url_xml(f"/anbieter/{int(num)}", 0.7))
     except Exception:
         app.logger.exception("sitemap: DB-Fehler beim Laden der Anbieter")
     chunks.append("</urlset>")
@@ -4171,12 +4153,19 @@ if _html_enabled():
     @app.get("/blog")
     def blog_index():
         today = _now().astimezone(BERLIN).date()
-        visible = [a for a in BLOG_ARTICLES if a["publish_date"] <= today]
+        visible = [a for a in BLOG_ARTICLES if a["publish_date"] <= today and a["slug"] not in BLOG_REDIRECTS]
         return render_template("blog_index.html", articles=visible)
+
+    # Zusammengelegte Artikel: alter Slug -> neuer Slug (301, damit Google das Ranking überträgt)
+    BLOG_REDIRECTS = {
+        "no-show-vermeiden": "2026-07-20-no-show-vermeiden-tipps",
+    }
 
     @app.get("/blog/<slug>")
     def blog_article(slug):
         safe_slug = re.sub(r"[^a-z0-9-]", "", slug.lower())
+        if safe_slug in BLOG_REDIRECTS:
+            return redirect(f"/blog/{BLOG_REDIRECTS[safe_slug]}", code=301)
         today = _now().astimezone(BERLIN).date()
         article = next((a for a in BLOG_ARTICLES if a["slug"] == safe_slug and a["publish_date"] <= today), None)
         if not article:
@@ -4532,11 +4521,11 @@ def _authenticate(email: str, password: str):
             p = s.scalar(select(Provider).where(Provider.email == email))
         except Exception as e:
             _rollback_sess()
-            if _is_missing_db_column_error(e) and "provider_number" in str(e).lower():
+            if _is_missing_db_column_error(e):
+                missing_col = str(e).lower()
                 app.logger.warning(
-                    "Schema unvollständig (provider_number). DDL nicht zur Laufzeit — "
-                    "als DB-Admin: python scripts/migrate.py — %s",
-                    e,
+                    "Schema unvollständig (%s). Startup-Migration läuft noch oder fehlgeschlagen — %s",
+                    missing_col, e,
                 )
                 return None, "server_error"
             raise

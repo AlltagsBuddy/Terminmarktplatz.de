@@ -39,45 +39,6 @@
   <meta name="twitter:image" content="https://terminmarktplatz.de/static/og-cover.jpg">
 
   <!-- Schema.org: WebSite mit SearchAction + Organization -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "name": "Terminmarktplatz",
-        "url": "https://terminmarktplatz.de/",
-        "description": "Kurzfristige Termine und freie Terminlücken finden und direkt online buchen.",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://terminmarktplatz.de/suche.html?q={search_term_string}"
-          },
-          "query-input": "required name=search_term_string"
-        }
-      },
-      {
-        "@type": "Organization",
-        "name": "Terminmarktplatz",
-        "url": "https://terminmarktplatz.de/",
-        "logo": "https://terminmarktplatz.de/static/favicon.png",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "Steigerwaldstraße 35",
-          "postalCode": "96191",
-          "addressLocality": "Viereth",
-          "addressRegion": "Bayern",
-          "addressCountry": "DE"
-        },
-        "areaServed": {
-          "@type": "Country",
-          "name": "DE"
-        }
-      }
-    ]
-  }
-  </script>
 
   <!-- Wichtig: relative Pfade von Domainwurzel auflösen -->
   <base href="/" />
@@ -415,12 +376,19 @@
         "width": 1024,
         "height": 1024
       },
-      "sameAs": [],
       "contactPoint": {
         "@type": "ContactPoint",
         "email": "info@terminmarktplatz.de",
         "contactType": "customer service",
         "availableLanguage": "de"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Steigerwaldstraße 35",
+        "postalCode": "96191",
+        "addressLocality": "Viereth",
+        "addressRegion": "Bayern",
+        "addressCountry": "DE"
       }
     },
     {
@@ -434,7 +402,11 @@
         "name": "Deutschland"
       },
       "description": "Plattform zum Finden und Buchen von kurzfristig freigewordenen Terminen bei Dienstleistern wie Friseuren, Kosmetikstudios, Physiotherapeuten, Handwerkern und mehr.",
-      "category": ["Terminbuchung", "Dienstleistungen", "Online-Marktplatz"]
+      "category": [
+        "Terminbuchung",
+        "Dienstleistungen",
+        "Online-Marktplatz"
+      ]
     }
   ]
 }
