@@ -4035,14 +4035,6 @@ if _html_enabled():
             "reading_time": "4 Min",
         },
         {
-            "slug": "2026-08-10-jahresrueckblick-2026",
-            "title": "Jahresrückblick: Terminmarktplatz 2026",
-            "description": "Jahresrückblick 2026: Wachstum, Trends und Ausblick.",
-            "tag": "Allgemein",
-            "publish_date": date(2026, 8, 10),
-            "reading_time": "5 Min",
-        },
-        {
             "slug": "2026-08-03-online-buchung-kleine-betriebe",
             "title": "Warum Online-Buchung unverzichtbar ist",
             "description": "Online-Buchung für kleine Betriebe: Warum sie unverzichtbar ist.",
@@ -4190,6 +4182,9 @@ if _html_enabled():
     BLOG_REDIRECTS = {
         "no-show-vermeiden": "2026-07-20-no-show-vermeiden-tipps",
     }
+
+    # Offline genommen (enthielt Erfolgsangaben ohne Datengrundlage -> Risiko irreführender Werbung, § 5 UWG).
+    # Ohne Eintrag in BLOG_ARTICLES liefert /blog/<slug> automatisch die 404-Seite.
 
     @app.get("/blog/<slug>")
     def blog_article(slug):
