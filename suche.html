@@ -938,17 +938,23 @@
   <dialog id="book-dialog" aria-labelledby="book-title">
     <div class="book-dialog-content">
       <h3 id="book-title" style="margin-top:0">Termin buchen</h3>
-      <p id="book-sub" class="subtext" style="margin-bottom:10px">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+      <p id="book-sub" class="subtext" style="margin-bottom:10px">Pflichtfelder mit * ausfüllen. Du erhältst einen Bestätigungslink per E-Mail.</p>
       <form id="book-form" style="display:grid; gap:10px; text-align:left">
         <input type="hidden" id="book-slot-id" />
-        <label>Dein Name
-          <input id="book-name" type="text" required autocomplete="name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        <label>Vorname *
+          <input id="book-first-name" type="text" required autocomplete="given-name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
-        <label>E-Mail
+        <label>Nachname *
+          <input id="book-last-name" type="text" required autocomplete="family-name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <label>Adresse (Straße, Hausnr., PLZ, Ort) *
+          <input id="book-address" type="text" required autocomplete="street-address" placeholder="z. B. Musterstr. 1, 10115 Berlin" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <label>Handynummer *
+          <input id="book-phone" type="tel" required autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+        </label>
+        <label>E-Mail *
           <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
-        </label>
-        <label>Telefon (optional für WhatsApp)
-          <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
         </label>
         <label>Notiz an den Anbieter (optional)
           <textarea id="book-message" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px; resize:vertical"></textarea>
@@ -973,9 +979,13 @@
             <option value="whatsapp">WhatsApp</option>
           </select>
         </label>
+        <label style="display:flex; gap:8px; align-items:flex-start; background:#fff8e7; border:1px solid #f59e0b; border-radius:8px; padding:10px; font-size:14px; color:#333;">
+          <input id="book-confirmed" type="checkbox" required style="margin-top:2px; flex-shrink:0;">
+          <span>Ich buche diesen Termin verbindlich und verpflichte mich, ihn rechtzeitig über den Abmelde-Link in meiner Bestätigungs-E-Mail abzusagen, falls ich verhindert bin. Mir ist bewusst, dass Nicht-Erscheinen ohne Absage für die Anbieter:in unfair ist. *</span>
+        </label>
         <div class="book-actions">
           <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
-          <button type="submit" class="btn primary" id="book-submit">Buchung anfragen</button>
+          <button type="submit" class="btn primary" id="book-submit">Verbindlich buchen</button>
         </div>
       </form>
     </div>
@@ -987,19 +997,28 @@
       <div style="background:#fff; width:100%; max-width:100%; border-radius:18px 18px 0 0; padding:24px 20px; box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
         <h3 style="margin-top:0; margin-bottom:8px; color:#111; font-size:20px;">Termin buchen</h3>
         <p style="margin-bottom:16px; color:#666; font-size:14px;">Bitte Name & E-Mail eingeben. Du erhältst einen Bestätigungslink.</p>
+        <p style="margin-bottom:14px; color:#666; font-size:13px;">Pflichtfelder mit * ausfüllen.</p>
         <form id="book-form-mobile" style="display:block;">
           <input type="hidden" id="book-slot-id-mobile" />
           <div style="margin-bottom:16px;">
-            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Dein Name</label>
-            <input id="book-name-mobile" type="text" required autocomplete="name" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
-          </div>
-          <div style="margin-bottom:20px;">
-            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail</label>
-            <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Vorname *</label>
+            <input id="book-first-name-mobile" type="text" required autocomplete="given-name" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
           </div>
           <div style="margin-bottom:16px;">
-            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
-            <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Nachname *</label>
+            <input id="book-last-name-mobile" type="text" required autocomplete="family-name" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Adresse (Straße, Hausnr., PLZ, Ort) *</label>
+            <input id="book-address-mobile" type="text" required autocomplete="street-address" placeholder="z. B. Musterstr. 1, 10115 Berlin" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Handynummer *</label>
+            <input id="book-phone-mobile" type="tel" required autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:20px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">E-Mail *</label>
+            <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
           </div>
           <div style="margin-bottom:16px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Notiz an den Anbieter (optional)</label>
@@ -1026,8 +1045,14 @@
               <option value="whatsapp">WhatsApp</option>
             </select>
           </div>
+          <div style="margin-bottom:16px; background:#fff8e7; border:1px solid #f59e0b; border-radius:8px; padding:12px;">
+            <label style="display:flex; gap:10px; align-items:flex-start;">
+              <input id="book-confirmed-mobile" type="checkbox" required style="margin-top:2px; flex-shrink:0; width:18px; height:18px;" />
+              <span style="font-size:13px; color:#333; line-height:1.5;">Ich buche diesen Termin verbindlich und verpflichte mich, ihn rechtzeitig über den Abmelde-Link in meiner Bestätigungs-E-Mail abzusagen, falls ich verhindert bin. Mir ist bewusst, dass Nicht-Erscheinen ohne Absage für die Anbieter:in unfair ist. *</span>
+            </label>
+          </div>
           <div style="display:flex; flex-direction:column; gap:10px;">
-            <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Buchung anfragen</button>
+            <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Verbindlich buchen</button>
             <button type="button" id="book-cancel-mobile" style="width:100%; padding:12px; font-size:15px; border:1px solid #ddd; border-radius:12px; background:#f5f5f5; color:#333; font-weight:700; cursor:pointer;">Abbrechen</button>
           </div>
         </form>
@@ -1708,12 +1733,16 @@
       // Mobile: Verwende einfaches Overlay (garantiert funktioniert)
       if (isMobile && bookModalMobile) {
         document.getElementById('book-slot-id-mobile').value = slotId;
-        document.getElementById('book-name-mobile').value = '';
+        document.getElementById('book-first-name-mobile').value = '';
+        document.getElementById('book-last-name-mobile').value = '';
+        document.getElementById('book-address-mobile').value = '';
         document.getElementById('book-email-mobile').value = '';
         const phoneInput = document.getElementById('book-phone-mobile');
         if (phoneInput) phoneInput.value = '';
         const msgInput = document.getElementById('book-message-mobile');
         if (msgInput) msgInput.value = '';
+        const confirmedMobile = document.getElementById('book-confirmed-mobile');
+        if (confirmedMobile) confirmedMobile.checked = false;
         const descWrap = document.getElementById('book-description-check-wrap-mobile');
         const descCheck = document.getElementById('book-description-read-mobile');
         if (descWrap) descWrap.style.display = hasDescription ? 'block' : 'none';
@@ -1737,12 +1766,16 @@
       // Desktop: Verwende HTML5 Dialog
       if (bookDialog && typeof bookDialog.showModal === 'function') {
         document.getElementById('book-slot-id').value = slotId;
-        document.getElementById('book-name').value = '';
+        document.getElementById('book-first-name').value = '';
+        document.getElementById('book-last-name').value = '';
+        document.getElementById('book-address').value = '';
         document.getElementById('book-email').value = '';
         const phoneInput = document.getElementById('book-phone');
         if (phoneInput) phoneInput.value = '';
         const msgInput = document.getElementById('book-message');
         if (msgInput) msgInput.value = '';
+        const confirmedDesktop = document.getElementById('book-confirmed');
+        if (confirmedDesktop) confirmedDesktop.checked = false;
         const descWrap = document.getElementById('book-description-check-wrap');
         const descCheck = document.getElementById('book-description-read');
         if (descWrap) descWrap.style.display = hasDescription ? 'block' : 'none';
@@ -1809,16 +1842,19 @@
         bookFormMobile.addEventListener('submit', async (e) => {
           e.preventDefault();
           const slot_id = document.getElementById('book-slot-id-mobile').value;
-          const name = document.getElementById('book-name-mobile').value.trim();
+          const first_name = document.getElementById('book-first-name-mobile').value.trim();
+          const last_name = document.getElementById('book-last-name-mobile').value.trim();
+          const address = document.getElementById('book-address-mobile').value.trim();
           const email = document.getElementById('book-email-mobile').value.trim();
           const phone = document.getElementById('book-phone-mobile')?.value.trim() || '';
           const message = document.getElementById('book-message-mobile')?.value.trim() || '';
           const vehicle = document.getElementById('book-vehicle-mobile')?.value.trim() || '';
           const descCheck = document.getElementById('book-description-read-mobile');
           const descriptionRead = descCheck ? descCheck.checked : true;
+          const bookingConfirmed = document.getElementById('book-confirmed-mobile')?.checked || false;
           const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
           const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
-          if (!slot_id || !name || !email) return;
+          if (!slot_id || !first_name || !last_name || !address || !email || !phone) return;
 
           const btn = bookFormMobile.querySelector('button[type="submit"]');
           if (btn) {
@@ -1832,12 +1868,15 @@
               headers:{'Content-Type':'application/json'},
               body: JSON.stringify({
                 slot_id,
-                name,
+                first_name,
+                last_name,
+                address,
                 email,
                 phone,
                 message: message || undefined,
                 vehicle_license_plate: vehicle || undefined,
                 description_read: descriptionRead,
+                booking_confirmed: bookingConfirmed,
                 reminder_opt_in: reminderOptIn,
                 reminder_channel: reminderChannel
               })
@@ -1857,7 +1896,7 @@
           } finally {
             if (btn) {
               btn.disabled = false;
-              btn.textContent = 'Buchung anfragen';
+              btn.textContent = 'Verbindlich buchen';
             }
           }
         });
@@ -1892,16 +1931,19 @@
         bookForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const slot_id = document.getElementById('book-slot-id').value;
-          const name = document.getElementById('book-name').value.trim();
+          const first_name = document.getElementById('book-first-name').value.trim();
+          const last_name = document.getElementById('book-last-name').value.trim();
+          const address = document.getElementById('book-address').value.trim();
           const email = document.getElementById('book-email').value.trim();
           const phone = document.getElementById('book-phone')?.value.trim() || '';
           const message = document.getElementById('book-message')?.value.trim() || '';
           const vehicle = document.getElementById('book-vehicle')?.value.trim() || '';
           const descCheck = document.getElementById('book-description-read');
           const descriptionRead = descCheck ? descCheck.checked : true;
+          const bookingConfirmed = document.getElementById('book-confirmed')?.checked || false;
           const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
           const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
-          if (!slot_id || !name || !email) return;
+          if (!slot_id || !first_name || !last_name || !address || !email || !phone) return;
 
           const btn = document.getElementById('book-submit');
           if (btn) {
@@ -1915,12 +1957,15 @@
               headers:{'Content-Type':'application/json'},
               body: JSON.stringify({
                 slot_id,
-                name,
+                first_name,
+                last_name,
+                address,
                 email,
                 phone,
                 message: message || undefined,
                 vehicle_license_plate: vehicle || undefined,
                 description_read: descriptionRead,
+                booking_confirmed: bookingConfirmed,
                 reminder_opt_in: reminderOptIn,
                 reminder_channel: reminderChannel
               })

@@ -93,7 +93,7 @@ def test_full_booking_flow_create_search_book_confirm_cancel(test_client):
     cust_mail = f"kunde-{_UNIQUE}@example.com"
     r_book = test_client.post(
         "/public/book",
-        json={"slot_id": slot_id, "name": "Klara Kunde", "email": cust_mail},
+        json={"slot_id": slot_id, "first_name": "Klara", "last_name": "Kunde", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": cust_mail},
     )
     assert r_book.status_code == 200, r_book.get_json()
 

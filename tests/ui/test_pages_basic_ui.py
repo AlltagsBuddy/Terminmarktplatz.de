@@ -5,12 +5,12 @@ from playwright.sync_api import Page, expect
 @pytest.mark.parametrize(
     ("path", "expected_title"),
     [
-        ("/", "Terminmarktplatz"),
-        ("/agb", "AGB | Terminmarktplatz"),
+        ("/", "Terminmarktplatz – Kurzfristige Termine finden & buchen"),
+        ("/agb", "AGB | Terminmarktplatz – Nutzung der Terminbörse"),
         ("/anbieter", "Für Anbieter:innen | Terminmarktplatz"),
         ("/hilfe", "Hilfe & FAQ | Terminmarktplatz"),
         ("/impressum", "Impressum | Terminmarktplatz"),
-        ("/kontakt", "Kontakt | Terminmarktplatz"),
+        ("/kontakt", "Kontakt | Terminmarktplatz – Fragen zu kurzfristigen Terminen"),
         ("/login", "Anbieter – Anmelden & Registrieren | Terminmarktplatz"),
         ("/suchende", "Für Suchende | Terminmarktplatz"),
         ("/preise", "Preise für Anbieter:innen | Terminmarktplatz"),
@@ -23,7 +23,4 @@ def test_pages_are_reachable_ui(app_base_url: str, page: Page, path: str, expect
     response = page.goto(f"{app_base_url}{path}", wait_until="domcontentloaded")
     assert response is not None and response.ok
     expect(page.locator("html")).to_be_visible()
-    if path == "/":
-        expect(page).to_have_title(f"{expected_title} – Freie Termine in deiner Nähe")
-    else:
-        expect(page).to_have_title(expected_title)
+    expect(page).to_have_title(expected_title)
