@@ -119,6 +119,10 @@ REMINDER_RUN_INTERVAL_SEC = 300
 _REMINDER_LAST_RUN = 0.0
 _REMINDER_LOCK = threading.Lock()
 
+HOLD_CLEANUP_INTERVAL_SEC = 300  # alle 5 Minuten prüfen
+_HOLD_CLEANUP_LAST_RUN = 0.0
+_HOLD_CLEANUP_LOCK = threading.Lock()
+
 IS_RENDER = bool(
     os.environ.get("RENDER")
     or os.environ.get("RENDER_SERVICE_ID")
@@ -6404,6 +6408,41 @@ def _maybe_send_due_booking_reminders() -> None:
         _REMINDER_LOCK.release()
 
 
+def _maybe_cleanup_stale_hold_bookings() -> None:
+    """Setzt hold-Buchungen, die älter als BOOKING_HOLD_MIN Minuten sind, auf 'canceled'.
+    Läuft lazy bei jedem Request, maximal alle HOLD_CLEANUP_INTERVAL_SEC Sekunden."""
+    global _HOLD_CLEANUP_LAST_RUN
+    now_ts = time.time()
+    if now_ts - _HOLD_CLEANUP_LAST_RUN < HOLD_CLEANUP_INTERVAL_SEC:
+        return
+    if not _HOLD_CLEANUP_LOCK.acquire(blocking=False):
+        return
+    try:
+        _HOLD_CLEANUP_LAST_RUN = now_ts
+        cutoff = _now() - timedelta(minutes=BOOKING_HOLD_MIN)
+        with Session(engine) as s:
+            stale = s.scalars(
+                select(Booking).where(
+                    Booking.status == "hold",
+                    Booking.created_at < _to_db_utc_naive(cutoff),
+                )
+            ).all()
+            if not stale:
+                return
+            for b in stale:
+                b.status = "canceled"
+                app.logger.info(
+                    "[hold_cleanup] Buchung %s (Slot %s) nach %d min Hold auf canceled gesetzt",
+                    b.id, b.slot_id, BOOKING_HOLD_MIN,
+                )
+            s.commit()
+    except Exception:
+        app.logger.exception("[hold_cleanup] Fehler beim Cleanup staler Hold-Buchungen")
+    finally:
+        _HOLD_CLEANUP_LOCK.release()
+
+
+
 def alert_stats_view():
     email = (request.args.get("email") or "").strip().lower()
     if not email:
@@ -9652,6 +9691,7 @@ def _escape_ical_text(text: str | None) -> str:
 
 def public_slots_view():
     _maybe_send_due_booking_reminders()
+    _maybe_cleanup_stale_hold_bookings()
     debug_mode = request.args.get("debug") == "1"
     q_text = (request.args.get("q") or "").strip()
     location_raw = (request.args.get("location") or "").strip()
@@ -10323,6 +10363,7 @@ def _public_book_impl():
 
 def public_confirm_view():
     _maybe_send_due_booking_reminders()
+    _maybe_cleanup_stale_hold_bookings()
     token = request.args.get("token")
     booking_id = _verify_booking_token(token) if token else None
     if not booking_id:
