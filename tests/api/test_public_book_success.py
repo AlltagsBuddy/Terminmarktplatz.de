@@ -65,20 +65,24 @@ def _seed_slot() -> tuple[str, str]:
         return str(slot.id), str(provider.id)
 
 
-def test_public_book_requires_phone_for_whatsapp(test_client):
+def test_public_book_whatsapp_with_phone_succeeds(test_client):
+    """WhatsApp-Buchung mit Pflichtfeld phone → sollte erfolgreich sein."""
     slot_id, _ = _seed_slot()
     r = test_client.post(
         "/public/book",
         json={
             "slot_id": slot_id,
-            "name": "Max",
+            "first_name": "Max", "last_name": "Mustermann",
+            "address": "Musterstraße 1, 12345 Teststadt",
+            "phone": "01701234567",
             "email": "max@example.com",
+            "booking_confirmed": True,
             "reminder_channel": "whatsapp",
         },
     )
-    assert r.status_code == 400
+    assert r.status_code == 200
     data = r.get_json() or {}
-    assert data.get("error") == "missing_phone_for_whatsapp"
+    assert data.get("ok") is True
 
 
 def test_public_book_success_creates_hold_booking(test_client):
@@ -87,7 +91,7 @@ def test_public_book_success_creates_hold_booking(test_client):
         "/public/book",
         json={
             "slot_id": slot_id,
-            "name": "Max",
+            "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "booking_confirmed": True,
             "email": "max@example.com",
             "phone": "01701234567",
             "reminder_opt_in": True,

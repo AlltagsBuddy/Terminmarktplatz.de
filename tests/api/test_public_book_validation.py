@@ -73,7 +73,7 @@ def test_public_book_invalid_email(test_client):
 
     r = test_client.post(
         "/public/book",
-        json={"slot_id": slot_id, "name": "Max", "email": "invalid-email"},
+        json={"slot_id": slot_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "invalid-email"},
     )
     assert r.status_code == 400
     data = r.get_json() or {}
@@ -83,7 +83,7 @@ def test_public_book_invalid_email(test_client):
 def test_public_book_not_found(test_client):
     r = test_client.post(
         "/public/book",
-        json={"slot_id": "00000000-0000-0000-0000-000000000000", "name": "Max", "email": "max@gmail.com"},
+        json={"slot_id": "00000000-0000-0000-0000-000000000000", "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max@gmail.com"},
     )
     assert r.status_code == 404
     data = r.get_json() or {}
@@ -99,7 +99,7 @@ def test_public_book_not_bookable_past(test_client):
 
     r = test_client.post(
         "/public/book",
-        json={"slot_id": slot_id, "name": "Max", "email": "max@gmail.com"},
+        json={"slot_id": slot_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max@gmail.com"},
     )
     assert r.status_code == 409
     data = r.get_json() or {}
@@ -123,7 +123,7 @@ def test_public_book_slot_full(test_client):
 
     r = test_client.post(
         "/public/book",
-        json={"slot_id": slot_id, "name": "Max", "email": "max@gmail.com"},
+        json={"slot_id": slot_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max@gmail.com"},
     )
     assert r.status_code == 409
     data = r.get_json() or {}

@@ -109,13 +109,13 @@ def test_public_book_blocks_same_time_same_email(test_client, seeded_slots):
 
     r1 = test_client.post(
         "/public/book",
-        json={"slot_id": slot1_id, "name": "Max", "email": "max@gmail.com"},
+        json={"slot_id": slot1_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max@gmail.com"},
     )
     assert r1.status_code == 200, f"status={r1.status_code} payload={r1.get_json()}"
 
     r2 = test_client.post(
         "/public/book",
-        json={"slot_id": slot2_id, "name": "Max", "email": "max@gmail.com"},
+        json={"slot_id": slot2_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max@gmail.com"},
     )
     assert r2.status_code == 409
     data = r2.get_json() or {}
@@ -129,13 +129,13 @@ def test_public_book_allows_same_time_different_email(test_client, seeded_slots)
 
     r1 = test_client.post(
         "/public/book",
-        json={"slot_id": slot1_id, "name": "Anna", "email": "anna@gmail.com"},
+        json={"slot_id": slot1_id, "first_name": "Anna", "last_name": "Schmidt", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "anna@gmail.com"},
     )
     assert r1.status_code == 200
 
     r2 = test_client.post(
         "/public/book",
-        json={"slot_id": slot2_id, "name": "Ben", "email": "ben@gmail.com"},
+        json={"slot_id": slot2_id, "first_name": "Ben", "last_name": "Meier", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "ben@gmail.com"},
     )
     assert r2.status_code == 200
 
@@ -153,13 +153,13 @@ def test_public_book_allows_same_email_different_time(test_client, seeded_slots)
 
     r1 = test_client.post(
         "/public/book",
-        json={"slot_id": slot1_id, "name": "Max", "email": "max2@gmail.com"},
+        json={"slot_id": slot1_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max2@gmail.com"},
     )
     assert r1.status_code == 200
 
     r2 = test_client.post(
         "/public/book",
-        json={"slot_id": slot2_id, "name": "Max", "email": "max2@gmail.com"},
+        json={"slot_id": slot2_id, "first_name": "Max", "last_name": "Mustermann", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "max2@gmail.com"},
     )
     assert r2.status_code == 200
 
@@ -171,12 +171,12 @@ def test_public_book_allows_same_time_different_provider(test_client, seeded_slo
 
     r1 = test_client.post(
         "/public/book",
-        json={"slot_id": slot1_id, "name": "Eva", "email": "eva@gmail.com"},
+        json={"slot_id": slot1_id, "first_name": "Eva", "last_name": "Weber", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "eva@gmail.com"},
     )
     assert r1.status_code == 200
 
     r2 = test_client.post(
         "/public/book",
-        json={"slot_id": slot3_id, "name": "Eva", "email": "eva@gmail.com"},
+        json={"slot_id": slot3_id, "first_name": "Eva", "last_name": "Weber", "address": "Musterstraße 1, 12345 Teststadt", "phone": "01701234567", "booking_confirmed": True, "email": "eva@gmail.com"},
     )
     assert r2.status_code == 200
