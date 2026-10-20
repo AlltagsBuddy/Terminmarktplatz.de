@@ -3713,6 +3713,7 @@ if _html_enabled():
                 "number": p.provider_number,
                 "branch": p.branch,
                 "address": p.public_address,
+                "email": p.email,
                 "street": p.street,
                 "zip": p.zip,
                 "city": p.city,
@@ -7258,7 +7259,11 @@ def slots_list():
                             {
                                 "id": b.id,
                                 "customer_name": b.customer_name,
+                                "customer_first_name": getattr(b, "customer_first_name", None),
+                                "customer_last_name": getattr(b, "customer_last_name", None),
                                 "customer_email": b.customer_email,
+                                "customer_phone": getattr(b, "customer_phone", None),
+                                "customer_address": getattr(b, "customer_address", None),
                                 "status": b.status,
                             }
                         )
@@ -10333,6 +10338,8 @@ def _public_book_impl():
             email_body += f"Ort: {slot_address}\n"
         if provider:
             email_body += f"Anbieter: {provider.company_name or 'Unbekannt'}\n"
+            if provider.email:
+                email_body += f"Kontakt (E-Mail): {provider.email}\n"
         if slot.price_cents:
             price_euro = float(slot.price_cents) / 100
             email_body += f"Preis: {price_euro:.2f} €\n"

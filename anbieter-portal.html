@@ -302,6 +302,18 @@
     .table tr.slot-canceled td{ background:#fee2e2; }
     .slot-hint-canceled{ color:#b91c1c; font-weight:600; }
 
+    .booking-details{ margin-top:6px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    .booking-details summary{
+      cursor:pointer; padding:6px 10px; font-size:0.82rem; font-weight:600;
+      color:#1e40af; background:#eff6ff; list-style:none; user-select:none;
+    }
+    .booking-details summary::-webkit-details-marker{ display:none; }
+    .booking-details[open] summary{ background:#dbeafe; border-bottom:1px solid #bfdbfe; }
+    .booking-details-body{ padding:8px 10px; display:flex; flex-direction:column; gap:8px; }
+    .booking-detail-row{ font-size:0.82rem; color:#334155; line-height:1.5; }
+    .booking-detail-row a{ color:#1e40af; text-decoration:none; }
+    .booking-detail-row a:hover{ text-decoration:underline; }
+
     .msg{display:none; padding:10px; border-radius:12px; margin-top:8px}
     .msg.ok{display:block; background:#dcfce7; color:#065f46; border:1px solid #16a34a}
     .msg.err{display:block; background:#fee2e2; color:#7f1d1d; border:1px solid #ef4444}
@@ -2332,19 +2344,31 @@
         if (isPast) hintParts.push('Abgelaufen');
         const hintText = hintParts.length ? hintParts.join(' • ') : '';
 
-        let bookingHint = '';
-        if (activeBookings.length > 0){
-          if (activeBookings.length === 1){
-            const b = activeBookings[0];
-            bookingHint = `Gebucht von: ${b.customer_name} (${b.customer_email})`;
-          } else {
-            const maxVisible = 3;
-            const visible = activeBookings.slice(0, maxVisible);
-            const listStr = visible.map(b => `${b.customer_name} (${b.customer_email})`).join('; ');
-            const hiddenCount = activeBookings.length - visible.length;
-            bookingHint = hiddenCount > 0 ? `Gebucht von: ${listStr} + ${hiddenCount} weitere` : `Gebucht von: ${listStr}`;
-          }
+        // Aufklappbares Buchungsdetail-Block
+        let bookingDetailsHtml = '';
+        if (activeBookings.length > 0) {
+          const slotUid = s.id || Math.random().toString(36).slice(2);
+          const summary = activeBookings.length === 1
+            ? `${activeBookings[0].customer_name || '–'} – 1 Buchung`
+            : `${activeBookings.length} Buchungen`;
+          const rows = activeBookings.map(b => {
+            const name = [b.customer_first_name, b.customer_last_name].filter(Boolean).join(' ') || b.customer_name || '–';
+            const addr = b.customer_address || '–';
+            const phone = b.customer_phone || '–';
+            const email = b.customer_email || '–';
+            return `<div class="booking-detail-row">
+              <strong>${name}</strong><br>
+              📍 ${addr}<br>
+              📞 <a href="tel:${b.customer_phone||''}">${phone}</a> &nbsp;
+              ✉️ <a href="mailto:${b.customer_email||''}">${email}</a>
+            </div>`;
+          }).join('');
+          bookingDetailsHtml = `<details class="booking-details">
+            <summary>👤 ${summary}</summary>
+            <div class="booking-details-body">${rows}</div>
+          </details>`;
         }
+        let bookingHint = '';
 
         let bookingTimeHint = '';
         if (activeBookings.length > 0){
@@ -2376,10 +2400,9 @@
 
         const hintHtml = [];
         if (hintText)         hintHtml.push(`<span class="slot-hint">${hintText}</span>`);
-        if (bookingHint)      hintHtml.push(`<span class="slot-hint">${bookingHint}</span>`);
         if (bookingTimeHint)  hintHtml.push(`<span class="slot-hint">${bookingTimeHint}</span>`);
         if (canceledTimeHint) hintHtml.push(`<span class="slot-hint slot-hint-canceled">${canceledTimeHint}</span>`);
-        const hintBlock = hintHtml.length ? `<div class="slot-hints">${hintHtml.join('')}</div>` : '';
+        const hintBlock = (hintHtml.length ? `<div class="slot-hints">${hintHtml.join('')}</div>` : '') + bookingDetailsHtml;
 
         const description = (s.description || '').toString().trim();
         const descriptionHtml = description ? `<div class="slot-desc">${description}</div>` : '';

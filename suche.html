@@ -1668,6 +1668,10 @@
                 </div>
               </div>
               ${providerReviewSummaryHtml(p)}
+              ${p.email ? `
+                <p class="muted" style="margin:2px 0 0; font-size:13px;">
+                  ✉️ <a href="mailto:${p.email}" style="color:#1e40af;">${p.email}</a>
+                </p>` : ''}
               ${terminAddress ? `
                 <p class="muted" style="margin:2px 0 0;">
                   <strong>Adresse:</strong> ${terminAddress}
