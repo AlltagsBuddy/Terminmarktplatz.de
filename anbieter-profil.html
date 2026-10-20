@@ -355,6 +355,10 @@
               <input id="pf-phone" name="phone" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$" required aria-required="true"/>
             </div>
             <div class="field">
+              <label for="pf-contact-email">Kontakt-E-Mail für Kunden <span class="req">*</span> <span class="req-text">(Pflichtfeld – diese E-Mail erhalten Kunden in der Buchungsbestätigung)</span></label>
+              <input id="pf-contact-email" name="contact_email" type="email" placeholder="info@meinbetrieb.de" required aria-required="true"/>
+            </div>
+            <div class="field">
               <label for="pf-whatsapp">WhatsApp (optional)</label>
               <input id="pf-whatsapp" name="whatsapp" placeholder="+49 …" pattern="^\+?[0-9\s\-\/]{6,}$"/>
             </div>
@@ -695,6 +699,7 @@
         $('#pf-zip').value      = ME.zip || '';
         $('#pf-city').value     = ME.city || '';
         $('#pf-phone').value    = ME.phone || '';
+        $('#pf-contact-email').value = ME.contact_email || '';
         $('#pf-whatsapp').value = ME.whatsapp || '';
         $('#pf-about').value = ME.about_text || '';
         $('#pf-hours').value = ME.opening_hours || '';
@@ -787,6 +792,7 @@
         zip: $('#pf-zip').value.trim(),
         city: $('#pf-city').value.trim(),
         phone: $('#pf-phone').value.trim(),
+        contact_email: $('#pf-contact-email').value.trim(),
         whatsapp: $('#pf-whatsapp').value.trim(),
           about_text: $('#pf-about').value.trim(),
           opening_hours: $('#pf-hours').value.trim(),
