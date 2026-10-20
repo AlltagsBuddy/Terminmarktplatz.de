@@ -601,8 +601,27 @@ _CSP_POLICY = "; ".join([
 ])
 
 
+@app.errorhandler(404)
+def page_not_found(_err):
+    """Eigene 404-Seite (mit Navigation) statt nackter Server-Meldung; API bleibt JSON."""
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "not_found"}), 404
+    try:
+        return render_template("404.html"), 404
+    except Exception:
+        return "Seite nicht gefunden", 404
+
+
 @app.after_request
 def add_headers(resp):
+    # Browser-Caching für statische Dateien (PageSpeed: "Effiziente Cache-Richtlinie").
+    # Schriften ändern sich nie -> 1 Jahr; übrige /static/-Dateien 1 Tag
+    # (CSS/JS ohne Versionsparameter sollen nach einem Deploy schnell aktualisiert werden).
+    if request.path.startswith("/static/") and resp.status_code == 200:
+        if request.path.startswith("/static/fonts/"):
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            resp.headers["Cache-Control"] = "public, max-age=86400"
     resp.headers.setdefault("Cache-Control", "no-store")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     # SAMEORIGIN statt DENY für Facebook in-app Browser Kompatibilität
@@ -3909,6 +3928,14 @@ if _html_enabled():
     # Blog-Artikel mit automatischer Veröffentlichung per Datum
     BLOG_ARTICLES = [
         {
+            "slug": "2026-11-09-massage-ohne-termin",
+            "title": "Massage ohne Termin – so klappt es spontan",
+            "description": "Massage ohne Termin: Wo spontane Massagen möglich sind, welche Dauer leichter in eine Lücke passt und wie du frei gewordene Termine findest.",
+            "tag": "Für Suchende",
+            "publish_date": date(2026, 11, 9),
+            "reading_time": "4 Min",
+        },
+        {
             "slug": "2026-11-02-digitalisierung-kleine-betriebe",
             "title": "Digitalisierung für kleine Betriebe: einfach starten",
             "description": "Digitalisierung für kleine Betriebe: klein anfangen, Terminvergabe digitalisieren, online sichtbar werden – ohne IT-Studium.",
@@ -3938,6 +3965,7 @@ if _html_enabled():
             "description": "Fußpflege und Podologie kurzfristig buchen: passendes Angebot wählen, Anbieter prüfen, Randzeiten nutzen.",
             "tag": "Für Suchende",
             "publish_date": date(2026, 10, 12),
+            "updated": date(2026, 10, 20),
             "reading_time": "4 Min",
         },
         {
@@ -3986,6 +4014,7 @@ if _html_enabled():
             "description": "Nagelstudio spontan finden: Randzeiten nutzen, Studios vergleichen, passende Behandlung wählen.",
             "tag": "Für Suchende",
             "publish_date": date(2026, 8, 31),
+            "updated": date(2026, 10, 20),
             "reading_time": "4 Min",
         },
         {
@@ -4002,6 +4031,7 @@ if _html_enabled():
             "description": "Kosmetiktermin kurzfristig finden: flexible Zeiten, Express-Behandlungen und digitale Suche.",
             "tag": "Für Suchende",
             "publish_date": date(2026, 8, 17),
+            "updated": date(2026, 10, 20),
             "reading_time": "4 Min",
         },
         {

@@ -52,7 +52,7 @@
     "image": [
       "https://terminmarktplatz.de/static/og-cover.jpg"
     ],
-    "dateModified": "2026-08-31",
+    "dateModified": "2026-10-20",
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": "https://terminmarktplatz.de/blog/2026-08-31-nagelstudio-spontan"
@@ -67,10 +67,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/fonts/fonts.css">
   <link rel="stylesheet" href="/static/style.css?v=20251103" />
 
   <style>
@@ -220,13 +218,33 @@
     }
     .tip-heading h2 { margin: 0; }
   </style>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-508763756');
+  <!-- Google Analytics: lädt nur nach Einwilligung -->
+  <script src="/static/analytics-consent.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Startseite",
+        "item": "https://terminmarktplatz.de/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Blog",
+        "item": "https://terminmarktplatz.de/blog"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Nagelstudio spontan finden – Termin am selben Tag",
+        "item": "https://terminmarktplatz.de/blog/2026-08-31-nagelstudio-spontan"
+      }
+    ]
+  }
   </script>
 </head>
 <body>
@@ -270,7 +288,7 @@
       <h1>Nagelstudio spontan finden – Termin am selben Tag</h1>
 
       <div class="meta">
-        Veröffentlicht am 31. August 2026 · 4 Minuten Lesezeit · Terminmarktplatz Redaktion · Für Suchende
+        Veröffentlicht am 31. August 2026 · Aktualisiert am 20. Oktober 2026 · 4 Minuten Lesezeit · Terminmarktplatz Redaktion · Für Suchende
       </div>
 
       
@@ -345,6 +363,23 @@
         Ein freundlicher Umgang zahlt sich aus: Wer als zuverlässiger Kunde bekannt ist, wird bei kurzfristigen Lücken oft bevorzugt kontaktiert. So wird der spontane Besuch zur festen Option statt zur Ausnahme.
       </p>
 
+      <div class="tip-heading">
+        <span class="tip-number">6</span>
+        <h2>Nagelstudio ohne Termin – geht das?</h2>
+      </div>
+      <p>
+        Viele suchen nach einem <strong>Nagelstudio ohne Termin in der Nähe</strong>. Manche Studios nehmen tatsächlich Laufkundschaft an – vor allem für kurze Leistungen wie Lackieren oder die Reparatur eines einzelnen Nagels. Garantiert ist das aber nicht: Ist gerade jeder Platz belegt, wartest du vor Ort oder musst wieder gehen.
+      </p>
+      <p>So steigen deine Chancen, wenn du ohne Termin vorbeischauen willst:</p>
+      <ul>
+        <li><strong>Vorher kurz nachfragen:</strong> Ein Anruf oder ein Blick auf die Online-Buchung zeigt, ob gerade ein Platz frei ist.</li>
+        <li><strong>Kurze Behandlung wählen:</strong> Reparatur, Lack oder Refill passen eher in eine Lücke als eine komplette Neumodellage.</li>
+        <li><strong>Stoßzeiten meiden:</strong> Unter der Woche am Vormittag ist meist mehr Luft als am Samstag.</li>
+      </ul>
+      <p>
+        Sicherer als „auf gut Glück“ ist ein kurzfristiger Termin: Ein Slot, der heute durch eine Absage frei geworden ist, ist für dich fest reserviert – ohne Warten vor Ort. Auf <a href="/suche.html">Terminmarktplatz</a> können Studios genau solche frei gewordenen Termine einstellen. Ein kurzer Blick lohnt sich, bevor du losgehst.
+      </p>
+
       <div class="highlight-box">
         <p>Fazit: Ein spontaner Nagelstudio-Termin ist kein Wunschtraum. Mit flexiblen Zeiten, mehreren Studios im Blick und einer digitalen Terminbörse findest du auch kurzfristig gepflegte Nägel – oft noch am selben Tag.</p>
       </div>
@@ -353,7 +388,7 @@
       <div class="cta-box">
         <h3>Freie Nagelstudio-Termine entdecken</h3>
         <p>Finde kurzfristig verfügbare Slots in deiner Nähe auf terminmarktplatz.de.</p>
-        <a href="https://terminmarktplatz.de/login.html?tab=register" class="btn-white">Kostenlos auf terminmarktplatz.de starten</a>
+        <a href="/suche.html" class="btn-white">Jetzt freie Termine suchen</a>
       </div>
 
     </article>

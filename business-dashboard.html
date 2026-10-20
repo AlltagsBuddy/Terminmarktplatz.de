@@ -14,10 +14,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/fonts/fonts.css">
   <link rel="stylesheet" href="static/style.css?v=20251103" />
   <style>
     html, body { width: 100%; margin: 0; padding: 0; }
@@ -78,13 +76,8 @@
     .stat-card-mini .lbl { font-size:13px; color:#64748b; margin-bottom:4px; }
     .stat-card-mini .val { font-size:1.35rem; font-weight:700; color:#0f172a; }
   </style>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-508763756');
-  </script>
+  <!-- Google Analytics: lädt nur nach Einwilligung -->
+  <script src="/static/analytics-consent.js" defer></script>
 </head>
 <body class="page-portal">
   <a href="#main-content" class="skip-link">Zum Inhalt springen</a>
@@ -698,14 +691,14 @@
       if (localStorage.getItem(cookieKey) === 'accepted') {
         const script1 = document.createElement('script');
         script1.async = true;
-        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-YNZ8GW523R';
+        script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-508763756';
         document.head.appendChild(script1);
         const script2 = document.createElement('script');
         script2.innerHTML = `
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-YNZ8GW523R');
+          gtag('config', 'G-508763756');
         `;
         document.head.appendChild(script2);
       }
