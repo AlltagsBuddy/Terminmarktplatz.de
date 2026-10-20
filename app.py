@@ -938,6 +938,7 @@ def _ensure_provider_public_profile_fields():
         "cancellation_policy",
         "directions",
         "gallery_urls",
+        "contact_email",
     ]
     try:
         with engine.begin() as conn:
@@ -2404,6 +2405,7 @@ def is_profile_complete(p: Provider) -> bool:
             _is_valid_zip(p.zip),
             bool(p.city),
             _is_valid_phone(p.phone),
+            bool(getattr(p, 'contact_email', None)),
         ]
     )
 
@@ -3713,7 +3715,7 @@ if _html_enabled():
                 "number": p.provider_number,
                 "branch": p.branch,
                 "address": p.public_address,
-                "email": p.email,
+                "email": p.contact_email or p.email,
                 "street": p.street,
                 "zip": p.zip,
                 "city": p.city,
@@ -5288,6 +5290,7 @@ def me():
                 "cancellation_policy": getattr(p, "cancellation_policy", None),
                 "directions": getattr(p, "directions", None),
                 "gallery_urls": _gallery_urls_for_browser(getattr(p, "gallery_urls", None)),
+                "contact_email": getattr(p, "contact_email", None),
                 "profile_complete": is_profile_complete(p),
                 "plan_key": plan_key or None,
                 "plan_label": plan_label,
@@ -5416,6 +5419,7 @@ def me_update():
             "gallery_urls",
             "webhook_url",
             "webhook_api_key",
+            "contact_email",
         }
 
         def clean(v):
@@ -10338,8 +10342,9 @@ def _public_book_impl():
             email_body += f"Ort: {slot_address}\n"
         if provider:
             email_body += f"Anbieter: {provider.company_name or 'Unbekannt'}\n"
-            if provider.email:
-                email_body += f"Kontakt (E-Mail): {provider.email}\n"
+            contact = provider.contact_email or provider.email
+            if contact:
+                email_body += f"Kontakt (E-Mail): {contact}\n"
         if slot.price_cents:
             price_euro = float(slot.price_cents) / 100
             email_body += f"Preis: {price_euro:.2f} €\n"

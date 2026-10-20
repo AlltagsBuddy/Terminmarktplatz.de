@@ -47,6 +47,7 @@ class Provider(Base):
     zip: Mapped[str | None] = mapped_column(Text)
     city: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(Text)
+    contact_email: Mapped[str | None] = mapped_column(Text, nullable=True)  # Kundenkontakt-E-Mail (kann von Login-E-Mail abweichen)
     whatsapp: Mapped[str | None] = mapped_column(Text)
     logo_url: Mapped[str | None] = mapped_column(Text)
     consent_logo_display: Mapped[bool] = mapped_column(Boolean, default=False)
