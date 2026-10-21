@@ -11,11 +11,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
+        env:
       BASE_URL: https://test.terminmarktplatz.de
       PYTHONPATH: ${{ github.workspace }}
       DATABASE_URL: sqlite:///test.db
       APP_ENV: testsystem
+      SECRET_KEY: ci-test-secret-key-not-used-in-production-xK9mP2qR7nL4vW8j
     steps:
       - name: Checkout
         uses: actions/checkout@v4

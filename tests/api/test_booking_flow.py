@@ -63,7 +63,6 @@ def test_full_booking_flow_create_search_book_confirm_cancel(test_client):
             zip="12345",
             city="Flowstadt",
             phone="0123456789",
-            contact_email="kontakt@firma.de",
             status="approved",
         )
         s.add(p)

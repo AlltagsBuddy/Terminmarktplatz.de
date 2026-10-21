@@ -51,7 +51,6 @@ def test_is_profile_complete():
         zip="12345",
         city="Teststadt",
         phone="1234567",
-        contact_email="kontakt@firma.de",
     )
     assert app_module.is_profile_complete(p) is True
 
