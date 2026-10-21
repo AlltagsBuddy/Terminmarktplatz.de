@@ -12,7 +12,7 @@ from playwright.sync_api import Page, expect
         ("/impressum", "Impressum | Terminmarktplatz"),
         ("/kontakt", "Kontakt | Terminmarktplatz – Fragen zu kurzfristigen Terminen"),
         ("/login", "Anbieter – Anmelden & Registrieren | Terminmarktplatz"),
-        ("/suchende", "Für Suchende | Terminmarktplatz"),
+        ("/suchende", "Freie Termine finden – ohne Anmeldung | Terminmarktplatz"),
         ("/preise", "Preise für Anbieter:innen | Terminmarktplatz"),
         ("/datenschutz", "Datenschutzerklärung | Terminmarktplatz"),
         ("/widerruf", "Widerruf & Widerrufsbelehrung | Terminmarktplatz"),
