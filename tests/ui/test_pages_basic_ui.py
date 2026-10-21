@@ -5,7 +5,7 @@ from playwright.sync_api import Page, expect
 @pytest.mark.parametrize(
     ("path", "expected_title"),
     [
-        ("/", "Terminmarktplatz – Kurzfristige Termine finden & buchen"),
+        ("/", "Terminmarktplatz: Terminlücken füllen & kurzfristige Termine"),
         ("/agb", "AGB | Terminmarktplatz – Nutzung der Terminbörse"),
         ("/anbieter", "Für Anbieter:innen | Terminmarktplatz"),
         ("/hilfe", "Hilfe & FAQ | Terminmarktplatz"),
