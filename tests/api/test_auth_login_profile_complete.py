@@ -36,6 +36,7 @@ def _create_provider(email: str, password: str, *, complete: bool) -> None:
                 "zip": "12345",
                 "city": "Teststadt",
                 "phone": "1234567",
+                "contact_email": "kontakt@firma.de",
             }
         )
     with Session(app_module.engine) as s:
