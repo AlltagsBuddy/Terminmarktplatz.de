@@ -144,7 +144,7 @@ def test_search_card_shows_year_and_time_range(app_base_url: str, page: Page) ->
 
     card = page.locator(".card", has_text=title).first
     expect(card).to_be_visible()
-    header = card.locator("p.muted").first
+    header = card.locator("p.muted", has_text=" - ").first
     expect(header).to_contain_text(" - ")
     expect(header).to_contain_text(re.compile(r"\d{2}\.\d{2}\.\d{4}"))
 
