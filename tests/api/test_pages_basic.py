@@ -21,7 +21,7 @@ def test_client():
         ("/", "Terminmarktplatz"),
         ("/agb", "AGB | Terminmarktplatz"),
         ("/anbieter", "Für Anbieter:innen | Terminmarktplatz"),
-        ("/hilfe", "Hilfe & FAQ zu kurzfristigen Terminen | Terminmarktplatz"),
+        ("/hilfe", "Hilfe & FAQ | Terminmarktplatz"),
         ("/impressum", "Impressum | Terminmarktplatz"),
         ("/kontakt", "Kontakt | Terminmarktplatz"),
         ("/login", "Anbieter – Anmelden & Registrieren | Terminmarktplatz"),
