@@ -1741,6 +1741,42 @@ def _ensure_slot_description_field():
         _migration_print(f"[WARN] Warnung: ensure_slot_description_field fehlgeschlagen: {e}")
 
 
+# --------------------------------------------------------
+# Termintyp-Felder: slot_type, video_link, service_area
+# --------------------------------------------------------
+def _ensure_slot_type_fields():
+    """Fügt slot_type, video_link und service_area zu Slot-Tabelle hinzu (idempotent)."""
+    try:
+        with engine.begin() as conn:
+            if IS_POSTGRESQL:
+                conn.exec_driver_sql("""
+                    ALTER TABLE public.slot
+                    ADD COLUMN IF NOT EXISTS slot_type text DEFAULT 'einzel';
+                """)
+                conn.exec_driver_sql("""
+                    ALTER TABLE public.slot
+                    ADD COLUMN IF NOT EXISTS video_link text;
+                """)
+                conn.exec_driver_sql("""
+                    ALTER TABLE public.slot
+                    ADD COLUMN IF NOT EXISTS service_area text;
+                """)
+            else:
+                # SQLite: jede Spalte einzeln prüfen
+                for col, ddl in [
+                    ("slot_type", "ALTER TABLE slot ADD COLUMN slot_type TEXT DEFAULT 'einzel'"),
+                    ("video_link", "ALTER TABLE slot ADD COLUMN video_link TEXT"),
+                    ("service_area", "ALTER TABLE slot ADD COLUMN service_area TEXT"),
+                ]:
+                    try:
+                        conn.execute(text(f"SELECT {col} FROM slot LIMIT 1"))
+                    except Exception:
+                        conn.exec_driver_sql(ddl)
+        _migration_print("[OK] slot.slot_type / video_link / service_area sichergestellt.")
+    except (OperationalError, SQLAlchemyError) as e:
+        _migration_print(f"[WARN] Warnung: ensure_slot_type_fields fehlgeschlagen: {e}")
+
+
 # Startup-Migrationen werden unten non-blocking gestartet
 
 
@@ -1990,6 +2026,7 @@ ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
     _ensure_slot_description_field,
     _ensure_publish_quota_tables,
     _ensure_stripe_connect_fields,
+    _ensure_slot_type_fields,
 )
 
 
@@ -2378,7 +2415,9 @@ def slot_to_json(x: Slot):
         "city": getattr(x, "city", None),
         "employee_id": getattr(x, "employee_id", None),
         "external_id": getattr(x, "external_id", None),
-
+        "slot_type": getattr(x, "slot_type", "einzel") or "einzel",
+        "video_link": getattr(x, "video_link", None),
+        "service_area": getattr(x, "service_area", None),
     }
 
 
@@ -7482,9 +7521,22 @@ def slots_create():
         if start <= _now():
             return _json_error("start_in_past", 409)
 
+        # Termintyp bestimmen (Standard: einzel)
+        slot_type_raw = (data.get("slot_type") or "einzel").strip().lower()
+        if slot_type_raw not in ("einzel", "kurs", "online", "mobil"):
+            slot_type_raw = "einzel"
+
         location = (data.get("location") or "").strip()
-        if not location:
+        # Online- und Mobil-Termine brauchen keine feste Adresse
+        if not location and slot_type_raw not in ("online", "mobil"):
             return _json_error("missing_location", 400)
+
+        # Video-Link bei Online-Terminen validieren
+        video_link_raw = (data.get("video_link") or "").strip()
+        if slot_type_raw == "online" and not video_link_raw:
+            return _json_error("missing_video_link", 400)
+
+        service_area_raw = (data.get("service_area") or "").strip() or None
 
         cap = int(data.get("capacity") or 1)
         if cap < 1:
@@ -7583,13 +7635,20 @@ def slots_create():
                     return _json_error("invalid_employee", 400)
                 emp_id_final = e_lookup
 
+            # Location-String für Online/Mobil automatisch setzen
+            if not location_db:
+                if slot_type_raw == "online":
+                    location_db = "Online"
+                elif slot_type_raw == "mobil":
+                    location_db = "Vor Ort beim Kunden"
+
             slot = Slot(
                 provider_id=request.provider_id,
                 title=title,
                 category=category,
                 start_at=start_db,
                 end_at=end_db,
-                location=location_db,
+                location=location_db or None,
                 capacity=cap,
                 contact_method=(data.get("contact_method") or "mail"),
                 booking_link=(data.get("booking_link") or None),
@@ -7599,6 +7658,9 @@ def slots_create():
                 description=(data.get("description") or None),
                 status=SLOT_STATUS_DRAFT,
                 employee_id=emp_id_final,
+                slot_type=slot_type_raw,
+                video_link=(video_link_raw or None),
+                service_area=service_area_raw,
                 **slot_kwargs_extra,
             )
 
@@ -7790,6 +7852,16 @@ def slots_update(slot_id):
                     if not em_obj or em_obj.provider_id != slot.provider_id or not em_obj.active:
                         return _json_error("invalid_employee", 400)
                     slot.employee_id = e_lookup
+
+            # Termintyp-Update: slot_type, video_link, service_area
+            if "slot_type" in data:
+                st = (data["slot_type"] or "einzel").strip().lower()
+                if st in ("einzel", "kurs", "online", "mobil"):
+                    slot.slot_type = st
+            if "video_link" in data:
+                slot.video_link = (data["video_link"] or "").strip() or None
+            if "service_area" in data:
+                slot.service_area = (data["service_area"] or "").strip() or None
 
             # WICHTIG: Updates dürfen NICHT nur bei capacity laufen
             for k in [
