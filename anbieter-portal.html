@@ -2477,6 +2477,7 @@
             return `<div class="booking-detail-row">
               <strong>${name}</strong><br>
               📍 ${addr}<br>
+              ${b.vehicle_license_plate ? `🚗 ${b.vehicle_license_plate}<br>` : ""}
               📞 <a href="tel:${b.customer_phone||''}">${phone}</a> &nbsp;
               ✉️ <a href="mailto:${b.customer_email||''}">${email}</a>
             </div>`;
