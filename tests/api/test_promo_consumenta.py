@@ -33,6 +33,14 @@ os.environ.setdefault("EMAILS_ENABLED", "false")
 import app as app_module
 from models import Provider
 
+# PostgreSQL-only: gen_random_uuid()/timestamptz sind PG-spezifisch. Auf anderen
+# Backends (z. B. SQLite in der CI) wird das gesamte Modul sauber uebersprungen,
+# statt mit Fehlern abzubrechen.
+pytestmark = pytest.mark.skipif(
+    app_module.engine.url.get_backend_name() != "postgresql",
+    reason="Promo-Tests benoetigen PostgreSQL (gen_random_uuid/timestamptz).",
+)
+
 # Eindeutiger Prefix før alle Test-Daten → sauberes Cleanup
 TEST_PREFIX = f"pytest_promo_{uuid.uuid4().hex[:6]}_"
 
