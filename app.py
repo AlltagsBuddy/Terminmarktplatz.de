@@ -1553,6 +1553,38 @@ def _ensure_slot_external_id() -> None:
 
 
 # --------------------------------------------------------
+# Promo-Code-System (Messe/Consumenta): promo_codes + promo_redemptions
+# --------------------------------------------------------
+def _ensure_promo_tables() -> None:
+    """Tabellen promo_codes und promo_redemptions fuer das Promo-Code-System. PostgreSQL-only."""
+    if not IS_POSTGRESQL:
+        return
+    try:
+        _pg_ddl_autocommit(
+            "CREATE TABLE IF NOT EXISTS public.promo_codes ("
+            "code text PRIMARY KEY, "
+            "plan text NOT NULL, "
+            "valid_until timestamptz NOT NULL, "
+            "test_end timestamptz NOT NULL, "
+            "active boolean NOT NULL DEFAULT true, "
+            "description text, "
+            "created_at timestamptz NOT NULL DEFAULT now());",
+            "ensure_promo_codes",
+        )
+        _pg_ddl_autocommit(
+            "CREATE TABLE IF NOT EXISTS public.promo_redemptions ("
+            "id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "
+            "provider_id uuid NOT NULL UNIQUE REFERENCES public.provider(id) ON DELETE CASCADE, "
+            "code text NOT NULL REFERENCES public.promo_codes(code), "
+            "redeemed_at timestamptz NOT NULL DEFAULT now(), "
+            "test_end timestamptz NOT NULL);",
+            "ensure_promo_redemptions",
+        )
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_promo_tables fehlgeschlagen: {e}")
+
+
+# --------------------------------------------------------
 # WareVision-Webhook-Felder für Provider
 # --------------------------------------------------------
 def _ensure_provider_warevision_webhook():
@@ -2030,6 +2062,7 @@ ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
     _ensure_last_login_field,
     _ensure_provider_warevision_webhook,
     _ensure_slot_external_id,
+    _ensure_promo_tables,
     _ensure_archive_fields,
     _ensure_slot_archived_is_boolean,
     _ensure_slot_status_constraint,

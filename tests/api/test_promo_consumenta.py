@@ -111,6 +111,30 @@ def _auth(pid: str) -> dict:
     return {"Authorization": f"Bearer {access}"}
 
 
+def _make_admin() -> str:
+    """Erstellt einen Admin-Provider (is_admin=True), gibt str(uuid) zurück."""
+    email = f"{TEST_PREFIX}admin_{uuid.uuid4().hex[:8]}@example.com"
+    with Session(app_module.engine) as s:
+        p = Provider(
+            email=email,
+            pw_hash=app_module.ph.hash("testpass123"),
+            company_name="Pytest Admin GmbH",
+            branch="Friseur",
+            street="Teststr. 1",
+            zip="12345",
+            city="Teststadt",
+            phone="0911000009",
+            status="approved",
+            email_verified_at=app_module._now(),
+            is_admin=True,
+        )
+        p.plan = "basic"
+        p.free_slots_per_month = 3
+        s.add(p)
+        s.commit()
+        return str(p.id)
+
+
 def _insert_promo(code: str, valid_until: str, test_end: str,
                   active: bool = True, plan: str = "profi"):
     """Føgd Testcode in promo_codes ein (ON CONFLICT → UPDATE)."""
@@ -285,6 +309,71 @@ class TestPromoRedeem:
                         headers=_auth(pid))
         assert r.status_code in (400, 410)
         assert (r.get_json() or {}).get("ok") is not True
+
+    def test_redeem_rejected_for_paid_plan(self, client):
+        """Provider mit aktivem bezahltem Abo kann keinen Promo-Code einlôsen."""
+        _insert_promo("PYTEST_PAID", "2099-01-01", "2099-04-01")
+        pid = _make_provider("profi")
+        with app_module.engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO plan_purchase (id, provider_id, plan, price_eur, period_start, status, period_end, created_at) "
+                "VALUES (gen_random_uuid(), :pid, 'profi', 9.90, CURRENT_DATE, 'paid', CURRENT_DATE + 30, NOW())"
+            ), {"pid": pid})
+        r = client.post("/api/promo/redeem",
+                        json={"code": "PYTEST_PAID"},
+                        headers=_auth(pid))
+        assert r.status_code in (400, 409)
+        assert (r.get_json() or {}).get("ok") is not True
+
+    def test_redeem_sends_confirmation_mail(self, client):
+        """Nach erfolgreichem Einlôsen wird genau eine Bestaetigungs-Mail ausgelôst."""
+        _insert_promo("PYTEST_MAIL", "2099-01-01", "2099-04-01")
+        pid = _make_provider("free")
+        with patch.object(app_module, "_send_promo_confirmation_mail") as m:
+            r = client.post("/api/promo/redeem",
+                            json={"code": "PYTEST_MAIL"},
+                            headers=_auth(pid))
+        assert r.status_code == 200
+        assert m.call_count == 1, f"Erwartet 1 Bestaetigungs-Mail, war: {m.call_count}"
+
+
+# ---------------------------------------------------------------------------
+# /api/admin/promo-overview
+# ---------------------------------------------------------------------------
+
+class TestPromoAdminOverview:
+
+    def test_requires_auth(self, client):
+        """Ohne Login → 401."""
+        r = client.get("/api/admin/promo-overview")
+        assert r.status_code == 401
+
+    def test_forbidden_for_non_admin(self, client):
+        """Normaler Provider (kein Admin) → 403."""
+        pid = _make_provider("free")
+        r = client.get("/api/admin/promo-overview", headers=_auth(pid))
+        assert r.status_code == 403
+
+    def test_admin_sees_redemption(self, client):
+        """Admin sieht eingelôste Codes inkl. E-Mail des Providers."""
+        _insert_promo("PYTEST_OVR", "2099-01-01", "2099-04-01")
+        admin_id = _make_admin()
+
+        # Normaler Provider lôst ein
+        user_id = _make_provider("free")
+        client.post("/api/promo/redeem",
+                    json={"code": "PYTEST_OVR"},
+                    headers=_auth(user_id))
+
+        with Session(app_module.engine) as s:
+            user_email = s.get(Provider, uuid.UUID(user_id)).email
+
+        r = client.get("/api/admin/promo-overview", headers=_auth(admin_id))
+        assert r.status_code == 200
+        data = r.get_json() or {}
+        assert data.get("total", 0) >= 1
+        emails = [e.get("email") for e in data.get("entries", [])]
+        assert user_email in emails, f"Einlôsung des Providers fehlt in der Uebersicht: {emails}"
 
 
 # ---------------------------------------------------------------------------
