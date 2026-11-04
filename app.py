@@ -38,6 +38,11 @@ from sqlalchemy.exc import (
 
 from dotenv import load_dotenv
 from email_validator import validate_email, EmailNotValidError
+from apscheduler.schedulers.background import BackgroundScheduler
+import zoneinfo as _zoneinfo
+
+BERLIN_TZ = _zoneinfo.ZoneInfo("Europe/Berlin")
+
 from flask import (
     Flask,
     request,
@@ -155,6 +160,11 @@ os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 
 # Uploads immer über UPLOAD_BASE ausliefern (mit oder ohne DATA_DIR).
 # So stimmen DB-Pfad (/static/uploads/...) und Dateisystem überein und es gibt keinen
+
+@app.get("/consumenta")
+def page_consumenta():
+    return send_from_directory(".", "consumenta.html")
+
 # stillen Fallback auf das leere static/uploads im Container-Image.
 @app.route("/static/uploads/<path:filename>")
 def serve_uploads(filename: str):
@@ -2863,7 +2873,7 @@ du hast eine Anzahlung erhalten:
 
 Kunde/Kundin: {b.customer_name or '-'}
 E-Mail: {b.customer_email or '-'}
-Termin: {slot.title}
+{("Telefon: " + b.customer_phone + chr(10)) if getattr(b,"customer_phone",None) else ""}{("Adresse: " + b.customer_address + chr(10)) if getattr(b,"customer_address",None) else ""}{("Kfz-Kennzeichen: " + b.vehicle_license_plate + chr(10)) if getattr(b,"vehicle_license_plate",None) else ""}Termin: {slot.title}
 Datum: {start_str} Uhr
 Anzahlung: {deposit_eur:.2f} €
 
@@ -10371,6 +10381,12 @@ def _public_book_impl():
                         prov_body += f"Mitarbeiter:in: {emp_name}\n"
                     prov_body += f"Datum & Zeit: {start_str} - {end_str} Uhr\n"
                     prov_body += f"Anzahlung: {deposit_eur:.2f} €\n"
+                    if getattr(b, "customer_phone", None):
+                        prov_body += f"Telefon: {b.customer_phone}\n"
+                    if getattr(b, "customer_address", None):
+                        prov_body += f"Adresse: {b.customer_address}\n"
+                    if getattr(b, "vehicle_license_plate", None):
+                        prov_body += f"Kfz-Kennzeichen: {b.vehicle_license_plate}\n"
                     if message:
                         prov_body += f"\nNotiz des Suchenden: {message}\n"
                     prov_body += f"\nDie Buchung wird bestätigt, sobald die Anzahlung erfolgt ist.\n"
@@ -10588,6 +10604,12 @@ def public_confirm_view():
                         provider_email_body += f"Kunden-Details:\n"
                         provider_email_body += f"Name: {b.customer_name}\n"
                         provider_email_body += f"E-Mail: {b.customer_email}\n"
+                        if getattr(b, "customer_phone", None):
+                            provider_email_body += f"Telefon: {b.customer_phone}\n"
+                        if getattr(b, "customer_address", None):
+                            provider_email_body += f"Adresse: {b.customer_address}\n"
+                        if getattr(b, "vehicle_license_plate", None):
+                            provider_email_body += f"Kfz-Kennzeichen: {b.vehicle_license_plate}\n"
                         if getattr(b, "customer_message", None):
                             provider_email_body += f"\nNotiz des Suchenden: {b.customer_message}\n"
                         provider_email_body += f"\n"
@@ -11288,5 +11310,169 @@ except Exception as _e:
 # --------------------------------------------------------
 # Start
 # --------------------------------------------------------
+# ================================================================
+# Promo-Code-System (Messe-Codes, z.B. CONSUMENTA26)
+# ================================================================
+
+def _send_promo_mail(to_email, subject, body):
+    try:
+        send_mail(to=to_email, subject=subject, text=body)
+    except Exception as _exc:
+        app.logger.warning(f"Promo-Mail fehlgeschlagen: {_exc}")
+
+def _send_promo_confirmation_mail(email, plan, test_end):
+    te_str = test_end.astimezone(BERLIN_TZ).strftime("%d.%m.%Y")
+    _send_promo_mail(email,
+        "Ihr Profi-Testzugang ist aktiviert – Terminmarktplatz.de",
+        f"Guten Tag,\n\nIhr Aktionscode wurde erfolgreich eingeloest.\n\nIhr Profi-Testzugang ist aktiv bis: {te_str}, 23:59 Uhr\n\nNach Ablauf wird Ihr Konto automatisch auf das kostenlose Basis-Paket zurueckgesetzt. Ihre Daten und eingestellten Termine bleiben vollstaendig erhalten.\n\nEine Uebersicht unserer Pakete: https://terminmarktplatz.de/preise\n\nMit freundlichen Gruessen\nIhr Terminmarktplatz-Team")
+
+def _send_promo_reminder_mail(email, test_end):
+    te_str = test_end.astimezone(BERLIN_TZ).strftime("%d.%m.%Y")
+    _send_promo_mail(email,
+        "Ihr Profi-Testzugang endet in 14 Tagen – Terminmarktplatz.de",
+        f"Guten Tag,\n\nIhr Profi-Testzugang endet am {te_str}.\n\nNach diesem Datum wird Ihr Konto automatisch auf das kostenlose Basis-Paket zurueckgesetzt. Ihre Daten und Termine bleiben vollstaendig erhalten.\n\nEine Uebersicht unserer Pakete: https://terminmarktplatz.de/preise\n\nMit freundlichen Gruessen\nIhr Terminmarktplatz-Team")
+
+def _send_promo_downgrade_mail(email, unpublished=0):
+    extra = ""
+    if unpublished > 0:
+        extra = (
+            f"\n\nHinweis: {unpublished} Ihrer Termine wurden automatisch auf Entwurf zurueckgesetzt, "
+            "da das Basis-Paket maximal 3 veroeffentlichte Termine pro Monat erlaubt. "
+            "Die zeitlich naechsten 3 Termine pro Monat bleiben veroeffentlicht. "
+            "Alle Ihre Termindaten sind vollstaendig erhalten – Sie koennen Termine jederzeit wieder veroeffentlichen, "
+            "sofern das monatliche Kontingent verfuegbar ist."
+        )
+    _send_promo_mail(email,
+        "Ihr Profi-Testzugang wurde beendet – Terminmarktplatz.de",
+        "Guten Tag,\n\nIhr Profi-Testzugang ist heute abgelaufen. Ihr Konto wurde auf das kostenlose Basis-Paket zurueckgesetzt.\n\nIhre Daten und eingestellten Termine sind vollstaendig erhalten geblieben. Im Basis-Paket koennen Sie bis zu 3 Termine pro Monat veroeffentlichen."
+        + extra +
+        "\n\nEine Uebersicht unserer Pakete: https://terminmarktplatz.de/preise\n\nMit freundlichen Gruessen\nIhr Terminmarktplatz-Team")
+
+
+@app.get("/api/promo/check")
+def api_promo_check():
+    """Aktionscode prüfen ohne Einlösung – kein Login nötig."""
+    from datetime import timezone as _utc
+    code_raw = (request.args.get("code") or "").strip().upper()
+    if not code_raw:
+        return _json_error("code_required")
+    now_utc = __import__("datetime").datetime.now(tz=_utc.utc)
+    with Session(engine) as s:
+        row = s.execute(
+            text("SELECT code, plan, valid_until, active FROM promo_codes WHERE code = :code"),
+            {"code": code_raw},
+        ).fetchone()
+        if not row or not row.active:
+            return _json_error("invalid_code")
+        valid_until = row.valid_until
+        if valid_until.tzinfo is None:
+            valid_until = valid_until.replace(tzinfo=_utc.utc)
+        if now_utc > valid_until:
+            return _json_error("code_expired")
+    return jsonify({"ok": True, "plan": row.plan})
+
+@app.post("/api/promo/redeem")
+def api_promo_redeem():
+    from datetime import timezone as _utc
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return _json_error("unauthorized", 401)
+    data = request.get_json(force=True) or {}
+    code_raw = (data.get("code") or "").strip().upper()
+    if not code_raw:
+        return _json_error("code_required")
+    now_utc = datetime.now(tz=_utc.utc)
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p:
+            return _json_error("not_found", 404)
+        has_paid = s.scalar(text("SELECT COUNT(*) FROM plan_purchase WHERE provider_id = :pid AND status = 'paid' AND period_end >= CURRENT_DATE"), {"pid": str(pid)})
+        if has_paid:
+            return _json_error("already_paid_plan")
+        already = s.scalar(text("SELECT COUNT(*) FROM promo_redemptions WHERE provider_id = :pid"), {"pid": str(pid)})
+        if already:
+            return _json_error("already_redeemed")
+        row = s.execute(text("SELECT code, plan, valid_until, test_end, active FROM promo_codes WHERE code = :code"), {"code": code_raw}).fetchone()
+        if not row or not row.active:
+            return _json_error("invalid_code")
+        valid_until = row.valid_until
+        if valid_until.tzinfo is None:
+            valid_until = valid_until.replace(tzinfo=_utc.utc)
+        if now_utc > valid_until:
+            return _json_error("code_expired")
+        test_end = row.test_end
+        if test_end.tzinfo is None:
+            test_end = test_end.replace(tzinfo=_utc.utc)
+        p.plan = row.plan
+        p.plan_valid_until = test_end
+        s.execute(text("INSERT INTO promo_redemptions (id, provider_id, code, test_end) VALUES (gen_random_uuid(), :pid, :code, :test_end)"), {"pid": str(pid), "code": code_raw, "test_end": test_end})
+        s.commit()
+        provider_email = p.email
+    _send_promo_confirmation_mail(provider_email, row.plan, test_end)
+    return jsonify({"ok": True, "plan": row.plan, "test_end": test_end.astimezone(BERLIN_TZ).strftime("%d.%m.%Y")})
+
+@app.get("/api/admin/promo-overview")
+def api_admin_promo_overview():
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return _json_error("unauthorized", 401)
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p or not getattr(p, "is_admin", False):
+            return _json_error("forbidden", 403)
+        rows = s.execute(text("SELECT r.code, r.redeemed_at, r.test_end, prov.email, prov.id AS provider_id FROM promo_redemptions r JOIN provider prov ON prov.id = r.provider_id ORDER BY r.redeemed_at DESC")).fetchall()
+    return jsonify({"total": len(rows), "entries": [{"code": row.code, "email": row.email, "provider_id": str(row.provider_id), "redeemed_at": row.redeemed_at.isoformat() if row.redeemed_at else None, "test_end": row.test_end.isoformat() if row.test_end else None} for row in rows]})
+
+def _promo_downgrade_job():
+    from datetime import timezone as _utc
+    now_utc = datetime.now(tz=_utc.utc)
+    try:
+        with Session(engine) as s:
+            rows = s.execute(text("SELECT r.provider_id, prov.email FROM promo_redemptions r JOIN provider prov ON prov.id = r.provider_id WHERE r.test_end <= :now AND prov.plan IN ('starter', 'profi', 'business') AND NOT EXISTS (SELECT 1 FROM plan_purchase pp WHERE pp.provider_id = r.provider_id AND pp.status = 'paid' AND pp.period_end >= CURRENT_DATE)"), {"now": now_utc}).fetchall()
+            for row in rows:
+                p = s.get(Provider, row.provider_id)
+                if p:
+                    p.plan = "basic"
+                    p.plan_valid_until = None
+                    p.free_slots_per_month = 3
+                    # Überschüssige Slots pro Monat unpublishen (max. 3/Monat behalten)
+                    future_slots = s.execute(text(
+                        "SELECT id, start_at FROM slot WHERE provider_id = :pid "
+                        "AND status = \'PUBLISHED\' AND start_at > :now ORDER BY start_at ASC"
+                    ), {"pid": str(row.provider_id), "now": now_utc}).fetchall()
+                    from collections import defaultdict
+                    by_month = defaultdict(list)
+                    for sl in future_slots:
+                        sa = sl.start_at
+                        key = (sa.year, sa.month) if hasattr(sa, "year") else (now_utc.year, now_utc.month)
+                        by_month[key].append(str(sl.id))
+                    to_unpublish = []
+                    for ids in by_month.values():
+                        if len(ids) > 3:
+                            to_unpublish.extend(ids[3:])
+                    for sid in to_unpublish:
+                        s.execute(text("UPDATE slot SET status=\'DRAFT\', published_at=NULL WHERE id = :sid"), {"sid": sid})
+                    s.commit()
+                    _send_promo_downgrade_mail(row.email, len(to_unpublish))
+                    app.logger.info(f"Promo downgrade: {row.email}, {len(to_unpublish)} Slots unpublished")
+    except Exception as _exc:
+        app.logger.error(f"_promo_downgrade_job Fehler: {_exc}")
+
+def _promo_reminder_job():
+    from datetime import timezone as _utc, timedelta
+    now_utc = datetime.now(tz=_utc.utc)
+    try:
+        with Session(engine) as s:
+            rows = s.execute(text("SELECT r.provider_id, r.test_end, prov.email FROM promo_redemptions r JOIN provider prov ON prov.id = r.provider_id WHERE r.test_end >= :start AND r.test_end < :end AND r.test_end > :now"), {"start": now_utc + timedelta(days=14), "end": now_utc + timedelta(days=15), "now": now_utc}).fetchall()
+            for row in rows:
+                _send_promo_reminder_mail(row.email, row.test_end)
+    except Exception as _exc:
+        app.logger.error(f"_promo_reminder_job Fehler: {_exc}")
+
+_promo_scheduler = BackgroundScheduler(timezone=BERLIN_TZ)
+_promo_scheduler.add_job(_promo_downgrade_job, "cron", hour=2, minute=0)
+_promo_scheduler.add_job(_promo_reminder_job, "cron", hour=8, minute=0)
+_promo_scheduler.start()
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
