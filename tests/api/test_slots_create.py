@@ -39,6 +39,7 @@ def _create_provider(complete: bool = True) -> str:
             zip="12345",
             city="Teststadt",
             phone="1234567",
+            contact_email="kontakt@firma.de",
             status="approved",
         )
         if not complete:

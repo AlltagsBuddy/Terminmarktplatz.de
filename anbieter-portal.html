@@ -835,7 +835,9 @@
   </header>
 
   <main id="main-content">
-    <section class="hero" style="padding:36px 0 18px">
+
+<!-- Aktionscode-Feld für Basis-Konten -->
+<section class="hero" style="padding:36px 0 18px">
       <div class="container">
         <span class="badge">Anbieter-Portal</span>
         <h1>Willkommen! 👋</h1>
@@ -887,6 +889,19 @@
 
           <form id="form-slot" class="grid" novalidate>
             <fieldset id="slot-fields" disabled>
+
+              <!-- ===== TERMINTYP-AUSWAHL ===== -->
+              <div class="field" style="grid-column:1/-1">
+                <label>Termintyp <span class="req">*</span></label>
+                <div id="slot-type-chips" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                  <button type="button" class="btn slot-type-chip active" data-type="einzel">📅 Einzeltermin</button>
+                  <button type="button" class="btn slot-type-chip" data-type="kurs">👥 Kurs / Gruppe</button>
+                  <button type="button" class="btn slot-type-chip" data-type="online">💻 Online-Termin</button>
+                  <button type="button" class="btn slot-type-chip" data-type="mobil">🚗 Vor Ort beim Kunden</button>
+                </div>
+                <input type="hidden" id="sl-slot-type" value="einzel"/>
+              </div>
+
               <div class="field">
                 <label for="sl-title">Titel <span class="req">*</span></label>
                 <input id="sl-title" name="title" placeholder="z. B. Damenhaarschnitt" required aria-required="true"/>
@@ -943,41 +958,75 @@
                 <input id="sl-end" type="time" step="60"/>
               </div>
 
-              <!-- Slot-Adresse mit Validierung -->
-              <div class="field">
-                <label for="sl-street">Straße & Nr. <span class="req">*</span></label>
-                <input id="sl-street" name="slot_street"
-                       placeholder="z. B. Musterstraße 12a"
-                       required aria-required="true"
-                       pattern="^.{2,}\s+\d{1,4}[a-zA-Z0-9\-\/]*$"
-                       title="Bitte Straße und Hausnummer angeben, z. B. Musterstraße 12a" />
+              <!-- Kapazität: bei Kurs prominenter oben, sonst optional unten -->
+              <div class="field" id="field-sl-cap-kurs" style="display:none; grid-column:1/-1; background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:12px;">
+                <label for="sl-cap-kurs" style="color:#166534;">Max. Teilnehmerzahl <span class="req">*</span></label>
+                <input id="sl-cap-kurs" type="number" min="2" step="1" value="10" style="border-color:#86efac;"/>
+                <span class="hint" style="color:#166534;">Buchungen schließen automatisch, sobald die Anzahl erreicht ist.</span>
               </div>
 
-              <div class="field">
-                <label for="sl-zip">PLZ <span class="req">*</span></label>
-                <input id="sl-zip" name="slot_zip"
-                       placeholder="z. B. 96191"
-                       required aria-required="true"
-                       inputmode="numeric"
-                       pattern="\d{5}"
-                       title="5-stellige Postleitzahl, z. B. 96191" />
+              <!-- Adressblock: nur bei Einzeltermin & Kurs -->
+              <div id="slot-addr-block">
+                <div class="field">
+                  <label for="sl-street">Straße &amp; Nr. <span class="req">*</span></label>
+                  <input id="sl-street" name="slot_street"
+                         placeholder="z. B. Musterstraße 12a"
+                         required aria-required="true"
+                         pattern="^.{2,}\s+\d{1,4}[a-zA-Z0-9\-\/]*$"
+                         title="Bitte Straße und Hausnummer angeben, z. B. Musterstraße 12a" />
+                </div>
+
+                <div class="field">
+                  <label for="sl-zip">PLZ <span class="req">*</span></label>
+                  <input id="sl-zip" name="slot_zip"
+                         placeholder="z. B. 96191"
+                         required aria-required="true"
+                         inputmode="numeric"
+                         pattern="\d{5}"
+                         title="5-stellige Postleitzahl, z. B. 96191" />
+                </div>
+
+                <div class="field">
+                  <label for="sl-city">Ort <span class="req">*</span></label>
+                  <input id="sl-city" name="slot_city"
+                         placeholder="z. B. Viereth"
+                         required aria-required="true"
+                         pattern="^[A-Za-zÄÖÜäöüß.\-\s]{2,}$"
+                         title="Bitte einen gültigen Ortsnamen angeben, z. B. Viereth" />
+                </div>
+
+                <div class="toolbar">
+                  <button type="button" class="btn" id="slot-copy-from-profile">Adresse aus Profil übernehmen</button>
+                  <span class="muted">Standard: Profiladresse nutzen, bei Bedarf für Filialen anpassen.</span>
+                </div>
               </div>
 
-              <div class="field">
-                <label for="sl-city">Ort <span class="req">*</span></label>
-                <input id="sl-city" name="slot_city"
-                       placeholder="z. B. Viereth"
-                       required aria-required="true"
-                       pattern="^[A-Za-zÄÖÜäöüß.\-\s]{2,}$"
-                       title="Bitte einen gültigen Ortsnamen angeben, z. B. Viereth" />
+              <!-- Online-Block: Meeting-Link -->
+              <div id="slot-online-block" style="display:none; grid-column:1/-1;">
+                <div class="field">
+                  <label for="sl-video-link">Meeting-Link <span class="req">*</span></label>
+                  <input id="sl-video-link" type="url" placeholder="https://zoom.us/j/… oder Teams-Link"/>
+                  <span class="hint" style="font-size:12px;">Wird dem Kunden nach der Buchungsbestätigung angezeigt.</span>
+                </div>
+                <div class="callout" style="margin-top:8px; background:#f0f9ff; border-color:#bae6fd; color:#0369a1;">
+                  💡 Tipp: Erstelle den Link einmal in Zoom oder Teams und verwende ihn für alle Online-Termine.
+                </div>
               </div>
 
-              <div class="toolbar">
-                <button type="button" class="btn" id="slot-copy-from-profile">Adresse aus Profil übernehmen</button>
-                <span class="muted">Standard: Profiladresse nutzen, bei Bedarf für Filialen anpassen.</span>
+              <!-- Mobil-Block: Einzugsgebiet -->
+              <div id="slot-mobil-block" style="display:none; grid-column:1/-1;">
+                <div class="callout" style="background:#f0f9ff; border-color:#bae6fd; color:#0369a1;">
+                  🚗 Die Kundenadresse wird bei der Buchung automatisch abgefragt – kein Adresseintrag hier nötig.
+                </div>
+                <div class="field" style="margin-top:8px;">
+                  <label for="sl-service-area">Einzugsgebiet (optional)</label>
+                  <input id="sl-service-area" type="text" placeholder="z. B. Berlin und Umgebung (30 km)"/>
+                  <span class="hint" style="font-size:12px;">Zeigt Kunden, ob du in ihre Region kommst.</span>
+                </div>
               </div>
 
-              <div class="field">
+              <!-- Kapazität: für Einzeltermin / Online / Mobil als optionales Feld -->
+              <div class="field" id="field-sl-cap-default">
                 <label for="sl-cap">Kapazität</label>
                 <input id="sl-cap" type="number" min="1" step="1" value="1"/>
               </div>
@@ -1883,6 +1932,51 @@
       recalcEnd();
     }));
 
+    // ---------- Termintyp-Chips ----------
+    function applySlotType(type) {
+      const typeInput = document.getElementById('sl-slot-type');
+      if (typeInput) typeInput.value = type;
+
+      // Chips active state
+      document.querySelectorAll('.slot-type-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+      });
+
+      const addrBlock   = document.getElementById('slot-addr-block');
+      const onlineBlock = document.getElementById('slot-online-block');
+      const mobilBlock  = document.getElementById('slot-mobil-block');
+      const capKurs     = document.getElementById('field-sl-cap-kurs');
+      const capDefault  = document.getElementById('field-sl-cap-default');
+
+      const isOnline = type === 'online';
+      const isMobil  = type === 'mobil';
+      const isKurs   = type === 'kurs';
+
+      if (addrBlock)   addrBlock.style.display   = (!isOnline && !isMobil) ? '' : 'none';
+      if (onlineBlock) onlineBlock.style.display  = isOnline ? '' : 'none';
+      if (mobilBlock)  mobilBlock.style.display   = isMobil  ? '' : 'none';
+      if (capKurs)     capKurs.style.display      = isKurs   ? '' : 'none';
+      if (capDefault)  capDefault.style.display   = isKurs   ? 'none' : '';
+
+      // Pflichtfelder für Adresse anpassen
+      const addrInputs = ['sl-street', 'sl-zip', 'sl-city'];
+      addrInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.required = (!isOnline && !isMobil);
+      });
+    }
+
+    // Chips klickbar machen
+    document.querySelectorAll('.slot-type-chip').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        applySlotType(btn.dataset.type);
+      });
+    });
+
+    // Initialzustand setzen
+    applySlotType('einzel');
+
     const copyBtn = document.getElementById('slot-copy-from-profile');
     if (copyBtn) {
       copyBtn.addEventListener('click', (e)=>{
@@ -1914,47 +2008,71 @@
       const category = $('#sl-cat').value;
       const date     = $('#sl-date').value;
       const start    = $('#sl-start').value;
-
-      const streetCombined = $('#sl-street').value.trim();
-      const zip      = $('#sl-zip').value.trim();
-      const city     = $('#sl-city').value.trim();
+      const slotType = (document.getElementById('sl-slot-type') || {}).value || 'einzel';
 
       const duration = totalMinutes();
 
-      if (!title || !category || !date || !start || !streetCombined || !zip || !city || !duration) {
+      if (!title || !category || !date || !start || !duration) {
         showMsg('msg-slot', 'Bitte alle Pflichtfelder für den Slot ausfüllen.');
         return;
       }
 
-      if (!isValidStreetWithNumber(streetCombined)) {
-        showMsg('msg-slot', 'Adresse unplausibel: Bitte Straße und Hausnummer eingeben (z. B. Musterstraße 12a).');
-        return;
-      }
-      if (!isValidZip(zip)) {
-        showMsg('msg-slot', 'PLZ muss 5-stellig sein.');
-        return;
-      }
-      if (!isValidCityName(city)) {
-        showMsg('msg-slot', 'Ort unplausibel – bitte nur Buchstaben verwenden.');
-        return;
+      // Typ-spezifische Pflichtfeld-Prüfung
+      let streetCombined = '', zip = '', city = '', videoLink = '', serviceArea = '';
+      let location = '';
+
+      if (slotType === 'online') {
+        videoLink = (document.getElementById('sl-video-link') || {value:''}).value.trim();
+        if (!videoLink) {
+          showMsg('msg-slot', 'Bitte einen Meeting-Link für den Online-Termin angeben.');
+          return;
+        }
+        location = 'Online';
+      } else if (slotType === 'mobil') {
+        serviceArea = (document.getElementById('sl-service-area') || {value:''}).value.trim();
+        location = 'Vor Ort beim Kunden';
+      } else {
+        // einzel + kurs: Adresse pflicht
+        streetCombined = $('#sl-street').value.trim();
+        zip      = $('#sl-zip').value.trim();
+        city     = $('#sl-city').value.trim();
+
+        if (!streetCombined || !zip || !city) {
+          showMsg('msg-slot', 'Bitte Straße, PLZ und Ort angeben.');
+          return;
+        }
+        if (!isValidStreetWithNumber(streetCombined)) {
+          showMsg('msg-slot', 'Adresse unplausibel: Bitte Straße und Hausnummer eingeben (z. B. Musterstraße 12a).');
+          return;
+        }
+        if (!isValidZip(zip)) {
+          showMsg('msg-slot', 'PLZ muss 5-stellig sein.');
+          return;
+        }
+        if (!isValidCityName(city)) {
+          showMsg('msg-slot', 'Ort unplausibel – bitte nur Buchstaben verwenden.');
+          return;
+        }
+        location = `${streetCombined}, ${zip} ${city}`;
       }
 
       const startDt = joinDateTime(date, start);
       const endDt   = new Date(startDt.getTime() + duration * 60000);
 
-      const capacity = parseInt($('#sl-cap').value || '1', 10);
+      // Kapazität: bei Kurs aus dem prominenten Feld, sonst aus dem Standard-Feld
+      let rawCap;
+      if (slotType === 'kurs') {
+        rawCap = (document.getElementById('sl-cap-kurs') || {value:'10'}).value;
+      } else {
+        rawCap = $('#sl-cap').value;
+      }
+      const capacity = parseInt(rawCap || '1', 10);
       const priceVal = $('#sl-price').value;
       const description = $('#sl-description').value.trim();
       const notes    = $('#sl-notes').value.trim();
 
       // KEINE Prüfung beim Erstellen/Bearbeiten - die Prüfung erfolgt erst beim Veröffentlichen
       // Das Backend prüft korrekt beim /slots/<id>/publish Endpoint
-
-      // ✅ splitten -> DB-Felder
-      const parsed = splitStreetAndNumber(streetCombined);
-
-      // Kompatibilität / Anzeige
-      const location = `${streetCombined}, ${zip} ${city}`;
 
       const priceCents = (priceVal === '' ? null : Math.round(Number(priceVal) * 100));
       const depositVal = $('#sl-deposit').value;
@@ -1965,21 +2083,28 @@
         category,
         start_at: startDt.toISOString(),
         end_at:   endDt.toISOString(),
-        // ✅ DB-Felder (Model Slot.street/house_number/zip/city)
-        street: parsed.street,
-        house_number: parsed.house_number,
-        zip,
-        city,
-
-        // optional: Freitext-Adresse weiter füllen
+        slot_type: slotType,
         location,
-
         capacity: isNaN(capacity) ? 1 : capacity,
         price_cents: (priceCents === null || isNaN(priceCents)) ? null : priceCents,
         deposit_cents: (depositCents === null || isNaN(depositCents) || depositCents <= 0) ? null : depositCents,
         description: description || null,
         notes: notes || null
       };
+
+      // Typ-spezifische Felder
+      if (slotType === 'online') {
+        payload.video_link = videoLink;
+      } else if (slotType === 'mobil') {
+        payload.service_area = serviceArea || null;
+      } else {
+        // Adressfelder für einzel + kurs
+        const parsed = splitStreetAndNumber(streetCombined);
+        payload.street = parsed.street;
+        payload.house_number = parsed.house_number;
+        payload.zip = zip;
+        payload.city = city;
+      }
 
       if (HAS_BUSINESS_FEATURES) {
         const empSel = document.getElementById('sl-employee');
@@ -2156,6 +2281,9 @@
       if (subCatContainer) subCatContainer.style.display = 'none';
       if (finalCatInput) finalCatInput.value = '';
       
+      // Termintyp zurücksetzen
+      applySlotType('einzel');
+
       const dur = document.getElementById('sl-duration');
       const unit = document.getElementById('sl-unit');
       if (dur) dur.value = 30;
@@ -2351,6 +2479,7 @@
             return `<div class="booking-detail-row">
               <strong>${name}</strong><br>
               📍 ${addr}<br>
+              ${b.vehicle_license_plate ? `🚗 ${b.vehicle_license_plate}<br>` : ""}
               📞 <a href="tel:${b.customer_phone||''}">${phone}</a> &nbsp;
               ✉️ <a href="mailto:${b.customer_email||''}">${email}</a>
             </div>`;
@@ -3187,6 +3316,75 @@
     })();
   </script>
   <script src="static/session-timeout.js?v=1" defer></script>
+
+<script>
+(function(){
+  const PLAN_LABEL = {
+    basic:    {text:'Basis-Paket (kostenlos)', bg:'#2a2a3e', border:'#555',    color:'#ccc'},
+    starter:  {text:'Starter-Paket',           bg:'#1a3a5c', border:'#1a73e8', color:'#90caf9'},
+    profi:    {text:'Profi-Paket',             bg:'#1a3a1a', border:'#43a047', color:'#a5d6a7'},
+    business: {text:'Business-Paket',          bg:'#3a1a3a', border:'#8e24aa', color:'#ce93d8'},
+  };
+  async function loadPlanBadge() {
+
+    try {
+      const r = await fetch('/me', {credentials: 'include'});
+      if (!r.ok) return;
+      const d = await r.json();
+      const plan  = d.plan_key || d.plan || d.provider?.plan || 'basic';
+      const until = d.plan_valid_until || d.provider?.plan_valid_until || null;
+      const badge = document.getElementById('plan-badge');
+      const wrap  = document.getElementById('promo-redeem-wrap');
+      if (!badge) return;
+      const lbl = PLAN_LABEL[plan] || PLAN_LABEL.basic;
+      let html = '<strong style="color:'+lbl.color+'">📦 '+lbl.text+'</strong>';
+      // Promo-Test aktiv?
+      const isPromo = (plan !== 'basic') && until;
+      if (isPromo) {
+        const dt = new Date(until);
+        const ds = dt.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+        html = '<strong style="color:#a5d6a7;">🎟️ Profi-Testzugang aktiv</strong>'
+             + '<span style="color:#ccc;margin-left:10px;">bis '+ds+', 23:59 Uhr</span>';
+        badge.style.background='#1a3a1a'; badge.style.border='1px solid #43a047';
+        if (wrap) wrap.style.display='none';
+      } else {
+        badge.style.background=lbl.bg; badge.style.border='1px solid '+lbl.border;
+        if (plan==='basic' && wrap) wrap.style.display='block';
+      }
+      badge.innerHTML = html;
+      badge.style.display = 'block';
+    } catch(e){}
+  }
+  window.redeemPromo = async function(){
+    const code  = document.getElementById('promo-code-input')?.value?.trim().toUpperCase();
+    const msg   = document.getElementById('promo-redeem-msg');
+    if (!code){if(msg){msg.style.color='#e53935';msg.textContent='Bitte Aktionscode eingeben.';}return;}
+    const ERR = {
+      invalid_code:'Ungültiger Aktionscode. Gib einen aktiven Aktionscode ein oder leere das Feld.',
+      code_expired:'Dieser Aktionscode ist abgelaufen.',
+      already_redeemed:'Dieser Code wurde bereits eingelöst.',
+      already_paid_plan:'Nicht verfügbar – Sie haben bereits ein bezahltes Paket.'
+    };
+    try {
+      const r = await fetch('/api/promo/redeem',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'}, credentials:'include',
+        body:JSON.stringify({code})
+      });
+      const d = await r.json();
+      if(d.ok){
+        if(msg){msg.style.color='#1a7a3a';msg.style.fontWeight='600';
+                msg.textContent='✅ Profi-Testzugang aktiv bis '+d.test_end;}
+        setTimeout(()=>loadPlanBadge(),800);
+      } else {
+        if(msg){msg.style.color='#e53935';msg.style.fontWeight='600';
+                msg.textContent=ERR[d.error]||'Fehler beim Einlösen.';}
+      }
+    }catch(e){if(msg){msg.style.color='#e53935';msg.textContent='Netzwerkfehler.';}}
+  };
+  document.addEventListener('DOMContentLoaded', loadPlanBadge);
+})();
+</script>
 </body>
 </html>
 

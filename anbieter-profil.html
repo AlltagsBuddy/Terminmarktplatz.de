@@ -284,11 +284,21 @@
   </header>
 
   <main id="main-content">
+
+<!-- Aktionscode-Feld für Basis-Konten -->
     <section class="hero" style="padding:36px 0 18px">
       <div class="container">
         <span class="badge">Anbieter-Portal</span>
         <h1>Profil</h1>
         <p class="lead">Pflege deine Profilangaben und ändere dein Passwort.</p>
+        <div id="plan-badge" style="display:inline-block;margin-top:12px;padding:6px 14px;border-radius:20px;font-size:0.85em;"></div>
+        <div id="promo-redeem-wrap" style="display:none;margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="promo-code-input" placeholder="Aktionscode eingeben"
+                 style="padding:6px 12px;border:1px solid #555;border-radius:20px;font-size:0.85em;background:rgba(255,255,255,0.1);color:#fff;width:220px;">
+          <button onclick="redeemPromo()"
+                  style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:0.85em;">Einlösen</button>
+          <div id="promo-redeem-msg" style="font-size:0.8em;width:100%;margin-top:2px;"></div>
+        </div>
       </div>
     </section>
 
@@ -1111,5 +1121,74 @@
     })();
   </script>
   <script src="static/session-timeout.js?v=1" defer></script>
+
+<script>
+(function(){
+  const PLAN_LABEL = {
+    basic:    {text:'Basis-Paket (kostenlos)', bg:'#2a2a3e', border:'#555',    color:'#ccc'},
+    starter:  {text:'Starter-Paket',           bg:'#1a3a5c', border:'#1a73e8', color:'#90caf9'},
+    profi:    {text:'Profi-Paket',             bg:'#1a3a1a', border:'#43a047', color:'#a5d6a7'},
+    business: {text:'Business-Paket',          bg:'#3a1a3a', border:'#8e24aa', color:'#ce93d8'},
+  };
+  async function loadPlanBadge() {
+
+    try {
+      const r = await fetch('/me', {credentials: 'include'});
+      if (!r.ok) return;
+      const d = await r.json();
+      const plan  = d.plan_key || d.plan || d.provider?.plan || 'basic';
+      const until = d.plan_valid_until || d.provider?.plan_valid_until || null;
+      const badge = document.getElementById('plan-badge');
+      const wrap  = document.getElementById('promo-redeem-wrap');
+      if (!badge) return;
+      const lbl = PLAN_LABEL[plan] || PLAN_LABEL.basic;
+      let html = '<strong style="color:'+lbl.color+'">📦 '+lbl.text+'</strong>';
+      // Promo-Test aktiv?
+      const isPromo = (plan !== 'basic') && until;
+      if (isPromo) {
+        const dt = new Date(until);
+        const ds = dt.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+        html = '<strong style="color:#a5d6a7;">🎟️ Profi-Testzugang aktiv</strong>'
+             + '<span style="color:#ccc;margin-left:10px;">bis '+ds+', 23:59 Uhr</span>';
+        badge.style.background='#1a3a1a'; badge.style.border='1px solid #43a047';
+        if (wrap) wrap.style.display='none';
+      } else {
+        badge.style.background=lbl.bg; badge.style.border='1px solid '+lbl.border;
+        if (plan==='basic' && wrap) wrap.style.display='block';
+      }
+      badge.innerHTML = html;
+      badge.style.display = 'block';
+    } catch(e){}
+  }
+  window.redeemPromo = async function(){
+    const code  = document.getElementById('promo-code-input')?.value?.trim().toUpperCase();
+    const msg   = document.getElementById('promo-redeem-msg');
+    if (!code){if(msg){msg.style.color='#e53935';msg.textContent='Bitte Aktionscode eingeben.';}return;}
+    const ERR = {
+      invalid_code:'Ungültiger Aktionscode. Gib einen aktiven Aktionscode ein oder leere das Feld.',
+      code_expired:'Dieser Aktionscode ist abgelaufen.',
+      already_redeemed:'Dieser Code wurde bereits eingelöst.',
+      already_paid_plan:'Nicht verfügbar – Sie haben bereits ein bezahltes Paket.'
+    };
+    try {
+      const r = await fetch('/api/promo/redeem',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'}, credentials:'include',
+        body:JSON.stringify({code})
+      });
+      const d = await r.json();
+      if(d.ok){
+        if(msg){msg.style.color='#1a7a3a';msg.style.fontWeight='600';
+                msg.textContent='✅ Profi-Testzugang aktiv bis '+d.test_end;}
+        setTimeout(()=>loadPlanBadge(),800);
+      } else {
+        if(msg){msg.style.color='#e53935';msg.style.fontWeight='600';
+                msg.textContent=ERR[d.error]||'Fehler beim Einlösen.';}
+      }
+    }catch(e){if(msg){msg.style.color='#e53935';msg.textContent='Netzwerkfehler.';}}
+  };
+  document.addEventListener('DOMContentLoaded', loadPlanBadge);
+})();
+</script>
 </body>
 </html>

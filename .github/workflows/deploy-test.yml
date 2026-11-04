@@ -18,4 +18,5 @@ jobs:
           script: |
             cd /opt/terminmarktplatz-test
             git pull origin develop
+            venv/bin/pip install -r requirements.txt
             systemctl restart terminmarktplatz-test

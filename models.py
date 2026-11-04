@@ -282,6 +282,13 @@ class Slot(Base):
     # Externe ID aus einem angebundenen System (API/Warenwirtschaft) – für Idempotenz & Zuordnung
     external_id: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Termintyp: einzel | kurs | online | mobil
+    slot_type: Mapped[str | None] = mapped_column(Text, default="einzel")
+    # Meeting-Link für Online-Termine (z.B. Zoom/Teams)
+    video_link: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Einzugsgebiet für mobile Dienstleister (z.B. "Berlin, 30 km")
+    service_area: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # ✅ kompatibel zu app.py
     status: Mapped[str] = mapped_column(Text, default="DRAFT")
 

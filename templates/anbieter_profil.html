@@ -430,7 +430,7 @@
                     <td>{{ s.address }}</td>
                     <td class="price">{% if s.price_eur %}{{ s.price_eur }} €{% else %}-{% endif %}</td>
                     <td>
-                      <button class="btn" type="button" data-book="{{ s.id }}" data-has-description="{{ '1' if (s.description or '')|trim else '0' }}">Buchen</button>
+                      <button class="btn" type="button" data-book="{{ s.id }}" data-has-description="{{ '1' if (s.description or '')|trim else '0' }}" data-category="{{ (s.category or '')|lower }}" data-slot-type="{{ s.slot_type or 'einzel' }}">Buchen</button>
                     </td>
                   </tr>
                   {% endfor %}
@@ -455,7 +455,7 @@
                 <div class="slot-card-desc">{{ s.description }}</div>
                 {% endif %}
                 <div class="slot-card-actions">
-                  <button class="btn primary" type="button" data-book="{{ s.id }}" data-has-description="{{ '1' if (s.description or '')|trim else '0' }}">Buchen</button>
+                  <button class="btn primary" type="button" data-book="{{ s.id }}" data-has-description="{{ '1' if (s.description or '')|trim else '0' }}" data-category="{{ (s.category or '')|lower }}" data-slot-type="{{ s.slot_type or 'einzel' }}">Buchen</button>
                 </div>
               </div>
               {% endfor %}
@@ -479,15 +479,20 @@
           <label>E-Mail
             <input id="book-email" type="email" required autocomplete="email" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
           </label>
-          <label>Telefon (optional für WhatsApp)
+          <label id="book-address-label">Adresse (Straße, Hausnr., PLZ, Ort) *
+            <input id="book-address" type="text" required autocomplete="street-address" placeholder="z. B. Musterstr. 1, 10115 Berlin" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+          </label>
+          <label>Handynummer <span id="book-phone-req-label">(optional)</span>
             <input id="book-phone" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
           </label>
           <label>Notiz an den Anbieter (optional)
             <textarea id="book-message" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px; resize:vertical"></textarea>
           </label>
-          <label>Kfz-Kennzeichen (optional, für Werkstatt-Termine)
-            <input id="book-vehicle" type="text" placeholder="z. B. B-XX 1234" autocomplete="off" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
-          </label>
+          <div id="book-vehicle-wrap" style="display:none;">
+            <label>Kfz-Kennzeichen (optional, für Werkstatt-Termine)
+              <input id="book-vehicle" type="text" placeholder="z. B. B-XX 1234" autocomplete="off" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:16px">
+            </label>
+          </div>
           <div id="book-description-check-wrap" style="display:none;">
             <label style="display:flex; gap:8px; align-items:flex-start;">
               <input id="book-description-read" type="checkbox" required>
@@ -529,14 +534,18 @@
               <input id="book-email-mobile" type="email" required autocomplete="email" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
             </div>
           <div style="margin-bottom:16px;">
-            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Telefon (optional für WhatsApp)</label>
+            <label id="book-address-label-mobile" style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Adresse (Straße, Hausnr., PLZ, Ort) *</label>
+            <input id="book-address-mobile" type="text" required autocomplete="street-address" placeholder="z. B. Musterstr. 1, 10115 Berlin" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Handynummer <span id="book-phone-req-label-mobile" style="font-weight:400;">(optional)</span></label>
             <input id="book-phone-mobile" type="tel" autocomplete="tel" placeholder="+49 ..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; -webkit-appearance:none;" />
           </div>
           <div style="margin-bottom:16px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Notiz an den Anbieter (optional)</label>
             <textarea id="book-message-mobile" rows="3" placeholder="z. B. Wünsche, Fragen..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box; resize:vertical;"></textarea>
           </div>
-          <div style="margin-bottom:16px;">
+          <div id="book-vehicle-wrap-mobile" style="display:none; margin-bottom:16px;">
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Kfz-Kennzeichen (optional)</label>
             <input id="book-vehicle-mobile" type="text" placeholder="z. B. B-XX 1234" autocomplete="off" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; box-sizing:border-box;" />
           </div>
@@ -625,7 +634,33 @@
     const bookModalMobile = document.getElementById('book-modal-mobile');
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    function openBook(slotId, hasDescription){
+    const KFZ_CATEGORIES = ['werkstatt', 'kfz', 'auto', 'fahrzeug', 'motorrad', 'quad', 'fahrrad', 'reparatur'];
+
+    function applyBookingSlotType(category, slotType, isMobileForm) {
+      const isMobil = (slotType || 'einzel') === 'mobil';
+      const isKfz = KFZ_CATEGORIES.some(k => (category || '').toLowerCase().includes(k));
+      if (isMobileForm) {
+        const addrLabel = document.getElementById('book-address-label-mobile');
+        if (addrLabel) addrLabel.textContent = isMobil
+          ? 'Deine Adresse (Termin findet bei dir statt) *'
+          : 'Adresse (Straße, Hausnr., PLZ, Ort) *';
+        const kfzWrap = document.getElementById('book-vehicle-wrap-mobile');
+        if (kfzWrap) kfzWrap.style.display = isKfz ? 'block' : 'none';
+        const kfzInput = document.getElementById('book-vehicle-mobile');
+        if (kfzInput) kfzInput.value = '';
+      } else {
+        const addrLabel = document.getElementById('book-address-label');
+        if (addrLabel) addrLabel.childNodes[0].textContent = isMobil
+          ? 'Deine Adresse (Termin findet bei dir statt) *'
+          : 'Adresse (Straße, Hausnr., PLZ, Ort) *';
+        const kfzWrap = document.getElementById('book-vehicle-wrap');
+        if (kfzWrap) kfzWrap.style.display = isKfz ? 'block' : 'none';
+        const kfzInput = document.getElementById('book-vehicle');
+        if (kfzInput) kfzInput.value = '';
+      }
+    }
+
+    function openBook(slotId, hasDescription, category, slotType){
       if (!slotId) {
         alert('Fehler: Keine Slot-ID gefunden.');
         return;
@@ -648,6 +683,9 @@
         if (reminder) reminder.checked = true;
         const channel = document.getElementById('book-reminder-channel-mobile');
         if (channel) channel.value = 'email';
+        const addrInputM = document.getElementById('book-address-mobile');
+        if (addrInputM) addrInputM.value = '';
+        applyBookingSlotType(category, slotType, true);
         bookModalMobile.style.display = 'block';
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
@@ -676,6 +714,9 @@
         if (reminder) reminder.checked = true;
         const channel = document.getElementById('book-reminder-channel');
         if (channel) channel.value = 'email';
+        const addrInput = document.getElementById('book-address');
+        if (addrInput) addrInput.value = '';
+        applyBookingSlotType(category, slotType, false);
         try {
           bookDialog.showModal();
           setTimeout(() => {
@@ -705,7 +746,7 @@
     }
 
     document.querySelectorAll('[data-book]').forEach(btn => {
-      btn.addEventListener('click', () => openBook(btn.dataset.book, btn.dataset.hasDescription === '1'));
+      btn.addEventListener('click', () => openBook(btn.dataset.book, btn.dataset.hasDescription === '1', btn.dataset.category || '', btn.dataset.slotType || 'einzel'));
     });
 
     if (bookModalMobile) {

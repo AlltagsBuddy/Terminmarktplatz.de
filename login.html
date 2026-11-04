@@ -651,7 +651,7 @@
               <span class="hint" style="font-weight:400;">Ohne Haken: Sitzung ca. 8 Stunden. Mit Haken: bis zu 30 Tage auf diesem Gerät.</span>
             </div>
             <div class="form-actions col-2">
-              <button class="btn primary" type="submit">Anmelden</button>
+<button class="btn primary" type="submit">Anmelden</button>
               <span class="form-note">
                 Noch kein Konto? → <a href="#" data-switch="register">Jetzt registrieren</a><br>
                 <a href="#" id="forgot-password-link" style="margin-top: 8px; display: inline-block;">Passwort vergessen?</a>
@@ -690,7 +690,15 @@
               <label><input type="checkbox" id="reg-terms" required> Ich akzeptiere das <a href="impressum.html" target="_blank" rel="noopener">Impressum</a> und die <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutzerklärung</a>.</label>
             </div>
             <div class="form-actions col-2">
-              <button class="btn primary" type="submit">Kostenlos registrieren</button>
+              
+        <div id="reg-promo-wrap" style="margin-top:8px;">
+          <label for="reg-promo" style="font-size:0.93em;color:#ccc;">Aktionscode <span style="font-weight:400;color:#aaa;">(optional)</span></label>
+          <input type="text" id="reg-promo" name="promo_code" autocomplete="off"
+                 placeholder="z. B. MESSE2026"
+                 style="width:100%;padding:8px 10px;border:1px solid #555;border-radius:6px;font-size:1em;margin-top:3px;background:#1a1a2e;color:#fff;">
+          <div id="reg-promo-msg" style="font-size:0.85em;margin-top:4px;"></div>
+        </div>
+<button class="btn primary" type="submit">Kostenlos registrieren</button>
               <span class="form-note">Schon Konto? → <a href="#" data-switch="login">Anmelden</a></span>
             </div>
           </form>
@@ -1011,7 +1019,26 @@
 
         showLoading('Registrierung wird erstellt …'); lockForm(form, true);
         try{
-          const r = await fetch(`${API}/auth/register`, {
+          
+        // Aktionscode vorab prüfen
+        const _promoVal = (document.getElementById('reg-promo')?.value || '').trim().toUpperCase();
+        if (_promoVal) {
+          try {
+            const _pc = await fetch(`${API}/api/promo/check?code=${encodeURIComponent(_promoVal)}`);
+            const _pd = await _pc.json();
+            if (!_pd.ok) {
+              const _pm = document.getElementById('reg-promo-msg');
+              const _ERRS = {
+                invalid_code: 'Ungültiger Aktionscode. Bitte korrigiere ihn oder leere das Feld – sonst ist keine Registrierung möglich.',
+                code_expired: 'Dieser Aktionscode ist abgelaufen. Bitte leere das Feld – sonst ist keine Registrierung möglich.'
+              };
+              if (_pm) { _pm.style.color='#e53935'; _pm.style.fontWeight='600';
+                         _pm.textContent = _ERRS[_pd.error] || _ERRS.invalid_code; }
+              return;
+            }
+          } catch(e) { /* Netzwerkfehler – fortfahren */ }
+        }
+const r = await fetch(`${API}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'omit',            // keine Cookies beim Register
@@ -1021,11 +1048,45 @@
           const data = await r.json().catch(()=> ({}));
 
           if (r.ok) {
-            showSuccess('register-success', 'Fast geschafft! Bitte E-Mails prüfen und Anmeldung bestätigen.');
+            showSuccess('register-success',
+              _promoVal
+                ? 'Fast geschafft! Dein Aktionscode ist vorgemerkt und wird nach E-Mail-Bestätigung aktiviert. Bitte Postfach prüfen.'
+                : 'Fast geschafft! Bitte E-Mails prüfen und Anmeldung bestätigen.');
+            const _pmFinal = document.getElementById('reg-promo-msg');
+            if (_promoVal && _pmFinal) {
+              _pmFinal.style.color='#1a7a3a'; _pmFinal.style.fontWeight='600';
+              _pmFinal.textContent='✅ Aktionscode wird nach E-Mail-Bestätigung aktiviert.';
+            }
             showInfo('success', 'Wir haben dir eine Bestätigungs-E-Mail gesendet.');
             form.reset();
             switchTab('login');
-          } else {
+          }
+        // Promo-Code-Rückmeldung nach Registrierung
+        const promoVal = document.getElementById('reg-promo')?.value?.trim();
+        if (promoVal && regData?.provider_id) {
+          try {
+            const pr = await fetch(`${API}/api/promo/redeem`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${regData.token || ''}` },
+              body: JSON.stringify({ code: promoVal })
+            });
+            const pd = await pr.json();
+            const msg = document.getElementById('reg-promo-msg');
+            if (msg) {
+              if (pd.ok) {
+                msg.style.color = '#1a7a3a';
+                msg.textContent = `✅ Aktionscode eingelöst – Profi-Test aktiv bis ${pd.test_end}`;
+              } else {
+                const ERR = { invalid_code:'Ungültiger Aktionscode.',
+                              code_expired:'Dieser Aktionscode ist abgelaufen.',
+                              already_redeemed:'Dieser Code wurde bereits eingelöst.' };
+                msg.style.color = '#c0392b';
+                msg.textContent = ERR[pd.error] || 'Aktionscode konnte nicht eingelöst werden.';
+              }
+            }
+          } catch(e) { /* Promo-Fehler still ignorieren */ }
+        } else {
             const msg = ({
               email_exists: 'Diese E-Mail ist bereits registriert.',
               invalid_email: 'E-Mail ist ungültig.',
