@@ -19,4 +19,5 @@ jobs:
             cd /opt/terminmarktplatz-test
             git pull origin develop
             venv/bin/pip install -r requirements.txt
+            venv/bin/python scripts/migrate.py
             systemctl restart terminmarktplatz-test
