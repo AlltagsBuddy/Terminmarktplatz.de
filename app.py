@@ -10773,13 +10773,15 @@ def public_confirm_view():
                             provider_email_body += f"Kfz-Kennzeichen: {b.vehicle_license_plate}\n"
                         if getattr(b, "customer_message", None):
                             provider_email_body += f"\nNotiz des Suchenden: {b.customer_message}\n"
+                        provider_email_body += f"\nBuchungs-Nr.: {booking_number(b.id)}\n"
+                        provider_email_body += f"Im Portal ansehen: {portal_slot_url(slot_obj.id)}\n"
                         provider_email_body += f"\n"
                         provider_email_body += f"Viele Grüße\n"
                         provider_email_body += f"Terminmarktplatz"
 
                         send_mail(
                             provider_obj.email,
-                            "Neue Buchung bestätigt",
+                            f"Neue Buchung bestätigt ({booking_number(b.id)})",
                             text=provider_email_body,
                             tag="booking_confirmed_notify_provider",
                             metadata={
@@ -11978,6 +11980,18 @@ def _gcal_clean_title(title) -> str:
     return t
 
 
+def booking_number(booking_id) -> str:
+    """Kurze, menschenlesbare Buchungsnummer (z. B. B-3F2A9C1D) aus der Buchungs-ID.
+    Keine personenbezogenen Daten – dient zum Wiederfinden im Portal und in E-Mails."""
+    raw = str(booking_id or "").replace("-", "")
+    return "B-" + (raw[:8].upper() or "?")
+
+
+def portal_slot_url(slot_id) -> str:
+    """Link ins Anbieter-Portal, der den Slot mit seinen Buchungsdetails oeffnet (Login noetig)."""
+    return f"{FRONTEND_URL.rstrip('/')}/anbieter-portal.html?slot={slot_id}"
+
+
 def _gcal_booking_display_name(b) -> str:
     """Name der buchenden Person (nur Name – keine E-Mail/Telefon an Google)."""
     first = (getattr(b, "customer_first_name", None) or "").strip()
@@ -11998,19 +12012,33 @@ def _gcal_slot_event_body(s: "Session", slot, show_names: bool, origin: str | No
     n = len(confirmed)
     names = [x for x in (_gcal_booking_display_name(b) for b in confirmed) if x] if show_names else []
 
+    numbers = [booking_number(b.id) for b in confirmed]
+    details = f"Details ansehen: {portal_slot_url(slot.id)}"
     if n == 0:
         # Importierte Events bekommen ihren Original-Titel zurueck
         summary = title if origin == "in" else GCAL_FREE_PREFIX + title
-        description = "" if origin == "in" else "Freier Termin – buchbar auf Terminmarktplatz.de"
+        description = "" if origin == "in" else (
+            "Freier Termin – buchbar auf Terminmarktplatz.de\n" + f"Verwalten: {portal_slot_url(slot.id)}"
+        )
         color = GCAL_COLOR_FREE
     elif cap <= 1:
-        summary = GCAL_BOOKED_PREFIX + title + (f" – {names[0]}" if names else "")
-        description = GCAL_BOOKED_NOTE
+        # Standard: Buchungsnummer statt Name (keine personenbezogenen Daten an Google)
+        who = names[0] if names else numbers[0]
+        summary = GCAL_BOOKED_PREFIX + title + f" – {who}"
+        description = (
+            GCAL_BOOKED_NOTE + "\n"
+            + f"Buchungs-Nr.: {numbers[0]}\n"
+            + details
+        )
         color = GCAL_COLOR_BOOKED
     else:
         full = n >= cap
         summary = (GCAL_BOOKED_PREFIX if full else "") + f"{title} ({n}/{cap} gebucht)"
-        description = GCAL_BOOKED_NOTE + (("\nTeilnehmer: " + ", ".join(names)) if names else "")
+        lines = [GCAL_BOOKED_NOTE, "Buchungs-Nr.: " + ", ".join(numbers)]
+        if names:
+            lines.append("Teilnehmer: " + ", ".join(names))
+        lines.append(details)
+        description = "\n".join(lines)
         color = GCAL_COLOR_BOOKED if full else GCAL_COLOR_FREE
 
     body = {

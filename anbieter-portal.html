@@ -1885,7 +1885,9 @@
         const r = await fetch(`${API}/me`, { credentials:'include' });
         if (!r.ok) {
           if (r.status === 401 || r.status === 403) {
-            window.location.href = 'login.html?tab=login';
+            // Nach dem Login zurueck zum aufgerufenen Termin (nur relative Pfade)
+            const back = location.pathname + location.search;
+            window.location.href = 'login.html?tab=login&next=' + encodeURIComponent(back);
             return;
           }
           showMsg('msg-slots', 'Anmeldung erforderlich oder API nicht erreichbar.', false);
@@ -2569,6 +2571,7 @@
 
       for(const s of items){
         const tr = document.createElement('tr');
+        if (s.id) tr.dataset.slotId = String(s.id);
 
         const rawStatus = (s.status || '').toString().toUpperCase();
         const isDraft    = rawStatus === 'DRAFT';
@@ -2625,8 +2628,9 @@
             const addr = b.customer_address || '–';
             const phone = b.customer_phone || '–';
             const email = b.customer_email || '–';
+            const bnr = b.id ? 'B-' + String(b.id).replace(/-/g,'').slice(0,8).toUpperCase() : '';
             return `<div class="booking-detail-row">
-              <strong>${name}</strong><br>
+              <strong>${name}</strong>${bnr ? ` <span class="muted small">· Buchungs-Nr. ${bnr}</span>` : ''}<br>
               📍 ${addr}<br>
               ${b.vehicle_license_plate ? `🚗 ${b.vehicle_license_plate}<br>` : ""}
               📞 <a href="tel:${b.customer_phone||''}">${phone}</a> &nbsp;
@@ -2820,6 +2824,28 @@
       updateBulkButtons(items);
     }
 
+    // Deep-Link aus Google-Kalender/E-Mail: ?slot=<id> oeffnet den Slot mit Buchungsdetails
+    let SLOT_FOCUS_DONE = false;
+    function focusSlotFromUrl(){
+      if (SLOT_FOCUS_DONE) return;
+      let id = null;
+      try { id = new URLSearchParams(location.search).get('slot'); } catch(_){}
+      if (!id) return;
+      SLOT_FOCUS_DONE = true;
+      const row = Array.from(document.querySelectorAll('#tbl-slots tbody tr'))
+        .find(tr => tr.dataset.slotId === id);
+      if (!row) {
+        showMsg('msg-slots', 'Der Termin aus dem Link wurde nicht gefunden (evtl. archiviert – Reiter „Archivierte Termine“).', false);
+        return;
+      }
+      const det = row.querySelector('details.booking-details');
+      if (det) det.open = true;
+      row.style.outline = '3px solid #6f53ff';
+      row.style.outlineOffset = '-3px';
+      row.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(() => { row.style.outline = ''; }, 6000);
+    }
+
     async function loadSlots(){
       hideSlotLimitAlert(); // ✅ FIX: Alert nicht „kleben" lassen
       const tbody = $('#tbl-slots tbody');
@@ -2846,6 +2872,7 @@
         }
         LAST_ITEMS = await r.json();
         renderTable(LAST_ITEMS);
+        focusSlotFromUrl();
         // Paket-/Slot-Zähler nach jeder Slot-Änderung aktualisieren (kein Seiten-Reload nötig)
         refreshPlanInfo();
       }catch(e){

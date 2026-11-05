@@ -659,10 +659,16 @@ def test_booking_without_name_by_default(test_client, monkeypatch):
     app_module._google_writeback("booking", bid)
     eid, body = calls["patch"][-1]
     assert eid == "tm-evt-1"
-    assert body["summary"] == "GEBUCHT: Herrenschnitt"
+    bnr = app_module.booking_number(bid)
+    assert bnr.startswith("B-") and len(bnr) == 10
+    # Standard: Buchungsnummer statt Name + Link ins Portal
+    assert body["summary"] == f"GEBUCHT: Herrenschnitt – {bnr}"
+    assert f"Buchungs-Nr.: {bnr}" in body["description"]
+    assert f"/anbieter-portal.html?slot={sid}" in body["description"]
     assert body["colorId"] == app_module.GCAL_COLOR_BOOKED
     blob = str(body)
-    assert "Erika" not in blob and "erika@example.com" not in blob and "0171000000" not in blob
+    assert "Erika" not in blob and "Musterfrau" not in blob
+    assert "erika@example.com" not in blob and "0171000000" not in blob
 
 
 def test_settings_enable_names_relabels_booked(test_client, monkeypatch):
@@ -764,3 +770,16 @@ def test_no_google_calls_without_connection(test_client, monkeypatch):
     calls = _capture_google(monkeypatch)
     assert app_module._gcal_sync_slot(sid) == "skipped"
     assert calls == {"create": [], "patch": [], "delete": []}
+
+
+def test_booking_number_format():
+    assert app_module.booking_number("3f2a9c1d-0000-4000-8000-000000000000") == "B-3F2A9C1D"
+
+
+def test_free_event_has_manage_link(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    _connect(pid, monkeypatch, events=[])
+    sid = _make_free_slot(pid)
+    calls = _capture_google(monkeypatch)
+    app_module._gcal_sync_slot(sid)
+    assert f"/anbieter-portal.html?slot={sid}" in calls["create"][0]["description"]
