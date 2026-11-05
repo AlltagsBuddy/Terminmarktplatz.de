@@ -1,0 +1,7 @@
+# Zeilenenden bewusst festlegen.
+# app.py und anbieter-portal.html liegen im Repo als CRLF vor und muessen das
+# bleiben (sonst entsteht beim Bearbeiten auf Linux-Servern grosses Diff-Rauschen
+# bzw. unbeabsichtigte LF-Umwandlung). Nur diese zwei Dateien werden gepinnt,
+# um eine Massen-Renormalisierung zu vermeiden.
+app.py text eol=crlf
+anbieter-portal.html text eol=crlf
