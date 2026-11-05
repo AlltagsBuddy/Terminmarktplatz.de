@@ -1,11 +1,10 @@
 # Plan: Native Google-Kalender-Integration
 
-> **UPDATE 05.11.2026 – Phase 1 ist umgesetzt (auf `develop`, mit Tests).**
-> Google → Terminmarktplatz (nur lesen) ist gebaut: OAuth-Verbinden/Trennen im
-> Portal, verschlüsselte Tokens, 15-Min-Sync + „Jetzt synchronisieren". Einrichtung
+> **UPDATE 05.11.2026 – Phase 1 und Phase 2 sind im Code umgesetzt (auf `develop`, mit Tests).**
+> OAuth-Verbinden/Trennen, Kalenderwahl, verschlüsselte Tokens, 15-Min-Sync,
+> Buchungen/Stornos zurück in Google (ohne Kundendaten). Einrichtung
 > (Google-Cloud-Zugangsdaten) siehe `docs/ANLEITUNG_GOOGLE_KALENDER_EINRICHTUNG.md`.
-> Die **Rückrichtung** (Buchungen/Stornos zurück in Google) ist noch offen (Phase 2);
-> der folgende Plan beschreibt den Gesamt-Zielzustand.
+> Scharfschaltung erst nach Eintrag der `.env`-Werte und Google-Verifizierung.
 
 > **Ursprünglicher Status: reiner Umsetzungsplan.**
 > Eine native Google-Anbindung erfordert OAuth-Zugangsdaten (Google-Cloud-Projekt,

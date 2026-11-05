@@ -1133,15 +1133,20 @@
             </div>
           </div>
 
-          <!-- Native Google-Kalender-Anbindung (Profi/Business, Phase 1: nur lesen) -->
+          <!-- Native Google-Kalender-Anbindung (Profi/Business) -->
           <div class="calendar-export" id="google-calendar-block" style="display:none; margin-top:14px;">
             <div style="font-weight:600; margin-bottom:6px;">Google Kalender verbinden</div>
             <div class="muted small" id="google-cal-desc" style="margin-bottom:8px;">
-              Freie Termine aus einem Google-Kalender erscheinen automatisch als Slots.
-              Es wird nur <strong>gelesen</strong>; die Zugriffsrechte sind auf Kalender beschränkt.
+              Freie Termine aus dem gewählten Google-Kalender erscheinen als Slots.
+              Buchungen und Stornos werden zurück in denselben Kalender geschrieben
+              (ohne Kundennamen oder Kontaktdaten).
               Tipp: einen eigenen Kalender „Terminmarktplatz“ anlegen und nur diesen verbinden.
             </div>
             <div id="google-cal-status" class="muted small" style="margin-bottom:8px;"></div>
+            <div class="calendar-row" id="google-cal-select-row" style="display:none; margin-bottom:8px;">
+              <label class="muted small" for="google-cal-select" style="margin-right:8px;">Kalender:</label>
+              <select id="google-cal-select" class="calendar-input" style="max-width:320px;"></select>
+            </div>
             <div class="calendar-row">
               <a class="btn primary" id="google-connect-btn" href="/oauth/google/start" style="display:none;">Mit Google verbinden</a>
               <button class="btn" id="google-sync-btn" type="button" style="display:none;">Jetzt synchronisieren</button>
@@ -1166,8 +1171,25 @@
             var syncBtn=document.getElementById('google-sync-btn');
             var disconnectBtn=document.getElementById('google-disconnect-btn');
             var notConf=document.getElementById('google-cal-notconfigured');
+            var selectRow=document.getElementById('google-cal-select-row');
+            var selectEl=document.getElementById('google-cal-select');
 
             function fmt(ts){ if(!ts) return '–'; try{return new Date(ts).toLocaleString('de-DE');}catch(e){return ts;} }
+
+            function loadCalendars(){
+              if(!selectEl || !selectRow) return;
+              api('/api/google/calendars').then(function(r){return r.ok?r.json():null;}).then(function(d){
+                if(!d || !d.calendars || !d.calendars.length){ selectRow.style.display='none'; return; }
+                selectEl.innerHTML='';
+                d.calendars.forEach(function(c){
+                  var o=document.createElement('option');
+                  o.value=c.id; o.textContent=c.summary+(c.primary?' (Hauptkalender)':'');
+                  if(d.selected && c.id===d.selected) o.selected=true;
+                  selectEl.appendChild(o);
+                });
+                selectRow.style.display='';
+              }).catch(function(){ selectRow.style.display='none'; });
+            }
 
             function render(s){
               if(!s || s.eligible===false){ block.style.display='none'; return; }
@@ -1175,6 +1197,7 @@
               if(s.configured===false){
                 notConf.style.display='';
                 connectBtn.style.display='none'; syncBtn.style.display='none'; disconnectBtn.style.display='none';
+                if(selectRow) selectRow.style.display='none';
                 statusEl.textContent=''; return;
               }
               notConf.style.display='none';
@@ -1185,9 +1208,11 @@
                 statusEl.innerHTML = st + (s.email? ' · '+s.email : '')
                   + '<br>Letzte Synchronisation: '+fmt(s.last_sync_at)
                   + (typeof s.last_sync_count==='number' ? ' · '+s.last_sync_count+' Termine übernommen' : '');
+                loadCalendars();
               } else {
                 connectBtn.style.display='';
                 syncBtn.style.display='none'; disconnectBtn.style.display='none';
+                if(selectRow) selectRow.style.display='none';
                 statusEl.textContent='Noch nicht verbunden.';
               }
             }
@@ -1205,6 +1230,14 @@
               if(!confirm('Google-Kalender-Verbindung wirklich trennen? Die Zugriffstoken werden gelöscht.')) return;
               fetch('/api/google/disconnect',{method:'POST',credentials:'include'})
                 .then(function(){ load(); }).catch(function(){});
+            });
+            if(selectEl) selectEl.addEventListener('change', function(){
+              var id=selectEl.value;
+              if(!id) return;
+              selectEl.disabled=true;
+              fetch('/api/google/calendar',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({calendar_id:id})})
+                .then(function(){ selectEl.disabled=false; load(); })
+                .catch(function(){ selectEl.disabled=false; });
             });
 
             // Rueckmeldung aus dem OAuth-Redirect (?google=...)

@@ -1,15 +1,16 @@
-# Einrichtung: Native Google-Kalender-Integration (Phase 1 – nur lesen)
+# Einrichtung: Native Google-Kalender-Integration
 
-Stand: 05.11.2026. Die Funktion ist im Code fertig und auf `develop`/Test
-deployt. Damit sie **scharf geschaltet** wird, musst du einmalig ein
-Google-Cloud-Projekt mit OAuth-Zugangsdaten anlegen und vier Werte in die
-`.env` eintragen. Diese Anleitung führt Schritt für Schritt durch alles.
+Stand: 05.11.2026. Die Funktion ist im Code fertig (Lesen **und**
+Rückschreiben von Buchungen/Stornos) und liegt auf `develop`. Damit sie
+**scharf geschaltet** wird, musst du einmalig ein Google-Cloud-Projekt mit
+OAuth-Zugangsdaten anlegen und vier Werte in die `.env` eintragen.
 
-> **Was die Funktion macht (Phase 1):** Ein Anbieter (Profi/Business) verbindet im
-> Anbieter-Portal seinen Google-Kalender. Freie Termine aus diesem Kalender
-> erscheinen automatisch als Slots (alle 15 Minuten + Button „Jetzt
-> synchronisieren"). Es wird **nur gelesen** (Scope `calendar.readonly`).
-> Buchungen zurück in Google (Rückrichtung) sind bewusst noch nicht dabei.
+> **Was die Funktion macht:** Ein Anbieter (Profi/Business) verbindet im
+> Anbieter-Portal einen Google-Kalender. Freie Termine daraus erscheinen als
+> Slots (alle 15 Minuten + Button „Jetzt synchronisieren"). Buchungen und
+> Stornos werden in denselben Kalender zurückgeschrieben – **ohne** Kundennamen
+> oder Kontaktdaten (nur der Marker „GEBUCHT: …"). Tipp: einen eigenen Kalender
+> „Terminmarktplatz“ anlegen und im Portal nur diesen auswählen.
 
 ---
 
@@ -33,7 +34,10 @@ Google-Cloud-Projekt mit OAuth-Zugangsdaten anlegen und vier Werte in die
    - **Autorisierte Domains:** `terminmarktplatz.de`
    - Links zu **Datenschutzerklärung** (`https://terminmarktplatz.de/datenschutz.html`)
      und Startseite.
-4. **Scopes:** nur **`.../auth/calendar.readonly`** hinzufügen (nichts weiter – Datensparsamkeit).
+4. **Scopes** (nur diese beiden, Datensparsamkeit – kein voller Kalender-Zugriff):
+   - `.../auth/calendar.events` (Termine lesen und schreiben)
+   - `.../auth/calendar.calendarlist.readonly` (Kalenderliste, damit der Anbieter
+     einen eigenen Kalender wählen kann)
 5. **Testnutzer:** die E-Mail-Adressen eintragen, die während der Testphase
    verbinden dürfen (z. B. deine und die der ersten Anbieter). Ohne Eintrag
    können sich im Testmodus nur diese Konten verbinden.
@@ -106,6 +110,9 @@ systemctl restart terminmarktplatz
 4. Zurück im Portal: Status „Verbunden" + letzte Synchronisation.
 5. Im verbundenen Google-Kalender einen zukünftigen Termin anlegen →
    **„Jetzt synchronisieren"** → der Termin erscheint als Slot.
+6. Optional: im Dropdown einen eigenen Kalender (z. B. „Terminmarktplatz“) wählen.
+7. Eine Testbuchung auf dem Slot durchführen → im Google-Kalender steht
+   **„GEBUCHT: …"** (ohne Kundennamen). Storno entfernt die Markierung.
 
 **Technische Prüfung (optional):**
 - `GET /api/google/status` (eingeloggt) → `{"configured":true,"eligible":true,...}`
@@ -118,8 +125,8 @@ systemctl restart terminmarktplatz
   sich nur eingetragene Testnutzer (max. 100) verbinden. Für die öffentliche Nutzung
   muss die App bei Google **verifiziert** werden (im Zustimmungsbildschirm
   „App veröffentlichen" → Verifizierung beantragen). Das kann einige Zeit dauern und
-  verlangt eine erreichbare Datenschutzerklärung. Der Scope `calendar.readonly` gilt
-  als „sensibel" und wird geprüft.
+  verlangt eine erreichbare Datenschutzerklärung. Die Scopes `calendar.events`
+  und `calendar.calendarlist.readonly` gelten als „sensibel" und werden geprüft.
 - **Datenschutzerklärung ergänzen** (Vorschlag unten) – erst dann öffentlich bewerben.
 - Erst wenn beides erledigt ist, auf `/consumenta` bzw. im Flyer als native
   Funktion bewerben.
@@ -132,29 +139,38 @@ systemctl restart terminmarktplatz
 
 > **Google-Kalender-Verbindung (optional)**
 > Wenn Sie als Anbieter Ihren Google-Kalender verbinden, verarbeiten wir mit Ihrer
-> Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) die zum Abruf freier Termine nötigen
-> Daten. Wir fordern dabei ausschließlich **lesenden** Zugriff auf Kalenderdaten an
-> (Google-Berechtigung „calendar.readonly"). Aus dem gewählten Kalender lesen wir
-> Titel, Start-/Endzeit und Ort zukünftiger Termine, um daraus Terminangebote zu
-> erstellen. Die erforderlichen Zugriffstoken werden **verschlüsselt** gespeichert.
-> Anbieter: Google Ireland Ltd.; eine Übermittlung in die USA ist möglich. Wir
-> verwenden die Daten ausschließlich zur Bereitstellung dieser Funktion und
-> entsprechend der Google-Richtlinie zur eingeschränkten Nutzung („Limited Use").
-> Sie können die Verbindung jederzeit im Anbieter-Portal trennen; dabei werden die
-> gespeicherten Zugriffstoken gelöscht. Den Zugriff können Sie zusätzlich in Ihrem
-> Google-Konto unter „Sicherheit → Drittanbieter-Apps" widerrufen.
+> Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) die zum Abruf und zur Rückmeldung von
+> Terminen nötigen Daten. Wir fordern dabei nur die Berechtigungen
+> „calendar.events“ (Termine lesen und schreiben) und
+> „calendar.calendarlist.readonly“ (Kalenderliste zur Auswahl). Aus dem gewählten
+> Kalender lesen wir Titel, Start-/Endzeit und Ort zukünftiger Termine, um daraus
+> Terminangebote zu erstellen. Bei einer Buchung oder Stornierung schreiben wir
+> in denselben Kalender zurück (Markierung „GEBUCHT“, ohne Namen, E-Mail oder
+> Telefon der Kundinnen und Kunden). Die Zugriffstoken werden **verschlüsselt**
+> gespeichert. Anbieter: Google Ireland Ltd.; eine Übermittlung in die USA ist
+> möglich. Wir verwenden die Daten ausschließlich zur Bereitstellung dieser
+> Funktion und entsprechend der Google-Richtlinie zur eingeschränkten Nutzung
+> („Limited Use"). Sie können die Verbindung jederzeit im Anbieter-Portal
+> trennen; dabei werden die gespeicherten Zugriffstoken gelöscht und bei Google
+> widerrufen. Den Zugriff können Sie zusätzlich in Ihrem Google-Konto unter
+> „Sicherheit → Drittanbieter-Apps" widerrufen.
 
 ---
 
 ## Technische Kurzfassung (für Entwickler)
 
-- Scope: `https://www.googleapis.com/auth/calendar.readonly` (nur lesen).
+- Scopes: `calendar.events` + `calendar.calendarlist.readonly`.
 - Routen: `/oauth/google/start`, `/oauth/google/callback`, `/api/google/status`,
-  `/api/google/sync-now`, `/api/google/disconnect`.
+  `/api/google/calendars`, `/api/google/calendar`, `/api/google/sync-now`,
+  `/api/google/disconnect`.
 - Tabelle: `google_calendar_connection` (Tokens Fernet-verschlüsselt).
-- Idempotenz: Slot-`external_id = gcal:<google_event_id>`.
-- Sync: APScheduler-Interval (15 Min) + manuell; Ganztags- und vergangene Termine
-  werden übersprungen; Veröffentlichung über das normale Monatskontingent.
+- Idempotenz: Slot-`external_id = gcal:<id>` (Import) bzw. `gcal-out:<id>`
+  (von uns bei Buchung angelegt).
+- Sync: APScheduler-Interval (15 Min) + manuell; Ganztags-, vergangene und
+  als GEBUCHT markierte Termine sowie Überschneidungen mit bestehenden Buchungen
+  werden übersprungen.
+- Rückschreiben: Buchung markiert/erzeugt Event, Storno hebt die Markierung auf
+  bzw. löscht von uns angelegte Events. Keine Kundendaten an Google.
 - Gate: `_has_pro_features` (Profi + Business).
 - CSRF: signierter `state` (itsdangerous, 10 Min gültig), zusätzlich Abgleich mit
   der eingeloggten Sitzung.

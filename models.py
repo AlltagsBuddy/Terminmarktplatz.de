@@ -733,9 +733,10 @@ class Review(Base):
 class GoogleCalendarConnection(Base):
     """Verbindung eines Providers zu einem Google-Kalender.
 
-    Phase 1 (nur lesen): Freie Termine aus einem ausgewaehlten Google-Kalender
-    werden als Slots uebernommen. OAuth-Tokens werden **verschluesselt** (Fernet)
-    gespeichert, niemals im Klartext. Loeschen der Zeile = Widerruf.
+    Freie Termine aus einem ausgewaehlten Google-Kalender werden als Slots
+    uebernommen; Buchungen/Stornos werden zurueckgeschrieben. OAuth-Tokens
+    werden **verschluesselt** (Fernet) gespeichert, niemals im Klartext.
+    Loeschen der Zeile = Widerruf.
     """
 
     __tablename__ = "google_calendar_connection"
