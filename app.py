@@ -6391,6 +6391,18 @@ def cancel_plan():
             if not p.plan or p.plan == "basic":
                 return _json_error("no_active_plan", 400)
 
+            from sqlalchemy import inspect as _sa_inspect
+            if _sa_inspect(engine).has_table("promo_redemptions"):
+                promo = s.execute(
+                    text(
+                        "SELECT test_end FROM promo_redemptions "
+                        "WHERE provider_id = :pid AND test_end > :now"
+                    ),
+                    {"pid": str(p.id), "now": _now()},
+                ).fetchone()
+                if promo:
+                    return _json_error("promo_test_active", 400)
+
             old_plan = p.plan
 
             p.plan = "basic"
@@ -11518,6 +11530,9 @@ def api_promo_redeem():
             test_end = test_end.replace(tzinfo=_utc.utc)
         p.plan = row.plan
         p.plan_valid_until = test_end
+        plan_conf = PLANS.get(row.plan) or {}
+        if plan_conf.get("free_slots") is not None:
+            p.free_slots_per_month = plan_conf["free_slots"]
         s.execute(text("INSERT INTO promo_redemptions (id, provider_id, code, test_end) VALUES (gen_random_uuid(), :pid, :code, :test_end)"), {"pid": str(pid), "code": code_raw, "test_end": test_end})
         s.commit()
         provider_email = p.email
