@@ -248,6 +248,21 @@ class TestPromoRedeem:
         with Session(app_module.engine) as s:
             p = s.get(Provider, uuid.UUID(pid))
             assert p.plan != "free", f"Plan sollte aktualisiert sein, ist: {p.plan}"
+            assert p.plan == "profi"
+            assert p.free_slots_per_month == 100
+
+    def test_cancel_plan_blocked_while_promo_active(self, client):
+        """Aktiver Testzugang darf nicht per Paket-Kuendigung auf Basis fallen."""
+        pid = _make_provider("free")
+        headers = _auth(pid)
+        r = client.post("/api/promo/redeem", json={"code": "CONSUMENTA26"}, headers=headers)
+        assert r.status_code == 200
+        r2 = client.post("/me/cancel_plan", headers=headers)
+        assert r2.status_code == 400
+        assert (r2.get_json() or {}).get("error") == "promo_test_active"
+        with Session(app_module.engine) as s:
+            p = s.get(Provider, uuid.UUID(pid))
+            assert p.plan == "profi"
 
     def test_redeem_creates_redemption_record(self, client):
         """Nach Einlôsen existiert Eintrag in promo_redemptions."""
