@@ -1,7 +1,7 @@
 import os
 import sys
 import subprocess
-from uuid import uuid4
+from uuid import UUID, uuid4
 import traceback
 from datetime import datetime, timedelta, timezone, date
 import threading
@@ -8308,9 +8308,17 @@ def _api_slot_address_kwargs(provider: Provider, data: dict) -> dict:
 
 def _api_resolve_slot(session: Session, provider_id: str, slot_ref: str) -> Slot | None:
     """Findet einen Slot per interner ID ODER per external_id (jeweils anbieter-gebunden)."""
-    slot = session.get(Slot, slot_ref)
-    if slot and slot.provider_id == provider_id:
-        return slot
+    # Nur echte UUIDs als Primaerschluessel suchen – PostgreSQL wirft sonst einen
+    # Typfehler (z. B. bei external_id "fremd-123") statt "nicht gefunden".
+    try:
+        UUID(str(slot_ref))
+        is_uuid = True
+    except (ValueError, TypeError, AttributeError):
+        is_uuid = False
+    if is_uuid:
+        slot = session.get(Slot, slot_ref)
+        if slot and slot.provider_id == provider_id:
+            return slot
     return session.scalar(
         select(Slot).where(
             Slot.provider_id == provider_id,
@@ -8447,6 +8455,9 @@ def api_v1_slots_create():
                 return jsonify({"error": "db_error", "detail": str(e)}), 400
 
             slot_id = slot.id
+            # Das Lesen von slot.id nach dem Commit startet implizit eine neue Transaktion;
+            # diese schliessen, sonst scheitert das folgende s.begin() ("already begun").
+            s.commit()
 
             # Direkt veröffentlichen (durchläuft Monatskontingent)
             try:
