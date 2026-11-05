@@ -5,12 +5,18 @@ Rückschreiben von Buchungen/Stornos) und liegt auf `develop`. Damit sie
 **scharf geschaltet** wird, musst du einmalig ein Google-Cloud-Projekt mit
 OAuth-Zugangsdaten anlegen und vier Werte in die `.env` eintragen.
 
-> **Was die Funktion macht:** Ein Anbieter (Profi/Business) verbindet im
-> Anbieter-Portal einen Google-Kalender. Freie Termine daraus erscheinen als
-> Slots (alle 15 Minuten + Button „Jetzt synchronisieren"). Buchungen und
-> Stornos werden in denselben Kalender zurückgeschrieben – **ohne** Kundennamen
-> oder Kontaktdaten (nur der Marker „GEBUCHT: …"). Tipp: einen eigenen Kalender
-> „Terminmarktplatz“ anlegen und im Portal nur diesen auswählen.
+> **Was die Funktion macht (2-Wege-Sync, Stand 05.11.2026):** Ein Anbieter
+> (Profi/Business) verbindet im Anbieter-Portal einen Google-Kalender.
+> - **Google → Terminmarktplatz:** Zukünftige Termine mit Uhrzeit aus dem gewählten
+>   Kalender werden freie Slots (alle 15 Minuten + „Jetzt synchronisieren").
+> - **Terminmarktplatz → Google:** Jeder veröffentlichte, zukünftige Slot wird als
+>   Termin „FREI: …" (grün) eingetragen. Nach Buchung „GEBUCHT: …" (rot), nach
+>   Storno wieder „FREI: …". Entwurf/Archiv/Löschen entfernt den Eintrag.
+> - **Kundennamen:** nur wenn der Anbieter den Schalter „Namen … anzeigen" aktiviert
+>   (Standard: aus). Dann nur Vor- und Nachname, **nie** E-Mail oder Telefon.
+>
+> Tipp: einen eigenen Kalender „Terminmarktplatz“ anlegen und im Portal nur diesen
+> auswählen – sonst werden auch private Termine als Slots veröffentlicht.
 
 ---
 
@@ -144,9 +150,19 @@ systemctl restart terminmarktplatz
 > „calendar.events“ (Termine lesen und schreiben) und
 > „calendar.calendarlist.readonly“ (Kalenderliste zur Auswahl). Aus dem gewählten
 > Kalender lesen wir Titel, Start-/Endzeit und Ort zukünftiger Termine, um daraus
-> Terminangebote zu erstellen. Bei einer Buchung oder Stornierung schreiben wir
-> in denselben Kalender zurück (Markierung „GEBUCHT“, ohne Namen, E-Mail oder
-> Telefon der Kundinnen und Kunden). Die Zugriffstoken werden **verschlüsselt**
+> Terminangebote zu erstellen. Ihre veröffentlichten Terminangebote tragen wir in
+> denselben Kalender ein und aktualisieren sie bei Buchung oder Stornierung
+> (Markierung „FREI“/„GEBUCHT“). E-Mail-Adressen und Telefonnummern der Kundinnen
+> und Kunden werden nicht an Google übermittelt. Nur wenn Sie dies im
+> Anbieter-Portal ausdrücklich aktivieren, wird zusätzlich der Name der buchenden
+> Person in den Kalendereintrag geschrieben.
+>
+> **Ergänzung für Kundinnen und Kunden (Buchende) – ebenfalls prüfen lassen:**
+> „Hat der Anbieter seinen Google-Kalender verbunden und die Namensanzeige
+> aktiviert, wird Ihr Vor- und Nachname zur Terminverwaltung an den Kalender des
+> Anbieters bei Google (Google Ireland Ltd.; Übermittlung in die USA möglich)
+> übertragen. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Durchführung der
+> Buchung) bzw. lit. f (Interesse des Anbieters an seiner Terminorganisation).“ Die Zugriffstoken werden **verschlüsselt**
 > gespeichert. Anbieter: Google Ireland Ltd.; eine Übermittlung in die USA ist
 > möglich. Wir verwenden die Daten ausschließlich zur Bereitstellung dieser
 > Funktion und entsprechend der Google-Richtlinie zur eingeschränkten Nutzung

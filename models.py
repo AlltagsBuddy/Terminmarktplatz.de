@@ -281,6 +281,8 @@ class Slot(Base):
 
     # Externe ID aus einem angebundenen System (API/Warenwirtschaft) – für Idempotenz & Zuordnung
     external_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Von Terminmarktplatz angelegtes Google-Kalender-Event (2-Wege-Sync)
+    gcal_event_id: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Termintyp: einzel | kurs | online | mobil
     slot_type: Mapped[str | None] = mapped_column(Text, default="einzel")
@@ -761,6 +763,9 @@ class GoogleCalendarConnection(Base):
     calendar_id: Mapped[str | None] = mapped_column(Text)
     # Standard-Kategorie fuer uebernommene Termine (Google-Events haben keine Kategorie)
     default_category: Mapped[str | None] = mapped_column(Text)
+    # Opt-in des Anbieters: Namen der Buchenden im Google-Kalender anzeigen
+    # (Datensparsamkeit: Standard AUS, nie E-Mail/Telefon)
+    show_customer_names: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # OAuth-Tokens – AUSSCHLIESSLICH verschluesselt (Fernet)
     access_token_enc: Mapped[str | None] = mapped_column(Text)

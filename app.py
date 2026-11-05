@@ -1588,6 +1588,36 @@ def _ensure_promo_tables() -> None:
 # --------------------------------------------------------
 # Native Google-Kalender-Integration: Verbindungstabelle
 # --------------------------------------------------------
+def _ensure_gcal_two_way_fields() -> None:
+    """2-Wege-Sync: ``slot.gcal_event_id`` (von uns angelegtes Google-Event) und
+    ``google_calendar_connection.show_customer_names`` (Opt-in des Anbieters)."""
+    try:
+        if IS_POSTGRESQL:
+            _pg_ddl_autocommit(
+                "ALTER TABLE public.slot ADD COLUMN IF NOT EXISTS gcal_event_id text;",
+                "ensure_slot_gcal_event_id",
+            )
+            _pg_ddl_autocommit(
+                "ALTER TABLE public.google_calendar_connection "
+                "ADD COLUMN IF NOT EXISTS show_customer_names boolean NOT NULL DEFAULT false;",
+                "ensure_gcal_show_customer_names",
+            )
+            return
+        with engine.begin() as conn:
+            try:
+                conn.exec_driver_sql("SELECT gcal_event_id FROM slot LIMIT 1")
+            except Exception:
+                conn.exec_driver_sql("ALTER TABLE slot ADD COLUMN gcal_event_id TEXT")
+            try:
+                conn.exec_driver_sql("SELECT show_customer_names FROM google_calendar_connection LIMIT 1")
+            except Exception:
+                conn.exec_driver_sql(
+                    "ALTER TABLE google_calendar_connection ADD COLUMN show_customer_names BOOLEAN NOT NULL DEFAULT 0"
+                )
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_gcal_two_way_fields fehlgeschlagen: {e}")
+
+
 def _ensure_google_calendar_connection() -> None:
     """Tabelle google_calendar_connection fuer die native Google-Kalender-Anbindung.
 
@@ -2124,6 +2154,7 @@ ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
     _ensure_publish_quota_tables,
     _ensure_stripe_connect_fields,
     _ensure_slot_type_fields,
+    _ensure_gcal_two_way_fields,
 )
 
 
@@ -7807,6 +7838,7 @@ def slots_create():
                 s.rollback()
                 return jsonify({"error": "db_error", "detail": str(e)}), 400
 
+            _gcal_sync_slot_safe(slot.id)
             return jsonify(slot_to_json(slot)), 201
 
     except Exception as e:
@@ -8056,6 +8088,7 @@ def slots_update(slot_id):
                     except Exception:
                         app.logger.exception("slots_update: google writeback failed for %s", b.id)
 
+        _gcal_sync_slot_safe(slot_id)
         if published_now:
             try:
                 notify_alerts_for_slot(slot_id)
@@ -8090,6 +8123,7 @@ def slots_publish(slot_id):
                     return _json_error("bad_capacity", 400)
                 return _json_error("bad_request", 400)
 
+        _gcal_sync_slot_safe(slot_id)
         try:
             notify_alerts_for_slot(slot_id)
         except Exception:
@@ -8109,6 +8143,7 @@ def slots_unpublish(slot_id):
             try:
                 with s.begin():
                     result = _unpublish_slot_quota_tx(s, request.provider_id, slot_id)
+                _gcal_sync_slot_safe(slot_id)
                 return jsonify({"ok": True, "quota": result})
             except ValueError as e:
                 msg = str(e)
@@ -8141,6 +8176,7 @@ def slots_archive(slot_id):
         slot.archived = True
         slot.status = SLOT_STATUS_EXPIRED
         s.commit()
+        _gcal_sync_slot_safe(slot_id)
         return jsonify({"ok": True, "archived": True})
 
 
@@ -8231,11 +8267,14 @@ def slots_delete(slot_id):
             slot.archived = True
             slot.status = SLOT_STATUS_EXPIRED
             s.commit()
+            _gcal_sync_slot_safe(slot_id)
             return jsonify({"ok": True, "archived": True, "message": "Termin wurde archiviert (Aufbewahrungspflicht)"})
         else:
             # Für zukünftige, ungebuchte Slots ohne Buchungen: physisches Löschen erlaubt
+            gcal_pid, gcal_eid = slot.provider_id, _gcal_own_event_id_for_delete(slot)
             s.delete(slot)
             s.commit()
+            _gcal_delete_event_safe(gcal_pid, gcal_eid)
             return jsonify({"ok": True, "deleted": True})
 
 
@@ -8425,6 +8464,7 @@ def api_v1_slots_create():
             except Exception:
                 app.logger.exception("notify_alerts_for_slot (api_v1_slots_create) failed")
 
+            _gcal_sync_slot_safe(slot_id)
             slot = s.get(Slot, slot_id)
             return jsonify(slot_to_json(slot)), 201
     except Exception as e:
@@ -8545,6 +8585,7 @@ def api_v1_slots_update(slot_ref):
                     except Exception:
                         app.logger.exception("api_v1_slots_update: google writeback failed for %s", b.id)
 
+            _gcal_sync_slot_safe(slot.id)
             slot = s.get(Slot, slot.id)
             return jsonify(slot_to_json(slot)), 200
     except Exception as e:
@@ -8587,9 +8628,12 @@ def api_v1_slots_delete(slot_ref):
                 slot.archived = True
                 slot.status = SLOT_STATUS_EXPIRED
                 s.commit()
+                _gcal_sync_slot_safe(slot.id)
                 return jsonify({"ok": True, "archived": True})
+            gcal_pid, gcal_eid = slot.provider_id, _gcal_own_event_id_for_delete(slot)
             s.delete(slot)
             s.commit()
+            _gcal_delete_event_safe(gcal_pid, gcal_eid)
             return jsonify({"ok": True, "deleted": True})
     except Exception as e:
         app.logger.exception("api_v1_slots_delete failed")
@@ -11789,12 +11833,15 @@ def _google_list_events(access_token, refresh_token, scopes, calendar_id) -> lis
             end = (ev.get("end") or {}).get("dateTime")
             if not start or not end:
                 continue  # Ganztags-Termine (nur date) ueberspringen
+            priv = ((ev.get("extendedProperties") or {}).get("private") or {})
             out.append({
                 "id": ev.get("id"),
                 "summary": (ev.get("summary") or "Freier Termin"),
                 "start": start,
                 "end": end,
                 "location": (ev.get("location") or ""),
+                # Von Terminmarktplatz selbst angelegt -> nicht als Slot re-importieren
+                "tm_slot_id": priv.get(GCAL_TM_PROP),
             })
         page_token = resp.get("nextPageToken")
         if not page_token:
@@ -11900,82 +11947,252 @@ def _gcal_parse_external(ext_id):
     return None, None
 
 
-def _google_writeback(action: str, booking_id: str) -> None:
-    """Schreibt Buchung/Storno/Update in den verbundenen Google-Kalender.
+GCAL_FREE_PREFIX = "FREI: "
+GCAL_TM_PROP = "tm_slot_id"  # extendedProperties.private-Schluessel fuer eigene Events
+GCAL_COLOR_FREE = "2"     # Google-Farbe "Salbei" (gruen) = frei
+GCAL_COLOR_BOOKED = "11"  # Google-Farbe "Tomate" (rot) = gebucht
 
-    Keine Kundendaten gehen an Google (nur Termin-Titel/Zeit/Ort + GEBUCHT-Marker).
-    Fehler werden geloggt und blockieren die Buchung nicht.
+
+def _gcal_event_ref(slot):
+    """Welches Google-Event gehoert zum Slot? Rueckgabe: (origin, event_id).
+
+    ``in``  = aus Google importiert (Event gehoert dem Anbieter, wir aendern nur Titel/Zeit)
+    ``out`` = von Terminmarktplatz angelegt (wir verwalten es komplett)
     """
+    origin, eid = _gcal_parse_external(getattr(slot, "external_id", None))
+    if origin == "in":
+        return "in", eid
+    own = getattr(slot, "gcal_event_id", None)
+    if own:
+        return "out", own
+    if origin == "out":  # Altbestand (gcal-out: in external_id)
+        return "out", eid
+    return None, None
+
+
+def _gcal_clean_title(title) -> str:
+    t = (str(title or "Termin")).strip() or "Termin"
+    for prefix in (GCAL_BOOKED_PREFIX, GCAL_FREE_PREFIX):
+        if t.startswith(prefix):
+            t = t[len(prefix):].strip() or "Termin"
+    return t
+
+
+def _gcal_booking_display_name(b) -> str:
+    """Name der buchenden Person (nur Name – keine E-Mail/Telefon an Google)."""
+    first = (getattr(b, "customer_first_name", None) or "").strip()
+    last = (getattr(b, "customer_last_name", None) or "").strip()
+    name = (f"{first} {last}").strip() or (getattr(b, "customer_name", None) or "").strip()
+    return name[:80]
+
+
+def _gcal_slot_event_body(s: "Session", slot, show_names: bool, origin: str | None) -> dict:
+    """Google-Event-Inhalt passend zum aktuellen Slot-/Buchungsstand."""
+    title = _gcal_clean_title(slot.title)
+    confirmed = s.scalars(
+        select(Booking)
+        .where(Booking.slot_id == slot.id, Booking.status == "confirmed")
+        .order_by(Booking.created_at)
+    ).all()
+    cap = max(int(getattr(slot, "capacity", 1) or 1), 1)
+    n = len(confirmed)
+    names = [x for x in (_gcal_booking_display_name(b) for b in confirmed) if x] if show_names else []
+
+    if n == 0:
+        # Importierte Events bekommen ihren Original-Titel zurueck
+        summary = title if origin == "in" else GCAL_FREE_PREFIX + title
+        description = "" if origin == "in" else "Freier Termin – buchbar auf Terminmarktplatz.de"
+        color = GCAL_COLOR_FREE
+    elif cap <= 1:
+        summary = GCAL_BOOKED_PREFIX + title + (f" – {names[0]}" if names else "")
+        description = GCAL_BOOKED_NOTE
+        color = GCAL_COLOR_BOOKED
+    else:
+        full = n >= cap
+        summary = (GCAL_BOOKED_PREFIX if full else "") + f"{title} ({n}/{cap} gebucht)"
+        description = GCAL_BOOKED_NOTE + (("\nTeilnehmer: " + ", ".join(names)) if names else "")
+        color = GCAL_COLOR_BOOKED if full else GCAL_COLOR_FREE
+
+    body = {
+        "summary": summary[:250],
+        "description": description,
+        "start": {"dateTime": _as_utc_aware(slot.start_at).isoformat()},
+        "end": {"dateTime": _as_utc_aware(slot.end_at).isoformat()},
+    }
+    if origin != "in":
+        # Eigene Events: komplett verwaltet (Ort, Farbe, Kennung gegen Re-Import)
+        body["location"] = (getattr(slot, "location", None) or "")[:120]
+        body["colorId"] = color
+        body["extendedProperties"] = {"private": {GCAL_TM_PROP: str(slot.id)}}
+    return body
+
+
+def _gcal_is_gone(exc) -> bool:
+    """True, wenn Google meldet, dass das Event nicht (mehr) existiert."""
+    status = getattr(getattr(exc, "resp", None), "status", None)
+    try:
+        return int(status) in (404, 410)
+    except Exception:
+        return False
+
+
+def _gcal_connection_for(s: "Session", provider_id):
+    return s.scalar(
+        select(GoogleCalendarConnection).where(
+            GoogleCalendarConnection.provider_id == provider_id,
+            GoogleCalendarConnection.status == "connected",
+        )
+    )
+
+
+def _gcal_sync_slot(slot_id) -> str:
+    """Bringt das Google-Event eines Slots auf den aktuellen Stand.
+
+    - veroeffentlichter, zukuenftiger Slot -> Event anlegen/aktualisieren ("FREI: …")
+    - Buchung -> "GEBUCHT: …" (+ Name, falls der Anbieter das aktiviert hat)
+    - Entwurf/archiviert/geloescht ohne Buchung -> eigenes Event entfernen
+    Importierte Events (aus Google) werden nie geloescht, nur Titel/Zeit angepasst.
+    Rueckgabe: "created" | "updated" | "deleted" | "skipped". Fehler blockieren nie.
+    """
+    with Session(engine) as s:
+        slot = s.get(Slot, slot_id)
+        if not slot:
+            return "skipped"
+        conn = _gcal_connection_for(s, slot.provider_id)
+        if not conn:
+            return "skipped"
+        provider = s.get(Provider, slot.provider_id)
+        if not provider or not _has_pro_features(provider):
+            return "skipped"
+        access = _decrypt_secret(conn.access_token_enc)
+        refresh = _decrypt_secret(conn.refresh_token_enc)
+        scopes = conn.scopes
+        calendar_id = conn.calendar_id or "primary"
+        show_names = bool(getattr(conn, "show_customer_names", False))
+
+        origin, event_id = _gcal_event_ref(slot)
+        # Altbestand gcal-out: in external_id -> eigene Spalte (external_id frei fuer APIs)
+        if origin == "out" and not getattr(slot, "gcal_event_id", None) and event_id:
+            slot.gcal_event_id = event_id
+            slot.external_id = None
+
+        has_confirmed = (s.scalar(
+            select(func.count()).select_from(Booking)
+            .where(Booking.slot_id == slot.id, Booking.status == "confirmed")
+        ) or 0) > 0
+        is_live = (
+            slot.status == SLOT_STATUS_PUBLISHED
+            and not bool(getattr(slot, "archived", False))
+            and _as_utc_aware(slot.end_at) > _now()
+        )
+        body = _gcal_slot_event_body(s, slot, show_names, origin)
+
+        if origin == "in":
+            if event_id:
+                _google_patch_event(access, refresh, scopes, calendar_id, event_id, body)
+            s.commit()
+            return "updated" if event_id else "skipped"
+
+        if not (is_live or has_confirmed):
+            if event_id:
+                try:
+                    _google_delete_event(access, refresh, scopes, calendar_id, event_id)
+                except Exception as exc:
+                    if not _gcal_is_gone(exc):
+                        raise
+                slot.gcal_event_id = None
+                s.commit()
+                return "deleted"
+            s.commit()
+            return "skipped"
+
+        if event_id:
+            try:
+                _google_patch_event(access, refresh, scopes, calendar_id, event_id, body)
+                s.commit()
+                return "updated"
+            except Exception as exc:
+                if not _gcal_is_gone(exc):
+                    raise
+                event_id = None  # im Kalender geloescht -> neu anlegen
+        created = _google_create_event(access, refresh, scopes, calendar_id, body)
+        new_id = (created or {}).get("id")
+        if new_id:
+            slot.gcal_event_id = new_id
+        s.commit()
+        return "created"
+
+
+def _gcal_sync_slot_safe(slot_id) -> None:
+    """Wie _gcal_sync_slot, aber ohne Ausnahme nach aussen (fuer Endpoints)."""
+    if not slot_id:
+        return
+    try:
+        _gcal_sync_slot(slot_id)
+    except Exception:
+        app.logger.exception("google slot sync failed for slot %s", slot_id)
+
+
+def _gcal_delete_event_safe(provider_id, event_id) -> None:
+    """Loescht ein von uns angelegtes Event (z. B. nach physischem Slot-Loeschen)."""
+    if not provider_id or not event_id:
+        return
+    try:
+        with Session(engine) as s:
+            conn = _gcal_connection_for(s, provider_id)
+            if not conn:
+                return
+            access = _decrypt_secret(conn.access_token_enc)
+            refresh = _decrypt_secret(conn.refresh_token_enc)
+            scopes, calendar_id = conn.scopes, conn.calendar_id or "primary"
+        try:
+            _google_delete_event(access, refresh, scopes, calendar_id, event_id)
+        except Exception as exc:
+            if not _gcal_is_gone(exc):
+                raise
+    except Exception:
+        app.logger.exception("google event delete failed for provider %s", provider_id)
+
+
+def _gcal_own_event_id_for_delete(slot):
+    origin, eid = _gcal_event_ref(slot)
+    return eid if origin == "out" else None
+
+
+def _google_writeback(action: str, booking_id: str) -> None:
+    """Buchung/Storno/Terminaenderung -> Google (zentral ueber _gcal_sync_slot)."""
     if action not in ("booking", "cancel", "update"):
         return
     try:
         with Session(engine) as s:
             b = s.get(Booking, booking_id)
-            if not b or not b.slot_id:
-                return
-            slot = s.get(Slot, b.slot_id)
-            if not slot:
-                return
-            conn = s.scalar(
-                select(GoogleCalendarConnection).where(
-                    GoogleCalendarConnection.provider_id == slot.provider_id,
-                    GoogleCalendarConnection.status == "connected",
-                )
-            )
-            if not conn:
-                return
-            access = _decrypt_secret(conn.access_token_enc)
-            refresh = _decrypt_secret(conn.refresh_token_enc)
-            scopes = conn.scopes
-            calendar_id = conn.calendar_id or "primary"
-            origin, event_id = _gcal_parse_external(slot.external_id)
-            title = (slot.title or "Termin").strip() or "Termin"
-            if title.startswith(GCAL_BOOKED_PREFIX):
-                title = title[len(GCAL_BOOKED_PREFIX):].strip() or "Termin"
-            start_iso = _as_utc_aware(slot.start_at).isoformat()
-            end_iso = _as_utc_aware(slot.end_at).isoformat()
-            location = (slot.location or "")[:120]
-
-            if action == "booking":
-                if event_id:
-                    _google_patch_event(
-                        access, refresh, scopes, calendar_id, event_id,
-                        {"summary": GCAL_BOOKED_PREFIX + title, "description": GCAL_BOOKED_NOTE},
-                    )
-                else:
-                    created = _google_create_event(
-                        access, refresh, scopes, calendar_id,
-                        {
-                            "summary": GCAL_BOOKED_PREFIX + title,
-                            "description": GCAL_BOOKED_NOTE,
-                            "start": {"dateTime": start_iso},
-                            "end": {"dateTime": end_iso},
-                            "location": location,
-                        },
-                    )
-                    new_id = (created or {}).get("id")
-                    if new_id:
-                        slot.external_id = f"gcal-out:{new_id}"
-                        s.commit()
-            elif action == "cancel":
-                if not event_id:
-                    return
-                if origin == "out":
-                    _google_delete_event(access, refresh, scopes, calendar_id, event_id)
-                    slot.external_id = None
-                    s.commit()
-                else:
-                    _google_patch_event(
-                        access, refresh, scopes, calendar_id, event_id,
-                        {"summary": title, "description": ""},
-                    )
-            elif action == "update" and event_id:
-                _google_patch_event(
-                    access, refresh, scopes, calendar_id, event_id,
-                    {"start": {"dateTime": start_iso}, "end": {"dateTime": end_iso}},
-                )
+            slot_id = b.slot_id if b else None
+        if slot_id:
+            _gcal_sync_slot(slot_id)
     except Exception:
         app.logger.exception("google writeback %s failed for booking %s", action, booking_id)
+
+
+def _gcal_push_pending_slots(provider_id, limit: int = 200) -> int:
+    """Legt fuer veroeffentlichte, zukuenftige Slots ohne Google-Event eines an."""
+    with Session(engine) as s:
+        ids = [row[0] for row in s.execute(
+            select(Slot.id).where(
+                Slot.provider_id == provider_id,
+                Slot.status == SLOT_STATUS_PUBLISHED,
+                Slot.end_at > _to_db_utc_naive(_now()),
+                Slot.gcal_event_id.is_(None),
+                or_(Slot.external_id.is_(None), ~Slot.external_id.like("gcal:%")),
+            ).order_by(Slot.start_at).limit(limit)
+        ).all()]
+    pushed = 0
+    for sid in ids:
+        try:
+            if _gcal_sync_slot(sid) == "created":
+                pushed += 1
+        except Exception:
+            app.logger.exception("google push failed for slot %s", sid)
+    return pushed
 
 
 def _upsert_slot_from_google_event(s: "Session", provider: "Provider", event: dict) -> str:
@@ -11984,6 +12201,10 @@ def _upsert_slot_from_google_event(s: "Session", provider: "Provider", event: di
     Rueckgabe: "created" | "updated" | "skipped".
     """
     ext_id = f"gcal:{event.get('id')}"
+    # Events, die wir selbst aus einem Slot erzeugt haben, nie zurueck importieren
+    # (sonst entstuenden doppelte Slots).
+    if event.get("tm_slot_id"):
+        return "skipped"
     try:
         start = parse_iso_utc(event["start"])
         end = parse_iso_utc(event["end"])
@@ -12120,10 +12341,17 @@ def _sync_google_connection(conn_id: str) -> dict:
         conn.last_sync_status = "ok"
         conn.last_sync_count = result["created"] + result["updated"]
         conn.updated_at = _to_db_utc_naive(_now())
+        provider_id_for_push = provider.id
         try:
             s.commit()
         except Exception:
             s.rollback()
+    # Richtung Terminmarktplatz -> Google: veroeffentlichte Slots eintragen
+    try:
+        result["pushed"] = _gcal_push_pending_slots(provider_id_for_push)
+    except Exception:
+        app.logger.exception("google push phase failed")
+        result["pushed"] = 0
     return result
 
 
@@ -12276,6 +12504,7 @@ def api_google_status():
                 "last_sync_at": _from_db_as_iso_utc(conn.last_sync_at) if conn.last_sync_at else None,
                 "last_sync_status": conn.last_sync_status,
                 "last_sync_count": conn.last_sync_count,
+                "show_customer_names": bool(getattr(conn, "show_customer_names", False)),
             })
     return jsonify(out)
 
@@ -12325,9 +12554,14 @@ def api_google_select_calendar():
         conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
         if not conn:
             return _json_error("not_connected", 400)
+        old_calendar = conn.calendar_id
+        conn_id = conn.id
+    if old_calendar != calendar_id:
+        _gcal_remove_own_events(pid, only_free=False)
+    with Session(engine) as s:
+        conn = s.get(GoogleCalendarConnection, conn_id)
         conn.calendar_id = calendar_id
         conn.updated_at = _to_db_utc_naive(_now())
-        conn_id = conn.id
         s.commit()
     result = _sync_google_connection(conn_id)
     return jsonify({"ok": result.get("error") is None, "calendar_id": calendar_id, "result": result})
@@ -12338,6 +12572,7 @@ def api_google_disconnect():
     pid = _current_provider_id_or_none()
     if not pid:
         return _json_error("unauthorized", 401)
+    _gcal_remove_own_events(pid, only_free=True)
     with Session(engine) as s:
         conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
         if conn:
@@ -12350,6 +12585,75 @@ def api_google_disconnect():
             s.delete(conn)  # Widerruf: Tokens werden lokal geloescht
             s.commit()
     return jsonify({"ok": True})
+
+
+def _gcal_remove_own_events(provider_id, only_free: bool) -> int:
+    """Entfernt von uns angelegte Events (best effort) und loest die Verknuepfung."""
+    removed = 0
+    try:
+        with Session(engine) as s:
+            conn = s.scalar(select(GoogleCalendarConnection).where(
+                GoogleCalendarConnection.provider_id == provider_id))
+            if not conn:
+                return 0
+            access = _decrypt_secret(conn.access_token_enc)
+            refresh = _decrypt_secret(conn.refresh_token_enc)
+            scopes, calendar_id = conn.scopes, conn.calendar_id or "primary"
+            slots = s.scalars(select(Slot).where(
+                Slot.provider_id == provider_id, Slot.gcal_event_id.is_not(None))).all()
+            for sl in slots:
+                if only_free:
+                    booked = (s.scalar(select(func.count()).select_from(Booking).where(
+                        Booking.slot_id == sl.id, Booking.status == "confirmed")) or 0) > 0
+                    if booked:
+                        sl.gcal_event_id = None
+                        continue
+                try:
+                    _google_delete_event(access, refresh, scopes, calendar_id, sl.gcal_event_id)
+                    removed += 1
+                except Exception as exc:
+                    if not _gcal_is_gone(exc):
+                        app.logger.warning("google event cleanup failed for slot %s", sl.id)
+                sl.gcal_event_id = None
+            s.commit()
+    except Exception:
+        app.logger.exception("_gcal_remove_own_events failed")
+    return removed
+
+
+@app.post("/api/google/settings")
+def api_google_settings():
+    """Einstellungen der Kalender-Verbindung (aktuell: Kundennamen anzeigen)."""
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return _json_error("unauthorized", 401)
+    data = request.get_json(silent=True) or {}
+    if "show_customer_names" not in data:
+        return _json_error("show_customer_names_required")
+    show = bool(data.get("show_customer_names"))
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p:
+            return _json_error("not_found", 404)
+        if not _has_pro_features(p):
+            return _json_error("pro_plan_required", 403)
+        conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
+        if not conn:
+            return _json_error("not_connected", 400)
+        conn.show_customer_names = show
+        conn.updated_at = _to_db_utc_naive(_now())
+        s.commit()
+        # Gebuchte Termine sofort neu beschriften (Name hinzufuegen/entfernen)
+        booked_ids = [row[0] for row in s.execute(
+            select(Slot.id).join(Booking, Booking.slot_id == Slot.id).where(
+                Slot.provider_id == pid,
+                Booking.status == "confirmed",
+                Slot.end_at > _to_db_utc_naive(_now()),
+            ).distinct()
+        ).all()]
+    for sid in booked_ids:
+        _gcal_sync_slot_safe(sid)
+    return jsonify({"ok": True, "show_customer_names": show})
 
 
 @app.post("/api/google/sync-now")
