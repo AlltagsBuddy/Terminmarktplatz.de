@@ -304,3 +304,35 @@ def test_login_next_only_internal(tm_browser, tm_base, next_value, expected_path
     if next_value.startswith("/anbieter-portal.html?slot="):
         assert "slot=abc" in page.url
     page.context.close()
+
+
+# ---------------------------------------------------------------------------
+# Hilfe-Seite: neue Eintraege vorhanden, aufklappbar, nichts abgeschnitten
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("anchor", [
+    "google-kalender-verbinden", "google-kalender-sync", "wer-hat-gebucht",
+    "kundennamen-google", "google-trennen", "kalender-abo", "formular-fehler",
+])
+def test_help_entries_open_fully(tm_browser, tm_base, anchor):
+    page = _new_page(tm_browser)
+    page.base = tm_base
+    _mock_api(page, {}, [])
+    page.goto(f"{tm_base}/hilfe.html", wait_until="domcontentloaded")
+    item = page.locator(f"#{anchor}")
+    item.locator(".faq-question").click()
+    page.wait_for_timeout(450)  # Aufklapp-Animation
+    answer = item.locator(".faq-answer")
+    content = item.locator(".faq-answer-content")
+    assert content.is_visible()
+    # Antwort darf nicht durch max-height abgeschnitten werden
+    assert answer.evaluate("el => el.clientHeight + 2 >= el.scrollHeight")
+    page.context.close()
+
+
+def test_help_no_longer_promises_sms_alerts(tm_browser, tm_base):
+    page = _new_page(tm_browser)
+    page.base = tm_base
+    _mock_api(page, {}, [])
+    page.goto(f"{tm_base}/hilfe.html", wait_until="domcontentloaded")
+    assert "SMS-Benachrichtigungen" not in page.content()
+    page.context.close()

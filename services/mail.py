@@ -265,4 +265,7 @@ def send_sms(to: str, text: str) -> None:
     text = (text or "").strip()
     if not to or not text:
         return
-    print(f"[sms][stub] to={to} text={text}", flush=True)
+    # Platzhalter: Es wird (noch) KEINE Nachricht verschickt.
+    # Keine personenbezogenen Daten ins Log (DSGVO): Nummer maskiert, kein Nachrichtentext.
+    masked = ("*" * max(len(to) - 3, 0)) + to[-3:]
+    print(f"[sms][stub] nicht versendet (kein Anbieter angebunden) to={masked} len={len(text)}", flush=True)
