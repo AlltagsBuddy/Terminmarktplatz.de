@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   var CONSENT_KEY = "tm_cookie_consent_v8";
-  var GA_ID = "G-508763756";
+  var GA_ID = "G-YNZ8GW523R";
 
   function hasConsent() {
     try { return localStorage.getItem(CONSENT_KEY) === "accepted"; } catch (e) { return false; }

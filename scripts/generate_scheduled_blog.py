@@ -120,14 +120,8 @@ def build_page(article: dict, style_block: str, header: str, footer_scripts: str
   <link rel="stylesheet" href="/static/style.css?v=20251103" />
 
   {style_block}
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-508763756"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){{dataLayer.push(arguments);}}
-    gtag('js', new Date());
-    gtag('config', 'G-508763756');
-  </script>
+  <!-- Google Analytics nur nach Einwilligung (§ 25 TDDDG) -->
+  <script src="/static/analytics-consent.js" defer></script>
 </head>
 <body>
 
