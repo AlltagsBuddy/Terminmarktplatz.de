@@ -76,7 +76,7 @@ def _future_event(event_id: str, hours_from_now: int = 48, summary="Freier Termi
 def _connect(provider_id: str, monkeypatch, events=None, calendar_email="kalender@example.com"):
     """Simuliert einen erfolgreichen OAuth-Callback inkl. Erst-Sync."""
     monkeypatch.setattr(app_module, "_google_oauth_configured", lambda: True)
-    monkeypatch.setattr(app_module, "_google_exchange_code", lambda code: {
+    monkeypatch.setattr(app_module, "_google_exchange_code", lambda code, **k: {
         "access_token": "at-" + code,
         "refresh_token": "rt-secret",
         "expiry": app_module._now() + timedelta(hours=1),
@@ -153,7 +153,7 @@ def test_start_not_configured_redirects(test_client, monkeypatch):
 def test_start_redirects_to_google(test_client, monkeypatch):
     pid = _create_provider(plan="profi")
     monkeypatch.setattr(app_module, "_google_oauth_configured", lambda: True)
-    monkeypatch.setattr(app_module, "_google_build_auth_url", lambda state: "https://accounts.google.com/o/oauth2/auth?state=" + state)
+    monkeypatch.setattr(app_module, "_google_build_auth_url", lambda state, **k: "https://accounts.google.com/o/oauth2/auth?state=" + state)
     res = test_client.get("/oauth/google/start", headers=_auth_headers(pid))
     assert res.status_code in (301, 302)
     assert res.headers.get("Location", "").startswith("https://accounts.google.com/")
@@ -465,3 +465,63 @@ def test_status_includes_writeback_flag(test_client):
     res = test_client.get("/api/google/status", headers=_auth_headers(pid))
     assert res.status_code == 200
     assert res.get_json()["writeback"] is True
+
+
+# --------------------------------------------------------------------------
+# PKCE: code_verifier muss vom Start zum Callback gelangen
+# --------------------------------------------------------------------------
+def test_pkce_verifier_roundtrip(monkeypatch):
+    """Regression: ohne gespeicherten Verifier lehnt Google den Code-Tausch ab
+    (exchange_failed / "Missing code verifier")."""
+    pid = _create_provider(plan="profi")
+    monkeypatch.setattr(app_module, "_google_oauth_configured", lambda: True)
+    seen = {}
+
+    def fake_build(state, code_verifier=None):
+        seen["start"] = code_verifier
+        return "https://accounts.google.com/o/oauth2/auth?state=" + state
+
+    def fake_exchange(code, code_verifier=None):
+        seen["callback"] = code_verifier
+        return {
+            "access_token": "at", "refresh_token": "rt",
+            "expiry": app_module._now() + timedelta(hours=1),
+            "scopes": " ".join(app_module.GOOGLE_CALENDAR_SCOPES),
+            "email": "kalender@example.com", "calendar_id": "kalender@example.com",
+        }
+
+    monkeypatch.setattr(app_module, "_google_build_auth_url", fake_build)
+    monkeypatch.setattr(app_module, "_google_exchange_code", fake_exchange)
+    monkeypatch.setattr(app_module, "_google_list_events", lambda *a, **k: [])
+
+    client = app_module.app.test_client()
+    res = client.get("/oauth/google/start", headers=_auth_headers(pid))
+    assert res.status_code in (301, 302)
+    cookie = res.headers.get("Set-Cookie", "")
+    assert app_module.GOOGLE_PKCE_COOKIE in cookie
+    assert "HttpOnly" in cookie
+    assert seen["start"] and 43 <= len(seen["start"]) <= 128
+
+    state = app_module._google_state_serializer().dumps(str(pid))
+    res = client.get(f"/oauth/google/callback?code=abc&state={state}", headers=_auth_headers(pid))
+    assert "google=connected" in res.headers.get("Location", "")
+    assert seen["callback"] == seen["start"]
+
+
+def test_real_flow_sends_matching_pkce():
+    """Echte google-auth-oauthlib: Challenge in der URL passt zum Verifier."""
+    import base64, hashlib
+    from urllib.parse import urlparse, parse_qs
+    old = (app_module.GOOGLE_CLIENT_ID, app_module.GOOGLE_CLIENT_SECRET, app_module.GOOGLE_OAUTH_REDIRECT)
+    app_module.GOOGLE_CLIENT_ID = "cid.apps.googleusercontent.com"
+    app_module.GOOGLE_CLIENT_SECRET = "secret"
+    app_module.GOOGLE_OAUTH_REDIRECT = "https://test.example/oauth/google/callback"
+    try:
+        verifier = app_module._google_new_code_verifier()
+        url = app_module._google_build_auth_url("st", code_verifier=verifier)
+    finally:
+        app_module.GOOGLE_CLIENT_ID, app_module.GOOGLE_CLIENT_SECRET, app_module.GOOGLE_OAUTH_REDIRECT = old
+    q = parse_qs(urlparse(url).query)
+    expected = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+    assert q["code_challenge"] == [expected]
+    assert q["code_challenge_method"] == ["S256"]

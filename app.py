@@ -11670,6 +11670,28 @@ def _google_state_serializer():
     return URLSafeTimedSerializer(SECRET or "dev-secret", salt="google-oauth-state")
 
 
+# PKCE: google-auth-oauthlib erzeugt seit 1.x automatisch einen code_verifier
+# und sendet die code_challenge an Google. Da Start und Callback zwei
+# getrennte Flow-Instanzen nutzen, muss der Verifier zwischengespeichert
+# werden (sonst lehnt Google den Code-Tausch ab: "Missing code verifier").
+# Speicherung: kurzlebiges, signiertes, httpOnly-Cookie (10 Min, nur /oauth/google).
+GOOGLE_PKCE_COOKIE = "tm_gcal_pkce"
+GOOGLE_PKCE_MAX_AGE = 600
+# include_granted_scopes kann bereits frueher erteilte Scopes zurueckgeben;
+# oauthlib wuerde das sonst als Fehler ("Scope has changed") werten.
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+
+
+def _google_pkce_serializer():
+    from itsdangerous import URLSafeTimedSerializer
+    return URLSafeTimedSerializer(SECRET or "dev-secret", salt="google-oauth-pkce")
+
+
+def _google_new_code_verifier() -> str:
+    """Zufaelliger PKCE-Verifier (RFC 7636: 43-128 Zeichen)."""
+    return secrets.token_urlsafe(64)[:96]
+
+
 def _google_client_config() -> dict:
     return {
         "web": {
@@ -11683,10 +11705,15 @@ def _google_client_config() -> dict:
 
 
 # ---- Google-API-Nahtstellen (in Tests gemockt, kein echter Netzwerk-Call) ----
-def _google_build_auth_url(state: str) -> str:
-    """Baut die Google-Zustimmungs-URL (Consent Screen)."""
+def _google_build_auth_url(state: str, code_verifier: str | None = None) -> str:
+    """Baut die Google-Zustimmungs-URL (Consent Screen) inkl. PKCE-Challenge."""
     from google_auth_oauthlib.flow import Flow
-    flow = Flow.from_client_config(_google_client_config(), scopes=GOOGLE_CALENDAR_SCOPES)
+    flow = Flow.from_client_config(
+        _google_client_config(),
+        scopes=GOOGLE_CALENDAR_SCOPES,
+        code_verifier=code_verifier,
+        autogenerate_code_verifier=False,
+    )
     flow.redirect_uri = GOOGLE_OAUTH_REDIRECT
     auth_url, _ = flow.authorization_url(
         access_type="offline",
@@ -11697,10 +11724,15 @@ def _google_build_auth_url(state: str) -> str:
     return auth_url
 
 
-def _google_exchange_code(code: str) -> dict:
+def _google_exchange_code(code: str, code_verifier: str | None = None) -> dict:
     """Tauscht den OAuth-Code gegen Tokens. Rueckgabe: dict mit Token-Feldern."""
     from google_auth_oauthlib.flow import Flow
-    flow = Flow.from_client_config(_google_client_config(), scopes=GOOGLE_CALENDAR_SCOPES)
+    flow = Flow.from_client_config(
+        _google_client_config(),
+        scopes=GOOGLE_CALENDAR_SCOPES,
+        code_verifier=code_verifier,
+        autogenerate_code_verifier=False,
+    )
     flow.redirect_uri = GOOGLE_OAUTH_REDIRECT
     flow.fetch_token(code=code)
     creds = flow.credentials
@@ -12138,12 +12170,23 @@ def oauth_google_start():
     if not _google_oauth_configured():
         return redirect("/anbieter-portal.html?google=not_configured")
     state = _google_state_serializer().dumps(str(pid))
+    verifier = _google_new_code_verifier()
     try:
-        url = _google_build_auth_url(state)
+        url = _google_build_auth_url(state, code_verifier=verifier)
     except Exception:
         app.logger.exception("google auth url failed")
         return redirect("/anbieter-portal.html?google=error")
-    return redirect(url)
+    resp = redirect(url)
+    resp.set_cookie(
+        GOOGLE_PKCE_COOKIE,
+        _google_pkce_serializer().dumps(verifier),
+        max_age=GOOGLE_PKCE_MAX_AGE,
+        httponly=True,
+        secure=request.is_secure,
+        samesite="Lax",
+        path="/oauth/google",
+    )
+    return resp
 
 
 @app.get("/oauth/google/callback")
@@ -12163,8 +12206,15 @@ def oauth_google_callback():
         return redirect("/anbieter-portal.html?google=session_mismatch")
     if not _google_oauth_configured():
         return redirect("/anbieter-portal.html?google=not_configured")
+    verifier = None
+    raw_pkce = request.cookies.get(GOOGLE_PKCE_COOKIE)
+    if raw_pkce:
+        try:
+            verifier = _google_pkce_serializer().loads(raw_pkce, max_age=GOOGLE_PKCE_MAX_AGE)
+        except Exception:
+            verifier = None
     try:
-        tok = _google_exchange_code(code)
+        tok = _google_exchange_code(code, code_verifier=verifier)
     except Exception:
         app.logger.exception("google token exchange failed")
         return redirect("/anbieter-portal.html?google=exchange_failed")
@@ -12196,7 +12246,9 @@ def oauth_google_callback():
         _sync_google_connection(conn_id)
     except Exception:
         app.logger.exception("initial google sync failed")
-    return redirect("/anbieter-portal.html?google=connected")
+    resp = redirect("/anbieter-portal.html?google=connected")
+    resp.delete_cookie(GOOGLE_PKCE_COOKIE, path="/oauth/google")
+    return resp
 
 
 @app.get("/api/google/status")
