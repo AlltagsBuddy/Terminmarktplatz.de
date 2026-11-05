@@ -78,6 +78,7 @@ from models import (
     AlertSubscription,
     PasswordReset,
     Review,
+    GoogleCalendarConnection,
     provider_review_aggregates,
 )
 
@@ -1585,6 +1586,58 @@ def _ensure_promo_tables() -> None:
 
 
 # --------------------------------------------------------
+# Native Google-Kalender-Integration: Verbindungstabelle
+# --------------------------------------------------------
+def _ensure_google_calendar_connection() -> None:
+    """Tabelle google_calendar_connection fuer die native Google-Kalender-Anbindung.
+
+    OAuth-Tokens werden verschluesselt gespeichert. Laeuft auf PostgreSQL und SQLite.
+    """
+    try:
+        if IS_POSTGRESQL:
+            _pg_ddl_autocommit(
+                "CREATE TABLE IF NOT EXISTS public.google_calendar_connection ("
+                "id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "
+                "provider_id uuid NOT NULL UNIQUE REFERENCES public.provider(id) ON DELETE CASCADE, "
+                "google_account_email text, "
+                "calendar_id text, "
+                "default_category text, "
+                "access_token_enc text, "
+                "refresh_token_enc text, "
+                "token_expiry timestamp, "
+                "scopes text, "
+                "status text NOT NULL DEFAULT 'connected', "
+                "last_sync_at timestamp, "
+                "last_sync_status text, "
+                "last_sync_count integer, "
+                "last_error text, "
+                "created_at timestamp NOT NULL DEFAULT (now() AT TIME ZONE 'utc'), "
+                "updated_at timestamp);",
+                "ensure_google_calendar_connection",
+            )
+            return
+        # SQLite-Fallback
+        raw = engine.raw_connection()
+        try:
+            raw.autocommit = True
+            cur = raw.cursor()
+            cur.execute(
+                "CREATE TABLE IF NOT EXISTS google_calendar_connection ("
+                "id TEXT PRIMARY KEY, provider_id TEXT NOT NULL UNIQUE, "
+                "google_account_email TEXT, calendar_id TEXT, default_category TEXT, "
+                "access_token_enc TEXT, refresh_token_enc TEXT, token_expiry TIMESTAMP, "
+                "scopes TEXT, status TEXT NOT NULL DEFAULT 'connected', "
+                "last_sync_at TIMESTAMP, last_sync_status TEXT, last_sync_count INTEGER, "
+                "last_error TEXT, created_at TIMESTAMP, updated_at TIMESTAMP)"
+            )
+            cur.close()
+        finally:
+            raw.close()
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_google_calendar_connection fehlgeschlagen: {e}")
+
+
+# --------------------------------------------------------
 # WareVision-Webhook-Felder für Provider
 # --------------------------------------------------------
 def _ensure_provider_warevision_webhook():
@@ -2063,6 +2116,7 @@ ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
     _ensure_provider_warevision_webhook,
     _ensure_slot_external_id,
     _ensure_promo_tables,
+    _ensure_google_calendar_connection,
     _ensure_archive_fields,
     _ensure_slot_archived_is_boolean,
     _ensure_slot_status_constraint,
@@ -11502,9 +11556,447 @@ def _promo_reminder_job():
     except Exception as _exc:
         app.logger.error(f"_promo_reminder_job Fehler: {_exc}")
 
+# ================================================================
+# Native Google-Kalender-Integration (Phase 1: NUR LESEN)
+# Freie Termine aus einem ausgewaehlten Google-Kalender werden als Slots
+# uebernommen. OAuth-Tokens werden verschluesselt gespeichert (Fernet).
+# Datenschutz: minimaler Scope (calendar.readonly), Einwilligung des Anbieters,
+# Loeschen der Verbindung = Widerruf (Tokens werden geloescht).
+# ================================================================
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+# Volle Callback-URL, z. B. https://test.terminmarktplatz.de/oauth/google/callback
+GOOGLE_OAUTH_REDIRECT = os.getenv("GOOGLE_OAUTH_REDIRECT")
+# Minimaler Scope: nur lesen (Phase 1)
+GOOGLE_CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+TOKEN_ENCRYPTION_KEY = os.getenv("TOKEN_ENCRYPTION_KEY")
+_IS_TESTING = (os.getenv("TESTING") or "").strip() == "1"
+
+
+def _google_oauth_configured() -> bool:
+    """True, wenn alle noetigen Google-OAuth-Zugangsdaten in der .env gesetzt sind."""
+    return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOGLE_OAUTH_REDIRECT)
+
+
+_FERNET_INSTANCE = None
+
+
+def _get_fernet():
+    """Fernet-Instanz zur Token-Verschluesselung.
+
+    Key aus ``TOKEN_ENCRYPTION_KEY``. In Tests wird ein fluechtiger Prozess-Key
+    erzeugt (kein echter Key noetig). In Produktion ohne Key -> Fehler
+    (bewusst kein Klartext-Fallback).
+    """
+    global _FERNET_INSTANCE
+    if _FERNET_INSTANCE is not None:
+        return _FERNET_INSTANCE
+    from cryptography.fernet import Fernet
+    if TOKEN_ENCRYPTION_KEY:
+        key = TOKEN_ENCRYPTION_KEY.encode() if isinstance(TOKEN_ENCRYPTION_KEY, str) else TOKEN_ENCRYPTION_KEY
+        _FERNET_INSTANCE = Fernet(key)
+    elif _IS_TESTING:
+        _FERNET_INSTANCE = Fernet(Fernet.generate_key())
+    else:
+        raise RuntimeError("TOKEN_ENCRYPTION_KEY fehlt – Google-Integration nicht konfiguriert.")
+    return _FERNET_INSTANCE
+
+
+def _encrypt_secret(plaintext):
+    if plaintext is None:
+        return None
+    return _get_fernet().encrypt(str(plaintext).encode("utf-8")).decode("ascii")
+
+
+def _decrypt_secret(ciphertext):
+    if not ciphertext:
+        return None
+    return _get_fernet().decrypt(str(ciphertext).encode("ascii")).decode("utf-8")
+
+
+def _google_state_serializer():
+    from itsdangerous import URLSafeTimedSerializer
+    return URLSafeTimedSerializer(SECRET or "dev-secret", salt="google-oauth-state")
+
+
+def _google_client_config() -> dict:
+    return {
+        "web": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": [GOOGLE_OAUTH_REDIRECT],
+        }
+    }
+
+
+# ---- Google-API-Nahtstellen (in Tests gemockt, kein echter Netzwerk-Call) ----
+def _google_build_auth_url(state: str) -> str:
+    """Baut die Google-Zustimmungs-URL (Consent Screen)."""
+    from google_auth_oauthlib.flow import Flow
+    flow = Flow.from_client_config(_google_client_config(), scopes=GOOGLE_CALENDAR_SCOPES)
+    flow.redirect_uri = GOOGLE_OAUTH_REDIRECT
+    auth_url, _ = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent",
+        state=state,
+    )
+    return auth_url
+
+
+def _google_exchange_code(code: str) -> dict:
+    """Tauscht den OAuth-Code gegen Tokens. Rueckgabe: dict mit Token-Feldern."""
+    from google_auth_oauthlib.flow import Flow
+    flow = Flow.from_client_config(_google_client_config(), scopes=GOOGLE_CALENDAR_SCOPES)
+    flow.redirect_uri = GOOGLE_OAUTH_REDIRECT
+    flow.fetch_token(code=code)
+    creds = flow.credentials
+    email = None
+    calendar_id = "primary"
+    try:
+        from googleapiclient.discovery import build
+        svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
+        primary = svc.calendarList().get(calendarId="primary").execute()
+        email = primary.get("id")
+        calendar_id = primary.get("id") or "primary"
+    except Exception:
+        pass
+    return {
+        "access_token": creds.token,
+        "refresh_token": creds.refresh_token,
+        "expiry": getattr(creds, "expiry", None),
+        "scopes": " ".join(creds.scopes or GOOGLE_CALENDAR_SCOPES),
+        "email": email,
+        "calendar_id": calendar_id,
+    }
+
+
+def _google_list_events(access_token, refresh_token, scopes, calendar_id) -> list[dict]:
+    """Listet zukuenftige Termine eines Google-Kalenders (nur Zeitfenster-Events)."""
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    creds = Credentials(
+        token=access_token,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        scopes=(scopes.split() if scopes else GOOGLE_CALENDAR_SCOPES),
+    )
+    svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    out: list[dict] = []
+    page_token = None
+    while True:
+        resp = svc.events().list(
+            calendarId=calendar_id or "primary",
+            timeMin=now_iso,
+            singleEvents=True,
+            orderBy="startTime",
+            maxResults=250,
+            pageToken=page_token,
+            showDeleted=False,
+        ).execute()
+        for ev in resp.get("items", []):
+            if ev.get("status") == "cancelled":
+                continue
+            start = (ev.get("start") or {}).get("dateTime")
+            end = (ev.get("end") or {}).get("dateTime")
+            if not start or not end:
+                continue  # Ganztags-Termine (nur date) ueberspringen
+            out.append({
+                "id": ev.get("id"),
+                "summary": (ev.get("summary") or "Freier Termin"),
+                "start": start,
+                "end": end,
+                "location": (ev.get("location") or ""),
+            })
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+    return out
+
+
+def _upsert_slot_from_google_event(s: "Session", provider: "Provider", event: dict) -> str:
+    """Legt/aktualisiert einen Slot aus einem Google-Event. Idempotent ueber external_id.
+
+    Rueckgabe: "created" | "updated" | "skipped".
+    """
+    ext_id = f"gcal:{event.get('id')}"
+    try:
+        start = parse_iso_utc(event["start"])
+        end = parse_iso_utc(event["end"])
+    except Exception:
+        return "skipped"
+    if end <= start or start <= _now():
+        return "skipped"
+    start_db = _to_db_utc_naive(start)
+    end_db = _to_db_utc_naive(end)
+    title = (str(event.get("summary") or "Freier Termin").strip() or "Freier Termin")[:100]
+    category = normalize_category(provider.branch)
+    location = (str(event.get("location") or "").strip() or (provider.public_address or ""))[:120]
+
+    existing = s.scalar(
+        select(Slot).where(Slot.provider_id == provider.id, Slot.external_id == ext_id)
+    )
+    if existing:
+        changed = False
+        if existing.title != title:
+            existing.title = title; changed = True
+        if existing.start_at != start_db:
+            existing.start_at = start_db; changed = True
+        if existing.end_at != end_db:
+            existing.end_at = end_db; changed = True
+        if location and existing.location != location:
+            existing.location = location; changed = True
+        return "updated" if changed else "skipped"
+
+    slot = Slot(
+        provider_id=provider.id,
+        title=title,
+        category=category,
+        start_at=start_db,
+        end_at=end_db,
+        location=location or None,
+        capacity=1,
+        contact_method="mail",
+        status=SLOT_STATUS_DRAFT,
+        external_id=ext_id,
+    )
+    s.add(slot)
+    s.flush()
+    slot_id = slot.id
+    # Bestmoeglich veroeffentlichen (Monatskontingent, PostgreSQL). Scheitert das
+    # (Limit erreicht, unvollstaendiges Profil), bleibt der Slot als Entwurf erhalten.
+    if IS_POSTGRESQL and is_profile_complete(provider):
+        try:
+            with s.begin_nested():
+                _publish_slot_quota_tx(s, provider.id, slot_id)
+        except Exception:
+            pass
+    return "created"
+
+
+def _sync_google_connection(conn_id: str) -> dict:
+    """Synchronisiert einen verbundenen Google-Kalender -> Slots."""
+    result = {"created": 0, "updated": 0, "skipped": 0, "total": 0, "error": None}
+    with Session(engine) as s:
+        conn = s.get(GoogleCalendarConnection, conn_id)
+        if not conn:
+            result["error"] = "not_found"
+            return result
+        provider = s.get(Provider, conn.provider_id)
+        if not provider or not _has_pro_features(provider):
+            result["error"] = "plan_required"
+            conn.status = "error"
+            conn.last_error = "plan_required"
+            conn.last_sync_at = _to_db_utc_naive(_now())
+            s.commit()
+            return result
+        try:
+            access = _decrypt_secret(conn.access_token_enc)
+            refresh = _decrypt_secret(conn.refresh_token_enc)
+            events = _google_list_events(access, refresh, conn.scopes, conn.calendar_id)
+        except Exception as exc:
+            conn.status = "error"
+            conn.last_error = str(exc)[:500]
+            conn.last_sync_at = _to_db_utc_naive(_now())
+            conn.last_sync_status = "error"
+            s.commit()
+            result["error"] = "list_failed"
+            return result
+
+        for ev in events:
+            try:
+                action = _upsert_slot_from_google_event(s, provider, ev)
+                result[action] = result.get(action, 0) + 1
+            except Exception:
+                s.rollback()
+                result["skipped"] += 1
+        result["total"] = len(events)
+        conn.status = "connected"
+        conn.last_error = None
+        conn.last_sync_at = _to_db_utc_naive(_now())
+        conn.last_sync_status = "ok"
+        conn.last_sync_count = result["created"] + result["updated"]
+        conn.updated_at = _to_db_utc_naive(_now())
+        try:
+            s.commit()
+        except Exception:
+            s.rollback()
+    return result
+
+
+def _google_sync_all_job():
+    """APScheduler-Job: synchronisiert alle verbundenen Kalender."""
+    try:
+        with Session(engine) as s:
+            ids = [row[0] for row in s.execute(
+                select(GoogleCalendarConnection.id).where(GoogleCalendarConnection.status == "connected")
+            ).all()]
+        for cid in ids:
+            try:
+                _sync_google_connection(cid)
+            except Exception:
+                app.logger.exception("google sync job failed for %s", cid)
+    except Exception:
+        app.logger.exception("_google_sync_all_job failed")
+
+
+def _google_current_provider_or_error():
+    """Login + Profi/Business-Gate fuer die Google-Endpoints. Rueckgabe: (provider, errorResponse)."""
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return None, (_json_error("unauthorized", 401))
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p:
+            return None, (_json_error("not_found", 404))
+        if not _has_pro_features(p):
+            return None, (_json_error("pro_plan_required", 403))
+        s.expunge(p)
+    return p, None
+
+
+@app.get("/oauth/google/start")
+def oauth_google_start():
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return redirect("/login.html?next=/anbieter-portal.html")
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p or not _has_pro_features(p):
+            return redirect("/anbieter-portal.html?google=pro_required")
+    if not _google_oauth_configured():
+        return redirect("/anbieter-portal.html?google=not_configured")
+    state = _google_state_serializer().dumps(str(pid))
+    try:
+        url = _google_build_auth_url(state)
+    except Exception:
+        app.logger.exception("google auth url failed")
+        return redirect("/anbieter-portal.html?google=error")
+    return redirect(url)
+
+
+@app.get("/oauth/google/callback")
+def oauth_google_callback():
+    if request.args.get("error"):
+        return redirect("/anbieter-portal.html?google=denied")
+    code = (request.args.get("code") or "").strip()
+    state = (request.args.get("state") or "").strip()
+    if not code or not state:
+        return redirect("/anbieter-portal.html?google=error")
+    try:
+        pid_from_state = _google_state_serializer().loads(state, max_age=600)
+    except Exception:
+        return redirect("/anbieter-portal.html?google=state_invalid")
+    pid = _current_provider_id_or_none()
+    if not pid or str(pid) != str(pid_from_state):
+        return redirect("/anbieter-portal.html?google=session_mismatch")
+    if not _google_oauth_configured():
+        return redirect("/anbieter-portal.html?google=not_configured")
+    try:
+        tok = _google_exchange_code(code)
+    except Exception:
+        app.logger.exception("google token exchange failed")
+        return redirect("/anbieter-portal.html?google=exchange_failed")
+
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p or not _has_pro_features(p):
+            return redirect("/anbieter-portal.html?google=pro_required")
+        conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
+        if not conn:
+            conn = GoogleCalendarConnection(provider_id=str(pid))
+            s.add(conn)
+        conn.google_account_email = tok.get("email")
+        conn.calendar_id = tok.get("calendar_id") or "primary"
+        conn.default_category = normalize_category(p.branch)
+        conn.access_token_enc = _encrypt_secret(tok.get("access_token"))
+        if tok.get("refresh_token"):
+            conn.refresh_token_enc = _encrypt_secret(tok.get("refresh_token"))
+        exp = tok.get("expiry")
+        conn.token_expiry = _to_db_utc_naive(_as_utc_aware(exp)) if exp else None
+        conn.scopes = tok.get("scopes")
+        conn.status = "connected"
+        conn.last_error = None
+        conn.updated_at = _to_db_utc_naive(_now())
+        s.commit()
+        conn_id = conn.id
+
+    try:
+        _sync_google_connection(conn_id)
+    except Exception:
+        app.logger.exception("initial google sync failed")
+    return redirect("/anbieter-portal.html?google=connected")
+
+
+@app.get("/api/google/status")
+def api_google_status():
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return _json_error("unauthorized", 401)
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p:
+            return _json_error("not_found", 404)
+        eligible = _has_pro_features(p)
+        conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
+        out = {
+            "configured": _google_oauth_configured(),
+            "eligible": eligible,
+            "connected": bool(conn),
+        }
+        if conn:
+            out.update({
+                "email": conn.google_account_email,
+                "calendar_id": conn.calendar_id,
+                "status": conn.status,
+                "last_sync_at": _from_db_as_iso_utc(conn.last_sync_at) if conn.last_sync_at else None,
+                "last_sync_status": conn.last_sync_status,
+                "last_sync_count": conn.last_sync_count,
+            })
+    return jsonify(out)
+
+
+@app.post("/api/google/disconnect")
+def api_google_disconnect():
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return _json_error("unauthorized", 401)
+    with Session(engine) as s:
+        conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
+        if conn:
+            s.delete(conn)  # Widerruf: Tokens werden geloescht
+            s.commit()
+    return jsonify({"ok": True})
+
+
+@app.post("/api/google/sync-now")
+def api_google_sync_now():
+    pid = _current_provider_id_or_none()
+    if not pid:
+        return _json_error("unauthorized", 401)
+    with Session(engine) as s:
+        p = s.get(Provider, pid)
+        if not p:
+            return _json_error("not_found", 404)
+        if not _has_pro_features(p):
+            return _json_error("pro_plan_required", 403)
+        conn = s.scalar(select(GoogleCalendarConnection).where(GoogleCalendarConnection.provider_id == pid))
+        if not conn:
+            return _json_error("not_connected", 400)
+        conn_id = conn.id
+    result = _sync_google_connection(conn_id)
+    return jsonify({"ok": result.get("error") is None, "result": result})
+
+
 _promo_scheduler = BackgroundScheduler(timezone=BERLIN_TZ)
 _promo_scheduler.add_job(_promo_downgrade_job, "cron", hour=2, minute=0)
 _promo_scheduler.add_job(_promo_reminder_job, "cron", hour=8, minute=0)
+_promo_scheduler.add_job(_google_sync_all_job, "interval", minutes=15)
 _promo_scheduler.start()
 
 if __name__ == "__main__":

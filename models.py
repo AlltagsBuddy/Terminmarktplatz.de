@@ -727,6 +727,61 @@ class Review(Base):
         }
 
 
+# ------------------------------------------------------------
+# GoogleCalendarConnection (native Google-Kalender-Integration)
+# ------------------------------------------------------------
+class GoogleCalendarConnection(Base):
+    """Verbindung eines Providers zu einem Google-Kalender.
+
+    Phase 1 (nur lesen): Freie Termine aus einem ausgewaehlten Google-Kalender
+    werden als Slots uebernommen. OAuth-Tokens werden **verschluesselt** (Fernet)
+    gespeichert, niemals im Klartext. Loeschen der Zeile = Widerruf.
+    """
+
+    __tablename__ = "google_calendar_connection"
+
+    id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
+    provider_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False),
+        ForeignKey("provider.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    # Mit welchem Google-Konto verbunden (nur zur Anzeige)
+    google_account_email: Mapped[str | None] = mapped_column(Text)
+    # Welcher Kalender gelesen wird (Google calendarId, z. B. "primary" oder eine Adresse)
+    calendar_id: Mapped[str | None] = mapped_column(Text)
+    # Standard-Kategorie fuer uebernommene Termine (Google-Events haben keine Kategorie)
+    default_category: Mapped[str | None] = mapped_column(Text)
+
+    # OAuth-Tokens – AUSSCHLIESSLICH verschluesselt (Fernet)
+    access_token_enc: Mapped[str | None] = mapped_column(Text)
+    refresh_token_enc: Mapped[str | None] = mapped_column(Text)
+    token_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    scopes: Mapped[str | None] = mapped_column(Text)
+
+    status: Mapped[str] = mapped_column(Text, default="connected")  # connected | error
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+    last_sync_status: Mapped[str | None] = mapped_column(Text)
+    last_sync_count: Mapped[int | None] = mapped_column(Integer)
+    last_error: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False))
+
+    provider: Mapped["Provider"] = relationship("Provider")
+
+
 def provider_review_aggregates(session: object, provider_ids: list[str]) -> dict[str, tuple[float | None, int]]:
     """Liefert pro Provider-ID ``(review_avg, review_count)`` aus der Tabelle ``review``.
 

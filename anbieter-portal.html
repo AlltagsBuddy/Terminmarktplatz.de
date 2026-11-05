@@ -1133,6 +1133,99 @@
             </div>
           </div>
 
+          <!-- Native Google-Kalender-Anbindung (Profi/Business, Phase 1: nur lesen) -->
+          <div class="calendar-export" id="google-calendar-block" style="display:none; margin-top:14px;">
+            <div style="font-weight:600; margin-bottom:6px;">Google Kalender verbinden</div>
+            <div class="muted small" id="google-cal-desc" style="margin-bottom:8px;">
+              Freie Termine aus einem Google-Kalender erscheinen automatisch als Slots.
+              Es wird nur <strong>gelesen</strong>; die Zugriffsrechte sind auf Kalender beschränkt.
+              Tipp: einen eigenen Kalender „Terminmarktplatz“ anlegen und nur diesen verbinden.
+            </div>
+            <div id="google-cal-status" class="muted small" style="margin-bottom:8px;"></div>
+            <div class="calendar-row">
+              <a class="btn primary" id="google-connect-btn" href="/oauth/google/start" style="display:none;">Mit Google verbinden</a>
+              <button class="btn" id="google-sync-btn" type="button" style="display:none;">Jetzt synchronisieren</button>
+              <button class="btn" id="google-disconnect-btn" type="button" style="display:none;">Verbindung trennen</button>
+            </div>
+            <div id="google-cal-notconfigured" class="muted small" style="display:none; margin-top:6px;">
+              Die Google-Anbindung ist auf diesem System noch nicht freigeschaltet.
+            </div>
+            <div class="muted small" style="margin-top:6px;">
+              Hinweis zum Datenschutz: Beim Verbinden wird eine Einwilligung erteilt; die Daten
+              werden an Google (USA) übermittelt. Die Verbindung kann jederzeit getrennt werden
+              (Zugriffstoken werden dann gelöscht).
+            </div>
+          </div>
+          <script>
+          (function(){
+            function api(path){return fetch(path,{credentials:'include'});}
+            var block=document.getElementById('google-calendar-block');
+            if(!block) return;
+            var statusEl=document.getElementById('google-cal-status');
+            var connectBtn=document.getElementById('google-connect-btn');
+            var syncBtn=document.getElementById('google-sync-btn');
+            var disconnectBtn=document.getElementById('google-disconnect-btn');
+            var notConf=document.getElementById('google-cal-notconfigured');
+
+            function fmt(ts){ if(!ts) return '–'; try{return new Date(ts).toLocaleString('de-DE');}catch(e){return ts;} }
+
+            function render(s){
+              if(!s || s.eligible===false){ block.style.display='none'; return; }
+              block.style.display='';
+              if(s.configured===false){
+                notConf.style.display='';
+                connectBtn.style.display='none'; syncBtn.style.display='none'; disconnectBtn.style.display='none';
+                statusEl.textContent=''; return;
+              }
+              notConf.style.display='none';
+              if(s.connected){
+                connectBtn.style.display='none';
+                syncBtn.style.display=''; disconnectBtn.style.display='';
+                var st = s.status==='error' ? 'Fehler bei der letzten Synchronisation' : 'Verbunden';
+                statusEl.innerHTML = st + (s.email? ' · '+s.email : '')
+                  + '<br>Letzte Synchronisation: '+fmt(s.last_sync_at)
+                  + (typeof s.last_sync_count==='number' ? ' · '+s.last_sync_count+' Termine übernommen' : '');
+              } else {
+                connectBtn.style.display='';
+                syncBtn.style.display='none'; disconnectBtn.style.display='none';
+                statusEl.textContent='Noch nicht verbunden.';
+              }
+            }
+
+            function load(){ api('/api/google/status').then(function(r){return r.ok?r.json():null;}).then(render).catch(function(){}); }
+
+            if(syncBtn) syncBtn.addEventListener('click', function(){
+              syncBtn.disabled=true; syncBtn.textContent='Synchronisiere …';
+              fetch('/api/google/sync-now',{method:'POST',credentials:'include'})
+                .then(function(r){return r.json();})
+                .then(function(){ syncBtn.disabled=false; syncBtn.textContent='Jetzt synchronisieren'; load(); })
+                .catch(function(){ syncBtn.disabled=false; syncBtn.textContent='Jetzt synchronisieren'; });
+            });
+            if(disconnectBtn) disconnectBtn.addEventListener('click', function(){
+              if(!confirm('Google-Kalender-Verbindung wirklich trennen? Die Zugriffstoken werden gelöscht.')) return;
+              fetch('/api/google/disconnect',{method:'POST',credentials:'include'})
+                .then(function(){ load(); }).catch(function(){});
+            });
+
+            // Rueckmeldung aus dem OAuth-Redirect (?google=...)
+            try{
+              var q=new URLSearchParams(location.search).get('google');
+              if(q){
+                var msg={connected:'Google-Kalender verbunden.',denied:'Zugriff abgebrochen.',
+                  not_configured:'Google-Anbindung ist noch nicht freigeschaltet.',
+                  pro_required:'Diese Funktion ist im Profi-Paket enthalten.',
+                  state_invalid:'Sitzung abgelaufen – bitte erneut versuchen.',
+                  session_mismatch:'Bitte erneut einloggen und verbinden.',
+                  exchange_failed:'Verbindung fehlgeschlagen – bitte erneut versuchen.',
+                  error:'Es ist ein Fehler aufgetreten.'}[q];
+                if(msg && statusEl){ statusEl.textContent=msg; }
+              }
+            }catch(e){}
+
+            load();
+          })();
+          </script>
+
           <!-- Hinweis bei erreichtem Slot-Limit -->
           <div id="slot-limit-alert" class="alert">
             <strong>Slot-Limit erreicht.</strong>
