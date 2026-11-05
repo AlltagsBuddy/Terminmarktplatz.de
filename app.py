@@ -10353,7 +10353,8 @@ def _public_book_impl():
     description_read = data.get("description_read", False)
     booking_confirmed = data.get("booking_confirmed", False)
 
-    if not slot_id or not first_name or not last_name or not address or not email or not phone:
+    # Telefon ist optional (Datensparsamkeit) – Pflicht nur bei WhatsApp-Erinnerung (s. u.)
+    if not slot_id or not first_name or not last_name or not address or not email:
         return _json_error("missing_fields")
 
     if not booking_confirmed:

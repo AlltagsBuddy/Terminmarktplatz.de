@@ -38,6 +38,11 @@
 
   <!-- Page-spezifische Optimierung (v. a. mobil) -->
   <style>
+    /* Buchungsformular: fehlerhafte Felder rot markieren */
+    .bk-invalid{ border-color:#dc2626 !important; background:#fef2f2 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15) !important; }
+    label.bk-invalid{ border-radius:8px; }
+    .bk-err{ color:#b91c1c; font-size:13px; font-weight:600; margin-top:4px; }
+    .bk-err-summary{ background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; padding:8px 10px; font-size:14px; font-weight:600; }
     /* 1) Kein horizontales Scrollen */
     html, body {
       max-width: 100%;
@@ -1776,6 +1781,102 @@
       }
     }
 
+    // ---------- Formular-Pruefung mit roter Markierung (Desktop + Mobil) ----------
+    // sfx = '' (Desktop-Dialog) oder '-mobile' (Mobil-Overlay)
+    function bkEl(base, sfx){ return document.getElementById(base + sfx); }
+    function bkClearErrors(form){
+      if (!form) return;
+      form.querySelectorAll('.bk-err').forEach(n => n.remove());
+      form.querySelectorAll('.bk-invalid').forEach(n => { n.classList.remove('bk-invalid'); n.removeAttribute('aria-invalid'); });
+      const sum = form.querySelector('.bk-err-summary'); if (sum) sum.remove();
+    }
+    function bkMark(el, msg){
+      if (!el) return;
+      const target = (el.type === 'checkbox') ? (el.closest('label') || el) : el;
+      target.classList.add('bk-invalid');
+      el.setAttribute('aria-invalid', 'true');
+      const m = document.createElement('div');
+      m.className = 'bk-err';
+      m.setAttribute('role', 'alert');
+      m.textContent = msg;
+      target.insertAdjacentElement('afterend', m);
+    }
+    function bkUpdatePhoneLabel(sfx){
+      const ch = bkEl('book-reminder-channel', sfx);
+      const rem = bkEl('book-reminder', sfx);
+      const lbl = bkEl('book-phone-req-label', sfx);
+      if (!lbl) return;
+      const need = !!(ch && ch.value === 'whatsapp' && (!rem || rem.checked));
+      lbl.textContent = need ? '* (für WhatsApp-Erinnerung)' : '(optional)';
+    }
+    function bkValidate(sfx){
+      const form = bkEl('book-form', sfx);
+      bkClearErrors(form);
+      const bad = [];
+      const val = id => (bkEl(id, sfx)?.value || '').trim();
+      const check = (id, ok, msg) => { if (!ok) { bkMark(bkEl(id, sfx), msg); bad.push(bkEl(id, sfx)); } };
+
+      check('book-first-name', !!val('book-first-name'), 'Bitte Vornamen eingeben.');
+      check('book-last-name', !!val('book-last-name'), 'Bitte Nachnamen eingeben.');
+      const addr = val('book-address');
+      if (!addr) check('book-address', false, 'Bitte Adresse eingeben.');
+      else check('book-address', /\b\d{4,5}\b/.test(addr) && /[A-Za-zÄÖÜäöüß]{2,}/.test(addr),
+                 'Bitte Straße, Hausnummer, PLZ und Ort angeben – z. B. Musterstr. 1, 10115 Berlin.');
+      const mail = val('book-email');
+      if (!mail) check('book-email', false, 'Bitte E-Mail-Adresse eingeben.');
+      else check('book-email', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail), 'Diese E-Mail-Adresse sieht nicht gültig aus.');
+      const phone = val('book-phone');
+      const wantsWa = bkEl('book-reminder-channel', sfx)?.value === 'whatsapp' && bkEl('book-reminder', sfx)?.checked !== false;
+      if (wantsWa && !phone) check('book-phone', false, 'Für die WhatsApp-Erinnerung bitte Handynummer angeben.');
+      else if (phone) check('book-phone', phone.replace(/\D/g, '').length >= 6, 'Bitte eine gültige Handynummer angeben.');
+      const desc = bkEl('book-description-read', sfx);
+      if (desc && desc.required) check('book-description-read', desc.checked, 'Bitte bestätigen, dass du die Beschreibung gelesen hast.');
+      const conf = bkEl('book-confirmed', sfx);
+      if (conf) check('book-confirmed', conf.checked, 'Bitte die verbindliche Buchung bestätigen.');
+
+      if (bad.length) {
+        const sum = document.createElement('div');
+        sum.className = 'bk-err-summary';
+        sum.setAttribute('role', 'alert');
+        sum.textContent = bad.length === 1 ? 'Bitte das rot markierte Feld prüfen.' : `Bitte die ${bad.length} rot markierten Felder prüfen.`;
+        form.insertBefore(sum, form.firstChild);
+        try { bad[0].focus({preventScroll:true}); bad[0].scrollIntoView({behavior:'smooth', block:'center'}); } catch(_){}
+        return false;
+      }
+      return true;
+    }
+    // Fehler vom Server einem Feld zuordnen (rot markieren statt nur Popup)
+    function bkMarkServerError(sfx, code){
+      const map = {
+        invalid_email: ['book-email', 'Diese E-Mail-Adresse ist ungültig.'],
+        missing_phone_for_whatsapp: ['book-phone', 'Für die WhatsApp-Erinnerung bitte Handynummer angeben.'],
+        booking_not_confirmed: ['book-confirmed', 'Bitte die verbindliche Buchung bestätigen.'],
+        description_not_read: ['book-description-read', 'Bitte bestätigen, dass du die Beschreibung gelesen hast.'],
+      };
+      const hit = map[code];
+      if (!hit) return false;
+      bkMark(bkEl(hit[0], sfx), hit[1]);
+      return true;
+    }
+    ['', '-mobile'].forEach(sfx => {
+      const form = bkEl('book-form', sfx);
+      if (!form) return;
+      form.setAttribute('novalidate', '');  // eigene, sichtbare Pruefung statt Browser-Blasen
+      const clearOne = (e) => {
+        const el = e.target;
+        const t = (el.type === 'checkbox') ? (el.closest('label') || el) : el;
+        if (t.classList.contains('bk-invalid')) {
+          t.classList.remove('bk-invalid'); el.removeAttribute('aria-invalid');
+          const nx = t.nextElementSibling; if (nx && nx.classList.contains('bk-err')) nx.remove();
+        }
+      };
+      form.addEventListener('input', clearOne);
+      form.addEventListener('change', clearOne);
+      ['book-reminder-channel', 'book-reminder'].forEach(id => {
+        const el = bkEl(id, sfx); if (el) el.addEventListener('change', () => bkUpdatePhoneLabel(sfx));
+      });
+    });
+
     // openBook Funktion - vor Event-Listenern definieren
     function openBook(slotId){
       if (!slotId) {
@@ -1812,6 +1913,7 @@
         document.body.style.width = '100%';
         window.scrollTo(0, 0);
         applyBookingSlotType(slotInfo, true);
+        bkClearErrors(bkEl('book-form','-mobile')); bkUpdatePhoneLabel('-mobile');
         setTimeout(() => {
           const nameInput = document.getElementById('book-name-mobile');
           if (nameInput) nameInput.focus();
@@ -1841,6 +1943,7 @@
         const channel = document.getElementById('book-reminder-channel');
         if (channel) channel.value = 'email';
         applyBookingSlotType(slotInfo, false);
+        bkClearErrors(bkEl('book-form','')); bkUpdatePhoneLabel('');
         try {
           bookDialog.showModal();
           setTimeout(() => {
@@ -1911,7 +2014,7 @@
           const bookingConfirmed = document.getElementById('book-confirmed-mobile')?.checked || false;
           const reminderOptIn = document.getElementById('book-reminder-mobile')?.checked !== false;
           const reminderChannel = document.getElementById('book-reminder-channel-mobile')?.value || 'email';
-          if (!slot_id || !first_name || !last_name || !address || !email || !phone) return;
+          if (!slot_id || !bkValidate('-mobile')) return;
 
           const btn = bookFormMobile.querySelector('button[type="submit"]');
           if (btn) {
@@ -1940,7 +2043,7 @@
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
-              alert(bookingErrorMessage(data.error));
+              if (!bkMarkServerError('-mobile', data.error)) alert(bookingErrorMessage(data.error));
             } else if (data.requires_deposit) {
               alert(data.message || 'E-Mail mit Zahlungslink gesendet. Bitte zahle die Anzahlung innerhalb von 30 Minuten.');
               closeBook();
@@ -2000,7 +2103,7 @@
           const bookingConfirmed = document.getElementById('book-confirmed')?.checked || false;
           const reminderOptIn = document.getElementById('book-reminder')?.checked !== false;
           const reminderChannel = document.getElementById('book-reminder-channel')?.value || 'email';
-          if (!slot_id || !first_name || !last_name || !address || !email || !phone) return;
+          if (!slot_id || !bkValidate('')) return;
 
           const btn = document.getElementById('book-submit');
           if (btn) {
@@ -2029,7 +2132,7 @@
             });
             const data = await r.json().catch(()=>({}));
             if (!r.ok || data.error){
-              alert(bookingErrorMessage(data.error));
+              if (!bkMarkServerError('', data.error)) alert(bookingErrorMessage(data.error));
             } else if (data.requires_deposit) {
               alert(data.message || 'E-Mail mit Zahlungslink gesendet. Bitte zahle die Anzahlung innerhalb von 30 Minuten.');
               closeBook();

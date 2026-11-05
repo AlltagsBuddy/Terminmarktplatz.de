@@ -115,3 +115,37 @@ def test_public_book_success_creates_hold_booking(test_client):
         assert booking.reminder_channel == "whatsapp"
         assert booking.reminder_opt_in is True
         assert str(booking.provider_fee_eur) == "3.50"
+
+def test_public_book_without_phone_succeeds(test_client):
+    """Regression: Telefon ist optional (Formular zeigt "(optional)")."""
+    slot_id, _ = _seed_slot()
+    r = test_client.post(
+        "/public/book",
+        json={
+            "slot_id": slot_id,
+            "first_name": "Erika", "last_name": "Muster",
+            "address": "Musterstraße 1, 12345 Teststadt",
+            "email": "erika@example.com",
+            "booking_confirmed": True,
+            "reminder_channel": "email",
+        },
+    )
+    assert r.status_code == 200, r.get_json()
+    assert (r.get_json() or {}).get("ok") is True
+
+
+def test_public_book_whatsapp_without_phone_rejected(test_client):
+    slot_id, _ = _seed_slot()
+    r = test_client.post(
+        "/public/book",
+        json={
+            "slot_id": slot_id,
+            "first_name": "Erika", "last_name": "Muster",
+            "address": "Musterstraße 1, 12345 Teststadt",
+            "email": "erika2@example.com",
+            "booking_confirmed": True,
+            "reminder_channel": "whatsapp",
+        },
+    )
+    assert r.status_code == 400
+    assert (r.get_json() or {}).get("error") == "missing_phone_for_whatsapp"
