@@ -5,3 +5,31 @@
 # um eine Massen-Renormalisierung zu vermeiden.
 app.py text eol=crlf
 anbieter-portal.html text eol=crlf
+
+# Diese Dateien liegen im Repo mit LF vor. Mit 'text' normalisiert Git sie,
+# damit ein Editor (z. B. unter Windows), der auf CRLF umstellt, keine
+# Scheinaenderungen mehr erzeugt. (06.11.2026)
+agb.html text
+anbieter.html text
+barrierefreiheit.html text
+blog.html text
+business-dashboard.html text
+consumenta.html text
+cookie-einstellungen.html text
+datenschutz.html text
+docs/RECHTSTEXTE_PRUEFUNG_2026-11-05.md text
+hilfe.html text
+impressum.html text
+index.html text
+kategorien.html text
+kontakt.html text
+preise.html text
+static/analytics-consent.js text
+static/style.css text
+suchende.html text
+technik.html text
+templates/blog_index.html text
+tests/api/test_google_calendar_e2e.py text
+tests/api/test_www_redirect.py text
+tests/frontend/test_frontend_forms.py text
+widerruf.html text
