@@ -77,8 +77,10 @@ VALID = {
 
 # ── Pflichtfeld-Tests ────────────────────────────────────────────────────────
 
+# Handynummer ist seit 28.10.2026 optional (Pflicht nur bei WhatsApp-Erinnerung,
+# siehe test_public_book_success.py) – daher hier nicht mehr in der Liste.
 @pytest.mark.parametrize("missing_field", [
-    "first_name", "last_name", "address", "phone", "email",
+    "first_name", "last_name", "address", "email",
 ])
 def test_missing_required_field_returns_400(test_client, missing_field):
     """Jedes fehlende Pflichtfeld → 400 missing_fields."""

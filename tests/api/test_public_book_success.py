@@ -85,7 +85,8 @@ def test_public_book_whatsapp_with_phone_succeeds(test_client):
     assert data.get("ok") is True
 
 
-def test_public_book_success_creates_hold_booking(test_client):
+def test_public_book_success_creates_hold_booking(test_client, monkeypatch):
+    monkeypatch.setattr(app_module, "WHATSAPP_REMINDERS_ENABLED", True)  # WhatsApp-Pfad pruefen
     slot_id, provider_id = _seed_slot()
     r = test_client.post(
         "/public/book",
@@ -115,3 +116,61 @@ def test_public_book_success_creates_hold_booking(test_client):
         assert booking.reminder_channel == "whatsapp"
         assert booking.reminder_opt_in is True
         assert str(booking.provider_fee_eur) == "3.50"
+
+def test_public_book_without_phone_succeeds(test_client):
+    """Regression: Telefon ist optional (Formular zeigt "(optional)")."""
+    slot_id, _ = _seed_slot()
+    r = test_client.post(
+        "/public/book",
+        json={
+            "slot_id": slot_id,
+            "first_name": "Erika", "last_name": "Muster",
+            "address": "Musterstraße 1, 12345 Teststadt",
+            "email": "erika@example.com",
+            "booking_confirmed": True,
+            "reminder_channel": "email",
+        },
+    )
+    assert r.status_code == 200, r.get_json()
+    assert (r.get_json() or {}).get("ok") is True
+
+
+def test_public_book_whatsapp_without_phone_rejected(test_client, monkeypatch):
+    """Nur wenn WhatsApp-Versand aktiviert ist, wird eine Nummer verlangt."""
+    monkeypatch.setattr(app_module, "WHATSAPP_REMINDERS_ENABLED", True)
+    slot_id, _ = _seed_slot()
+    r = test_client.post(
+        "/public/book",
+        json={
+            "slot_id": slot_id,
+            "first_name": "Erika", "last_name": "Muster",
+            "address": "Musterstraße 1, 12345 Teststadt",
+            "email": "erika2@example.com",
+            "booking_confirmed": True,
+            "reminder_channel": "whatsapp",
+        },
+    )
+    assert r.status_code == 400
+    assert (r.get_json() or {}).get("error") == "missing_phone_for_whatsapp"
+
+
+def test_public_book_whatsapp_disabled_falls_back_to_email(test_client, monkeypatch):
+    """WhatsApp ist (noch) nicht angebunden: Wunsch WhatsApp -> Erinnerung per E-Mail, keine Nummer noetig."""
+    monkeypatch.setattr(app_module, "WHATSAPP_REMINDERS_ENABLED", False)
+    slot_id, _ = _seed_slot()
+    r = test_client.post(
+        "/public/book",
+        json={
+            "slot_id": slot_id,
+            "first_name": "Erika", "last_name": "Muster",
+            "address": "Musterstraße 1, 12345 Teststadt",
+            "email": "erika3@example.com",
+            "booking_confirmed": True,
+            "reminder_channel": "whatsapp",
+        },
+    )
+    assert r.status_code == 200, r.get_json()
+    from models import Booking
+    with Session(app_module.engine) as s:
+        b = s.query(Booking).filter(Booking.customer_email == "erika3@example.com").one()
+        assert b.reminder_channel == "email"

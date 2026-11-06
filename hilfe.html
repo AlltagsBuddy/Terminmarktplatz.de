@@ -167,12 +167,12 @@
     }
 
     .faq-item.active .faq-answer {
-      max-height: 1000px;
+      max-height: 3000px; /* lange Antworten (z. B. Google-Kalender) nicht abschneiden */
     }
 
     .faq-answer-content {
       padding: 0 24px 20px 24px;
-      color: var(--ink-dim);
+      color: #334155; /* gut lesbar auf hellen Karten (vorher var(--ink-dim), zu blass) */
       line-height: 1.7;
     }
 
@@ -538,6 +538,108 @@
           </div>
         </div>
 
+        <div class="faq-item" id="google-kalender-verbinden">
+          <div class="faq-question">Wie verbinde ich meinen Google-Kalender?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Im <strong>Profi-</strong> und <strong>Business-Paket</strong> kannst du deinen Google-Kalender direkt verbinden:</p>
+              <div class="help-steps">
+                <div class="help-step">
+                  <h4>Eigenen Kalender anlegen (empfohlen)</h4>
+                  <p>Lege in Google einen neuen Kalender an, z.&nbsp;B. „Terminmarktplatz“. So bleiben private Termine getrennt.</p>
+                </div>
+                <div class="help-step">
+                  <h4>Zu den Slots gehen</h4>
+                  <p>Öffne im Portal über das Menü <a href="anbieter-portal.html">„Slots“</a> und scrolle zu <strong>„Google Kalender verbinden“</strong> (unter dem Kalender-Export).</p>
+                </div>
+                <div class="help-step">
+                  <h4>Verbinden</h4>
+                  <p>Klicke auf <strong>„Mit Google verbinden“</strong>, melde dich bei Google an und erlaube den Zugriff auf deine Termine.</p>
+                </div>
+                <div class="help-step">
+                  <h4>Kalender auswählen</h4>
+                  <p>Wähle im Feld <strong>„Kalender“</strong> deinen Kalender „Terminmarktplatz“ aus. Danach einmal <strong>„Jetzt synchronisieren“</strong> klicken.</p>
+                </div>
+              </div>
+              <div class="help-warning">
+                <strong>⚠️ Wichtig:</strong> Alle zukünftigen Termine (mit Uhrzeit) im gewählten Kalender werden <b>automatisch als freie Slots veröffentlicht</b> – mit ihrem Titel. Verbinde daher nie deinen privaten Hauptkalender.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item" id="google-kalender-sync">
+          <div class="faq-question">Was passiert zwischen Terminmarktplatz und meinem Google-Kalender?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Die Verbindung arbeitet <strong>in beide Richtungen</strong>:</p>
+              <ul>
+                <li><strong>Terminmarktplatz → Google:</strong> Jeder veröffentlichte Slot erscheint grün als <strong>„FREI: …“</strong>. Wird er gebucht, steht dort rot <strong>„GEBUCHT: … – B-XXXXXXXX“</strong> (Buchungsnummer). Nach einer Stornierung wird er wieder „FREI“. Ziehst du einen Slot zurück, archivierst oder löschst ihn, verschwindet der Eintrag.</li>
+                <li><strong>Google → Terminmarktplatz:</strong> Termine, die du in deinem Terminmarktplatz-Kalender anlegst, werden zu freien Slots.</li>
+              </ul>
+              <p>Abgeglichen wird automatisch etwa <strong>alle 15 Minuten</strong>, Buchungen und Stornos sofort. Mit <strong>„Jetzt synchronisieren“</strong> geht es auch manuell.</p>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Termine, die aus Google kommen, löschst du am besten <b>in Google</b>. Löschst du sie nur im Portal, holt der nächste Abgleich sie wieder zurück.
+              </div>
+              <p>Ganztägige Termine, Termine in der Vergangenheit und Termine, die sich mit einer bestehenden Buchung überschneiden, werden nicht übernommen.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item" id="wer-hat-gebucht">
+          <div class="faq-question">Wie sehe ich, wer einen Termin gebucht hat?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Dafür gibt es drei Wege – alle mit derselben <strong>Buchungsnummer</strong> (z.&nbsp;B. B-3F2A9C1D):</p>
+              <ol>
+                <li><strong>E-Mail:</strong> Bei jeder bestätigten Buchung bekommst du eine E-Mail mit allen Kundendaten, der Buchungsnummer im Betreff und einem Link ins Portal.</li>
+                <li><strong>Portal:</strong> Unter <a href="anbieter-portal.html">„Slots“</a> klappst du beim gebuchten Termin „👤 … Buchung“ auf und siehst Name, Kontakt und Buchungsnummer.</li>
+                <li><strong>Google-Kalender:</strong> Im Termin steht der Link <strong>„Details ansehen“</strong>. Ein Klick öffnet genau diese Buchung im Portal (nach dem Login).</li>
+              </ol>
+              <div class="help-success">
+                <strong>✅ Datenschutz:</strong> Im Google-Kalender stehen standardmäßig <b>keine</b> Namen, E-Mail-Adressen oder Telefonnummern deiner Kund:innen – nur die Buchungsnummer.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item" id="kundennamen-google">
+          <div class="faq-question">Kann ich die Namen meiner Kund:innen im Google-Kalender anzeigen?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Ja, freiwillig: Setze unter „Google Kalender verbinden“ den Haken bei <strong>„Namen der Kundinnen und Kunden … anzeigen“</strong>. Dann steht bei gebuchten Terminen Vor- und Nachname statt der Buchungsnummer (bei Kursen in der Beschreibung). E-Mail und Telefon werden nie übertragen.</p>
+              <div class="help-warning">
+                <strong>⚠️ Bitte beachten:</strong> Der Name wird dabei an Google übermittelt (Server auch in den USA möglich). Du bist für diese Nutzung datenschutzrechtlich mitverantwortlich. Ohne Haken bleibt es bei der Buchungsnummer.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item" id="google-trennen">
+          <div class="faq-question">Wie trenne ich die Google-Verbindung oder wechsle den Kalender?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <ul>
+                <li><strong>Kalender wechseln:</strong> Im Feld „Kalender“ einen anderen wählen. Unsere Einträge im alten Kalender werden dabei entfernt und im neuen angelegt.</li>
+                <li><strong>Trennen:</strong> Klicke auf <strong>„Verbindung trennen“</strong>. Freie Einträge von Terminmarktplatz werden aus deinem Kalender entfernt, gebuchte bleiben als Nachweis stehen. Die Zugriffsrechte werden bei Google widerrufen.</li>
+              </ul>
+              <p>Zusätzlich kannst du den Zugriff jederzeit in deinem Google-Konto unter <em>Sicherheit → Drittanbieter-Apps</em> entziehen.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item" id="kalender-abo">
+          <div class="faq-question">Ich habe kein Google – geht das auch mit Outlook oder Apple?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Ja, als <strong>Kalender-Abo</strong> (nur Anzeige, in eine Richtung): Kopiere unter „Slots“ beim Feld <strong>„Kalender-Export (nur lesen)“</strong> den Link und füge ihn in Outlook, Apple Kalender oder einer anderen Kalender-App als Abo hinzu. Deine Slots erscheinen dann dort und werden regelmäßig aktualisiert.</p>
+              <div class="help-tip">
+                <strong>💡 Tipp:</strong> Gib diesen Link nicht weiter – er ist persönlich und zeigt deine Termine an.
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -553,9 +655,10 @@
               <p><strong>Nein!</strong> Du kannst Termine auch ohne Registrierung suchen und buchen.</p>
               <p>Für die Buchung benötigst du nur:</p>
               <ul>
+                <li>Deinen Vor- und Nachnamen</li>
+                <li>Deine Adresse (Straße, Hausnummer, PLZ, Ort)</li>
                 <li>Deine E-Mail-Adresse</li>
-                <li>Deinen Namen</li>
-                <li>Optional: Telefonnummer für Rückfragen</li>
+                <li>Freiwillig: Handynummer und eine Notiz an den Anbieter</li>
               </ul>
               <div class="help-success">
                 <strong>✅ Vorteil:</strong> Keine langwierige Registrierung nötig – einfach suchen und buchen!
@@ -595,13 +698,29 @@
               <ol>
                 <li>Finde einen passenden Slot in der Suche</li>
                 <li>Klicke auf "Jetzt buchen"</li>
-                <li>Fülle das Buchungsformular aus (Name, E-Mail, optional Telefon)</li>
-                <li>Bestätige die Buchung</li>
-                <li>Du erhältst sofort eine Bestätigungs-E-Mail mit allen Details</li>
+                <li>Fülle das Buchungsformular aus (Name, Adresse, E-Mail – Handynummer ist freiwillig)</li>
+                <li>Setze den Haken bei der verbindlichen Buchung und klicke auf <strong>„Verbindlich buchen“</strong></li>
+                <li>Du bekommst eine E-Mail mit einem <strong>Bestätigungslink</strong> – erst mit dem Klick darauf ist dein Termin fest gebucht</li>
               </ol>
               <div class="help-tip">
-                <strong>💡 Tipp:</strong> Prüfe deinen Spam-Ordner, falls du keine E-Mail erhältst. Die Bestätigung enthält alle wichtigen Informationen zum Termin.
+                <strong>💡 Tipp:</strong> Prüfe deinen Spam-Ordner, falls du keine E-Mail erhältst – und ob deine E-Mail-Adresse richtig geschrieben ist. Bei Terminen mit Anzahlung wirst du stattdessen zur Bezahlung weitergeleitet; danach ist der Termin sofort bestätigt.
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item" id="formular-fehler">
+          <div class="faq-question">Das Buchungsformular lässt sich nicht absenden – was tun?</div>
+          <div class="faq-answer">
+            <div class="faq-answer-content">
+              <p>Fehlt etwas oder stimmt eine Angabe nicht, wird das Feld <strong>rot umrandet</strong> und darunter steht, was zu tun ist. Oben im Formular siehst du, wie viele Felder betroffen sind. Häufige Gründe:</p>
+              <ul>
+                <li>Die <strong>Adresse</strong> enthält keine PLZ und keinen Ort (Beispiel: <em>Musterstr. 1, 10115 Berlin</em>)</li>
+                <li>Die <strong>E-Mail-Adresse</strong> ist unvollständig (z.&nbsp;B. ohne „.de“ oder „.com“)</li>
+                <li>Der Haken bei <strong>„Ich buche diesen Termin verbindlich …“</strong> fehlt</li>
+                <li>Hat der Termin eine Beschreibung, muss bestätigt werden, dass du sie gelesen hast</li>
+              </ul>
+              <p>Sobald du ein rotes Feld korrigierst, verschwindet die Markierung.</p>
             </div>
           </div>
         </div>
@@ -632,7 +751,7 @@
               <ol>
                 <li>Gehe zu <a href="benachrichtigung-einrichten.html">Benachrichtigungen einrichten</a></li>
                 <li>Gib deine Suchkriterien ein (Ort, Kategorie, optional Radius)</li>
-                <li>Wähle, ob du E-Mail- oder SMS-Benachrichtigungen erhalten möchtest</li>
+                <li>Gib deine E-Mail-Adresse an – die Benachrichtigungen kommen per E-Mail</li>
                 <li>Bestätige die Einrichtung</li>
               </ol>
               <p>Du erhältst dann automatisch eine Nachricht, sobald ein passender Termin verfügbar wird.</p>
@@ -649,7 +768,7 @@
             <div class="faq-answer-content">
               <p>Die Nutzung der Plattform ist für Suchende kostenlos. Die Preise für die Termine selbst legt der Anbieter fest.</p>
               <p>In der Slot-Beschreibung siehst du, ob und wie viel der Termin kostet. Manche Anbieter bieten auch Rabatte für Last-Minute-Termine an.</p>
-              <p>Die Zahlung erfolgt direkt beim Anbieter – wir vermitteln nur den Termin.</p>
+              <p>Die Zahlung erfolgt direkt beim Anbieter – wir vermitteln nur den Termin. Verlangt ein Anbieter eine <strong>Anzahlung</strong>, bezahlst du diese beim Buchen sicher über Stripe; sie geht direkt an den Anbieter.</p>
             </div>
           </div>
         </div>

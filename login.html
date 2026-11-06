@@ -959,7 +959,9 @@
           // Erfolg → Profil nach Registrierung, sonst next/Portal
           const params = new URLSearchParams(location.search);
           const fromRegister = params.get('register') === '1' || params.get('verified') === '1';
-          const next = params.get('next');
+          // Nur relative Pfade derselben Seite zulassen (Schutz vor Weiterleitung auf fremde Seiten)
+          const rawNext = params.get('next');
+          const next = (rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\')) ? rawNext : null;
           if (fromRegister) {
             window.location.href = 'anbieter-profil.html';
           } else {
