@@ -1,5 +1,11 @@
 # Prüfung AGB & Datenschutzerklärung – Stand 05.11.2026
 
+> **Update 06.11.2026:** Alle Punkte D1–D11 und A1–A5 sind in `datenschutz.html` und
+> `agb.html` eingearbeitet (Stand-Datum 6. November 2026). WhatsApp-Erinnerungen sind
+> ausgeblendet (`WHATSAPP_REMINDERS_ENABLED=false`, Rückfall auf E-Mail). Das
+> Buchungsformular verweist jetzt auf AGB und Datenschutz. Offen bleibt: anwaltliche
+> Prüfung und D9 (konkreten E-Mail-Dienstleister eintragen).
+
 > **Keine Rechtsberatung.** Technischer Abgleich der Rechtstexte mit dem, was der
 > Code tatsächlich tut. Alle Textvorschläge sind **Entwürfe** und vor dem Live-Gang
 > anwaltlich zu prüfen. Geprüft: `datenschutz.html`, `agb.html` (Stand „März 2026")

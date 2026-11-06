@@ -382,7 +382,7 @@
           Diese AGB regeln die Nutzung von Terminmarktplatz durch Anbieter:innen („Anbieter“) und Nutzer:innen, die Termine suchen
           und buchen („Suchende“). Terminmarktplatz ist eine Vermittlungsplattform.
         </p>
-        <p class="note">Stand: März 2026</p>
+        <p class="note">Stand: 6. November 2026</p>
       </div>
     </section>
 
@@ -452,10 +452,29 @@
             <li>Anbieter dürfen keine rechtswidrigen, irreführenden oder gegen guten Geschmack verstoßenden Inhalte veröffentlichen.</li>
           </ul>
 
+          <h3>4.1 Kalender-Anbindungen und Schnittstellen</h3>
+          <ol>
+            <li>Anbieter können externe Kalender (z. B. Google Kalender oder ein Kalender-Abo per iCal-Link) oder eigene Systeme
+              (z. B. per Schnittstelle) anbinden. Die Anbindung ist freiwillig und je nach Paket verfügbar (siehe
+              <a href="preise.html">Preise</a>).</li>
+            <li>Bei einem verbundenen Google-Kalender werden zukünftige Termine mit Uhrzeit aus dem gewählten Kalender
+              <strong>automatisch als freie Slots veröffentlicht</strong>, einschließlich ihres Titels und Orts. Der Anbieter ist
+              dafür verantwortlich, nur einen Kalender zu verbinden, der ausschließlich buchbare Termine enthält (empfohlen: ein
+              eigener Kalender „Terminmarktplatz“), und dort keine privaten oder vertraulichen Einträge zu führen.</li>
+            <li>Veröffentlichte Slots und deren Buchungsstatus werden in den verbundenen Kalender zurückgeschrieben. Der Abgleich
+              erfolgt in Intervallen (derzeit etwa alle 15 Minuten, Buchungen und Stornierungen sofort) und kann durch Störungen
+              bei Drittanbietern verzögert werden oder ausfallen. Maßgeblich für den Buchungsstand sind das Anbieter-Portal und
+              die Buchungs-E-Mails.</li>
+            <li>Aktiviert der Anbieter die Anzeige von Kundennamen im externen Kalender, ist er für diese Verarbeitung
+              datenschutzrechtlich mitverantwortlich (siehe Ziffer 10). Für den genutzten Kalenderdienst gelten zusätzlich dessen
+              Nutzungsbedingungen.</li>
+            <li>Die Verbindung kann jederzeit im Anbieter-Portal getrennt werden.</li>
+          </ol>
+
           <h2>5. Buchungsprozess & Vertragsschluss</h2>
           <ul>
-            <li><strong>Direktbuchung über die Plattform:</strong> Suchende geben die abgefragten Daten (z. B. Name, E-Mail) an und bestätigen
-                die Buchung, ggf. per E-Mail-Link (Double-Opt-In). Ein Vertrag kommt zwischen Anbieter und Suchendem zustande, sobald
+            <li><strong>Direktbuchung über die Plattform:</strong> Suchende geben die abgefragten Daten (Name, Adresse, E-Mail; Handynummer
+                freiwillig) an und bestätigen die Buchung per E-Mail-Link (Double-Opt-In). Jede Buchung erhält eine Buchungsnummer. Ein Vertrag kommt zwischen Anbieter und Suchendem zustande, sobald
                 der Anbieter den Slot annimmt bzw. die Buchung nach dem im Angebot beschriebenen Ablauf bestätigt.</li>
             <li><strong>Buchung mit Anzahlung:</strong> Bietet ein Anbieter eine Anzahlung an, erfolgt die Zahlung beim Buchen über die Plattform
                 (Stripe). Die Anzahlung wird direkt an den Anbieter ausbezahlt. Die Buchung ist nach erfolgreicher Zahlung sofort bestätigt;
@@ -463,7 +482,8 @@
             <li><strong>Externer Link:</strong> Erfolgt die Buchung über einen externen Link, kommt der Vertrag ausschließlich außerhalb der
                 Plattform nach den Bedingungen des Anbieters zustande. Es gelten dann dessen AGB/Widerrufs- und Datenschutzbestimmungen.</li>
             <li>Wir versenden systemische E-Mails (z. B. Anfragen, Buchungsbestätigungen, Erinnerungen) im Auftrag bzw. Interesse
-                der Vertragsparteien.</li>
+                der Vertragsparteien. Terminerinnerungen erfolgen auf Wunsch etwa 24 Stunden vor dem Termin per E-Mail; ein
+                Anspruch auf den Zugang einer Erinnerung besteht nicht.</li>
           </ul>
 
           <h3>5.1 Anzahlungen – Zahlung über die Plattform</h3>
@@ -499,7 +519,28 @@
             Bei Zahlungsverzug sind wir nach angemessener Fristsetzung zur Sperrung des Anbieter-Kontos berechtigt.
           </p>
 
-          <h3>6.1 Aufbewahrungspflicht für Rechnungen</h3>
+          <h3>6.1 Aktionscodes und befristete Testzugänge</h3>
+          <ol>
+            <li>Terminmarktplatz kann Aktionscodes ausgeben, die einem Anbieterkonto einen zeitlich befristeten, kostenlosen Zugang zu
+              einem höheren Leistungspaket („Testzugang“) gewähren. Art des Pakets, Einlösefrist und Dauer des Testzugangs ergeben
+              sich aus dem jeweiligen Aktionsangebot.</li>
+            <li>Jeder Aktionscode kann <strong>einmal pro Anbieterkonto</strong> eingelöst werden. Eine Einlösung ist ausgeschlossen,
+              solange für das Konto ein kostenpflichtiges Paket aktiv ist. Aktionscodes sind nicht übertragbar, nicht mit anderen
+              Aktionen kombinierbar und nicht in bar auszahlbar.</li>
+            <li>Der Testzugang <strong>endet automatisch</strong> mit Ablauf der angegebenen Frist. Es entsteht <strong>kein
+              kostenpflichtiges Abonnement</strong>; eine Kündigung ist nicht erforderlich. Mit Ablauf wechselt das Konto
+              automatisch in das kostenlose Basis-Paket. Wir erinnern rechtzeitig vor Ablauf per E-Mail.</li>
+            <li>Die während des Testzugangs erstellten Daten (insbesondere Profil- und Termindaten) bleiben erhalten. Nach dem Wechsel
+              in das Basis-Paket gelten dessen Beschränkungen (u. a. die Anzahl veröffentlichter Termine pro Kalendermonat).
+              Überzählige zukünftige Termine werden nicht gelöscht, sondern in den Entwurfsstatus zurückgesetzt.</li>
+            <li>Unabhängig vom kostenlosen Testzugang bleibt die nutzungsabhängige Erfolgsprovision gemäß
+              <a href="preise.html">Preise</a> bestehen (derzeit 2,00 € je über Terminmarktplatz gebuchtem Slot).</li>
+            <li>Terminmarktplatz kann Aktionen für die Zukunft beenden oder ändern; bereits eingelöste Testzugänge bleiben bis zu ihrem
+              Ablauf unberührt. Ein Anspruch auf Ausgabe oder Einlösung eines Aktionscodes besteht nicht. Bei missbräuchlicher
+              Verwendung (z. B. Mehrfachkonten zur Umgehung der Einmal-Einlösung) kann der Testzugang entzogen werden.</li>
+          </ol>
+
+          <h3>6.2 Aufbewahrungspflicht für Rechnungen</h3>
           <p>
             <strong>Rechnungen werden von uns gemäß den gesetzlichen Aufbewahrungspflichten (insbesondere GoBD / Abgabenordnung §147) aufbewahrt.</strong>
             Die Aufbewahrungsfrist beträgt grundsätzlich 10 Jahre für Rechnungen im Sinne des Umsatzsteuergesetzes, soweit nicht kürzere
@@ -604,16 +645,20 @@
 
           <h2>15. Änderungen dieser AGB</h2>
           <p>
-            Wir können diese AGB mit Wirkung für die Zukunft ändern. Über Änderungen werden Nutzer per E-Mail
-            mindestens 30 Tage vor Inkrafttreten der geänderten AGB informiert.
+            Wir können diese AGB mit Wirkung für die Zukunft ändern, soweit dies aus triftigem Grund (z. B. Gesetzesänderungen,
+            Rechtsprechung, neue Funktionen oder Sicherheitsanforderungen) erforderlich ist und die Änderung für die Nutzer
+            zumutbar ist.
           </p>
           <p>
-            Widerspricht der Nutzer den Änderungen nicht innerhalb von 30 Tagen nach Zugang der Mitteilung,
-            gelten die geänderten AGB als angenommen. Auf diese Wirkung des Schweigens wird der Nutzer
-            in der Änderungsmitteilung ausdrücklich hingewiesen.
+            <strong>Anbieter</strong> (Unternehmer im Sinne des § 14 BGB) informieren wir über Änderungen mindestens 30 Tage vor
+            Inkrafttreten per E-Mail. Widerspricht der Anbieter nicht innerhalb dieser Frist, gelten die geänderten AGB als
+            angenommen. Auf diese Wirkung des Schweigens, die Frist und das Widerspruchsrecht weisen wir in der Mitteilung
+            ausdrücklich hin. Widerspricht der Anbieter fristgemäß, sind beide Parteien berechtigt, das Vertragsverhältnis zum
+            Inkrafttreten der Änderung zu kündigen.
           </p>
           <p>
-            Widerspricht der Nutzer fristgemäß, sind beide Parteien berechtigt, das Vertragsverhältnis zu kündigen.
+            Für <strong>Suchende</strong> gilt jeweils die Fassung der AGB, die zum Zeitpunkt der Buchung gilt und auf die im
+            Buchungsformular hingewiesen wird. Bereits bestehende Buchungen bleiben von späteren Änderungen unberührt.
           </p>
 
           <h2>16. Schlussbestimmungen</h2>

@@ -252,6 +252,9 @@ MAIL_PROVIDER = os.getenv("MAIL_PROVIDER", "resend")  # resend | postmark | smtp
 MAIL_FROM = os.getenv("MAIL_FROM", "Terminmarktplatz <no-reply@terminmarktplatz.de>")
 MAIL_REPLY_TO = os.getenv("MAIL_REPLY_TO", os.getenv("REPLY_TO", MAIL_FROM))
 EMAILS_ENABLED = os.getenv("EMAILS_ENABLED", "true").lower() == "true"
+# WhatsApp-Erinnerungen erst einschalten, wenn ein Versanddienst angebunden UND in der
+# Datenschutzerklaerung beschrieben ist (services/mail.py -> send_sms ist ein Platzhalter).
+WHATSAPP_REMINDERS_ENABLED = os.getenv("WHATSAPP_REMINDERS_ENABLED", "false").lower() == "true"
 CONTACT_TO = os.getenv("CONTACT_TO", MAIL_FROM)
 
 # Prüfe ob es ein Testsystem ist (für automatische Deaktivierung von Features)
@@ -6571,7 +6574,7 @@ def _maybe_send_due_booking_reminders() -> None:
 
                     channel = (getattr(b, "reminder_channel", None) or "email").lower()
                     phone = (getattr(b, "customer_phone", None) or "").strip()
-                    if channel == "whatsapp" and phone:
+                    if channel == "whatsapp" and phone and WHATSAPP_REMINDERS_ENABLED:
                         msg = (
                             f"Erinnerung: Dein Termin steht an.\n"
                             f"{slot.title} am {start_str}–{end_str}\n"
@@ -10373,6 +10376,8 @@ def _public_book_impl():
 
     if reminder_channel not in ("email", "whatsapp"):
         reminder_channel = "email"
+    if reminder_channel == "whatsapp" and not WHATSAPP_REMINDERS_ENABLED:
+        reminder_channel = "email"  # WhatsApp (noch) nicht verfuegbar -> Erinnerung per E-Mail
     if reminder_channel == "whatsapp" and not phone:
         return _json_error("missing_phone_for_whatsapp", 400)
 
@@ -10745,7 +10750,7 @@ def public_confirm_view():
                     channel = (getattr(b, "reminder_channel", None) or "email").lower()
                     confirm_email_body += (
                         f"\nErinnerung: Wir schicken dir 24h vorher eine Erinnerung per "
-                        f"{'WhatsApp' if channel == 'whatsapp' else 'E-Mail'}.\n"
+                        f"{'WhatsApp' if (channel == 'whatsapp' and WHATSAPP_REMINDERS_ENABLED) else 'E-Mail'}.\n"
                     )
 
                 send_mail(

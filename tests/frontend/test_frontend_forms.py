@@ -176,6 +176,10 @@ def test_whatsapp_requires_phone_and_label_changes(tm_browser, tm_base):
     _mock_api(page, {"/public/book": (200, {"ok": True})}, sent)
     _open_booking(page, tm_base)
     assert page.inner_text("#book-phone-req-label") == "(optional)"
+    # WhatsApp ist im Formular ausgeblendet, solange der Versand nicht angebunden ist.
+    # Die Logik bleibt fuer spaeter erhalten -> Option fuer den Test einblenden.
+    page.evaluate("""() => { const o = document.createElement('option'); o.value = 'whatsapp'; o.textContent = 'WhatsApp';
+                     document.getElementById('book-reminder-channel').appendChild(o); }""")
     page.select_option("#book-reminder-channel", "whatsapp")
     assert page.inner_text("#book-phone-req-label").startswith("*")
     _fill_valid(page)
@@ -335,4 +339,47 @@ def test_help_no_longer_promises_sms_alerts(tm_browser, tm_base):
     _mock_api(page, {}, [])
     page.goto(f"{tm_base}/hilfe.html", wait_until="domcontentloaded")
     assert "SMS-Benachrichtigungen" not in page.content()
+    page.context.close()
+
+
+# ---------------------------------------------------------------------------
+# Rechtliches im Buchungsformular und in den Rechtstexten
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("mobile,sfx", [(False, ""), (True, "-mobile")])
+def test_booking_form_has_no_whatsapp_and_legal_hint(tm_browser, tm_base, mobile, sfx):
+    page = _new_page(tm_browser, mobile)
+    page.base = tm_base
+    _mock_api(page, {}, [])
+    _open_booking(page, tm_base, sfx)
+    values = page.eval_on_selector_all(f"#book-reminder-channel{sfx} option", "els => els.map(e => e.value)")
+    assert values == ["email"], "WhatsApp darf erst angeboten werden, wenn der Versand funktioniert"
+    hint = page.locator(f"#book-form{sfx} .bk-legal-hint")
+    assert hint.is_visible()
+    hrefs = hint.locator("a").evaluate_all("els => els.map(e => e.getAttribute('href'))")
+    assert "agb.html" in hrefs and "datenschutz.html#terminbuchungen" in hrefs
+    page.context.close()
+
+
+def test_privacy_policy_covers_new_features(tm_browser, tm_base):
+    page = _new_page(tm_browser)
+    page.base = tm_base
+    _mock_api(page, {}, [])
+    page.goto(f"{tm_base}/datenschutz.html", wait_until="domcontentloaded")
+    text = page.inner_text("main")
+    for needle in ("5.8 Benachrichtigungen", "5.9 Google-Kalender-Anbindung", "5.10 Aktionscodes",
+                   "tm_gcal_pkce", "Google Calendar API", "Data Privacy Framework", "Handynummer (freiwillig)"):
+        assert needle in text, needle
+    assert page.locator("#terminbuchungen").count() == 1  # Sprungziel aus dem Buchungsformular
+    page.context.close()
+
+
+def test_terms_cover_new_features(tm_browser, tm_base):
+    page = _new_page(tm_browser)
+    page.base = tm_base
+    _mock_api(page, {}, [])
+    page.goto(f"{tm_base}/agb.html", wait_until="domcontentloaded")
+    text = page.inner_text("main")
+    for needle in ("4.1 Kalender-Anbindungen", "6.1 Aktionscodes", "6.2 Aufbewahrungspflicht",
+                   "Unternehmer im Sinne des § 14 BGB"):
+        assert needle in text, needle
     page.context.close()

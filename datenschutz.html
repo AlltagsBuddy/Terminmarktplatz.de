@@ -452,7 +452,7 @@
           Hier erfährst du, welche personenbezogenen Daten wir auf Terminmarktplatz verarbeiten, zu welchen Zwecken,
           auf welcher Rechtsgrundlage, wie lange und welche Rechte du nach der DSGVO hast.
         </p>
-        <p class="note">Stand: März 2026 (Hosting auf Hetzner, Deutschland)</p>
+        <p class="note">Stand: 6. November 2026 (Hosting auf Hetzner, Deutschland)</p>
       </div>
     </section>
 
@@ -520,6 +520,21 @@
                 <td>Art. 6 Abs. 1 lit. b DSGVO</td>
               </tr>
               <tr>
+                <td>Benachrichtigungen über neue Termine (Suchende)</td>
+                <td>Versand von E-Mails zu neuen passenden Terminen nach Bestätigung (Double-Opt-In)</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO</td>
+              </tr>
+              <tr>
+                <td>Google-Kalender-Anbindung (Anbieter) <span class="pill">freiwillig</span></td>
+                <td>Abgleich von Terminen zwischen Terminmarktplatz und dem Google-Kalender des Anbieters</td>
+                <td>Art. 6 Abs. 1 lit. a DSGVO (Einwilligung); für Buchungsdaten lit. b bzw. lit. f DSGVO</td>
+              </tr>
+              <tr>
+                <td>Aktionscodes / Testzugänge (Anbieter)</td>
+                <td>Gewährung und Abwicklung befristeter Testzugänge, Verhinderung von Mehrfacheinlösungen</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO</td>
+              </tr>
+              <tr>
                 <td>Anzahlungszahlung (Stripe)</td>
                 <td>Abwicklung von Anzahlungen beim Buchen; Weiterleitung an Stripe; Bestätigung der Buchung nach Zahlung</td>
                 <td>Art. 6 Abs. 1 lit. b DSGVO</td>
@@ -552,10 +567,11 @@
             <li><strong>Stammdaten:</strong> Name, Vorname, ggf. Firmenname, Kontaktdaten (E-Mail, Anschrift).</li>
             <li><strong>Zugangsdaten (Anbieter):</strong> E-Mail-Adresse, Passwort-Hash (Argon2), Verifizierungsstatus.</li>
             <li><strong>Profilinhalte (Anbieter):</strong> Logo/Bilddatei (sofern hochgeladen).</li>
-            <li><strong>Buchungsdaten:</strong> gebuchte Slots, Datum/Uhrzeit, Anbieter, Status (z. B. bestätigt, storniert). Bei Buchungen mit Anzahlung: Buchungs-ID zur Zuordnung der Zahlung; die eigentlichen Zahlungsdaten (Kartennummer etc.) werden nicht von uns verarbeitet, sondern ausschließlich von Stripe.</li>
+            <li><strong>Buchungsdaten:</strong> gebuchte Slots, Datum/Uhrzeit, Anbieter, Buchungsnummer, Status (z. B. bestätigt, storniert), freiwillige Angaben wie Notiz an den Anbieter oder Kfz-Kennzeichen. Bei Buchungen mit Anzahlung: Buchungs-ID zur Zuordnung der Zahlung; die eigentlichen Zahlungsdaten (Kartennummer etc.) werden nicht von uns verarbeitet, sondern ausschließlich von Stripe.</li>
             <li><strong>Nutzungsdaten:</strong> Logfiles (IP-Adresse, Zeitpunkt, aufgerufene URL, HTTP-Status, User-Agent, Referrer).</li>
             <li><strong>Kommunikationsdaten:</strong> Inhalte von Nachrichten über das Kontaktformular oder per E-Mail.</li>
-            <li><strong>Abrechnungs-/Vertragsdaten (Anbieter):</strong> gewähltes Paket, Laufzeiten, Rechnungsdaten.</li>
+            <li><strong>Abrechnungs-/Vertragsdaten (Anbieter):</strong> gewähltes Paket, Laufzeiten, Rechnungsdaten, eingelöste Aktionscodes.</li>
+            <li><strong>Integrationsdaten (Anbieter, freiwillig):</strong> bei verbundenem Google-Kalender die Google-Kontoadresse, die Kennung des gewählten Kalenders, verschlüsselte Zugriffstoken sowie Titel, Zeit und Ort der abgeglichenen Termine.</li>
           </ul>
           <p>
             Besondere Kategorien personenbezogener Daten im Sinne des Art. 9 DSGVO (z. B. Gesundheitsdaten) werden durch
@@ -600,21 +616,36 @@
             widerrufen werden. Rechtsgrundlage hierfür ist Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).
           </p>
 
-          <h3>5.4 Terminbuchungen (Suchende)</h3>
+          <h3 id="terminbuchungen">5.4 Terminbuchungen (Suchende)</h3>
           <p>
             Suchende können Slots von Anbietern über die Plattform anfragen oder buchen. Hierbei verarbeiten wir folgende
             Daten, die du im Buchungsformular angibst:
           </p>
           <ul>
-            <li><strong>Vorname und Nachname</strong></li>
-            <li><strong>Adresse</strong> (Straße, Hausnummer, PLZ, Ort)</li>
-            <li><strong>Handynummer</strong></li>
-            <li><strong>E-Mail-Adresse</strong></li>
-            <li>Gewählter Slot und Buchungsstatus</li>
+            <li><strong>Vorname und Nachname</strong> (Pflichtangabe)</li>
+            <li><strong>Adresse</strong> (Straße, Hausnummer, PLZ, Ort – Pflichtangabe)</li>
+            <li><strong>E-Mail-Adresse</strong> (Pflichtangabe)</li>
+            <li><strong>Handynummer</strong> (freiwillig)</li>
+            <li><strong>Notiz an den Anbieter</strong> (freiwillig)</li>
+            <li><strong>Kfz-Kennzeichen</strong> (freiwillig, nur bei entsprechenden Werkstatt-Terminen)</li>
+            <li>Gewählter Slot, Buchungsnummer und Buchungsstatus</li>
+            <li>Dein Wunsch nach einer Erinnerung 24 Stunden vor dem Termin (per E-Mail)</li>
           </ul>
           <p>
-            Diese Daten sind erforderlich, damit der Anbieter den gebuchten Termin durchführen und dich bei Bedarf
-            kontaktieren kann. Wir übermitteln die für die Terminabwicklung erforderlichen Daten an den jeweiligen Anbieter.
+            Die Pflichtangaben sind erforderlich, damit der Anbieter den gebuchten Termin durchführen und dich bei Bedarf
+            kontaktieren kann. Wir übermitteln die für die Terminabwicklung erforderlichen Daten an den jeweiligen Anbieter
+            (per E-Mail und im Anbieter-Portal).
+          </p>
+          <p>
+            <strong>Weitergabe an Systeme des Anbieters:</strong> Hat ein Anbieter ein eigenes System an Terminmarktplatz
+            angebunden (z. B. eine Warenwirtschaft per Schnittstelle), übermitteln wir die für die Terminabwicklung nötigen
+            Buchungsdaten (Termin, Name, E-Mail und – sofern angegeben – Handynummer und Kfz-Kennzeichen) dorthin.
+            Hat ein Anbieter seinen <strong>Google-Kalender</strong> verbunden, wird der gebuchte Termin dort mit
+            Buchungsnummer eingetragen; deinen <strong>Vor- und Nachnamen</strong> übertragen wir dabei nur, wenn der Anbieter
+            diese Anzeige ausdrücklich aktiviert hat, E-Mail-Adresse und Handynummer nie (Einzelheiten unter 5.9).
+            Ab dem Empfang ist der Anbieter für diese Daten eigenständig verantwortlich (siehe Abschnitt 10).
+            Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, für die Namensanzeige im Kalender des Anbieters
+            Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Anbieters an seiner Terminorganisation).
           </p>
           <p>
             Die Verarbeitung ist zur Anbahnung und Durchführung des Vertrags zwischen dir und dem Anbieter erforderlich
@@ -632,7 +663,9 @@
           <h3>5.5 Transaktionsmails (z. B. Bestätigung, Storno, Konto-Infos)</h3>
           <p>
             Wir versenden systemische E-Mails, etwa zur Bestätigung deiner Registrierung (Double-Opt-In), zur Buchungsbestätigung,
-            zu Stornierungen oder wichtigen Informationen zu deinem Konto. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO,
+            zu Stornierungen, als Terminerinnerung (sofern gewünscht) oder mit wichtigen Informationen zu deinem Konto.
+            Anbieter erhalten bei jeder bestätigten Buchung eine E-Mail mit den Buchungsdaten, der Buchungsnummer und einem
+            Link ins Anbieter-Portal. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO,
             teilweise lit. f DSGVO (berechtigtes Interesse an einer sicheren und nachvollziehbaren Kommunikation).
           </p>
 
@@ -664,6 +697,58 @@
             DSGVO (berechtigtes Interesse an einem hilfreichen Support-Angebot).
           </p>
 
+          <h3>5.8 Benachrichtigungen über neue Termine (Suchende)</h3>
+          <p>
+            Du kannst dich per E-Mail über neue freie Termine benachrichtigen lassen. Dafür verarbeiten wir deine
+            E-Mail-Adresse, PLZ/Ort, den gewünschten Umkreis und die gewählten Kategorien sowie technische Angaben zur
+            Bestätigung (Double-Opt-In, Bestätigungs-Token) und zum Versand (z. B. Zeitpunkt der letzten Benachrichtigung,
+            Anzahl versendeter E-Mails). Die Benachrichtigung wird erst nach Klick auf den Bestätigungslink aktiv.
+          </p>
+          <p>
+            Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung des von dir angeforderten Dienstes). Du kannst die
+            Benachrichtigung jederzeit über den Link in jeder E-Mail beenden; die Daten werden dann gelöscht bzw. deaktiviert,
+            soweit keine gesetzlichen Pflichten entgegenstehen.
+          </p>
+
+          <h3>5.9 Google-Kalender-Anbindung (Anbieter, freiwillig)</h3>
+          <p>
+            Anbieter mit Profi- oder Business-Paket können freiwillig einen Google-Kalender verbinden. Dabei fordern wir nur die
+            Berechtigungen „calendar.events“ (Termine lesen und schreiben) und „calendar.calendarlist.readonly“ (Liste der
+            Kalender anzeigen) an. Was dann passiert:
+          </p>
+          <ul>
+            <li><strong>Google → Terminmarktplatz:</strong> Aus dem gewählten Kalender lesen wir Titel, Beginn, Ende und Ort
+              zukünftiger Termine und veröffentlichen daraus freie Slots.</li>
+            <li><strong>Terminmarktplatz → Google:</strong> Veröffentlichte Slots tragen wir als „FREI: …“ in den Kalender ein und
+              aktualisieren sie bei Buchung („GEBUCHT: …“ mit Buchungsnummer und Link ins Portal) oder Stornierung.</li>
+            <li><strong>Kundendaten:</strong> Name, E-Mail-Adresse und Handynummer der Buchenden übertragen wir standardmäßig
+              <strong>nicht</strong>. Nur wenn der Anbieter die Option „Namen anzeigen“ aktiviert, wird zusätzlich der Vor- und
+              Nachname eingetragen.</li>
+            <li>Wir speichern die Google-Kontoadresse, die Kennung des gewählten Kalenders und die Zugriffstoken
+              (verschlüsselt) sowie den Zeitpunkt des letzten Abgleichs.</li>
+          </ul>
+          <p>
+            Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim Verbinden erteilst. Du kannst sie
+            jederzeit über „Verbindung trennen“ im Anbieter-Portal widerrufen; die Zugriffstoken werden dann gelöscht und bei
+            Google widerrufen, freie Einträge von Terminmarktplatz werden aus deinem Kalender entfernt. Du kannst den Zugriff
+            zusätzlich in deinem Google-Konto entziehen. Wir verwenden die über Google erhaltenen Daten ausschließlich für diese
+            Funktion und geben sie nicht an Dritte weiter (Grundsatz der eingeschränkten Nutzung nach den Google-API-Richtlinien).
+            Dienstanbieter ist Google Ireland Limited; eine Verarbeitung in den USA ist möglich (siehe Abschnitt 8).
+          </p>
+          <p>
+            Für Termine, die du selbst in deinem Google-Kalender führst, und für die Nutzung der Namensanzeige bist du als
+            Anbieter mitverantwortlich (siehe Abschnitt 10).
+          </p>
+
+          <h3>5.10 Aktionscodes und Testzugänge (Anbieter)</h3>
+          <p>
+            Löst du einen Aktionscode ein, speichern wir die Zuordnung zu deinem Konto, den eingelösten Code sowie die Zeitpunkte
+            von Einlösung und Testende. Vor Ablauf eines Testzugangs erinnern wir dich per E-Mail. Zweck ist die Gewährung und
+            Abwicklung des Testzugangs sowie die Verhinderung von Mehrfacheinlösungen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.
+            Die Daten werden gelöscht, sobald sie für diese Zwecke und etwaige gesetzliche Aufbewahrungspflichten nicht mehr
+            erforderlich sind.
+          </p>
+
           <h2>6. Cookies, Token & ähnliche Technologien</h2>
           <p>
             Wir verwenden auf Terminmarktplatz derzeit lediglich technisch erforderliche Cookies bzw. Token, um
@@ -677,6 +762,11 @@
             <li>
               <strong>Cookie-/Consent-Speicher</strong> (z. B. localStorage-Eintrag für deinen Consent-Status):
               damit wir deine Auswahl im Cookie-Banner berücksichtigen können.
+            </li>
+            <li>
+              <strong>Sicherheits-Cookie bei der Google-Kalender-Verbindung</strong> (<code>tm_gcal_pkce</code>, HTTP-only,
+              Gültigkeit 10 Minuten, nur während des Verbindens): schützt den Anmeldevorgang bei Google vor Missbrauch und wird
+              danach gelöscht.
             </li>
             <li>
               <strong>Lokale Speicherung (localStorage)</strong>: Auf der Suchseite speichern wir Favoriten und Anzeigeeinstellungen
@@ -701,7 +791,7 @@
             <strong>Verarbeitete Daten:</strong> 
           </p>
           <ul>
-            <li>IP-Adresse (wird von Google gekürzt/anonymisiert, sofern konfiguriert)</li>
+            <li>IP-Adresse (wird nach Angaben von Google bei Google Analytics 4 nicht gespeichert, aber zur Ermittlung des ungefähren Standorts kurzzeitig verarbeitet)</li>
             <li>Geräteinformationen (Browser, Betriebssystem, Gerätetyp)</li>
             <li>Nutzungsdaten (aufgerufene Seiten, Verweildauer, Klicks, Herkunft)</li>
             <li>Zeitpunkt des Besuchs</li>
@@ -713,7 +803,7 @@
           </p>
           <p>
             <strong>Speicherdauer:</strong> Die von Google Analytics gesammelten Daten werden standardmäßig 14 Monate gespeichert. 
-            Wir verwenden Google Analytics mit IP-Anonymisierung aktiviert. Weitere Informationen findest du in den 
+            Weitere Informationen findest du in den 
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Datenschutzbestimmungen von Google</a> 
             und den <a href="https://support.google.com/analytics/answer/6004245" target="_blank" rel="noopener noreferrer">Google Analytics Nutzungsbedingungen</a>.
           </p>
@@ -786,10 +876,20 @@
               Weitere Informationen: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Datenschutzerklärung</a>.
             </li>
             <li>
+              <strong>Google Calendar API</strong> (nur bei Anbietern, die ihren Google-Kalender verbinden):
+              Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland; Muttergesellschaft: Google LLC, USA.
+              Zweck: Abgleich von Terminen mit dem Kalender des Anbieters (siehe 5.9).
+              Verarbeitete Daten: Termindaten (Titel, Zeit, Ort, Buchungsnummer, Link ins Portal), ggf. Name der Buchenden bei
+              aktivierter Namensanzeige.
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung des Anbieters); für Buchungsdaten siehe 5.4.
+              Google ist hierbei kein Auftragsverarbeiter von Terminmarktplatz, sondern Anbieter des Kalenderdienstes, den der
+              Anbieter selbst nutzt.
+            </li>
+            <li>
               <strong>Google Analytics</strong> (nur nach Einwilligung): Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland;
               Muttergesellschaft: Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA.
               Zweck: Analyse der Websitenutzung, Reichweitenmessung, Optimierung der Website.
-              Verarbeitete Daten: IP-Adresse (anonymisiert), Nutzungsdaten, Geräteinformationen.
+              Verarbeitete Daten: IP-Adresse (nur kurzzeitig, siehe 6.1), Nutzungsdaten, Geräteinformationen.
               Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung).
               Speicherdauer: Standardmäßig 14 Monate.
               Weitere Details siehe Punkt 6.1.
@@ -808,10 +908,15 @@
             sowie zusätzlichen technischen und organisatorischen Maßnahmen.
           </p>
           <p>
+            Für Übermittlungen in die USA an Unternehmen, die nach dem <strong>EU-US Data Privacy Framework</strong> zertifiziert
+            sind (z. B. Google LLC), besteht ein Angemessenheitsbeschluss der EU-Kommission vom 10. Juli 2023
+            (Art. 45 DSGVO). Ergänzend gelten die mit diesen Unternehmen vereinbarten Standardvertragsklauseln (Art. 46 DSGVO).
+          </p>
+          <p>
             <strong>Google Analytics:</strong> Sofern du der Verwendung von Google Analytics zugestimmt hast, werden die 
             dort gesammelten Daten an Google übertragen. Google verarbeitet die Daten teilweise auch in den USA. 
-            Die Datenübertragung erfolgt auf Basis der Standardvertragsklauseln (SCC) nach Art. 46 Abs. 2 lit. c DSGVO, 
-            die zwischen Google Ireland Limited (EU) und Google LLC (USA) geschlossen wurden. 
+            Die Datenübertragung erfolgt auf Basis des EU-US Data Privacy Framework (Art. 45 DSGVO) sowie ergänzend der
+            Standardvertragsklauseln (SCC) nach Art. 46 Abs. 2 lit. c DSGVO zwischen Google Ireland Limited (EU) und Google LLC (USA).
             Weitere Informationen zur Datenübertragung findest du in den 
             <a href="https://policies.google.com/privacy/frameworks" target="_blank" rel="noopener noreferrer">Google Privacy Frameworks</a>.
           </p>
@@ -820,8 +925,14 @@
             in Deutschland betrieben. Es erfolgt keine Verarbeitung personenbezogener Daten in Drittländern im Rahmen des Hostings.
           </p>
           <p>
+            <strong>Google Kalender (Anbieter):</strong> Bei verbundenem Google-Kalender werden Termindaten an Google übermittelt;
+            eine Verarbeitung in den USA ist möglich. Grundlage: EU-US Data Privacy Framework (Art. 45 DSGVO), ergänzend
+            Standardvertragsklauseln (Art. 46 DSGVO).
+          </p>
+          <p>
             <strong>Google Maps:</strong> Google Maps wird von Google Ireland Limited bereitgestellt, die Datenverarbeitung kann auch in den USA
-            erfolgen. Die Datenübertragung erfolgt auf Basis der Standardvertragsklauseln (SCC) nach Art. 46 Abs. 2 lit. c DSGVO.
+            erfolgen. Die Datenübertragung erfolgt auf Basis des EU-US Data Privacy Framework (Art. 45 DSGVO) sowie ergänzend der
+            Standardvertragsklauseln (SCC) nach Art. 46 Abs. 2 lit. c DSGVO.
             Weitere Informationen zur Datenübertragung findest du in den
             <a href="https://policies.google.com/privacy/frameworks" target="_blank" rel="noopener noreferrer">Google Privacy Frameworks</a>.
           </p>
@@ -836,6 +947,9 @@
             <li><strong>Google Analytics-Daten:</strong> standardmäßig 14 Monate, sofern du der Verwendung zugestimmt hast. Die Speicherdauer kann von Google in Abhängigkeit von der Konfiguration variieren.</li>
             <li><strong>Konto- und Vertragsdaten (Anbieter):</strong> für die Dauer des Vertragsverhältnisses; darüber hinaus solange gesetzliche Aufbewahrungspflichten bestehen (z. B. 6 bzw. 10 Jahre nach HGB/AO).</li>
             <li><strong>Buchungsdaten:</strong> solange dies zur Abwicklung des Termins erforderlich ist; im Übrigen im Rahmen gesetzlicher Aufbewahrungspflichten.</li>
+            <li><strong>Benachrichtigungen (Suchende):</strong> bis du die Benachrichtigung beendest; nicht bestätigte Anmeldungen werden nicht aktiviert.</li>
+            <li><strong>Google-Kalender-Verbindung:</strong> bis zum Trennen der Verbindung bzw. zur Löschung des Anbieterkontos; Zugriffstoken werden beim Trennen sofort gelöscht.</li>
+            <li><strong>Aktionscode-Einlösungen:</strong> für die Dauer des Testzugangs und darüber hinaus, solange dies zur Verhinderung von Mehrfacheinlösungen und für gesetzliche Pflichten erforderlich ist.</li>
             <li><strong>Kontaktanfragen:</strong> bis zur abschließenden Bearbeitung und ggf. längere Aufbewahrung, wenn sich ein Vertragsverhältnis anschließt oder rechtliche Ansprüche geltend gemacht werden.</li>
           </ul>
 
@@ -848,6 +962,11 @@
             Anbieter sind datenschutzrechtlich eigenständig Verantwortliche für die Verarbeitung personenbezogener Daten,
             die sie im Rahmen ihrer eigenen Tätigkeit verarbeiten (z. B. Patienten-/Kundendaten, Terminverwaltung außerhalb
             der Plattform, eigene Newsletter). Für diese Verarbeitungen gelten die Datenschutzhinweise der jeweiligen Anbieter.
+          </p>
+          <p>
+            Dies gilt insbesondere für Daten, die Anbieter über angebundene eigene Systeme (z. B. Warenwirtschaft) oder in
+            ihrem verbundenen Google-Kalender empfangen und weiterverarbeiten, sowie für die vom Anbieter aktivierte Anzeige
+            von Kundennamen im Google-Kalender.
           </p>
 
           <h2>11. Deine Rechte nach der DSGVO</h2>

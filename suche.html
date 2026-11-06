@@ -42,6 +42,7 @@
     .bk-invalid{ border-color:#dc2626 !important; background:#fef2f2 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15) !important; }
     label.bk-invalid{ border-radius:8px; }
     .bk-err{ color:#b91c1c; font-size:13px; font-weight:600; margin-top:4px; }
+    .bk-legal-hint a{ color:#4f46e5; text-decoration:underline; }
     .bk-err-summary{ background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; padding:8px 10px; font-size:14px; font-weight:600; }
     /* 1) Kein horizontales Scrollen */
     html, body {
@@ -995,13 +996,14 @@
           <span style="font-size:13px; color:#475569;">Erinnerung per:</span>
           <select id="book-reminder-channel" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
             <option value="email">E‑Mail</option>
-            <option value="whatsapp">WhatsApp</option>
+            <!-- WhatsApp ausgeblendet, bis der Versand angebunden ist (WHATSAPP_REMINDERS_ENABLED) -->
           </select>
         </label>
         <label style="display:flex; gap:8px; align-items:flex-start; background:#fff8e7; border:1px solid #f59e0b; border-radius:8px; padding:10px; font-size:14px; color:#333;">
           <input id="book-confirmed" type="checkbox" required style="margin-top:2px; flex-shrink:0;">
           <span>Ich buche diesen Termin verbindlich und verpflichte mich, ihn rechtzeitig über den Abmelde-Link in meiner Bestätigungs-E-Mail abzusagen, falls ich verhindert bin. Mir ist bewusst, dass Nicht-Erscheinen ohne Absage für die Anbieter:in unfair ist. *</span>
         </label>
+        <p class="bk-legal-hint" style="margin:0; font-size:12px; color:#475569; line-height:1.5;">Es gelten unsere <a href="agb.html" target="_blank" rel="noopener">AGB</a>. Deine Angaben werden zur Abwicklung des Termins an den Anbieter übermittelt – mehr in der <a href="datenschutz.html#terminbuchungen" target="_blank" rel="noopener">Datenschutzerklärung</a>.</p>
         <div class="book-actions">
           <button type="button" class="btn booking-cancel-btn" id="book-cancel">Abbrechen</button>
           <button type="submit" class="btn primary" id="book-submit">Verbindlich buchen</button>
@@ -1061,7 +1063,7 @@
             <label style="display:block; margin-bottom:6px; color:#111; font-weight:700; font-size:14px;">Erinnerung per</label>
             <select id="book-reminder-channel-mobile" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
               <option value="email">E‑Mail</option>
-              <option value="whatsapp">WhatsApp</option>
+              <!-- WhatsApp ausgeblendet, bis der Versand angebunden ist (WHATSAPP_REMINDERS_ENABLED) -->
             </select>
           </div>
           <div style="margin-bottom:16px; background:#fff8e7; border:1px solid #f59e0b; border-radius:8px; padding:12px;">
@@ -1070,6 +1072,7 @@
               <span style="font-size:13px; color:#333; line-height:1.5;">Ich buche diesen Termin verbindlich und verpflichte mich, ihn rechtzeitig über den Abmelde-Link in meiner Bestätigungs-E-Mail abzusagen, falls ich verhindert bin. Mir ist bewusst, dass Nicht-Erscheinen ohne Absage für die Anbieter:in unfair ist. *</span>
             </label>
           </div>
+          <p class="bk-legal-hint" style="margin:-8px 0 16px; font-size:12px; color:#475569; line-height:1.5;">Es gelten unsere <a href="agb.html" target="_blank" rel="noopener">AGB</a>. Deine Angaben werden zur Abwicklung des Termins an den Anbieter übermittelt – mehr in der <a href="datenschutz.html#terminbuchungen" target="_blank" rel="noopener">Datenschutzerklärung</a>.</p>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <button type="submit" class="btn primary" style="width:100%; padding:14px; font-size:16px; border:none; border-radius:12px; background:linear-gradient(135deg, #6f53ff, #06b6d4); color:#fff; font-weight:800; cursor:pointer;">Verbindlich buchen</button>
             <button type="button" id="book-cancel-mobile" style="width:100%; padding:12px; font-size:15px; border:1px solid #ddd; border-radius:12px; background:#f5f5f5; color:#333; font-weight:700; cursor:pointer;">Abbrechen</button>
