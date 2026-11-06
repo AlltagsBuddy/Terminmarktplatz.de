@@ -595,6 +595,28 @@ def handle_cors_preflight():
                 return resp
 
 
+
+# --------------------------------------------------------
+# www.terminmarktplatz.de -> terminmarktplatz.de (301)
+# --------------------------------------------------------
+# Die Seiten rufen die API unter der Hauptdomain auf; die CSP (connect-src 'self')
+# blockiert das auf www.* -> "Fehler beim Laden der Slots". Eine einheitliche
+# Domain behebt das fuer alle Seiten, haelt Logins auf einem Host und vermeidet
+# doppelte Inhalte bei Suchmaschinen.
+CANONICAL_HOST = (os.getenv("CANONICAL_HOST") or "terminmarktplatz.de").strip().lower()
+
+
+@app.before_request
+def _redirect_www_to_canonical():
+    if request.method not in ("GET", "HEAD"):
+        return  # POST/Webhooks nie umleiten (Daten wuerden verloren gehen)
+    host = (request.host or "").split(":")[0].lower()
+    if CANONICAL_HOST and host == "www." + CANONICAL_HOST:
+        target = "https://" + CANONICAL_HOST + request.full_path
+        if target.endswith("?"):
+            target = target[:-1]
+        return redirect(target, code=301)
+
 # Content-Security-Policy: bewusst permissiv genug für die bestehende Architektur
 # (viel Inline-JS/CSS -> 'unsafe-inline' nötig) und die genutzten Drittdienste
 # (Google Fonts, Google Tag Manager/Analytics, Google Maps auf /suche, Stripe-Redirect).
