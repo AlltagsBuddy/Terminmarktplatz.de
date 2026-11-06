@@ -788,6 +788,24 @@ class GoogleCalendarConnection(Base):
     provider: Mapped["Provider"] = relationship("Provider")
 
 
+class GoogleCalendarIgnoredEvent(Base):
+    """Google-Termine, die der Anbieter in Terminmarktplatz geloescht hat.
+
+    Verhindert, dass der naechste Abgleich einen geloeschten Termin wieder als Slot
+    anlegt ("geloescht ist geloescht"). Enthaelt keine personenbezogenen Daten.
+    """
+
+    __tablename__ = "gcal_ignored_event"
+
+    id: Mapped[str] = mapped_column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
+    provider_id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), ForeignKey("provider.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
+    # Google-Event-ID (ohne "gcal:"-Praefix)
+    event_id: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), nullable=False)
+
+
 def provider_review_aggregates(session: object, provider_ids: list[str]) -> dict[str, tuple[float | None, int]]:
     """Liefert pro Provider-ID ``(review_avg, review_count)`` aus der Tabelle ``review``.
 

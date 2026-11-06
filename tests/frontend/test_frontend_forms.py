@@ -383,3 +383,63 @@ def test_terms_cover_new_features(tm_browser, tm_base):
                    "Unternehmer im Sinne des § 14 BGB"):
         assert needle in text, needle
     page.context.close()
+
+
+# ---------------------------------------------------------------------------
+# Suche: Ansicht-Umschalter (Liste/Karte) mit aktivem Button + Hinweis
+# ---------------------------------------------------------------------------
+def _search_slots():
+    return [{
+        "id": SLOT_ID, "title": "Herrenschnitt", "category": "Friseur",
+        "start_at": "2030-01-07T09:00:00Z", "end_at": "2030-01-07T10:00:00Z",
+        "location": "Teststr. 1, 10115 Berlin", "zip": "10115", "city": "Berlin",
+        "street": "Teststr.", "house_number": "1", "capacity": 1, "available": 1,
+        "provider": {"company_name": "Salon", "zip": "10115", "city": "Berlin"},
+    }]
+
+
+def _active_view(page):
+    return page.eval_on_selector_all(".view-toggle .btn.is-active", "els => els.map(e => e.id)")
+
+
+def test_view_toggle_without_search_explains_map(tm_browser, tm_base):
+    page = _new_page(tm_browser)
+    page.base = tm_base
+    _mock_api(page, {"/public/slots": (200, _search_slots())}, [])
+    page.goto(f"{tm_base}/suche.html", wait_until="domcontentloaded")
+    page.wait_for_selector("#results .btn[data-book]")
+    # Ohne Suche gibt es keine Karte -> "Nur Liste" ist sichtbar aktiv, Hinweis aus
+    assert _active_view(page) == ["view-list"]
+    assert page.locator("#view-hint").is_hidden()
+    for btn in ("#view-map", "#view-both"):
+        page.click(btn)
+        assert page.locator("#view-hint").is_visible(), btn
+        assert "needs-input" in (page.locator("#f-ort").evaluate("e => e.closest('.input').className"))
+        assert page.locator("#results").is_visible(), "Liste muss sichtbar bleiben"
+        assert _active_view(page) == ["view-list"]
+    page.click("#view-list")
+    assert page.locator("#view-hint").is_hidden()
+    page.context.close()
+
+
+def test_view_toggle_with_search_switches_and_highlights(tm_browser, tm_base):
+    page = _new_page(tm_browser)
+    page.base = tm_base
+    _mock_api(page, {"/public/slots": (200, _search_slots())}, [])
+    page.goto(f"{tm_base}/suche.html", wait_until="domcontentloaded")
+    page.wait_for_selector("#results .btn[data-book]")
+    page.fill("#f-ort", "Berlin")
+    page.click("text=Aktualisieren")
+    page.wait_for_function("document.getElementById('map-section').dataset.available === '1'")
+    page.click("#view-map")
+    assert _active_view(page) == ["view-map"]
+    assert page.locator("#results").is_hidden() and page.locator("#map-section").is_visible()
+    assert page.locator("#view-hint").is_hidden()
+    page.click("#view-both")
+    assert _active_view(page) == ["view-both"]
+    assert page.locator("#results").is_visible() and page.locator("#map-section").is_visible()
+    page.click("#view-list")
+    assert _active_view(page) == ["view-list"]
+    assert page.locator("#map-section").is_hidden()
+    assert page.get_attribute("#view-list", "aria-pressed") == "true"
+    page.context.close()

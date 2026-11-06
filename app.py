@@ -79,6 +79,7 @@ from models import (
     PasswordReset,
     Review,
     GoogleCalendarConnection,
+    GoogleCalendarIgnoredEvent,
     provider_review_aggregates,
 )
 
@@ -1621,6 +1622,30 @@ def _ensure_gcal_two_way_fields() -> None:
         _migration_print(f"[WARN] Warnung: ensure_gcal_two_way_fields fehlgeschlagen: {e}")
 
 
+def _ensure_gcal_ignored_event() -> None:
+    """Merkliste in Terminmarktplatz geloeschter Google-Termine (kein Re-Import)."""
+    try:
+        if IS_POSTGRESQL:
+            _pg_ddl_autocommit(
+                "CREATE TABLE IF NOT EXISTS public.gcal_ignored_event ("
+                "id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "
+                "provider_id uuid NOT NULL REFERENCES public.provider(id) ON DELETE CASCADE, "
+                "event_id text NOT NULL, "
+                "created_at timestamp NOT NULL DEFAULT (now() AT TIME ZONE 'utc'), "
+                "UNIQUE (provider_id, event_id));",
+                "ensure_gcal_ignored_event",
+            )
+            return
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                "CREATE TABLE IF NOT EXISTS gcal_ignored_event ("
+                "id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, event_id TEXT NOT NULL, "
+                "created_at TIMESTAMP, UNIQUE (provider_id, event_id))"
+            )
+    except Exception as e:
+        _migration_print(f"[WARN] Warnung: ensure_gcal_ignored_event fehlgeschlagen: {e}")
+
+
 def _ensure_google_calendar_connection() -> None:
     """Tabelle google_calendar_connection fuer die native Google-Kalender-Anbindung.
 
@@ -2158,6 +2183,7 @@ ALL_SCHEMA_MIGRATION_FUNCTIONS: tuple[Callable[[], None], ...] = (
     _ensure_stripe_connect_fields,
     _ensure_slot_type_fields,
     _ensure_gcal_two_way_fields,
+    _ensure_gcal_ignored_event,
 )
 
 
@@ -8275,9 +8301,11 @@ def slots_delete(slot_id):
         else:
             # Für zukünftige, ungebuchte Slots ohne Buchungen: physisches Löschen erlaubt
             gcal_pid, gcal_eid = slot.provider_id, _gcal_own_event_id_for_delete(slot)
+            gcal_ext = slot.external_id
             s.delete(slot)
             s.commit()
             _gcal_delete_event_safe(gcal_pid, gcal_eid)
+            _gcal_forget_imported_slot(gcal_pid, gcal_ext)
             return jsonify({"ok": True, "deleted": True})
 
 
@@ -8645,9 +8673,11 @@ def api_v1_slots_delete(slot_ref):
                 _gcal_sync_slot_safe(slot.id)
                 return jsonify({"ok": True, "archived": True})
             gcal_pid, gcal_eid = slot.provider_id, _gcal_own_event_id_for_delete(slot)
+            gcal_ext = slot.external_id
             s.delete(slot)
             s.commit()
             _gcal_delete_event_safe(gcal_pid, gcal_eid)
+            _gcal_forget_imported_slot(gcal_pid, gcal_ext)
             return jsonify({"ok": True, "deleted": True})
     except Exception as e:
         app.logger.exception("api_v1_slots_delete failed")
@@ -12270,6 +12300,16 @@ def _upsert_slot_from_google_event(s: "Session", provider: "Provider", event: di
     existing = s.scalar(
         select(Slot).where(Slot.provider_id == provider.id, Slot.external_id == ext_id)
     )
+    # In Terminmarktplatz geloeschte oder archivierte Termine nie wieder anlegen/aendern
+    if existing is None and s.scalar(
+        select(GoogleCalendarIgnoredEvent.id).where(
+            GoogleCalendarIgnoredEvent.provider_id == provider.id,
+            GoogleCalendarIgnoredEvent.event_id == str(event.get("id")),
+        )
+    ):
+        return "skipped"
+    if existing is not None and bool(getattr(existing, "archived", False)):
+        return "skipped"
 
     def _slot_has_active_booking(slot_id) -> bool:
         n = s.scalar(
@@ -12380,6 +12420,13 @@ def _sync_google_connection(conn_id: str) -> dict:
                 s.rollback()
                 result["skipped"] += 1
         result["total"] = len(events)
+        # Richtung Google -> Terminmarktplatz: in Google geloeschte Termine entfernen
+        try:
+            result["removed"] = _gcal_remove_slots_deleted_in_google(s, provider.id, events)
+        except Exception:
+            s.rollback()
+            app.logger.exception("google removal phase failed")
+            result["removed"] = 0
         conn.status = "connected"
         conn.last_error = None
         conn.last_sync_at = _to_db_utc_naive(_now())
@@ -12398,6 +12445,60 @@ def _sync_google_connection(conn_id: str) -> dict:
         app.logger.exception("google push phase failed")
         result["pushed"] = 0
     return result
+
+
+def _gcal_remove_slots_deleted_in_google(s: "Session", provider_id, events: list[dict]) -> int:
+    """Aus Google uebernommene, zukuenftige Slots entfernen, deren Termin es in Google
+    nicht mehr gibt. Slots mit Buchung bleiben erhalten (Kundin/Kunde hat gebucht)."""
+    present = {f"gcal:{ev.get('id')}" for ev in events if ev.get("id")}
+    candidates = s.scalars(
+        select(Slot).where(
+            Slot.provider_id == provider_id,
+            Slot.external_id.like("gcal:%"),
+            Slot.start_at > _to_db_utc_naive(_now()),
+        )
+    ).all()
+    removed = 0
+    for sl in candidates:
+        if sl.external_id in present:
+            continue
+        has_booking = (s.scalar(
+            select(func.count()).select_from(Booking).where(
+                Booking.slot_id == sl.id, Booking.status.in_(("hold", "confirmed")))
+        ) or 0) > 0
+        if has_booking:
+            continue
+        has_any_booking = (s.scalar(
+            select(func.count()).select_from(Booking).where(Booking.slot_id == sl.id)
+        ) or 0) > 0
+        if has_any_booking:
+            # Stornierte Buchungen vorhanden -> Nachweis behalten, nur archivieren
+            sl.archived = True
+            sl.status = SLOT_STATUS_EXPIRED
+        else:
+            s.delete(sl)
+        removed += 1
+    return removed
+
+
+def _gcal_forget_imported_slot(provider_id, external_id) -> None:
+    """Anbieter hat einen aus Google uebernommenen Slot in Terminmarktplatz geloescht:
+    Termin in Google ebenfalls loeschen und auf die Merkliste setzen, damit er nie
+    wieder auftaucht – auch wenn das Loeschen bei Google scheitert."""
+    origin, event_id = _gcal_parse_external(external_id)
+    if origin != "in" or not event_id or not provider_id:
+        return
+    try:
+        with Session(engine) as s:
+            exists = s.scalar(select(GoogleCalendarIgnoredEvent.id).where(
+                GoogleCalendarIgnoredEvent.provider_id == provider_id,
+                GoogleCalendarIgnoredEvent.event_id == event_id))
+            if not exists:
+                s.add(GoogleCalendarIgnoredEvent(provider_id=provider_id, event_id=event_id))
+                s.commit()
+    except Exception:
+        app.logger.exception("gcal ignore-list write failed for provider %s", provider_id)
+    _gcal_delete_event_safe(provider_id, event_id)
 
 
 def _google_sync_all_job():

@@ -783,3 +783,128 @@ def test_free_event_has_manage_link(test_client, monkeypatch):
     calls = _capture_google(monkeypatch)
     app_module._gcal_sync_slot(sid)
     assert f"/anbieter-portal.html?slot={sid}" in calls["create"][0]["description"]
+
+
+
+# --------------------------------------------------------------------------
+# "Geloescht ist geloescht" – in beide Richtungen
+# --------------------------------------------------------------------------
+def _conn_id(pid):
+    with Session(app_module.engine) as s:
+        return s.scalar(app_module.select(GoogleCalendarConnection.id).where(
+            GoogleCalendarConnection.provider_id == pid))
+
+
+def _imported_slot(pid, event_id):
+    with Session(app_module.engine) as s:
+        sl = s.query(Slot).filter(Slot.provider_id == pid, Slot.external_id == f"gcal:{event_id}").one_or_none()
+        return str(sl.id) if sl else None
+
+
+def test_deleted_imported_slot_never_comes_back(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    ev = _future_event("g-del-1", summary="Beratung")
+    _connect(pid, monkeypatch, events=[ev])
+    sid = _imported_slot(pid, "g-del-1")
+    assert sid
+    calls = _capture_google(monkeypatch)
+    res = test_client.delete(f"/slots/{sid}", headers=_auth_headers(pid))
+    assert res.status_code == 200 and res.get_json().get("deleted") is True
+    # Auch in Google geloescht
+    assert "g-del-1" in calls["delete"]
+    # Selbst wenn der Termin in Google noch existiert: kein Re-Import
+    monkeypatch.setattr(app_module, "_google_list_events", lambda *a, **k: [ev])
+    app_module._sync_google_connection(_conn_id(pid))
+    app_module._sync_google_connection(_conn_id(pid))
+    assert _imported_slot(pid, "g-del-1") is None
+
+
+def test_deleted_imported_slot_stays_gone_even_if_google_delete_fails(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    ev = _future_event("g-del-2")
+    _connect(pid, monkeypatch, events=[ev])
+    sid = _imported_slot(pid, "g-del-2")
+
+    def _boom(*a, **k):
+        raise RuntimeError("Google nicht erreichbar")
+
+    monkeypatch.setattr(app_module, "_google_delete_event", _boom)
+    res = test_client.delete(f"/slots/{sid}", headers=_auth_headers(pid))
+    assert res.status_code == 200
+    app_module._sync_google_connection(_conn_id(pid))
+    assert _imported_slot(pid, "g-del-2") is None
+
+
+def test_ignore_list_is_per_provider(test_client, monkeypatch):
+    """Die Merkliste eines Anbieters darf andere Anbieter nicht beeinflussen."""
+    pid_a = _create_provider(plan="profi")
+    pid_b = _create_provider(plan="profi")
+    ev = _future_event("g-shared")
+    _connect(pid_a, monkeypatch, events=[ev])
+    _capture_google(monkeypatch)
+    test_client.delete(f"/slots/{_imported_slot(pid_a, 'g-shared')}", headers=_auth_headers(pid_a))
+    _connect(pid_b, monkeypatch, events=[ev])
+    assert _imported_slot(pid_b, "g-shared") is not None
+
+
+def test_event_deleted_in_google_removes_slot(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    _connect(pid, monkeypatch, events=[_future_event("g-a"), _future_event("g-b", hours_from_now=72)])
+    assert _imported_slot(pid, "g-a") and _imported_slot(pid, "g-b")
+    _capture_google(monkeypatch)
+    monkeypatch.setattr(app_module, "_google_list_events", lambda *a, **k: [_future_event("g-b", hours_from_now=72)])
+    result = app_module._sync_google_connection(_conn_id(pid))
+    assert result["removed"] == 1
+    assert _imported_slot(pid, "g-a") is None
+    assert _imported_slot(pid, "g-b") is not None
+
+
+def test_event_deleted_in_google_keeps_booked_slot(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    _connect(pid, monkeypatch, events=[_future_event("g-booked")])
+    sid = _imported_slot(pid, "g-booked")
+    _add_booking(sid, pid)
+    _capture_google(monkeypatch)
+    monkeypatch.setattr(app_module, "_google_list_events", lambda *a, **k: [])
+    result = app_module._sync_google_connection(_conn_id(pid))
+    assert result["removed"] == 0
+    assert _imported_slot(pid, "g-booked") == sid
+
+
+def test_event_deleted_in_google_with_canceled_booking_is_archived(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    _connect(pid, monkeypatch, events=[_future_event("g-canc")])
+    sid = _imported_slot(pid, "g-canc")
+    _add_booking(sid, pid, status="canceled")
+    _capture_google(monkeypatch)
+    monkeypatch.setattr(app_module, "_google_list_events", lambda *a, **k: [])
+    app_module._sync_google_connection(_conn_id(pid))
+    with Session(app_module.engine) as s:
+        sl = s.get(Slot, sid)
+        assert sl is not None and sl.archived is True
+
+
+def test_archived_imported_slot_is_not_touched_by_sync(test_client, monkeypatch):
+    pid = _create_provider(plan="profi")
+    _connect(pid, monkeypatch, events=[_future_event("g-arch", summary="Alt")])
+    sid = _imported_slot(pid, "g-arch")
+    _capture_google(monkeypatch)
+    res = test_client.post(f"/slots/{sid}/archive", headers=_auth_headers(pid))
+    assert res.status_code == 200
+    monkeypatch.setattr(app_module, "_google_list_events",
+                        lambda *a, **k: [_future_event("g-arch", summary="Neu")])
+    app_module._sync_google_connection(_conn_id(pid))
+    with Session(app_module.engine) as s:
+        sl = s.get(Slot, sid)
+        assert sl.archived is True and sl.title == "Alt"
+
+
+def test_removal_phase_never_touches_own_slots(test_client, monkeypatch):
+    """Slots, die der Anbieter in Terminmarktplatz angelegt hat, bleiben unberuehrt."""
+    pid = _create_provider(plan="profi")
+    _connect(pid, monkeypatch, events=[])
+    sid = _make_free_slot(pid)
+    _capture_google(monkeypatch)
+    app_module._sync_google_connection(_conn_id(pid))
+    with Session(app_module.engine) as s:
+        assert s.get(Slot, sid) is not None
