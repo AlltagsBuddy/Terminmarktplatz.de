@@ -42,6 +42,10 @@
     .bk-invalid{ border-color:#dc2626 !important; background:#fef2f2 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15) !important; }
     label.bk-invalid{ border-radius:8px; }
     .bk-err{ color:#b91c1c; font-size:13px; font-weight:600; margin-top:4px; }
+    /* Ansicht-Umschalter: aktiver Button + Hinweis, wenn (noch) keine Karte moeglich */
+    .view-toggle .btn.is-active{ background:linear-gradient(135deg,#6f53ff,#06b6d4); color:#fff; border-color:transparent; box-shadow:0 0 0 2px rgba(111,83,255,.35); }
+    .view-hint{ margin:0 0 12px; background:#eef2ff; border:1px solid #c7d2fe; color:#312e81; border-radius:10px; padding:8px 12px; font-size:14px; }
+    .needs-input{ outline:3px solid #f59e0b !important; outline-offset:2px; border-radius:14px; transition:outline-color .3s; }
     .bk-legal-hint a{ color:#4f46e5; text-decoration:underline; }
     .bk-err-summary{ background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:8px; padding:8px 10px; font-size:14px; font-weight:600; }
     /* 1) Kein horizontales Scrollen */
@@ -849,9 +853,9 @@
         <div class="results-toolbar">
           <div class="pill" id="summary">Suche wird geladen …</div>
           <div class="view-toggle">
-            <button type="button" class="btn" id="view-both">Liste + Karte</button>
-            <button type="button" class="btn" id="view-list">Nur Liste</button>
-            <button type="button" class="btn" id="view-map">Nur Karte</button>
+            <button type="button" class="btn" id="view-both" aria-pressed="false">Liste + Karte</button>
+            <button type="button" class="btn" id="view-list" aria-pressed="false">Nur Liste</button>
+            <button type="button" class="btn" id="view-map" aria-pressed="false">Nur Karte</button>
             <label class="inline-input" style="margin-left:6px;">
               <input type="checkbox" id="fav-only" />
               Nur Favoriten
@@ -863,6 +867,10 @@
               <option value="latest">Sortieren: zuletzt</option>
             </select>
           </div>
+        </div>
+
+        <div id="view-hint" class="view-hint" role="status" aria-live="polite" hidden>
+          🗺️ Die Karte erscheint, sobald du einen <strong>Ort oder eine PLZ</strong> eingibst und auf <strong>„Aktualisieren“</strong> klickst.
         </div>
 
         <div id="results" class="features results-grid"></div>
@@ -1411,11 +1419,15 @@
     }
     // Quick-Filters entfernt
 
-    function applyViewMode(mode){
+    // fromUser = true nur bei Klick auf einen Ansicht-Button
+    function applyViewMode(mode, fromUser){
       const results = document.getElementById('results');
       const mapSection = document.getElementById('map-section');
       if (!results || !mapSection) return;
       const mapAvailable = mapSection.dataset.available === '1';
+      const hint = document.getElementById('view-hint');
+      const ortWrap = document.getElementById('f-ort')?.closest('.input');
+
       if (mode === 'list') {
         results.style.display = '';
         mapSection.style.display = 'none';
@@ -1424,13 +1436,35 @@
         mapSection.style.display = '';
       } else {
         results.style.display = '';
+        if (mapAvailable) mapSection.style.display = '';
       }
-      localStorage.setItem('tm_view_mode', mode);
+      // Was ist tatsaechlich zu sehen? -> diesen Button hervorheben
+      const shown = !mapAvailable ? 'list' : mode;
+      ['both','list','map'].forEach(m => {
+        const btn = document.getElementById('view-' + m);
+        if (!btn) return;
+        btn.classList.toggle('is-active', m === shown);
+        btn.setAttribute('aria-pressed', m === shown ? 'true' : 'false');
+      });
+
+      // Karte gewuenscht, aber (noch) keine Suche -> erklaeren statt still nichts tun
+      if (hint) {
+        const wantsMap = fromUser && mode !== 'list' && !mapAvailable;
+        hint.hidden = !wantsMap;
+        if (wantsMap && ortWrap) {
+          ortWrap.classList.add('needs-input');
+          ortWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => { try { document.getElementById('f-ort').focus({ preventScroll: true }); } catch(_){} }, 350);
+          setTimeout(() => ortWrap.classList.remove('needs-input'), 4000);
+        }
+        if (mapAvailable) hint.hidden = true;
+      }
+      try { localStorage.setItem('tm_view_mode', mode); } catch(_){}
     }
 
-    document.getElementById('view-both')?.addEventListener('click', () => applyViewMode('both'));
-    document.getElementById('view-list')?.addEventListener('click', () => applyViewMode('list'));
-    document.getElementById('view-map')?.addEventListener('click', () => applyViewMode('map'));
+    document.getElementById('view-both')?.addEventListener('click', () => applyViewMode('both', true));
+    document.getElementById('view-list')?.addEventListener('click', () => applyViewMode('list', true));
+    document.getElementById('view-map')?.addEventListener('click', () => applyViewMode('map', true));
 
     document.getElementById('fav-only')?.addEventListener('change', () => load());
 
