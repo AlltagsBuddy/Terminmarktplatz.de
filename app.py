@@ -115,7 +115,7 @@ else:
 LOGO_UPLOAD_DIR = os.path.join(UPLOAD_BASE, "provider-logos")
 GALLERY_UPLOAD_DIR = os.path.join(UPLOAD_BASE, "provider-gallery")
 LOGO_MAX_BYTES = 2 * 1024 * 1024  # 2 MB – Standard-Bilder als Profilbild erlauben
-LOGO_MAX_PX = 2048  # Max. Kantenlänge beim Upload
+LOGO_MAX_PX = 6000  # Max. Kantenlänge beim Upload (wird danach ohnehin auf LOGO_SIZE_PX skaliert)
 LOGO_SIZE_PX = 512  # Zielgröße für Speicherung (wird beim Upload skaliert)
 GALLERY_MAX_BYTES = 500 * 1024
 GALLERY_MAX_COUNT = 12

@@ -432,7 +432,7 @@
               <div id="pf-gallery-preview" class="gallery-preview"></div>
             </div>
             <div class="field" style="grid-column:1/-1">
-              <label for="pf-logo-file">Logo (JPG/PNG, max 2 MB)</label>
+              <label for="pf-logo-file">Logo (JPG/PNG, max 2 MB, max. 6000 × 6000 Pixel)</label>
               <div class="logo-upload">
                 <input id="pf-logo-file" type="file" accept="image/jpeg,image/png"/>
                 <button type="button" class="btn" id="pf-logo-upload-btn">Logo hochladen</button>
@@ -884,12 +884,15 @@
             showMsg('msg-profile', 'Logo hochgeladen.', true);
           } else {
             const err = data.error || 'Logo-Upload fehlgeschlagen.';
-            showMsg(
-              'msg-profile',
-              err === 'business_plan_required'
-                ? 'Logo-Upload ist für deinen Tarif verfügbar – bitte Seite neu laden oder Support kontaktieren.'
-                : err,
-            );
+            const LOGO_ERR_MSG = {
+              business_plan_required: 'Logo-Upload ist für deinen Tarif verfügbar – bitte Seite neu laden oder Support kontaktieren.',
+              invalid_logo_size: 'Bild ist zu groß (max. 6000 × 6000 Pixel). Bitte verkleinern und erneut hochladen.',
+              logo_too_large: 'Logo ist zu groß (max 2 MB).',
+              invalid_logo_format: 'Nur JPG oder PNG sind erlaubt. Die Datei konnte nicht gelesen werden.',
+              logo_consent_required: 'Bitte der Anzeige des Logos zustimmen.',
+              missing_file: 'Bitte eine JPG- oder PNG-Datei auswählen.',
+            };
+            showMsg('msg-profile', LOGO_ERR_MSG[err] || err);
           }
         } catch (e2) {
           showMsg('msg-profile', 'Netzwerkfehler beim Logo-Upload.');
