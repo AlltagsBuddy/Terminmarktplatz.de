@@ -1519,14 +1519,12 @@ def _pg_ddl_autocommit(sql: str, label: str) -> None:
     if not IS_POSTGRESQL:
         return
     try:
-        raw = engine.raw_connection()
-        try:
-            raw.autocommit = True
-            cur = raw.cursor()
-            cur.execute(sql)
-            cur.close()
-        finally:
-            raw.close()
+        # Wichtig: AUTOCOMMIT ueber SQLAlchemy setzen. Das fruehere
+        # ``raw_connection().autocommit = True`` setzte das Attribut nur am Pool-Proxy,
+        # nicht am Treiber -> jedes DDL wurde beim Zurueckgeben stillschweigend
+        # zurueckgerollt (Spalten/Tabellen fehlten nach dem Deploy).
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            conn.exec_driver_sql(sql)
     except Exception as e:
         _migration_log_warning(f"PG DDL ({label})", e)
 
@@ -1723,7 +1721,14 @@ def _ensure_google_calendar_connection() -> None:
 def _ensure_provider_warevision_webhook():
     """Provider: webhook_url, webhook_api_key für WareVision/Warenwirtschaft."""
     try:
-        # Eigener Connection mit AUTOCOMMIT, um "transaction is aborted" zu vermeiden
+        if IS_POSTGRESQL:
+            # Echtes AUTOCOMMIT (siehe _pg_ddl_autocommit) – raw.autocommit wirkte nicht
+            for col, typ in [("webhook_url", "TEXT"), ("webhook_api_key", "TEXT")]:
+                _pg_ddl_autocommit(
+                    f"ALTER TABLE provider ADD COLUMN IF NOT EXISTS {col} {typ}",
+                    f"ensure_provider_{col}",
+                )
+            return
         raw = engine.raw_connection()
         try:
             raw.autocommit = True
